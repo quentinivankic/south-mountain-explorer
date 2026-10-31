@@ -40,6 +40,9 @@ HIKING_ROUTE_KINDS = {"hiking", "foot", "walking", "running"}
 MAIN_ROLES = {"", "main"}
 SPUR_ROLES = {"approach", "connection"}
 VARIANT_ROLES = {"alternative", "excursion", "alternate"}
+# OSM direction roles on a way member. Never main-line by default; opted into
+# per area (registry accept_directional_roles, dk-v3) for route=hiking only.
+DIRECTIONAL_ROLES = {"forward", "backward"}
 RETAINED_ROUTE_INGEST_CATEGORY = "retained-signed-route-member"
 
 # Legacy destination signatures remain the default outside exact-quality
@@ -434,26 +437,40 @@ def rendered_way_lineage(
 def resolve_route_member_entries(
         rel_id: int, relations: dict, _seen: set[int] | None = None,
         _ancestor_spur_role: str | None = None,
-        _root_relation_id: int | None = None) -> list[dict]:
-    """Resolve ordered route occurrences with path-local cycle protection."""
+        _root_relation_id: int | None = None,
+        accept_directional_roles: bool = False) -> list[dict]:
+    """Resolve ordered route occurrences with path-local cycle protection.
+
+    With ``accept_directional_roles`` a ``forward``/``backward`` way member of a
+    ``route=hiking`` relation counts as a main-line member (``effective_role``
+    "main"; the raw ``role`` is kept). Off by default: every other role
+    resolves exactly as before."""
     stack = set(_seen or ())
     root_relation_id = rel_id if _root_relation_id is None else _root_relation_id
     if rel_id in stack or rel_id not in relations:
         return []
     stack.add(rel_id)
     out = []
+    directional_ok = (
+        accept_directional_roles
+        and member_safety.normalize(
+            (relations[rel_id].get("tags") or {}).get("route")) == "hiking")
     for member_index, (member_type, ref, role) in enumerate(
             relations[rel_id]["members"]):
         direct_role = role or ""
         if member_type == "w":
+            effective = _ancestor_spur_role or direct_role or "main"
+            if (directional_ok and _ancestor_spur_role is None
+                    and member_safety.normalize(direct_role)
+                    in DIRECTIONAL_ROLES):
+                effective = "main"
             out.append({
                 "root_relation_id": root_relation_id,
                 "relation_id": rel_id,
                 "member_index": member_index,
                 "way_id": ref,
                 "role": direct_role,
-                "effective_role": (_ancestor_spur_role
-                                   or direct_role or "main"),
+                "effective_role": effective,
             })
         elif member_type == "r":
             # Existing semantics: an outer approach/connection role overrides
@@ -462,7 +479,8 @@ def resolve_route_member_entries(
             if inherited is None and direct_role in SPUR_ROLES:
                 inherited = direct_role
             out.extend(resolve_route_member_entries(
-                ref, relations, stack, inherited, root_relation_id))
+                ref, relations, stack, inherited, root_relation_id,
+                accept_directional_roles))
     return out
 
 
@@ -558,7 +576,8 @@ def _scope_relation_statuses(relation_scope_evidence: dict | None,
 
 def _build_relation_member_audit(
         rel_id: int, relations: dict, ways: dict,
-        relation_scope_evidence: dict | None = None
+        relation_scope_evidence: dict | None = None,
+        accept_directional_roles: bool = False
         ) -> tuple[dict, list[int], list[int]]:
     """Build complete Denmark direct-member evidence for one accepted route."""
     relation = relations[rel_id]
@@ -576,7 +595,9 @@ def _build_relation_member_audit(
     main_ways = []
     spur_ways = []
     records = []
-    for entry in resolve_route_member_entries(rel_id, relations):
+    for entry in resolve_route_member_entries(
+            rel_id, relations,
+            accept_directional_roles=accept_directional_roles):
         way_id = entry["way_id"]
         way = ways.get(way_id)
         effective_role = entry["effective_role"]
@@ -1012,11 +1033,15 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              standalone_way_ids: set[int] | frozenset[int] | None = None,
              defer_relation_absorption: bool = False,
              exact_denmark: bool = False,
-             defer_promotion: bool = False
+             defer_promotion: bool = False,
+             accept_directional_roles: bool = False
              ) -> list[Trail]:
     if exact_denmark != defer_promotion:
         raise ValueError(
             "exact-Denmark model assembly must defer destination promotion")
+    if accept_directional_roles and not exact_denmark:
+        raise ValueError(
+            "accept_directional_roles is limited to exact Denmark assembly")
     trails: list[Trail] = []
     claimed: set[int] = set()
     relation_output_way_ids: set[int] = set()
@@ -1099,7 +1124,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         audit = None
         if denmark:
             audit, main_ways, spur_ways = _build_relation_member_audit(
-                rid, relations, ways, relation_scope_evidence)
+                rid, relations, ways, relation_scope_evidence,
+                accept_directional_roles)
             if collect_relation_member_audit is not None:
                 collect_relation_member_audit.append(audit)
             direct_members = audit["direct_relation_way_ids"]

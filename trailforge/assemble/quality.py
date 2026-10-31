@@ -28,6 +28,14 @@ DK_V3_MIN_ROUTE_SHARE = 0.25
 # linkage over real member geometry; nothing is drawn across the gap). The app
 # scores multi-part trails per segment, so no connector is ever needed.
 DK_V3_MAX_BRIDGE_M = 100.0
+# Per-relation opt-in (registry `accept_gap`, dk-v3 only): a reviewed route whose
+# real member pieces are joined only by gaps wider than DK_V3_MAX_BRIDGE_M is
+# published as its connected parts, exactly like a <=100 m route (separate parts,
+# no synthesized geometry), when the widest gap needed is at most the entry's
+# max_gap_m. max_gap_m is hard-capped here; the registry cannot raise it.
+DK_ACCEPT_GAP_CAP_M = 1000.0
+DK_ACCEPT_GAP_KEYS = {"relation", "max_gap_m", "reason"}
+DK_ACCEPT_GAP_ID = re.compile(r"^r[1-9][0-9]*$")
 
 # Signed-route road miles and shares are evidence for manual review, never an
 # arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
@@ -157,6 +165,42 @@ def validate_dk_exclude(entries: Any, label: str = "exclude"
             raise ValueError(f"curated {label} repeats id {ident!r}")
         seen.add(ident)
         out.append({"id": ident, "name": name, "reason": entry["reason"].strip()})
+    return out
+
+
+def validate_dk_accept_gap(entries: Any) -> list[dict[str, Any]]:
+    """Return a normalized copy of a registry ``accept_gap`` list or raise
+    ValueError. Entry: {"relation": "r<id>", "max_gap_m": number in
+    (DK_V3_MAX_BRIDGE_M, DK_ACCEPT_GAP_CAP_M], "reason": text}."""
+    import math
+    if not isinstance(entries, list):
+        raise ValueError("accept_gap must be a list")
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != DK_ACCEPT_GAP_KEYS:
+            raise ValueError(
+                f"accept_gap entry must be an object with exactly "
+                f"{sorted(DK_ACCEPT_GAP_KEYS)}: {entry!r}")
+        relation = entry["relation"]
+        if not (isinstance(relation, str)
+                and DK_ACCEPT_GAP_ID.fullmatch(relation)):
+            raise ValueError(f"accept_gap relation is invalid: {relation!r}")
+        gap = entry["max_gap_m"]
+        if (isinstance(gap, bool) or not isinstance(gap, (int, float))
+                or not math.isfinite(gap)
+                or not DK_V3_MAX_BRIDGE_M < gap <= DK_ACCEPT_GAP_CAP_M):
+            raise ValueError(
+                f"accept_gap {relation}: max_gap_m must be a number above "
+                f"{DK_V3_MAX_BRIDGE_M:g} and at most {DK_ACCEPT_GAP_CAP_M:g}: "
+                f"{gap!r}")
+        if not isinstance(entry["reason"], str) or not entry["reason"].strip():
+            raise ValueError(f"accept_gap {relation}: reason is required")
+        if relation in seen:
+            raise ValueError(f"accept_gap repeats relation {relation!r}")
+        seen.add(relation)
+        out.append({"relation": relation, "max_gap_m": float(gap),
+                    "reason": entry["reason"].strip()})
     return out
 
 
@@ -751,7 +795,8 @@ def bridged_component_gaps(records: list[dict], max_m: float
 
 
 def _whole_connectivity(feature: dict[str, Any], records: list[dict],
-                        missing_way_ids: list[int]) -> dict:
+                        missing_way_ids: list[int],
+                        bridge_limit_m: float = DK_V3_MAX_BRIDGE_M) -> dict:
     """dk-v3 connectivity of a route published whole (not clipped to the area).
 
     Accepted when every real member piece is one OSM-node-connected piece, or
@@ -763,7 +808,7 @@ def _whole_connectivity(feature: dict[str, Any], records: list[dict],
     source_components = _source_component_count(records)
     clusters, widest_gap = (
         (1, 0.0) if source_components <= 1
-        else bridged_component_gaps(records, DK_V3_MAX_BRIDGE_M))
+        else bridged_component_gaps(records, bridge_limit_m))
     postclip_components = geometry_component_count(feature)
     try:
         exact = bool(records) and unary_union([
@@ -777,7 +822,8 @@ def _whole_connectivity(feature: dict[str, Any], records: list[dict],
     if source_components == 1:
         reasons.append("shared-osm-node")
     elif clusters == 1:
-        reasons.append("bridged-gap")
+        reasons.append("bridged-gap" if bridge_limit_m == DK_V3_MAX_BRIDGE_M
+                       else "accepted-gap")
     return {
         "status": ("unavailable-evidence" if missing_way_ids
                    else "accepted" if accepted else "rejected"),
@@ -787,7 +833,7 @@ def _whole_connectivity(feature: dict[str, Any], records: list[dict],
         "missing_way_ids": missing_way_ids,
         "exact_boundary_clip": exact,
         "whole_route": True,
-        "bridge_limit_m": DK_V3_MAX_BRIDGE_M,
+        "bridge_limit_m": bridge_limit_m,
         "widest_gap_m": (round(widest_gap, 1) if widest_gap != float("inf")
                          else None),
     }
@@ -796,9 +842,11 @@ def _whole_connectivity(feature: dict[str, Any], records: list[dict],
 def _connectivity(feature: dict[str, Any], records: list[dict],
                   missing_way_ids: list[int], area_union,
                   outside_gap_explained: bool = False,
-                  whole: bool = False) -> dict:
+                  whole: bool = False,
+                  bridge_limit_m: float = DK_V3_MAX_BRIDGE_M) -> dict:
     if whole:
-        return _whole_connectivity(feature, records, missing_way_ids)
+        return _whole_connectivity(
+            feature, records, missing_way_ids, bridge_limit_m)
     source_components = _source_component_count(records)
     postclip_components = geometry_component_count(feature)
     exact_clip = _exact_boundary_clip_matches(feature, records, area_union)
@@ -1419,7 +1467,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        promotion_decisions: list[dict] | None = None,
                        dk_rules: str = "legacy",
                        dk_exclude: list[dict] | None = None,
-                       dk_include: list[dict] | None = None
+                       dk_include: list[dict] | None = None,
+                       dk_accept_gap: list[dict] | None = None
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -1435,6 +1484,9 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     dk_include = validate_dk_exclude(dk_include or [], "include")
     if dk_include and dk_rules != "dk-v3":
         raise ValueError("curated inclusions require the dk-v3 rule set")
+    dk_accept_gap = validate_dk_accept_gap(dk_accept_gap or [])
+    if dk_accept_gap and dk_rules != "dk-v3":
+        raise ValueError("accept_gap requires the dk-v3 rule set")
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
         for feature in features:
@@ -1458,6 +1510,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     restored_road_relations = []
     aggregate_relation_way_miles: dict[tuple[int, int], float] = {}
     aggregate_restored_relation_ways: set[tuple[int, int]] = set()
+    gap_candidates: list[dict] = []
     for index, feature in enumerate(features):
         properties = feature.get("properties") or {}
         source = properties.get("_quality_source") or {}
@@ -1487,6 +1540,15 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         whole_route = (dk_rules == "dk-v3"
                        and bool(properties.get("dk_whole_route")))
         feature_area = _full_extent() if whole_route else area_union
+        # Registry accept_gap (dk-v3): only a route published whole may bridge
+        # a wider gap, and only up to the entry's own hard-capped limit.
+        gap_entries = [
+            entry for entry in dk_accept_gap
+            if int(entry["relation"][1:]) in relation_ids
+            or int(entry["relation"][1:]) in root_relation_ids]
+        gap_limit = DK_V3_MAX_BRIDGE_M
+        if whole_route and gap_entries:
+            gap_limit = max(entry["max_gap_m"] for entry in gap_entries)
         records, missing = _source_way_records(source, ways, nodes, feature_area)
         rendered_records = [record for record in records if record["renders_in_area"]]
         outside_gap_explained = bool(
@@ -1495,7 +1557,12 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     for relation_id in root_relation_ids))
         connectivity = _connectivity(
             feature, records, missing, feature_area,
-            outside_gap_explained=outside_gap_explained, whole=whole_route)
+            outside_gap_explained=outside_gap_explained, whole=whole_route,
+            bridge_limit_m=gap_limit)
+        if gap_entries:
+            gap_candidates.append({
+                "index": index, "entries": gap_entries,
+                "whole": whole_route, "connectivity": connectivity})
         identity = walking_identity(rendered_records)
 
         properties.update({
@@ -1873,6 +1940,63 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             "miles": properties.get("length_mi"),
             "inside_mi": properties.get("dk_inside_mi"),
             "reason": entry["reason"]})
+    # dk-v3 accept_gap fails closed: every entry must name exactly one
+    # candidate published whole whose widest gap really needed the opt-in (more
+    # than DK_V3_MAX_BRIDGE_M) and fits the entry's max_gap_m. A stale, unneeded,
+    # ambiguous or over-limit entry fails the area instead of passing quietly.
+    accept_gap_failures: list[str] = []
+    accept_gap_accepted: list[dict] = []
+    for entry in dk_accept_gap:
+        label = f"{entry['relation']} (max_gap_m {entry['max_gap_m']:g})"
+        matched = [item for item in gap_candidates
+                   if entry in item["entries"]]
+        if len(matched) != 1:
+            accept_gap_failures.append(
+                f"{label}: {len(matched)} matching candidates, expected "
+                "exactly 1")
+            continue
+        item = matched[0]
+        state = next((s for s in states if s["index"] == item["index"]), None)
+        connectivity = item["connectivity"]
+        widest = connectivity.get("widest_gap_m")
+        if not item["whole"]:
+            accept_gap_failures.append(
+                f"{label}: candidate is not a route published whole "
+                "(accept_gap applies to dk-v3 whole routes only)")
+            continue
+        if connectivity.get("missing_way_ids"):
+            accept_gap_failures.append(
+                f"{label}: source member ways are missing")
+            continue
+        if connectivity.get("status") != "accepted":
+            accept_gap_failures.append(
+                f"{label}: not accepted (widest gap "
+                f"{'unmeasurable' if widest is None else f'{widest:g} m'}, "
+                f"{connectivity.get('source_components')} pieces)")
+            continue
+        if not widest or widest <= DK_V3_MAX_BRIDGE_M:
+            accept_gap_failures.append(
+                f"{label}: not needed (widest gap {widest or 0:g} m is within "
+                f"the {DK_V3_MAX_BRIDGE_M:g} m default); remove the entry")
+            continue
+        if state is None or state["removed_category"]:
+            accept_gap_failures.append(
+                f"{label}: not published, removed as "
+                f"{state['removed_category'] if state else 'unknown'}")
+            continue
+        properties = state["feature"]["properties"]
+        properties["dk_accept_gap"] = {
+            "relation": entry["relation"],
+            "max_gap_m": entry["max_gap_m"],
+            "widest_gap_m": widest,
+            "reason": entry["reason"],
+        }
+        accept_gap_accepted.append({
+            "relation": entry["relation"], "name": properties.get("name"),
+            "miles": properties.get("length_mi"),
+            "parts": connectivity.get("source_components"),
+            "widest_gap_m": widest, "max_gap_m": entry["max_gap_m"],
+            "reason": entry["reason"]})
     retained_state_ids = {id(state) for state in states}
     overlap_pairs = [
         pair for pair in overlap_pairs
@@ -2012,6 +2136,15 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 [*report["validation_failures"],
                  *(f"dk-curated-include {item}"
                    for item in curated_include_failures)]))
+            if dk_accept_gap:
+                # Only present when the registry opts in, so every other
+                # area's report is unchanged.
+                report["dk_accept_gap"] = accept_gap_accepted
+                report["dk_accept_gap_failures"] = accept_gap_failures
+                report["validation_failures"] = list(dict.fromkeys(
+                    [*report["validation_failures"],
+                     *(f"dk-accept-gap {item}"
+                       for item in accept_gap_failures)]))
         if dk_rules in DK_V2_FAMILY:
             report["dk_quality_removed"] = dk_removed_evidence
             report["dk_long_distance_ambiguous"] = long_distance_ambiguous

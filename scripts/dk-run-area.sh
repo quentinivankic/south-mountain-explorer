@@ -41,6 +41,12 @@ EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .excl
 # Optional curated inclusions (registry include_trails; dk-v3 only, validated by dk_publish and assemble).
 INCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .include_trails // []' \
   trailforge/golden/dk-areas.json)"
+# Optional per-relation wide-gap acceptance (registry accept_gap; dk-v3 only, validated by dk_publish and
+# assemble) and forward/backward member roles (registry accept_directional_roles; dk-v3 only).
+ACCEPT_GAP_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .accept_gap // []' \
+  trailforge/golden/dk-areas.json)"
+DIRECTIONAL_ROLES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .accept_directional_roles // empty' \
+  trailforge/golden/dk-areas.json)"
 # Optional display prefix for colour/number-only trail names (registry trail_name_prefix; dk-v3 only,
 # validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
 NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
@@ -55,6 +61,13 @@ fi
 if [ "$INCLUDE_JSON" != "[]" ]; then
   printf '%s\n' "$INCLUDE_JSON" > "$A/dk-curated-include.json"
   EXCLUDE_ARGS+=(--dk-curated-include "$A/dk-curated-include.json")
+fi
+if [ "$ACCEPT_GAP_JSON" != "[]" ]; then
+  printf '%s\n' "$ACCEPT_GAP_JSON" > "$A/dk-accept-gap.json"
+  EXCLUDE_ARGS+=(--dk-accept-gap "$A/dk-accept-gap.json")
+fi
+if [ "$DIRECTIONAL_ROLES" = "true" ]; then
+  EXCLUDE_ARGS+=(--dk-accept-directional-roles)
 fi
 if [ -n "$NAME_PREFIX" ]; then
   EXCLUDE_ARGS+=(--dk-name-prefix "$NAME_PREFIX")

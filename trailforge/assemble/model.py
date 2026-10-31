@@ -336,13 +336,20 @@ def _oriented_node_ids(reference: OrientedWay, ways: dict) -> list[int]:
     return node_ids
 
 
-def order_ways(way_ids: list[int], ways: dict) -> list[list[OrientedWay]]:
+def order_ways(way_ids: list[int], ways: dict, *,
+               legacy_mutate: bool = False) -> list[list[OrientedWay]]:
     """Order source ways into connected candidate-local oriented chains.
 
     Source records are immutable authority. A chain therefore stores an
     explicit orientation for each way instead of rewriting ``ways[wid]``.
     Repeated relation occurrences remain in relation provenance but geometry
     is emitted once per unique way identity.
+
+    ``legacy_mutate=True`` restores the pre-Denmark behavior byte-for-byte:
+    a way that must be flipped to join the chain is reversed IN PLACE in
+    ``ways`` (so the flip leaks into every later use of that way) and is
+    referenced as "source". Every non-Denmark run uses it so US output stays
+    identical to the pre-Denmark baseline (72c6c7d22).
     """
     remaining = list(dict.fromkeys(way_ids))
     by_end: dict[int, set[int]] = {}
@@ -369,6 +376,9 @@ def order_ways(way_ids: list[int], ways: dict) -> list[list[OrientedWay]]:
             used.add(nxt)
             source_nodes = ways[nxt]["nodes"]
             reversed_view = source_nodes[0] != tail_node
+            if legacy_mutate and reversed_view:
+                ways[nxt] = {**ways[nxt], "nodes": list(reversed(source_nodes))}
+                reversed_view = False
             reference = OrientedWay(
                 nxt, "reversed" if reversed_view else "source")
             oriented_nodes = _oriented_node_ids(reference, ways)
@@ -382,6 +392,9 @@ def order_ways(way_ids: list[int], ways: dict) -> list[list[OrientedWay]]:
             used.add(nxt)
             source_nodes = ways[nxt]["nodes"]
             reversed_view = source_nodes[-1] != head_node
+            if legacy_mutate and reversed_view:
+                ways[nxt] = {**ways[nxt], "nodes": list(reversed(source_nodes))}
+                reversed_view = False
             reference = OrientedWay(
                 nxt, "reversed" if reversed_view else "source")
             oriented_nodes = _oriented_node_ids(reference, ways)
@@ -1146,7 +1159,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             if audit is not None:
                 audit["assembly_status"] = "entirely-filtered"
             continue
-        chains = order_ways(main_ways, ways)
+        chains = order_ways(main_ways, ways, legacy_mutate=not denmark)
         lines = chains_to_multiline(chains, ways, nodes)
         if not lines:
             if audit is not None:
@@ -1256,7 +1269,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                 way.get("tags") or {}, closed=closed,
                 relation_claimed=way_id in relation_output_way_ids):
             continue
-        chains = order_ways([way_id], ways)
+        chains = order_ways([way_id], ways, legacy_mutate=not denmark)
         lines = chains_to_multiline(chains, ways, nodes)
         if not lines or collect_removed is None:
             continue
@@ -1275,7 +1288,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                       and w["tags"].get("name")
                       and _is_trailish(w["tags"])]
     for group in stitch_by_name(named_leftover, ways):
-        chains = order_ways(group, ways)
+        chains = order_ways(group, ways, legacy_mutate=not denmark)
         lines = chains_to_multiline(chains, ways, nodes)
         if not lines:
             continue
@@ -1296,7 +1309,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    sit in one park, but split a sprawling same-name group (a bare
     #    long-trail name mapped as many disconnected stretches, e.g. Bonneville
     #    Shoreline) into connected components instead of one scattered blob.
-    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None)
+    merged = merge_same_name(trails, area_of=make_area_of(areas) if areas else None,
+                             legacy=not denmark)
 
     # 4b. drop geometry-duplicate trails the name-merge missed — a route
     #     relation and a name-stitch built over the same ways under names that
@@ -1358,7 +1372,7 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     #    that should read as one "Bonneville Shoreline Trail", not 28. Merge
     #    same-name objects sharing an area into one multi-segment object. No-op
     #    when areas aren't assigned (park runs / tests keep area=None).
-    result = coalesce_by_area(promoted)
+    result = coalesce_by_area(promoted, legacy=not denmark)
     return result
 
 
@@ -1478,7 +1492,8 @@ def terminal_relation_absorption_targets(
     return out
 
 
-def coalesce_by_area(trails: list["Trail"]) -> list["Trail"]:
+def coalesce_by_area(trails: list["Trail"], *,
+                     legacy: bool = False) -> list["Trail"]:
     """One object per (name, area) for the completion checklist. Merges every
     same-name trail assigned to the same park into a single multi-segment
     object, so a long trail split across a huge area (or a loop split by shared
@@ -1497,7 +1512,7 @@ def coalesce_by_area(trails: list["Trail"]) -> list["Trail"]:
             groups[gk] = []
             order.append(gk)
         groups[gk].append(t)
-    out.extend(_fuse_cluster(groups[gk]) for gk in order)
+    out.extend(_fuse_cluster(groups[gk], legacy=legacy) for gk in order)
     return out
 
 
@@ -1655,7 +1670,7 @@ def _deduplicate_exact_linework(
     return output
 
 
-def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
+def _fuse_cluster(cluster: list["Trail"], *, legacy: bool = False) -> "Trail":
     """Fuse one connected same-name cluster into a single Trail.
 
     Relation occurrences concatenate in original candidate/root order, while
@@ -1690,7 +1705,13 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
             way_id for way_id in t.geometry_ways
             if way_id not in known_geometry_way_ids
         }
-        adds_geometry = bool(novel_geometry_way_ids)
+        # legacy (non-Denmark): pre-Denmark fuse appended every fused piece's
+        # linework unconditionally and ordered member_ways base-first. Only
+        # those two behaviors differ; provenance bookkeeping below is shared.
+        adds_geometry = legacy or bool(novel_geometry_way_ids)
+        if legacy:
+            base.member_ways.extend(
+                w for w in t.member_ways if w not in base.member_ways)
         if adds_geometry:
             base.lines.extend(t.lines)
             if preserve_occurrences:
@@ -1744,7 +1765,9 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
         base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":
             base.source, base.tags, base.name = "relation", t.tags, t.name
-    if preserve_occurrences:
+    if legacy:
+        pass
+    elif preserve_occurrences:
         base.lines = _deduplicate_exact_linework(base.lines)
         base.member_ways = combined_member_ways
         base.member_way_occurrences = combined_occurrences
@@ -1753,7 +1776,8 @@ def _fuse_cluster(cluster: list["Trail"]) -> "Trail":
     return base
 
 
-def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
+def merge_same_name(trails: list["Trail"], area_of=None, *,
+                    legacy: bool = False) -> list["Trail"]:
     """Fold same-name trail objects into one, scoped to an area and gated on
     geographic SPREAD.
 
@@ -1788,10 +1812,10 @@ def merge_same_name(trails: list["Trail"], area_of=None) -> list["Trail"]:
         groups.setdefault((area, k), []).append(t)
     for group in groups.values():
         if len(group) == 1 or _group_spread_mi(group) <= MERGE_SPREAD_CAP_MI:
-            out.append(_fuse_cluster(group))            # one real trail
+            out.append(_fuse_cluster(group, legacy=legacy))  # one real trail
         else:
             for cluster in _connectivity_clusters(group):
-                out.append(_fuse_cluster(cluster))      # sprawling blob -> split
+                out.append(_fuse_cluster(cluster, legacy=legacy))  # sprawling blob
     return out
 
 

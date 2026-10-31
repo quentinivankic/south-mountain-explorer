@@ -190,9 +190,11 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
     boundaries, the one with the entry's relation_id/way_id. container_by_id: {"reason"}
     names an existing unnamed/other-named forest polygon as the container; the trails then
     come from include_trails only."""
-    for field in ("boundary_by_id", "container_by_id"):
+    for field in ("boundary_by_id", "container_by_id", "container_from_routes"):
         if field in entry and entry.get("rules") != "dk-v3":
             raise DkError(f"{aid}: {field} requires rules dk-v3")
+    if "container_from_routes" in entry:
+        _check_container_from_routes(aid, entry)
     if "boundary_by_id" in entry and entry["boundary_by_id"] is not True:
         raise DkError(f"{aid}: boundary_by_id must be true when present")
     if "container_by_id" in entry:
@@ -205,6 +207,33 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
                           "(the container yields no trails of its own)")
         if "boundary_by_id" in entry:
             raise DkError(f"{aid}: boundary_by_id and container_by_id are mutually exclusive")
+def _check_container_from_routes(aid: str, entry: dict[str, Any]) -> None:
+    """dk-v3 container_from_routes: {"reason"}. For an area with NO usable OSM polygon; the
+    container is derived from the whole geometry of its include_trails routes (see
+    areas.route_cluster_container). Needs at least two distinct r<id> includes, the registry
+    relation_id is the anchor (the first include), the name is the explicit area name, and no
+    other container opt-in, way_id or exclude_trails (the trails are exactly the includes)."""
+    item = entry["container_from_routes"]
+    if (not isinstance(item, dict) or set(item) != {"reason"}
+            or not isinstance(item["reason"], str) or not item["reason"].strip()):
+        raise DkError(f"{aid}: container_from_routes must be exactly {{\"reason\": text}} when present")
+    if "boundary_by_id" in entry or "container_by_id" in entry:
+        raise DkError(f"{aid}: container_from_routes is exclusive with boundary_by_id/container_by_id")
+    if "way_id" in entry:
+        raise DkError(f"{aid}: container_from_routes needs relation_id (the anchor route), not way_id")
+    if entry.get("exclude_trails"):
+        raise DkError(f"{aid}: container_from_routes publishes exactly its include_trails; "
+                      "exclude_trails is not allowed")
+    selectors = [i["id"] for i in entry.get("include_trails") or []]
+    areas_mod = _dk_areas()
+    if (len(selectors) < areas_mod.ROUTE_CLUSTER_MIN_ROUTES
+            or not all(re.fullmatch(r"r[1-9][0-9]*", i) for i in selectors)
+            or len(set(selectors)) != len(selectors)):
+        raise DkError(f"{aid}: container_from_routes needs at least "
+                      f"{areas_mod.ROUTE_CLUSTER_MIN_ROUTES} distinct r<id> include_trails")
+    if entry.get("relation_id") != int(selectors[0][1:]):
+        raise DkError(f"{aid}: container_from_routes relation_id must be the first include_trails route "
+                      f"({selectors[0]})")
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -547,6 +576,10 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
     if info.get("count") != 1:
         problems.append(f"registry relation {entry['relation_id']} occurs {info.get('count')} times (not unique)")
     tags = info["tags"]
+    if "container_from_routes" in entry:
+        # The anchor is a hiking route, not a polygon: route checks and the cluster size
+        # are made on every include by cluster_problems.
+        return problems
     if tags.get("type") not in REL_TYPES:
         problems.append(f"relation {entry['relation_id']} has type={tags.get('type')!r}, expected boundary/multipolygon")
     container = "container_by_id" in entry
@@ -600,6 +633,35 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems
+def cluster_problems(entry: dict[str, Any], boundary: list[float] | None,
+                     infos: dict[int, dict[str, Any]]) -> list[str]:
+    """Fail-closed checks of a container_from_routes entry against the PBF: every include is
+    present once as a hiking/foot route relation with geometry, the union (``boundary``) is
+    inside Denmark and within the cluster size cap. Same limits as areas.route_cluster_container."""
+    rules = _dk_areas()
+    problems: list[str] = []
+    for rid, info in sorted(infos.items()):
+        tags = (info or {}).get("tags")
+        if tags is None:
+            problems.append(f"include route relation {rid} is not in the PBF")
+            continue
+        if info.get("count") != 1:
+            problems.append(f"include route relation {rid} occurs {info.get('count')} times (not unique)")
+        if tags.get("type") != "route" or (tags.get("route") or "").strip().lower() \
+                not in rules.ROUTE_CLUSTER_ROUTE_KINDS:
+            problems.append(f"include relation {rid} is type={tags.get('type')!r} route={tags.get('route')!r}, "
+                            "expected a hiking/foot route")
+        if info.get("bbox") is None:
+            problems.append(f"include route relation {rid} has no member way geometry")
+    if boundary is not None:
+        w, h = boundary[2] - boundary[0], boundary[3] - boundary[1]
+        if w > rules.ROUTE_CLUSTER_MAX_SPAN_DEG or h > rules.ROUTE_CLUSTER_MAX_SPAN_DEG:
+            problems.append(f"route cluster is {w:.3f} x {h:.3f} degrees, over the "
+                            f"{rules.ROUTE_CLUSTER_MAX_SPAN_DEG} cap per axis")
+        if not (DK_LON[0] <= boundary[0] and boundary[2] <= DK_LON[1]
+                and DK_LAT[0] <= boundary[1] and boundary[3] <= DK_LAT[1]):
+            problems.append(f"route cluster bbox {boundary} is outside Denmark")
+    return problems
 def include_relation_ids(entry: dict[str, Any]) -> list[int]:
     """Relation ids of a dk-v3 area's include_trails (r<id> selectors only); [] otherwise."""
     if entry.get("rules") != "dk-v3":
@@ -618,7 +680,8 @@ def center_of(box: list[float]) -> list[float]:
 
 def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, discovery_center: Any,
                         mode: str, relation_info: dict[str, Any] | None = None,
-                        include_boxes: list[list[float]] | None = None) -> dict[str, Any]:
+                        include_boxes: list[list[float]] | None = None,
+                        cluster_infos: dict[int, dict[str, Any]] | None = None) -> dict[str, Any]:
     """Derive/check one area's bbox + centre. Returns the per-area prepare record.
     include_boxes (dk-v3 include_trails relation bboxes found in the PBF) widen only the
     ceiling of the margin check and the proposed bbox: the window must be able to reach the
@@ -652,7 +715,7 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         # against its own PBF way (identity, closed ring, name, size).
         rec["cross_check"] = "registry-way"
         problems += way_problems(entry, relation_info)
-    elif isinstance(discovery_center, list) and len(discovery_center) == 2:
+    elif isinstance(discovery_center, list) and len(discovery_center) == 2 and cluster_infos is None:
         mid = [(boundary[1] + boundary[3]) / 2, (boundary[0] + boundary[2]) / 2]
         if abs(mid[0] - discovery_center[0]) > 0.05 or abs(mid[1] - discovery_center[1]) > 0.05:
             problems.append(f"boundary bbox midpoint {mid} disagrees with the discovery centre {discovery_center}")
@@ -662,6 +725,10 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         # after the registry's own relation (id, type, name, size) checks out.
         rec["cross_check"] = "registry-relation"
         problems += relation_problems(entry, relation_info)
+        if cluster_infos is not None:
+            # container_from_routes: ``boundary`` is the union bbox of the include routes.
+            rec["container"] = "route-cluster"
+            problems += cluster_problems(entry, boundary, cluster_infos)
     if reg is None:
         if mode == "publish":
             problems.append("registry bbox/center missing: run qualify and commit the proposed values first")
@@ -710,7 +777,12 @@ def prepare_areas(args: argparse.Namespace) -> int:
         info = way_infos[entry["way_id"]] if "way_id" in entry else infos[entry["relation_id"]]
         inc_boxes = [b for r in include_relation_ids(entry)
                      if (b := (infos.get(r) or {}).get("bbox")) is not None]
-        rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info, inc_boxes)
+        boundary, cluster_infos = info["bbox"], None
+        if "container_from_routes" in entry:
+            cluster_infos = {r: infos.get(r) or {} for r in include_relation_ids(entry)}
+            boxes = [i.get("bbox") for i in cluster_infos.values()]
+            boundary = union_bbox(boxes) if boxes and all(b is not None for b in boxes) else None
+        rec = check_area_geometry(entry, boundary, disc_center, args.mode, info, inc_boxes, cluster_infos)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             rec["display_name"] = entry.get("display_name") or entry["name"]

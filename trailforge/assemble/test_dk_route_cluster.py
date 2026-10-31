@@ -245,5 +245,35 @@ class RouteClusterNegatives(RouteClusterCase):
                 result, *_ = self.run_cli(flags=("--dk-container-from-routes", other))
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("mutually exclusive", result.stderr)
+class RouteClusterRounding(unittest.TestCase):
+    """Two routes ~300 m apart make the 150 m buffers nearly tangent; rounding the ring to
+    6 decimals then self-intersects (found by search; the unrounded buffer is valid). The
+    derivation must repair that deterministically and still cover both routes."""
+    LINES = (((9.00049257335851, 56.0), (9.01049257335851, 55.999989385620346)),
+             ((9.00123800213736, 56.002676729069535), (9.01049257335851, 56.00284453163715)))
+
+    def derive(self):
+        if not HAVE_DEPS:
+            self.skipTest("pyosmium/shapely not installed")
+        import areas
+        nodes, ways, relations = {}, {}, {}
+        for index, line in enumerate(self.LINES, start=1):
+            ids = [index * 10, index * 10 + 1]
+            nodes.update(dict(zip(ids, line)))
+            ways[index] = {"tags": {}, "nodes": ids}
+            relations[100 + index] = {"tags": {"type": "route", "route": "hiking"},
+                                      "members": [("w", index, "")]}
+        return areas.route_cluster_container(relations, ways, nodes, [101, 102], 101, "Tangent")
+
+    def test_rounding_pinch_is_repaired_and_still_covers_the_routes(self):
+        from shapely.geometry import LineString
+        area, failure = self.derive()
+        self.assertIsNone(failure)
+        self.assertTrue(area["geom"].is_valid)
+        for line in self.LINES:
+            self.assertTrue(area["geom"].covers(LineString(line)))
+        again, _ = self.derive()
+        self.assertEqual(area["geom"].wkt, again["geom"].wkt)
+        self.assertEqual(area["route_cluster"], again["route_cluster"])
 if __name__ == "__main__":
     unittest.main()

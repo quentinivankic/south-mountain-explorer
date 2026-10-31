@@ -200,8 +200,17 @@ def route_cluster_container(relations: dict, ways: dict, nodes: dict,
     union = unary_union([transform(forward, LineString(cs)) for _r, _w, cs in lines
                          if len(cs) >= 2])
     poly = transform(inverse, union.buffer(ROUTE_CLUSTER_BUFFER_M, 8))
+    if not poly.is_valid:
+        # Rounding to 6 decimals can pinch a narrow neck into a self-intersection
+        # (seen on a real cluster); buffer(0) is the deterministic repair. The result
+        # must then still hold every route (checked below), so it can never shrink
+        # onto the routes it was derived from.
+        poly = poly.buffer(0)
     if poly.is_empty or not poly.is_valid or poly.geom_type not in ("Polygon", "MultiPolygon"):
         return None, "route-cluster container is not a valid polygon"
+    route_lines = unary_union([LineString(cs) for _r, _w, cs in lines if len(cs) >= 2])
+    if not poly.covers(route_lines):
+        return None, "route-cluster container does not cover every included route"
     # Input pin (independent of GEOS): the exact route linework the container came from.
     linework = sorted([rid, way_id, [[round(x, 7), round(y, 7)] for x, y in cs]]
                       for rid, way_id, cs in lines)

@@ -449,13 +449,8 @@
       "hold": null,
       "est_trails": 12,
       "est_mi": 30.6,
-      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): ONE island destination for Falster instead of five small ones. 12 named routes: Horreby Lyng Lilla/Rød/Grøn/Hvid/Blå (VisitDenmark: several routes of 3 to 5 km over the only raised bog on Falster, https://www.visitdenmark.com/denmark/plan-your-trip/horreby-lyng-gdk1145973), Borremosen og Hannenov Skoven and Halskov Vænge (Naturstyrelsen guides Hannenov og Ovstrupskovene and Halskov Vænge og naturperler ved Falsters Østkyst), Bøtøskoven, Sporet ved Bønnet Slotsruin, Kroghage blå and grøn, Hasselø Natursti. Known omissions: the 4.5 km Hjertesti in Ovstrup Skov and the Hannenov walks beyond Borremosen (not in OSM), Gedser Odde (bird tower, no marked walk). Motionsslangen (37 km exercise connector), Alternativ rute (generic Falster Rundt leg), the Naturlandet copy of the Bøtø loop and two name-stitches are excluded. Overlap: sibling entries horreby-lyng-dk, hannenov-skov-dk and boto-plantage-dk are held and must never be published next to this one. Rating: complete as far as OSM shows.",
+      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): ONE island destination for Falster instead of five small ones. 12 named routes: Horreby Lyng Lilla/Rød/Grøn/Hvid/Blå (VisitDenmark: several routes of 3 to 5 km over the only raised bog on Falster, https://www.visitdenmark.com/denmark/plan-your-trip/horreby-lyng-gdk1145973), Borremosen og Hannenov Skoven and Halskov Vænge (Naturstyrelsen guides Hannenov og Ovstrupskovene and Halskov Vænge og naturperler ved Falsters Østkyst), Bøtøskoven, Sporet ved Bønnet Slotsruin, Kroghage blå and grøn, Hasselø Natursti. Known omissions: the 4.5 km Hjertesti in Ovstrup Skov and the Hannenov walks beyond Borremosen (not in OSM), Gedser Odde (bird tower, no marked walk). Motionsslangen afstikker (spur of a 37 km exercise connector), the Naturlandet copy of the Bøtø loop and two name-stitches are excluded. Alternativ rute (a generic 10 mi Falster Rundt leg, r2776061) is dropped by the relation-gap gate on the Actions runner but kept by the local macOS replay (shapely/GEOS differs), so it is NOT in exclude_trails (a stale curated exclusion fails closed); it is a forbidden name in the proposed bless. Overlap: sibling entries horreby-lyng-dk, hannenov-skov-dk and boto-plantage-dk are held and must never be published next to this one. Rating: complete as far as OSM shows.",
       "exclude_trails": [
-        {
-          "id": "r2776061",
-          "name": "Alternativ rute",
-          "reason": "generic name, a 10 mi alternative leg of the Falster Rundt regional route; not a destination walk"
-        },
         {
           "id": "r12497129",
           "name": "Motionsslangen afstikker",

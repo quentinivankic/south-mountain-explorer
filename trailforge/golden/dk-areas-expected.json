@@ -29,7 +29,9 @@
       "trail_count": 26,
       "total_mi": 67.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Thy Blå rute"
+      ],
       "forbidden_names": [
         "Aggervej",
         "Arkensvej",
@@ -87,7 +89,9 @@
       "trail_count": 17,
       "total_mi": 59.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Vadehavet Gul Sti"
+      ],
       "forbidden_names": [
         "Albuevej",
         "Ardennevej",
@@ -315,7 +319,9 @@
       "trail_count": 7,
       "total_mi": 20.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Almindingen Gul Tur 1"
+      ],
       "forbidden_names": [
         "Almindingsvej",
         "Askedalsvej",
@@ -592,7 +598,11 @@
       "trail_count": 9,
       "total_mi": 26.6,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Randbøl Blå Rute",
+        "Randbøl Gul Rute",
+        "Randbøl Rød Rute"
+      ],
       "forbidden_names": [
         "Gammel Randbølvej",
         "Gl. Randbølvej",
@@ -609,7 +619,9 @@
       "trail_count": 10,
       "total_mi": 39.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Rold Skov Gul"
+      ],
       "forbidden_names": [
         "Aalborgvej",
         "Advokathusvejen",
@@ -667,7 +679,9 @@
       "trail_count": 5,
       "total_mi": 15.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Roden Skov, rød rute"
+      ],
       "forbidden_names": [
         "Bækvejen",
         "Den Stejle Vej",
@@ -778,7 +792,12 @@
       "trail_count": 7,
       "total_mi": 10.5,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Blå rute i Hoppeshuse",
+        "Gul rute - Hoppeshuse Skov",
+        "Gul rute i Svanemosen",
+        "Rød rute i Svanemosen"
+      ],
       "forbidden_names": [
         "Grønnevej",
         "Nørreskovsvej",
@@ -805,7 +824,9 @@
       "trail_count": 4,
       "total_mi": 8.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Lindfald ruten"
+      ],
       "forbidden_names": [
         "Brandbygade",
         "Midtervej",
@@ -983,7 +1004,9 @@
       "trail_count": 4,
       "total_mi": 9.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Skaløruten"
+      ],
       "forbidden_names": [
         "Andemosevej"
       ]

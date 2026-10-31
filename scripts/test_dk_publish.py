@@ -338,6 +338,13 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert "velling-skov-dk" not in table and "urhoje-plantage-dk" not in table
     # batch F: the re-blessed updates and the new areas carry their required names
     assert "Svanninge Rød rute" in table["svanninge-bjerge-dk"]["required_names"]
+    # batch G: renamed and added routes are required names
+    for aid, name in (("rold-skov-dk", "Rold Skov Gul"), ("almindingen-dk", "Almindingen Gul Tur 1"),
+                      ("nationalpark-thy-dk", "Thy Blå rute"), ("nationalpark-vadehavet-dk", "Vadehavet Gul Sti"),
+                      ("randbol-hede-frederikshab-dk", "Randbøl Blå Rute"), ("fovslet-skov-dk", "Gul rute i Svanemosen"),
+                      ("staksrode-skov-dk", "Lindfald ruten"), ("fejo-dk", "Skaløruten"),
+                      ("grastenskovene-dk", "Roden Skov, rød rute")):
+        assert name in table[aid]["required_names"]
     assert "Cirkelstien" in table["ro-plantage-dk"]["required_names"]
     assert "Egholm Grøn Vandrerute" in table["egholm-dk"]["required_names"]
     assert "Egholm" in table["egholm-dk"]["forbidden_names"]

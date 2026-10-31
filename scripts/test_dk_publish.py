@@ -225,7 +225,7 @@ def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
 BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
                   "randbol-hede-frederikshab-dk": "Randbøl", "nationalpark-thy-dk": "Thy",
                   "nationalpark-vadehavet-dk": "Vadehavet"}
-BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r17635362", "r15655202", "r15655203", "r15655204"},
+BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r17635362", "r15655203", "r15655204"},
                    "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
 BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
                    "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.705, 11.993]}
@@ -236,6 +236,8 @@ def test_batch_g_registry_prefixes_includes_excludes_and_centres():
     for aid, ids in BATCH_G_INCLUDE.items():
         assert by_id[aid]["rules"] == "dk-v3" and ids <= {t["id"] for t in by_id[aid]["include_trails"]}
     assert by_id["fovslet-skov-dk"]["display_name"] == "Fovslet, Hoppeshuse og Svanemosen"
+    assert "r15655202" not in {t["id"] for t in by_id["fovslet-skov-dk"]["include_trails"]}
+    assert by_id["staksrode-skov-dk"]["display_name"] == "Staksrode Skov og Lindfald"
     kong = {t["id"] for t in by_id["nationalpark-kongernes-nordsjaelland-dk"]["exclude_trails"]}
     assert {"r12585237", "r13649311"} <= kong
     for aid, centre in BATCH_G_CENTRES.items():
@@ -315,7 +317,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 15.9), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
-        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (8, 12.7),
+        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (7, 10.5),
         "staksrode-skov-dk": (4, 8.8), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
         "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
         "svanninge-bjerge-dk": (8, 30.9), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),

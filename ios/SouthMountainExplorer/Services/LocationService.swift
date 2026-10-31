@@ -156,6 +156,9 @@ final class LocationService: NSObject, RecordingLocationControlling {
     private var pendingFixTimeouts: [LocationConsumerID: Task<Void, Never>] = [:]
     private var recordingOwnsLocation = false
     private var applicationIsActive = true
+    /// Bumped every time the app leaves `.active`, so a caller can tell a
+    /// request cancelled by an interruption from a genuine failure.
+    private var inactiveEpoch = 0
     private var locationUpdatesRunning = false
     private var headingUpdatesRunning = false
 
@@ -214,6 +217,7 @@ final class LocationService: NSObject, RecordingLocationControlling {
         guard applicationIsActive != active else { return }
         applicationIsActive = active
         if !active {
+            inactiveEpoch += 1
             finishPendingFixes(with: .unavailable)
         }
         reconcileManagerState()
@@ -266,6 +270,30 @@ final class LocationService: NSObject, RecordingLocationControlling {
             }
             reconcileManagerState()
             manager.requestLocation()
+        }
+    }
+
+    /// One-shot fix that survives brief `.inactive` interruptions (system
+    /// permission alerts, Control Center, Face ID). Going inactive cancels
+    /// the in-flight request; instead of reporting that as a failed fix,
+    /// wait for the app to become active again and re-ask, up to
+    /// `maxInterruptions` times. Real failures still return as-is.
+    func requestFixAcrossInterruptions(
+        for consumer: LocationConsumerID,
+        accuracy: LocationAccuracyDemand,
+        maxInterruptions: Int = 3,
+        activeTimeout: TimeInterval = 30
+    ) async -> LocationFixResult {
+        var interruptions = 0
+        while true {
+            guard await waitUntilActive(timeout: activeTimeout) else { return .unavailable }
+            let epoch = inactiveEpoch
+            let result = await requestOneShotFix(for: consumer, accuracy: accuracy)
+            guard result == .unavailable,
+                  inactiveEpoch != epoch,
+                  !Task.isCancelled,
+                  interruptions < maxInterruptions else { return result }
+            interruptions += 1
         }
     }
 

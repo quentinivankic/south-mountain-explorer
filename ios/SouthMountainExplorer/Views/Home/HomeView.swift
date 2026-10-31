@@ -543,11 +543,10 @@ struct HomeView: View {
         locationRefreshGeneration += 1
         let generation = locationRefreshGeneration
         locationState = .locating
-        // Scene phase is briefly inactive at cold launch; asking then would
-        // return .unavailable instantly and show the stale-location banner.
-        _ = await location.waitUntilActive(timeout: 5)
-        guard generation == locationRefreshGeneration else { return }
-        let result = await location.requestOneShotFix(
+        // Scene phase is briefly inactive at cold launch and whenever a system
+        // alert (e.g. the notification prompt) is up; either used to cancel
+        // the fix and show the stale-location banner. Wait it out and re-ask.
+        let result = await location.requestFixAcrossInterruptions(
             for: locationConsumer,
             accuracy: .coarse
         )

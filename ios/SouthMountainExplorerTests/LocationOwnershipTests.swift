@@ -49,10 +49,10 @@ struct LocationOwnershipTests {
             delegate?.locationManager?(CLLocationManager(), didUpdateLocations: [location])
         }
 
-        func failLocation() {
+        func failLocation(code: CLError.Code = .locationUnknown) {
             delegate?.locationManager?(
                 CLLocationManager(),
-                didFailWithError: CLError(.locationUnknown)
+                didFailWithError: CLError(code)
             )
         }
 
@@ -401,6 +401,44 @@ struct LocationOwnershipTests {
         await Task.yield()
         service.setApplicationActive(true)
         #expect(await waiter.value)
+    }
+
+    @Test func fixSurvivesInactiveInterruptionButNotRealFailure() async throws {
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let manager = FakeLocationManager()
+        let service = makeService(manager: manager, defaults: defaults)
+
+        // A system alert makes the app inactive mid-request: re-ask once active.
+        let interrupted = Task { @MainActor in
+            await service.requestFixAcrossInterruptions(
+                for: LocationConsumerID("explore"), accuracy: .coarse, activeTimeout: 2
+            )
+        }
+        await Task.yield()
+        #expect(manager.requestLocationCount == 1)
+        service.setApplicationActive(false)
+        await Task.yield()
+        service.setApplicationActive(true)
+        for _ in 0..<50 where manager.requestLocationCount < 2 {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(manager.requestLocationCount == 2, "re-asks after becoming active")
+        manager.deliverLocation()
+        guard case .success = await interrupted.value else {
+            Issue.record("an inactive interruption must not surface as a failed fix")
+            return
+        }
+
+        // A real failure while active is still reported honestly.
+        let failing = Task { @MainActor in
+            await service.requestFixAcrossInterruptions(
+                for: LocationConsumerID("explore"), accuracy: .coarse, activeTimeout: 2
+            )
+        }
+        await Task.yield()
+        manager.failLocation(code: .network)
+        #expect(await failing.value == .unavailable)
     }
 
     @Test func exploreStateResolution() {

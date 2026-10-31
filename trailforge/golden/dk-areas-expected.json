@@ -323,7 +323,7 @@
     },
     "almindingen-dk": {
       "trail_count": 7,
-      "total_mi": 18.4,
+      "total_mi": 20.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -459,7 +459,7 @@
     },
     "pamhule-skov-dk": {
       "trail_count": 4,
-      "total_mi": 6.6,
+      "total_mi": 9.3,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -467,7 +467,6 @@
         "Brunsbyttel og Christiansdal - rød rute",
         "Damvej",
         "Egevej",
-        "Geheimeraadens Sti",
         "Granvej",
         "Pamhulevej"
       ]

@@ -1051,6 +1051,213 @@
         "Lilla rute i Harde Skov"
       ],
       "forbidden_names": []
+    },
+    "barsbol-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 5.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Barsbølvej",
+        "Hærvejen",
+        "Lund-Thomsen stien",
+        "Planetsti Jels",
+        "Søstien",
+        "Søvej"
+      ]
+    },
+    "draved-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 3.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chresten Thomsens Vej",
+        "Den Smadrede Vej",
+        "Grønnevej",
+        "Peder Juuls Vej",
+        "Vestre Korsvej",
+        "Østre Korsvej"
+      ]
+    },
+    "kelstrup-plantage-dk": {
+      "trail_count": 4,
+      "total_mi": 10.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Sønderhavskovene, gul rute",
+        "Hjertestien, Sønderhav/Østerskov"
+      ],
+      "forbidden_names": [
+        "1 - Start loop",
+        "10 - Dino",
+        "11 - Slutspurten",
+        "11 - Slutspurten rød",
+        "2 - ME mod MR",
+        "4 - Dusk",
+        "4 - Tjernobyl",
+        "5 - Bøgeskoven",
+        "7 - Highwayen",
+        "7 - Thestrups Twisters",
+        "8 - Bermingham",
+        "9 - Big Belly",
+        "Douglaslinien",
+        "Elsøvej",
+        "Gedestien",
+        "Hønsnapvej",
+        "Stokkebrovej"
+      ]
+    },
+    "kiskelund-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 3.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Kirkebjerg Vej",
+        "Ungarervej"
+      ]
+    },
+    "kollund-skov-dk": {
+      "trail_count": 4,
+      "total_mi": 5.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hjertestien, Kollund Skov"
+      ],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Sydfyn",
+        "Den danske Pilgrimsrute-Sønderjylland",
+        "Gendarmstien m.m.",
+        "Gendarmstien, Bjergetapen",
+        "Molevej",
+        "Skomagerhusvej"
+      ]
+    },
+    "kompedal-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Aschlunds Linje",
+        "Bjørnevej",
+        "Brandenburgvej",
+        "Bækgårdsvej",
+        "Den danske Pilgrimsrute - Midtjylland",
+        "Grathehusvej",
+        "Gul Rute",
+        "Gul rute",
+        "Hærvejen",
+        "Kompedalvej",
+        "Midtbrandlinje",
+        "Mosedalvej",
+        "Ravnholtvej",
+        "Skyggehalevej",
+        "Søndre Tværvej",
+        "Trolds Linje"
+      ]
+    },
+    "lindet-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 5.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Gånsagervej",
+        "Hvideledsvej",
+        "Rødeledsvej",
+        "Savværksvej",
+        "Skelvej"
+      ]
+    },
+    "osterskoven-dk": {
+      "trail_count": 4,
+      "total_mi": 9.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Thomashusturen - gul rute"
+      ],
+      "forbidden_names": [
+        "Den Første Linie",
+        "Granvej",
+        "Gruskulevej",
+        "Holte",
+        "Periodevej",
+        "Stendetgårdvej",
+        "Storevej",
+        "Svinevej",
+        "Tyskervej"
+      ]
+    },
+    "palsgard-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Midtjylland",
+        "Hærvejen",
+        "Lavhedevej",
+        "Ny Lavhedevej"
+      ]
+    },
+    "sandkule-skov-dk": {
+      "trail_count": 4,
+      "total_mi": 8.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Dyrehaven - gul rute"
+      ],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute-Sønderjylland",
+        "Hærvejen",
+        "Skråvej",
+        "Søvej"
+      ]
+    },
+    "sogard-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 6.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hjertestien, Søgård Sø"
+      ],
+      "forbidden_names": [
+        "Balledamvej",
+        "Engvej",
+        "Midtervej",
+        "Ravnepoldvej",
+        "Sultenmorgenvej",
+        "Søvej"
+      ]
+    },
+    "straaso-plantage-dk": {
+      "trail_count": 4,
+      "total_mi": 13.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Lystbæk og Klovsig Nørre Plantage blå rute",
+        "Stolbjergturen rød rute"
+      ],
+      "forbidden_names": [
+        "Blåbjergvej",
+        "Bøgevej",
+        "Douglasvej",
+        "Fårefoldvej",
+        "Gammel Råstedvej",
+        "Gl. Jagtsti",
+        "Gosmervej",
+        "Hedevej",
+        "Tangsvej"
+      ]
+    },
+    "toftlund-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 2.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

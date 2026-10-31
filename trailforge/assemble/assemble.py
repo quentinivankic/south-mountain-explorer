@@ -109,7 +109,7 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
 def _assemble_areas(areamod, args):
     """Area polygons; dk-v2 (Denmark registry) also accepts woods, heaths and islands.
     Legacy rule sets call exactly what they always did."""
-    if getattr(args, "dk_rules", "legacy") == "dk-v2":
+    if getattr(args, "dk_rules", "legacy") in ("dk-v2", "dk-v3"):
         return areamod.assemble_areas(args.inp, extra_tags=areamod.DK_EXTRA_AREA_TAGS)
     return areamod.assemble_areas(args.inp)
 def _boundary_record(area: dict) -> dict:
@@ -930,9 +930,15 @@ def main(argv=None) -> int:
                          "local trails elsewhere (Vermont's 'Long Trail', NM's "
                          "'Skyline Trail'). Match what the publisher ships.")
     ap.add_argument("--dk-rules", dest="dk_rules", default="legacy",
-                    choices=("legacy", "dk-v2"),
+                    choices=("legacy", "dk-v2", "dk-v3"),
                     help="Denmark rule set from the registry entry: legacy "
-                         "(pinned Mols behavior) or dk-v2 (adds dk-road-name)")
+                         "(pinned Mols behavior), dk-v2 (adds dk-road-name) or "
+                         "dk-v3 (dk-v2 + whole-route policy)")
+    ap.add_argument("--dk-curated-include", dest="dk_curated_include",
+                    help="JSON list of {id, name, reason} curated inclusions "
+                         "(registry include_trails): published whole whatever "
+                         "their share of this area; dk-v3 only, fail-closed "
+                         "when an entry matches no published trail")
     ap.add_argument("--dk-curated-exclude", dest="dk_curated_exclude",
                     help="JSON list of {id, name, reason} curated exclusions "
                          "(registry exclude_trails); dk-v2 only, fail-closed "
@@ -940,7 +946,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     args.dk_exclude = []
     if args.dk_curated_exclude:
-        if args.dk_rules != "dk-v2":
+        if args.dk_rules not in ("dk-v2", "dk-v3"):
             ap.error("--dk-curated-exclude requires --dk-rules dk-v2")
         try:
             import quality as quality_args
@@ -949,6 +955,18 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-curated-exclude is invalid: {error}")
+
+    args.dk_include = []
+    if args.dk_curated_include:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-curated-include requires --dk-rules dk-v3")
+        try:
+            import quality as quality_include_args
+            args.dk_include = quality_include_args.validate_dk_exclude(
+                json.loads(Path(args.dk_curated_include).read_text(
+                    encoding="utf-8")), "include")
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-curated-include is invalid: {error}")
 
     authority_paths = (
         args.relation_authority,
@@ -1106,10 +1124,20 @@ def main(argv=None) -> int:
                   f"— leaving trails unclipped", file=sys.stderr)
         else:
             before = len(features)
+            # dk-v3 only: signed local routes that belong to this area are kept
+            # with their complete real geometry (decided on the unclipped
+            # candidates). Empty for every other rule set -> plain clip.
+            keep_whole = (
+                qualitymod.dk_v3_whole_route_decisions(
+                    features, union, min_inside_mi=args.min_inside_mi,
+                    include=args.dk_include)
+                if qualitymod is not None and args.dk_rules == "dk-v3"
+                else None)
             features = areamod.clip_features_to_area(
                 features, union, min_inside_mi=args.min_inside_mi,
                 area_name=selected_area_name,
-                collect_dropped=(clip_removed if qualitymod is not None else None))
+                collect_dropped=(clip_removed if qualitymod is not None else None),
+                keep_whole=keep_whole)
             clip_applied = True
             if qualitymod is not None:
                 features, trails, promotion_decisions = \
@@ -1139,7 +1167,8 @@ def main(argv=None) -> int:
                     relation_scope_evidence=relation_scopes,
                     promotion_decisions=promotion_decisions,
                     dk_rules=getattr(args, "dk_rules", "legacy"),
-                    dk_exclude=args.dk_exclude)
+                    dk_exclude=args.dk_exclude,
+                    dk_include=args.dk_include)
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")
@@ -1176,6 +1205,14 @@ def main(argv=None) -> int:
         terminal_absorption_failure = (
             "dk-curated-exclude failures: "
             + "; ".join(quality_report["dk_curated_exclude_failures"]))
+        print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+    if (isinstance(quality_report, dict)
+            and quality_report.get("dk_curated_include_failures")):
+        # A curated inclusion that is missing, ambiguous or not published fails
+        # the area: an included trail must never silently go absent.
+        terminal_absorption_failure = (
+            "dk-curated-include failures: "
+            + "; ".join(quality_report["dk_curated_include_failures"]))
         print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if exact_denmark and terminal_absorption_unresolved:
         terminal_absorption_failure = (

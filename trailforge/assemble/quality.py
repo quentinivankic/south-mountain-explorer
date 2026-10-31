@@ -16,6 +16,19 @@ OVERLAP_THRESHOLD = 0.90
 SOURCE_EVIDENCE_SCHEMA_VERSION = 2
 RENDERED_WAY_LINEAGE_VERSION = 1
 
+# dk-v3 route policy. A signed local hiking route relation (lwn or untagged
+# network; never nwn/iwn/rwn or a known long-distance name) belongs to an area
+# when the area polygon holds at least this share of the route's whole length.
+# Such a route is published WHOLE (real OSM member ways only, never clipped to
+# the polygon, no connector geometry). A route below the share is mostly
+# somewhere else and is dropped here instead of leaving a polygon-edge sliver.
+DK_V3_MIN_ROUTE_SHARE = 0.25
+# Pieces of one whole route that are not joined by a shared OSM node count as
+# one route when each gap between them is at most this many metres (single
+# linkage over real member geometry; nothing is drawn across the gap). The app
+# scores multi-part trails per segment, so no connector is ever needed.
+DK_V3_MAX_BRIDGE_M = 100.0
+
 # Signed-route road miles and shares are evidence for manual review, never an
 # arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
 # and unexplained topology own publication safety.
@@ -66,6 +79,12 @@ _QUALITY_REMOVAL_REASONS = {
         "Denmark-only rootless name stitch shorter than 0.3 mi: a fragment, "
         "not a checklist trail."
     ),
+    "dk-route-elsewhere": (
+        "Denmark dk-v3 only: signed route relation whose whole length lies "
+        "mostly outside this area (the area polygon holds less than "
+        f"{int(DK_V3_MIN_ROUTE_SHARE * 100)}% of it); not published here as a "
+        "polygon-edge fragment."
+    ),
     "dk-curated-exclude": (
         "Denmark-only trail named in the registry's exclude_trails list by a "
         "reviewed per-area curation decision (the written reason is recorded "
@@ -86,37 +105,41 @@ _QUALITY_REMOVAL_REASONS = {
 # golden/dk-areas.json). "legacy" keeps the pinned Mols behavior byte-for-byte;
 # "dk-v2" adds the dk-road-name removal below. Name-stitch candidates only: a
 # signed hiking-route relation (or any way in one) is never touched.
-DK_RULES = ("legacy", "dk-v2")
+# "dk-v3" = dk-v2 + the whole-route policy (see dk_v3_whole_route_decisions).
+DK_RULES = ("legacy", "dk-v2", "dk-v3")
+DK_V2_FAMILY = ("dk-v2", "dk-v3")
 # Curated per-area exclusions (registry `exclude_trails`, dk-v2 only). Each entry
 # is {"id": "r<osm relation id>" | "n:<exact trail name>", "name", "reason"}.
 DK_EXCLUDE_ID = re.compile(r"^(r[1-9][0-9]*|n:\S.*)$")
 DK_EXCLUDE_KEYS = {"id", "name", "reason"}
 
 
-def validate_dk_exclude(entries: Any) -> list[dict[str, str]]:
-    """Return a normalized copy of a curated-exclude list or raise ValueError."""
+def validate_dk_exclude(entries: Any, label: str = "exclude"
+                        ) -> list[dict[str, str]]:
+    """Return a normalized copy of a curated-exclude (or, with label="include",
+    curated-include) list or raise ValueError."""
     if not isinstance(entries, list):
-        raise ValueError("curated exclude list must be a list")
+        raise ValueError(f"curated {label} list must be a list")
     out: list[dict[str, str]] = []
     seen: set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != DK_EXCLUDE_KEYS:
             raise ValueError(
-                "curated exclude entry must be an object with exactly "
+                f"curated {label} entry must be an object with exactly "
                 f"{sorted(DK_EXCLUDE_KEYS)}: {entry!r}")
         if not all(isinstance(entry[key], str) and entry[key].strip()
                    for key in DK_EXCLUDE_KEYS):
-            raise ValueError(f"curated exclude entry has an empty field: {entry!r}")
+            raise ValueError(f"curated {label} entry has an empty field: {entry!r}")
         ident = unicodedata.normalize("NFC", entry["id"])
         name = unicodedata.normalize("NFC", entry["name"])
         if not DK_EXCLUDE_ID.fullmatch(ident):
-            raise ValueError(f"curated exclude id is invalid: {entry['id']!r}")
+            raise ValueError(f"curated {label} id is invalid: {entry['id']!r}")
         if ident.startswith("n:") and unicodedata.normalize(
                 "NFC", ident[2:]) != name:
             raise ValueError(
-                f"curated exclude {ident!r}: name must equal the id name")
+                f"curated {label} {ident!r}: name must equal the id name")
         if ident in seen:
-            raise ValueError(f"curated exclude repeats id {ident!r}")
+            raise ValueError(f"curated {label} repeats id {ident!r}")
         seen.add(ident)
         out.append({"id": ident, "name": name, "reason": entry["reason"].strip()})
     return out
@@ -130,6 +153,19 @@ def _dk_exclude_matches(entry: dict[str, str], properties: dict) -> bool:
     relation = int(ident[1:])
     return relation in (properties.get("relation_ids") or []) \
         or relation in (properties.get("root_relation_ids") or [])
+def _dk_entry_matches_source(entry: dict[str, str], properties: dict,
+                             source: dict) -> bool:
+    """Curated-entry match on an unclipped candidate (relation ids come from
+    the prepared ``_quality_source``)."""
+    ident = entry["id"]
+    if ident.startswith("n:"):
+        return unicodedata.normalize(
+            "NFC", str(properties.get("name") or "")) == entry["name"]
+    relation = int(ident[1:])
+    return relation in (source.get("relation_ids") or []) \
+        or relation in (source.get("root_relation_ids") or [])
+
+
 _DK_ROAD_HIGHWAYS = {
     "track", "service", "residential", "unclassified", "tertiary", "secondary",
     "primary", "living_street", "road",
@@ -626,9 +662,128 @@ def _exact_boundary_clip_matches(feature: dict[str, Any], records: list[dict],
         return False
 
 
+def _full_extent():
+    """A box no Danish route leaves: a whole (unclipped) dk-v3 route is judged
+    against its own full geometry, not the area polygon."""
+    from shapely.geometry import box
+
+    return box(-180.0, -90.0, 180.0, 90.0)
+
+
+def _source_components(records: list[dict]) -> list[list[dict]]:
+    """Source ways grouped by shared OSM node (exact identity)."""
+    union = _UF([record["way_id"] for record in records])
+    owner: dict[int, int] = {}
+    for record in records:
+        for node_id in record["node_ids"]:
+            if node_id in owner:
+                union.union(record["way_id"], owner[node_id])
+            else:
+                owner[node_id] = record["way_id"]
+    groups: dict[int, list[dict]] = {}
+    for record in records:
+        groups.setdefault(union.find(record["way_id"]), []).append(record)
+    return list(groups.values())
+
+
+def bridged_component_gaps(records: list[dict], max_m: float
+                           ) -> tuple[int, float]:
+    """(clusters, widest_gap_m) for source pieces not joined by a shared node.
+
+    Pieces are single-linkage clustered when their nearest real member
+    geometry is within ``max_m`` metres. ``widest_gap_m`` is the widest gap a
+    spanning tree over ALL pieces needs (0 for one piece), so a caller can see
+    how far a rejected route is from the limit. Pure measurement: nothing is
+    drawn across a gap."""
+    import math
+    from shapely.geometry import LineString
+    from shapely.ops import unary_union
+
+    groups = _source_components(records)
+    if len(groups) <= 1:
+        return len(groups), 0.0
+    if len(groups) > 60:
+        return len(groups), float("inf")
+    latitudes = [point[1] for record in records for point in record["coordinates"]]
+    lat0 = math.radians(sum(latitudes) / len(latitudes))
+    scale_x, scale_y = 111320.0 * math.cos(lat0), 111320.0
+    pieces = [
+        unary_union([
+            LineString([(lon * scale_x, lat * scale_y)
+                        for lon, lat in record["coordinates"]])
+            for record in group])
+        for group in groups
+    ]
+    count = len(pieces)
+    distance = {}
+    for left in range(count):
+        for right in range(left + 1, count):
+            distance[(left, right)] = pieces[left].distance(pieces[right])
+    linked = _UF(range(count))
+    for (left, right), gap in sorted(distance.items(), key=lambda item: item[1]):
+        if gap <= max_m:
+            linked.union(left, right)
+    clusters = len({linked.find(index) for index in range(count)})
+    # Prim over all pieces for the widest gap a full connection would need.
+    reached, widest = {0}, 0.0
+    while len(reached) < count:
+        gap, nxt = min(
+            (distance[tuple(sorted((a, b)))], b)
+            for a in reached for b in range(count) if b not in reached)
+        widest = max(widest, gap)
+        reached.add(nxt)
+    return clusters, widest
+
+
+def _whole_connectivity(feature: dict[str, Any], records: list[dict],
+                        missing_way_ids: list[int]) -> dict:
+    """dk-v3 connectivity of a route published whole (not clipped to the area).
+
+    Accepted when every real member piece is one OSM-node-connected piece, or
+    pieces are joined by gaps of at most ``DK_V3_MAX_BRIDGE_M`` metres, and the
+    rendered linework is exactly the union of those member ways."""
+    from shapely.geometry import LineString, shape
+    from shapely.ops import unary_union
+
+    source_components = _source_component_count(records)
+    clusters, widest_gap = (
+        (1, 0.0) if source_components <= 1
+        else bridged_component_gaps(records, DK_V3_MAX_BRIDGE_M))
+    postclip_components = geometry_component_count(feature)
+    try:
+        exact = bool(records) and unary_union([
+            LineString(record["coordinates"]) for record in records
+        ]).equals(shape(feature["geometry"]))
+    except Exception:  # noqa: BLE001 - malformed geometry cannot prove equality
+        exact = False
+    accepted = (not missing_way_ids and exact and postclip_components > 0
+                and clusters == 1)
+    reasons = []
+    if source_components == 1:
+        reasons.append("shared-osm-node")
+    elif clusters == 1:
+        reasons.append("bridged-gap")
+    return {
+        "status": ("unavailable-evidence" if missing_way_ids
+                   else "accepted" if accepted else "rejected"),
+        "accepted_reasons": reasons,
+        "source_components": source_components,
+        "postclip_components": postclip_components,
+        "missing_way_ids": missing_way_ids,
+        "exact_boundary_clip": exact,
+        "whole_route": True,
+        "bridge_limit_m": DK_V3_MAX_BRIDGE_M,
+        "widest_gap_m": (round(widest_gap, 1) if widest_gap != float("inf")
+                         else None),
+    }
+
+
 def _connectivity(feature: dict[str, Any], records: list[dict],
                   missing_way_ids: list[int], area_union,
-                  outside_gap_explained: bool = False) -> dict:
+                  outside_gap_explained: bool = False,
+                  whole: bool = False) -> dict:
+    if whole:
+        return _whole_connectivity(feature, records, missing_way_ids)
     source_components = _source_component_count(records)
     postclip_components = geometry_component_count(feature)
     exact_clip = _exact_boundary_clip_matches(feature, records, area_union)
@@ -1167,6 +1322,80 @@ def _relation_outside_gap_evidence(audits: list[dict]) -> set[int]:
     return accepted
 
 
+def _dk_v3_route_eligible(properties: dict, source: dict) -> bool:
+    """A named signed local route relation that the dk-v3 policy may publish
+    whole. Long-distance networks and known long-distance names never qualify
+    (their handling stays exactly dk-v2's); neither does anything rootless."""
+    if properties.get("source") != "relation":
+        return False
+    if not (source.get("root_relation_ids") or source.get("relation_ids")):
+        return False
+    name = _dk_norm_name(properties.get("name"))
+    if not name:
+        return False
+    if str(properties.get("network") or "").strip().lower() in _DK_LONG_NETWORKS:
+        return False
+    stripped = _DK_LD_PREFIX.sub("", name).strip()
+    return stripped not in _DK_LONG_DISTANCE_NAMES \
+        and not _DK_LONG_DISTANCE_TOKEN.search(name)
+
+
+def dk_v3_whole_route_decisions(features: list[dict[str, Any]], area_union, *,
+                                min_inside_mi: float,
+                                include: list[dict[str, str]] | None = None
+                                ) -> dict[int, dict]:
+    """dk-v3 pre-clip decision: which features are published WHOLE.
+
+    ``features`` are the unclipped assembly candidates with their prepared
+    ``_quality_source``. An eligible signed route relation whose area share
+    (miles inside the polygon / whole-route miles, both measured on the
+    route's real member-way linework) is at least ``DK_V3_MIN_ROUTE_SHARE`` and
+    that has at least ``min_inside_mi`` inside is kept with its complete
+    geometry. ``include`` (registry ``include_trails``) names candidates a
+    reviewer decided belong to this area whatever their share or length: they
+    are published whole too and carry ``curated_include``. Returns
+    {feature index: evidence}. Nothing is created or moved; anything not
+    returned is clipped exactly as in dk-v2."""
+    from shapely.geometry import shape
+
+    include = validate_dk_exclude(include or [], "include")
+    decisions: dict[int, dict] = {}
+    for index, feature in enumerate(features):
+        properties = feature.get("properties") or {}
+        source = properties.get("_quality_source") or {}
+        curated = next((entry for entry in include
+                        if _dk_entry_matches_source(entry, properties, source)),
+                       None)
+        if curated is None and not _dk_v3_route_eligible(properties, source):
+            continue
+        try:
+            geometry = shape(feature["geometry"])
+            inside = geometry.intersection(area_union)
+        except Exception:  # noqa: BLE001 - invalid geometry stays on the clip path
+            continue
+        full_mi = _linework_miles([
+            [[float(x), float(y)] for x, y in part.coords]
+            for part in _line_parts(geometry)])
+        inside_mi = _linework_miles([
+            [[float(x), float(y)] for x, y in part.coords]
+            for part in _line_parts(inside)])
+        if full_mi <= 0:
+            continue
+        share = inside_mi / full_mi
+        if curated is None and (
+                inside_mi < min_inside_mi
+                or share + 1e-12 < DK_V3_MIN_ROUTE_SHARE):
+            continue
+        decisions[index] = {
+            "full_mi": round(full_mi, 3),
+            "inside_mi": round(inside_mi, 3),
+            "share": round(share, 4),
+        }
+        if curated is not None:
+            decisions[index]["curated_include"] = curated["id"]
+    return decisions
+
+
 def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        nodes: dict[int, tuple[float, float]], area_union,
                        area_name: str, region: str | None,
@@ -1174,7 +1403,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        relation_scope_evidence: dict | None = None,
                        promotion_decisions: list[dict] | None = None,
                        dk_rules: str = "legacy",
-                       dk_exclude: list[dict] | None = None
+                       dk_exclude: list[dict] | None = None,
+                       dk_include: list[dict] | None = None
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -1185,8 +1415,11 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     if dk_rules not in DK_RULES:
         raise ValueError(f"unknown Denmark rules {dk_rules!r}")
     dk_exclude = validate_dk_exclude(dk_exclude or [])
-    if dk_exclude and dk_rules != "dk-v2":
+    if dk_exclude and dk_rules not in DK_V2_FAMILY:
         raise ValueError("curated exclusions require the dk-v2 rule set")
+    dk_include = validate_dk_exclude(dk_include or [], "include")
+    if dk_include and dk_rules != "dk-v3":
+        raise ValueError("curated inclusions require the dk-v3 rule set")
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
         for feature in features:
@@ -1204,6 +1437,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     outside_gap_relation_ids = _relation_outside_gap_evidence(relation_audits)
 
     states = []
+    dk_v3_routes: list[dict] = []
     validation_failures: list[str] = []
     unresolved_relations = []
     restored_road_relations = []
@@ -1233,15 +1467,20 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             validation_failures.append(
                 f"invalid restored-road identity: {properties.get('name')!r}")
             restored_way_ids = []
-        records, missing = _source_way_records(source, ways, nodes, area_union)
+        # dk-v3: a route published whole is judged against its own complete
+        # geometry; everything else against the exact area polygon as before.
+        whole_route = (dk_rules == "dk-v3"
+                       and bool(properties.get("dk_whole_route")))
+        feature_area = _full_extent() if whole_route else area_union
+        records, missing = _source_way_records(source, ways, nodes, feature_area)
         rendered_records = [record for record in records if record["renders_in_area"]]
         outside_gap_explained = bool(
             root_relation_ids
             and all(relation_id in outside_gap_relation_ids
                     for relation_id in root_relation_ids))
         connectivity = _connectivity(
-            feature, records, missing, area_union,
-            outside_gap_explained=outside_gap_explained)
+            feature, records, missing, feature_area,
+            outside_gap_explained=outside_gap_explained, whole=whole_route)
         identity = walking_identity(rendered_records)
 
         properties.update({
@@ -1252,7 +1491,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             "rendered_way_lineage_version": source.get(
                 "rendered_way_lineage_version"),
             "rendered_way_lineage": _rendered_lineage(
-                source, records, feature, area_union),
+                source, records, feature, feature_area),
             "quality_candidate_index": index,
             "relation_ids": relation_ids,
             "root_relation_ids": root_relation_ids,
@@ -1326,7 +1565,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     f"missing-source-way unavailable restored-road evidence: "
                     f"{properties.get('name')!r} {unavailable_restored!r}")
             measurements = _restored_relation_measurements(
-                feature, records, restored_way_ids, direct, area_union)
+                feature, records, restored_way_ids, direct, feature_area)
             for (measurement, restored_miles, relation_miles,
                  relation_way_miles, restored_relation_ways) in measurements:
                 restored_road_relations.append(measurement)
@@ -1349,6 +1588,18 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
             validation_failures.append(
                 f"preserved-other-needs-review: {properties.get('name')!r}")
 
+        if whole_route:
+            dk_v3_routes.append({
+                "name": properties.get("name"),
+                "relation_ids": relation_ids,
+                "full_mi": properties.get("length_mi"),
+                "inside_mi": properties.get("dk_inside_mi"),
+                "share": properties.get("dk_route_share"),
+                "status": connectivity["status"],
+                "source_components": connectivity["source_components"],
+                "widest_gap_m": connectivity["widest_gap_m"],
+                "published": removed_category is None,
+            })
         states.append({
             "index": index,
             "feature": feature,
@@ -1480,7 +1731,7 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     long_distance_ambiguous = []
     curated_excluded: list[dict] = []
     curated_exclude_failures: list[str] = []
-    if dk_rules == "dk-v2":
+    if dk_rules in DK_V2_FAMILY:
         for state in states:
             properties = state["feature"]["properties"]
             if (state["removed_category"] is not None
@@ -1518,7 +1769,21 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                         "source": properties.get("source"),
                         "network": properties.get("network"),
                         "miles": properties.get("length_mi")})
-            if (category is None and rootless
+            curated_include = bool(properties.get("dk_curated_include_id"))
+            if (category is None and dk_rules == "dk-v3"
+                    and not curated_include
+                    and properties.get("source") == "relation"
+                    and not properties.get("dk_whole_route")
+                    and properties.get("clipped")
+                    and float(properties.get("full_length_mi") or 0) > 0
+                    and float(properties.get("length_mi") or 0)
+                    / float(properties["full_length_mi"])
+                    < DK_V3_MIN_ROUTE_SHARE):
+                category = "dk-route-elsewhere"
+                rule = "area-share-%.2f" % (
+                    float(properties["length_mi"])
+                    / float(properties["full_length_mi"]))
+            if (category is None and rootless and not curated_include
                     and properties.get("source") == "name-stitch"
                     and float(properties.get("length_mi") or 0)
                     < DK_FRAGMENT_MIN_MI):
@@ -1560,6 +1825,37 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)
+    # dk-v3 curated inclusions fail closed: every registry include_trails entry
+    # must name exactly one candidate, and that candidate must be published.
+    curated_include_failures: list[str] = []
+    curated_included: list[dict] = []
+    for entry in dk_include:
+        tagged = [state for state in states
+                  if (state["feature"].get("properties") or {}).get(
+                      "dk_curated_include_id") == entry["id"]]
+        if len(tagged) != 1:
+            curated_include_failures.append(
+                f"{entry['id']} ({entry['name']!r}): "
+                f"{len(tagged)} matching candidates, expected exactly 1")
+            continue
+        properties = tagged[0]["feature"]["properties"]
+        category = tagged[0]["removed_category"]
+        if category:
+            curated_include_failures.append(
+                f"{entry['id']} ({entry['name']!r}): not published, removed "
+                f"as {category}")
+            continue
+        if unicodedata.normalize(
+                "NFC", str(properties.get("name") or "")) != entry["name"]:
+            curated_include_failures.append(
+                f"{entry['id']}: trail is named {properties.get('name')!r}, "
+                f"not {entry['name']!r}")
+            continue
+        curated_included.append({
+            "id": entry["id"], "name": properties.get("name"),
+            "miles": properties.get("length_mi"),
+            "inside_mi": properties.get("dk_inside_mi"),
+            "reason": entry["reason"]})
     retained_state_ids = {id(state) for state in states}
     overlap_pairs = [
         pair for pair in overlap_pairs
@@ -1687,7 +1983,19 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     if dk_rules != "legacy":
         report["dk_rules"] = dk_rules
         report["dk_road_name_removed"] = road_name_evidence
-        if dk_rules == "dk-v2":
+        if dk_rules == "dk-v3":
+            report["dk_v3_policy"] = {
+                "min_route_share": DK_V3_MIN_ROUTE_SHARE,
+                "max_bridge_m": DK_V3_MAX_BRIDGE_M,
+            }
+            report["dk_v3_whole_routes"] = dk_v3_routes
+            report["dk_curated_included"] = curated_included
+            report["dk_curated_include_failures"] = curated_include_failures
+            report["validation_failures"] = list(dict.fromkeys(
+                [*report["validation_failures"],
+                 *(f"dk-curated-include {item}"
+                   for item in curated_include_failures)]))
+        if dk_rules in DK_V2_FAMILY:
             report["dk_quality_removed"] = dk_removed_evidence
             report["dk_long_distance_ambiguous"] = long_distance_ambiguous
             report["dk_curated_excluded"] = curated_excluded

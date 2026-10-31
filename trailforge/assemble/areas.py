@@ -169,7 +169,8 @@ def _line_parts(geom) -> list:
 def clip_features_to_area(features: list[dict[str, Any]], area_union,
                           min_inside_mi: float = 0.05,
                           area_name: str | None = None,
-                          collect_dropped: list[dict[str, Any]] | None = None
+                          collect_dropped: list[dict[str, Any]] | None = None,
+                          keep_whole: dict[int, dict[str, Any]] | None = None
                           ) -> list[dict[str, Any]]:
     """Clip each trail to the area boundary, keeping only its in-park portion.
 
@@ -187,6 +188,12 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
     A trail that dips out and back in becomes a MultiLineString of its
     in-park pieces. When requested, exact-area drops retain their full source
     geometry plus typed evidence for independent final validation.
+
+    ``keep_whole`` (Denmark dk-v3 only; {feature index: evidence}) lists
+    features published with their complete geometry instead of the in-area
+    remnant. They are flagged ``dk_whole_route`` and never ``clipped``; their
+    coordinates are the assembled source coordinates, untouched. Default None:
+    every caller outside dk-v3 behaves exactly as before.
     """
     import model
     from shapely.geometry import shape
@@ -211,7 +218,21 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
         collect_dropped.append({**feature, "properties": properties})
 
     kept = []
-    for f in features:
+    for index, f in enumerate(features):
+        if keep_whole and index in keep_whole:
+            whole_props = dict(f["properties"])
+            if area_name is not None:
+                whole_props["area"] = area_name
+            whole_props.update({
+                "dk_whole_route": True,
+                "dk_inside_mi": keep_whole[index]["inside_mi"],
+                "dk_route_share": keep_whole[index]["share"],
+            })
+            if keep_whole[index].get("curated_include"):
+                whole_props["dk_curated_include_id"] = \
+                    keep_whole[index]["curated_include"]
+            kept.append({**f, "properties": whole_props})
+            continue
         try:
             source_geometry = shape(f["geometry"])
             clipped_geometry = source_geometry.intersection(area_union)

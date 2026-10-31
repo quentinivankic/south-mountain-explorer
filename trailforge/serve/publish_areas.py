@@ -947,6 +947,12 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     route_home = {}                         # id(f) -> set(slugs) kept in (empty = dropped)
     kept_routes, dropped_routes = [], []    # (name, miles, homes|reason, feature)
     for bounds, g, f in all_shapes:
+        if args.exact_boundary and f["properties"].get("dk_whole_route"):
+            # Denmark dk-v3: assembly already decided this signed route belongs
+            # to the exact area and published its complete real geometry; the
+            # majority rule below and the all-parks clamp do not apply again.
+            route_home[id(f)] = set(area_unions)
+            continue
         if f["properties"].get("kind") != "route":
             continue
         total = f["properties"].get("length_mi") or _inside_mi(g, g.envelope) or 0.0
@@ -987,7 +993,11 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         for (bx0, by0, bx1, by1), g, f in all_shapes:
             if bx1 < ux0 or bx0 > ux1 or by1 < uy0 or by0 > uy1:
                 continue
-            if f["properties"].get("kind") == "route":
+            if args.exact_boundary and f["properties"].get("dk_whole_route"):
+                if slug not in route_home.get(id(f), ()):
+                    continue
+                r = f
+            elif f["properties"].get("kind") == "route":
                 if slug not in route_home.get(id(f), ()):
                     continue
                 r, _mi = _clamped_feature(g, f, all_parks, clamp_cache)

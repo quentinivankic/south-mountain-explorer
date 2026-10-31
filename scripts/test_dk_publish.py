@@ -270,11 +270,17 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2():
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
-            tmp_path / "r.json", lambda d: d["areas"][1].update(rules="dk-v3")))
+            tmp_path / "r.json", lambda d: d["areas"][1].update(rules="dk-v4")))
+def test_registry_accepts_dk_v3_rules(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][1].update(rules="dk-v3")))
+    assert reg["areas"][1]["rules"] == "dk-v3"
 def test_run_area_script_reads_rules_from_the_registry_and_passes_them_on():
     script = (ROOT / "scripts/dk-run-area.sh").read_text()
     assert 'select(.id == $id) | .rules // "legacy"' in script
     assert '--dk-rules "$RULES"' in script
+    assert "(legacy|dk-v2|dk-v3)" in script
+    assert "--dk-curated-include" in script and ".include_trails // []" in script
 def test_road_name_removals_count_as_forbidden_junk_in_proposed_tables():
     assert "dk-road-name" in (ROOT / "scripts/dk_publish.py").read_text().split("junk_categories = ", 1)[1][:200]
 # --------------------------------------------------------- bbox / prepare ----
@@ -1163,6 +1169,53 @@ def test_registry_rejects_exclude_trails_on_the_legacy_mols_entry(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
             tmp_path / "r.json", lambda d: d["areas"][0].update(exclude_trails=[GOOD_EXCLUDE])))
+# ------------------------------------------------------ curated inclusions --
+def test_registry_accepts_include_trails_only_on_dk_v3_entries(tmp_path):
+    def v3(d):
+        d["areas"][1].update(rules="dk-v3", include_trails=[
+            GOOD_EXCLUDE, {"id": "n:Foo Sti", "name": "Foo Sti", "reason": "x"}])
+    reg = dk.load_registry(_write_registry(tmp_path / "r.json", v3))
+    assert len(reg["areas"][1]["include_trails"]) == 2
+    for rules, idx in (("dk-v2", 1), ("legacy", 0)):
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(
+                tmp_path / "r2.json",
+                lambda d, rules=rules, idx=idx: d["areas"][idx].update(
+                    rules=rules, include_trails=[GOOD_EXCLUDE])))
+@pytest.mark.parametrize("value", [
+    [], "r123", [{"id": "123", "name": "A", "reason": "x"}],
+    [{**GOOD_EXCLUDE, "reason": " "}], [{**GOOD_EXCLUDE, "extra": 1}], [GOOD_EXCLUDE, GOOD_EXCLUDE],
+    [{"id": "n:A", "name": "B", "reason": "x"}],
+])
+def test_registry_rejects_bad_include_trails(tmp_path, value):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json",
+            lambda d: d["areas"][1].update(rules="dk-v3", include_trails=value)))
+def test_dk_v3_entry_may_carry_exclude_trails_too(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json",
+        lambda d: d["areas"][1].update(rules="dk-v3", exclude_trails=[GOOD_EXCLUDE])))
+    assert reg["areas"][1]["exclude_trails"] == [GOOD_EXCLUDE]
+def test_report_area_lists_whole_routes_only_when_present(tmp_path):
+    def run(features):
+        d = tmp_path / ("x%d-dk" % len(features))
+        d.mkdir()
+        (d / "area.json").write_text(json.dumps({"id": "x-dk", "name": "X", "relation_id": 1}), encoding="utf-8")
+        (d / "geom.json").write_text(json.dumps(_geom("x-dk", names=["Kirkestien"], total_mi=5.0)))
+        (d / "trails.geojson").write_text(json.dumps({"features": features}))
+        (d / "removed.geojson").write_text(json.dumps({"features": []}))
+        (d / "assembly.json").write_text(json.dumps({"pre_clip_trail_count": 2, "post_clip_trail_count": 1}))
+        assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                        "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+                        "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json")]) == 0
+        return json.loads((d / "report.json").read_text())
+    whole = {"type": "Feature", "geometry": None, "properties": {
+        "name": "Hele Ruten", "length_mi": 6.6, "dk_whole_route": True, "dk_route_share": 0.56}}
+    plain = {"type": "Feature", "geometry": None, "properties": {"name": "Kirkestien", "length_mi": 1.0}}
+    assert run([whole, plain])["whole_routes"] == [
+        {"name": "Hele Ruten", "length_mi": 6.6, "area_share": 0.56}]
+    assert "whole_routes" not in run([plain])
 def test_real_registry_exclusions_are_only_on_dk_v2_and_have_reasons():
     for a in dk.load_registry(REGISTRY)["areas"]:
         for item in a.get("exclude_trails", []):

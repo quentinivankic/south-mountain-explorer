@@ -355,12 +355,19 @@
       "relation_id": 6664022,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 27,
       "est_mi": 20.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped.",
+      "exclude_trails": [
+        {
+          "id": "n:Lysløjpe Rudeskov",
+          "name": "Lysløjpe Rudeskov",
+          "reason": "lit jogging/ski track (Lysløjpen, 239 lamps), run-only per Naturstyrelsen; not a hiking trail"
+        }
+      ]
     },
     {
       "id": "store-dyrehave-dk",
@@ -457,12 +464,12 @@
       "relation_id": 1559657,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 28,
       "est_mi": 17.8,
-      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two name-stitches (Lilledam 0.82, a MTB access 'Blå Spor' 0.69); no signed hiking route; MTB lines removed."
     },
     {
       "id": "oro-dk",
@@ -555,12 +562,12 @@
       "relation_id": 7838873,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 13,
       "est_mi": 13.7,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal)."
     },
     {
       "id": "randbol-hede-frederikshab-dk",
@@ -606,26 +613,56 @@
       "relation_id": 1776329,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 16,
       "est_mi": 13.4,
-      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one 0.86 mi name-stitch; Rudersdalruten lost to relation gap."
     },
     {
       "id": "grastenskovene-dyrehaven-rinkenaes-skov-buskmose-skov-dk",
       "name": "Gråstenskovene (Dyrehaven, Rinkenæs Skov, Buskmose Skov)",
+      "display_name": "Gråstenskovene",
       "state": "Denmark",
       "relation_id": 8251599,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 26,
       "est_mi": 13.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Gråstenskovene (/soenderjylland/graastenskovene/praktisk) lists Gul rute (6.5 km), Sporet ved Fiskbæk (Gul 4 km + Rød 2 km) and the 9 km Gråstenstien. All four are OSM relations: Gul rute in the polygon, the others come in through include_trails. Gendarmstien is E6/long-distance; the Gul løberute is a running route.",
+      "exclude_trails": [
+        {
+          "id": "n:Perlestien",
+          "name": "Perlestien",
+          "reason": "0.52 mi name-stitch, not a signed route"
+        },
+        {
+          "id": "n:Hjertemarksti",
+          "name": "Hjertemarksti",
+          "reason": "0.40 mi name-stitch, not a signed route"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r1706993",
+          "name": "Sporet ved Fiskbæk - Gul rute",
+          "reason": "lwn spor.dk relation 2.57 mi, the 4 km Gul rute of Sporet ved Fiskbæk named by the guide"
+        },
+        {
+          "id": "r1847345",
+          "name": "Sporet ved Fiskbæk, rød rute",
+          "reason": "lwn spor.dk relation 1.28 mi, the 2 km Rød rute of Sporet ved Fiskbæk named by the guide"
+        },
+        {
+          "id": "r1853406",
+          "name": "Gråstenstien",
+          "reason": "lwn Sønderborg Kommune relation, the 9 km Gråstenstien named by the guide; only a sliver sits in the polygon"
+        }
+      ]
     },
     {
       "id": "hammer-bakker-dk",
@@ -648,12 +685,12 @@
       "relation_id": 191574,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 9,
       "est_mi": 12.7,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: one 9.3 mi loop; Jyske Ås Vandrerute lost to relation gap."
     },
     {
       "id": "tasinge-dk",
@@ -676,12 +713,12 @@
       "relation_id": 2907532,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 18,
       "est_mi": 12.3,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
     },
     {
       "id": "kegnaes-dk",
@@ -829,12 +866,12 @@
       "relation_id": 7193044,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 10.6,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rød rute 4.7 mi); Hvid rute lost to relation gap; MTB lines removed."
     },
     {
       "id": "sonderskov-10671204-dk",
@@ -843,12 +880,12 @@
       "relation_id": 10671204,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 16,
       "est_mi": 10.4,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two name-stitches (Veddestien 0.68, Kirkestien 0.51); no signed route."
     },
     {
       "id": "romo-dk",
@@ -871,12 +908,12 @@
       "relation_id": 8162910,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 16,
       "est_mi": 9.8,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
     },
     {
       "id": "vandet-klitplantage-dk",
@@ -969,12 +1006,12 @@
       "relation_id": 10170851,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 9.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen."
     },
     {
       "id": "vestvolden-dk",
@@ -997,12 +1034,12 @@
       "relation_id": 12460021,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 9.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Borremosen og Hannenov Skoven 7.1 mi); guide names several marked walks, rest on udinaturen; Horreby Lyng (5 routes) is another place without a registry polygon."
     },
     {
       "id": "horserod-hegn-dk",
@@ -1076,16 +1113,41 @@
     {
       "id": "norreskov-1965733-dk",
       "name": "Nørreskov",
+      "display_name": "Stenderupskovene",
       "state": "Denmark",
       "relation_id": 1965733,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 8,
       "est_mi": 8.1,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): ONE destination, Naturstyrelsen Stenderupskovene = five marked walks in Nørreskov, Midtskov and Sønderskov (guide /trekantsomraadet/stenderupskovene/praktisk). Nørreskov relation is the container; Midtskoven Gul/Blå and Sønderskoven Blå come in through include_trails (whole). Sibling sonderskov-1891272-dk is held merge-pending and must never be published.",
+      "exclude_trails": [
+        {
+          "id": "n:Kirkegårdsbakken",
+          "name": "Kirkegårdsbakken",
+          "reason": "0.31 mi name-stitch of a hill path that is part of the Nørreskov Gul rute; not a separate route"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r16915901",
+          "name": "Blå rute - Stenderupskovene (Sydskoven)",
+          "reason": "lwn Naturstyrelsen relation 2.41 mi, the Sønderskov Blå rute (4 km on the guide); neighbouring polygon, whole route"
+        },
+        {
+          "id": "r4869536",
+          "name": "Blå rute - Stenderupskovene (Midtskoven)",
+          "reason": "lwn Naturstyrelsen relation 1.74 mi, the Midtskov Blå rute (3 km on the guide); only a sliver sits in the Nørreskov polygon"
+        },
+        {
+          "id": "r4869537",
+          "name": "Gul rute - Stenderupskovene (Midtskoven)",
+          "reason": "lwn Naturstyrelsen relation 3.39 mi, the Midtskov Gul rute (6 km on the guide); only a sliver sits in the Nørreskov polygon"
+        }
+      ]
     },
     {
       "id": "vrogum-klitplantage-dk",
@@ -1108,26 +1170,41 @@
       "relation_id": 6896324,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 17,
       "est_mi": 8.0,
-      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: guide lists one yellow 7 km walk; OSM has Sandflugtsplantagen plus the regional Kattegatkysten coast route; one genuine trail is not an area (Hov Vig, 3 routes, has no registry polygon)."
     },
     {
       "id": "store-hareskov-dk",
       "name": "Store Hareskov",
+      "display_name": "Hareskovene",
       "state": "Denmark",
       "relation_id": 7320162,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 9,
       "est_mi": 8.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide Hareskovene (/hovedstaden-og-nordsjaelland/hareskovene/praktisk) names one marked walk, the ~6 km gul rute (OSM: Lille Hareskov gul rute, included whole); Store Hareskov rundtur is the Danmarks Naturfredningsforening loop. Sibling jonstrup-vang-dk is held merge-pending. MTB and the 1.2 km motionsrute are not hiking.",
+      "exclude_trails": [
+        {
+          "id": "n:Sorte Spor",
+          "name": "Sorte Spor",
+          "reason": "0.43 mi name-stitch, the black mountain-bike line of the Hareskov MTB trails (guide: MTB marked with pictograms); not a hiking trail"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r8428109",
+          "name": "Lille Hareskov gul rute",
+          "reason": "lwn Skov- og Naturstyrelsen relation 3.65 mi, the ~6 km gul rute named by the Naturstyrelsen Hareskovene guide; lies mostly in the neighbouring Lille Hareskov polygon"
+        }
+      ]
     },
     {
       "id": "randbol-hede-dk",
@@ -1150,12 +1227,12 @@
       "relation_id": 17950902,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 7.9,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Slåensøen Rundt 4.4 mi); Himmelbjerget region routes belong to other polygons."
     },
     {
       "id": "knagelbjerg-skov-dk",
@@ -1164,12 +1241,12 @@
       "relation_id": 9132089,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 7.7,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: Brun/Grøn/Gul/Blå are bare colour names without the area and Rød rute is lost to relation gap; no Naturstyrelsen guide; needs a display prefix (code gap, not invented)."
     },
     {
       "id": "allerup-bakker-dk",
@@ -1188,16 +1265,24 @@
     {
       "id": "norreskov-12537204-dk",
       "name": "Nørreskov",
+      "display_name": "Nørreskoven på Als",
       "state": "Denmark",
       "relation_id": 12537204,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 6,
       "est_mi": 7.5,
-      "notes": "Tier 2 forest, Islands. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Islands. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide Nørreskoven på Als (/soenderjylland/noerreskoven-paa-als/praktisk) lists two marked 2 km walks besides the Alsstien; both are in OSM (Strandruten, Kulturruten). Alsstien is a regional rwn route (long-distance rule). Not the Zealand Nørreskov and not Furesø og Nørreskov.",
+      "exclude_trails": [
+        {
+          "id": "n:Skålstenstien",
+          "name": "Skålstenstien",
+          "reason": "0.36 mi name-stitch, not a signed route and not one of the two marked walks"
+        }
+      ]
     },
     {
       "id": "folehaven-dk",
@@ -1206,12 +1291,12 @@
       "relation_id": 6314603,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 7.3,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Blixenruten 8.8 mi, a long Dansk Vandrelaug route); no Naturstyrelsen walk in OSM."
     },
     {
       "id": "paradisbakkerne-dk",
@@ -1220,26 +1305,46 @@
       "relation_id": 7699392,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 7.3,
-      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one bare 'Blå rute' 3.8 mi; Bornholm split will assemble Paradisbakkerne with its rwn legs."
     },
     {
       "id": "svinklov-klitplantage-dk",
       "name": "Svinkløv Klitplantage",
+      "display_name": "Svinkløv og Kollerup Plantager",
       "state": "Denmark",
       "relation_id": 7151395,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 7,
       "est_mi": 7.0,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Svinkløv og Kollerup Plantager (/thy-og-vendsyssel/svinkloev-og-kollerup-plantager/praktisk) is one destination with three marked walks in each plantation. OSM carries Svinkløv Rød rute (4.5 km) and Faldet Rundt (the gul rute to Faldet); Kollerup Plantage Grøn and Blå come in through include_trails. Missing in OSM: Svinkløv's second 4.3 km Rød rute and one Kollerup walk. Vestkyststien and Hærvejen are long-distance. Sibling kollerup-plantage-dk stays held curated-do-not-ship and must not be published separately.",
+      "exclude_trails": [
+        {
+          "id": "n:Børnenes Spor",
+          "name": "Børnenes Spor",
+          "reason": "0.70 mi name-stitch of a children's play trail; not a signed hiking route"
+        }
+      ],
+      "include_trails": [
+        {
+          "id": "r12700220",
+          "name": "Kollerup Plantage Grøn",
+          "reason": "lwn Naturstyrelsen relation 3.05 mi, Kollerup Plantage walk of the same guide (neighbouring polygon, whole route)"
+        },
+        {
+          "id": "r12700248",
+          "name": "Kollerup Plantage Blå",
+          "reason": "lwn Naturstyrelsen relation 2.47 mi, Kollerup Plantage walk of the same guide (neighbouring polygon, whole route)"
+        }
+      ]
     },
     {
       "id": "kompedal-plantage-dk",
@@ -1328,12 +1433,12 @@
       "relation_id": 1392261,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 9,
       "est_mi": 6.8,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
     },
     {
       "id": "albaek-klitplantage-dk",
@@ -1342,26 +1447,39 @@
       "relation_id": 1214128,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
-      "tier": 2,
-      "hold": null,
-      "est_trails": 7,
-      "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
-    },
-    {
-      "id": "langdal-plantage-dk",
-      "name": "Langdal Plantage",
-      "state": "Denmark",
-      "relation_id": 8073879,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
+    },
+    {
+      "id": "langdal-plantage-dk",
+      "name": "Langdal Plantage",
+      "display_name": "Langdal og Fosdalen Plantage",
+      "state": "Denmark",
+      "relation_id": 8073879,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 6.7,
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added.",
+      "include_trails": [
+        {
+          "id": "r12559613",
+          "name": "Fosdalen Gul rute",
+          "reason": "lwn Naturstyrelsen relation 3.26 mi, the 5.5 km Gul rute of the same guide (Fosdal Plantage has no registry polygon)"
+        },
+        {
+          "id": "r12559639",
+          "name": "Fosdalen Grøn rute",
+          "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the same guide (Fosdal Plantage has no registry polygon)"
+        }
+      ]
     },
     {
       "id": "hojbjerg-skove-dk",
@@ -1370,12 +1488,12 @@
       "relation_id": 21184767,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 6.6,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Skjoldnæsholm Sløjfe 6.1 mi)."
     },
     {
       "id": "stursbol-plantage-dk",
@@ -1384,12 +1502,12 @@
       "relation_id": 5888758,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 4,
       "est_mi": 6.6,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide /sydvestjylland/stursboel-plantage/praktisk lists three marked walks (Blå Troldeskoven 1.8 km, Blå Gravhøjene 2 km, Gul 4.4 km); OSM carries the Gul and one Blå relation (3.5 km, covers both blue loops). Complete as far as OSM shows."
     },
     {
       "id": "boserup-skov-dk",
@@ -1412,12 +1530,12 @@
       "relation_id": 5847106,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 5,
       "est_mi": 6.5,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Troldsting ruten / Bulbjerg 4.1 mi); Naturstyrelsen Bulbjerg guide lists eight walks in Lild and Vester Thorup, none else in OSM as named relations."
     },
     {
       "id": "norreskov-2823046-dk",
@@ -1426,12 +1544,12 @@
       "relation_id": 2823046,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 12,
       "est_mi": 6.5,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
     },
     {
       "id": "sonnerup-skov-dk",
@@ -1489,12 +1607,12 @@
       "relation_id": 2904791,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 13,
       "est_mi": 6.4,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one 0.31 mi name-stitch (Hyrebakken)."
     },
     {
       "id": "kongenshus-dk",
@@ -1503,12 +1621,12 @@
       "relation_id": 6028269,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 6.3,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: 'Rød' and 'Gul' are bare colour names without the area (2 of 3 names generic) plus one unnamed relation."
     },
     {
       "id": "stenbjerg-klitplantage-dk",
@@ -1559,12 +1677,12 @@
       "relation_id": 6526882,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 4,
       "est_mi": 6.0,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide Harrild Hede og Nørlund Plantage (/soehoejlandet-og-oestjylland/harrild-hede-og-noerlund-plantage/praktisk): yellow-marked 8 km walk (OSM Harrild Hede Rundtur, source=Naturstyrelsen turfolder) plus a 2 km purple accessible route, an unmarked Holtum Å walk (udinaturen only). Harrild blå vandrerute (2.3 km) is a signed lwn relation. Nørlund Plantage has no registry polygon."
     },
     {
       "id": "jonstrup-vang-dk",
@@ -1573,12 +1691,12 @@
       "relation_id": 7441716,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "merge-pending",
       "est_trails": 7,
       "est_mi": 5.9,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): merged elsewhere: its only route (Lille Hareskov gul rute) is brought into Hareskovene (store-hareskov-dk) through include_trails; publishing it would duplicate."
     },
     {
       "id": "valby-hegn-dk",
@@ -1601,12 +1719,12 @@
       "relation_id": 17739019,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 12,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: three MTB-centre name-stitches (Grusgraven, Grævlingen, Bonusrunden)."
     },
     {
       "id": "kolding-skov-dk",
@@ -1643,12 +1761,12 @@
       "relation_id": 1891272,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "merge-pending",
       "est_trails": 7,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): merged elsewhere: its Blå rute (Sydskoven) is brought into Stenderupskovene (norreskov-1965733-dk) through include_trails; publishing it would duplicate."
     },
     {
       "id": "harager-hegn-dk",
@@ -1685,12 +1803,12 @@
       "relation_id": 21168941,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.4,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two municipal Pedersker Jagthus routes (Rød 3.7, Gul 2.2 mi) with no Naturstyrelsen guide; defer to the Bornholm split."
     },
     {
       "id": "mellemskov-dk",
@@ -1699,12 +1817,12 @@
       "relation_id": 5710525,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.3,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
     },
     {
       "id": "skelhoj-plantage-dk",
@@ -1741,12 +1859,12 @@
       "relation_id": 5834845,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 5.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one real trail (Husby Klitplantage Ruten 9.4 mi) plus a 'red triangle' fragment; guide lists four walks, three not in OSM."
     },
     {
       "id": "staurby-skov-dk",
@@ -1755,12 +1873,12 @@
       "relation_id": 18424570,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 5.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: four bare colour names (Lilla/Blå/Grå Kulturrute/Rød) with no area prefix; no Naturstyrelsen guide."
     },
     {
       "id": "sogard-skov-dk",
@@ -1769,12 +1887,12 @@
       "relation_id": 12537170,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.0,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Søgård Skov nord/syd (Naturstyrelsen) + a Hjerteforeningen exercise loop; no Naturstyrelsen guide to confirm the set; two 2 mi routes do not make a destination."
     },
     {
       "id": "vangsa-klithede-dk",

@@ -339,6 +339,43 @@ def test_run_area_script_reads_rules_from_the_registry_and_passes_them_on():
     assert '--dk-rules "$RULES"' in script
     assert "(legacy|dk-v2|dk-v3)" in script
     assert "--dk-curated-include" in script and ".include_trails // []" in script
+def _plain(doc, **fields):
+    """Area 1 without curated lists (those are rule-set bound), then the given fields."""
+    doc["areas"][1].pop("exclude_trails", None)
+    doc["areas"][1].pop("include_trails", None)
+    doc["areas"][1].update(fields)
+def test_registry_accepts_trail_name_prefix_only_on_dk_v3_and_only_valid_text(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", trail_name_prefix="Svanninge")))
+    assert reg["areas"][1]["trail_name_prefix"] == "Svanninge"
+    for rules in ("legacy", "dk-v2"):
+        with pytest.raises(dk.DkError, match="requires rules dk-v3"):
+            dk.load_registry(_write_registry(
+                tmp_path / "r2.json", lambda d, r=rules: _plain(d, rules=r, trail_name_prefix="Svanninge")))
+    for bad in ("", "  ", " Svanninge", "Gul", "x" * 41, 5, None, "Mo\u0308ns"):
+        with pytest.raises(dk.DkError, match="trail_name_prefix is invalid"):
+            dk.load_registry(_write_registry(
+                tmp_path / "r3.json",
+                lambda d, b=bad: _plain(d, rules="dk-v3", trail_name_prefix=b)))
+def test_run_area_script_passes_the_registry_prefix_to_assemble_and_nothing_without_one(tmp_path):
+    """Run the real argument-building part of dk-run-area.sh (everything before ROOT=)."""
+    head = (ROOT / "scripts/dk-run-area.sh").read_text(encoding="utf-8").split('\nROOT="$(pwd)"\n')[0]
+    (tmp_path / "trailforge/golden").mkdir(parents=True)
+    probe = tmp_path / "probe.sh"
+    probe.write_text(head + '\necho "n=${#EXCLUDE_ARGS[@]}"\nprintf "%s|" ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"}\n',
+                     encoding="utf-8")
+    def run(prefix):
+        entry = {"id": FOREST, "rules": "dk-v3"}
+        if prefix is not None:
+            entry["trail_name_prefix"] = prefix
+        (tmp_path / "trailforge/golden/dk-areas.json").write_text(json.dumps({"areas": [entry]}), encoding="utf-8")
+        proc = subprocess.run(["/bin/bash", str(probe)], cwd=tmp_path, capture_output=True, text=True, env={
+            **os.environ, "AREA_ID": FOREST, "AREA_NAME": "x", "BBOX": "1,2,3,4", "RELATION_ID": "7",
+            "WAY_ID": "", "W": str(tmp_path / "w")})
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+    assert run("Svanninge Bjerge") == "n=2\n--dk-name-prefix|Svanninge Bjerge|"      # one argv word, spaces kept
+    assert run(None) == "n=0\n|"                                                  # no flag at all
 def test_road_name_removals_count_as_forbidden_junk_in_proposed_tables():
     assert "dk-road-name" in (ROOT / "scripts/dk_publish.py").read_text().split("junk_categories = ", 1)[1][:200]
 # --------------------------------------------------------- bbox / prepare ----
@@ -1209,7 +1246,7 @@ def test_generic_names_are_detected_without_inventing_any():
         assert not dk.is_generic_trail_name(name), name
 
 
-def _report_for(tmp_path, names):
+def _report_for(tmp_path, names, assembly=None):
     aid = "x-dk"
     d = tmp_path / aid
     d.mkdir()
@@ -1220,7 +1257,7 @@ def _report_for(tmp_path, names):
     (d / "removed.geojson").write_text(json.dumps({"features": [
         {"type": "Feature", "geometry": None, "properties": {
             "name": "Gammel Vej", "removed_category": "dk-fragment", "length_mi": 0.1}}]}))
-    (d / "assembly.json").write_text(json.dumps({}))
+    (d / "assembly.json").write_text(json.dumps(assembly or {}))
     assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
                     "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson",
                     str(d / "removed.geojson"), "--assembly-json", str(d / "assembly.json"),
@@ -1235,6 +1272,15 @@ def test_report_area_recommends_exclusion_at_half_generic_and_lists_the_rest(tmp
     assert rep["proposed_expected"]["forbidden_names"] == ["Gammel Vej"]   # new categories count as junk
 
 
+def test_report_area_still_judges_prefixed_names_by_their_osm_names(tmp_path):
+    renamed = [{"osm_name": n, "name": f"Svanninge {n}"} for n in ("Gul", "Grøn rute")]
+    rep = _report_for(tmp_path, ["Svanninge Gul", "Svanninge Grøn rute", "Kirkestien", "Ulvestien"],
+                      assembly={"name_prefix": {"prefix": "Svanninge", "renamed": renamed, "unchanged": 2}})
+    assert rep["exclude_recommended"] is True and rep["generic_share"] == 0.5
+    assert rep["generic_names"] == ["Svanninge Gul", "Svanninge Grøn rute"]
+    assert rep["name_prefix"] == {"prefix": "Svanninge", "renamed": 2}
+    (tmp_path / "ctl").mkdir()
+    assert "name_prefix" not in _report_for(tmp_path / "ctl", ["Gul", "Kirkestien"])    # control: no block
 def test_report_area_keeps_an_area_with_few_generic_names(tmp_path):
     rep = _report_for(tmp_path, ["Gul rute", "Kirkestien", "Ulvestien", "Bakkestien"])
     assert rep["exclude_recommended"] is False

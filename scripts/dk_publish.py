@@ -110,6 +110,15 @@ def _is_num(value: Any) -> bool:
 
 
 # ----------------------------------------------------------------- registry --
+def _dk_names():
+    """trailforge/assemble/dk_names.py (the one definition of 'generic name' and of a valid
+    prefix), loaded by path so the assemble directory is not put on sys.path."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "dk_names", ROOT / "trailforge" / "assemble" / "dk_names.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude_trails",
                           rule_sets: tuple[str, ...] = ("dk-v2", "dk-v3")) -> None:
@@ -201,6 +210,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
+        if "trail_name_prefix" in entry:
+            if entry.get("rules") != "dk-v3":
+                raise DkError(f"{aid}: trail_name_prefix requires rules dk-v3")
+            try:
+                _dk_names().validate_prefix(entry["trail_name_prefix"])
+            except ValueError as error:
+                raise DkError(f"{aid}: trail_name_prefix is invalid: {error}") from None
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -723,7 +739,11 @@ def report_area(args: argparse.Namespace) -> int:
           "reason": p.get("curated_exclude_reason")}
          for p in removed if p.get("removed_category") == "dk-curated-exclude"),
         key=lambda item: str(item["id"]))
-    generic = [n for n in names if is_generic_trail_name(n)]
+    # A dk-v3 name prefix fixes search ambiguity, not a list made of colour routes: the
+    # generic-share gate keeps judging the OSM names.
+    prefix_block = assembly.get("name_prefix") or {}
+    osm_of = {r["name"]: r["osm_name"] for r in prefix_block.get("renamed") or []}
+    generic = [n for n in names if is_generic_trail_name(osm_of.get(n, n))]
     generic_share = round(len(generic) / len(names), 3) if names else 0.0
     rec = {
         "id": area["id"], "name": area["name"],
@@ -754,6 +774,8 @@ def report_area(args: argparse.Namespace) -> int:
         ident = trail_identity(t)
         ident["relation_ids"], ident["whole"] = _trail_relations(kept, t.get("name"))
         identities.append(ident)
+    if prefix_block:
+        rec["name_prefix"] = {"prefix": prefix_block.get("prefix"), "renamed": len(osm_of)}
     rec["trail_identities"] = identities
     rec["live_duplicates"] = live_conflicts(area["id"], identities, args.live_geom_dir)
     # dk-v3 only: routes published whole (key absent for dk-v2/legacy runs).

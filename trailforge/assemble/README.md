@@ -359,6 +359,40 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   and geom when the OSM relation name is not what a visitor knows (Store
   Klinteskov -> Møns Klint). `name` stays the OSM relation name that drives
   boundary selection and the identity checks.
+- **`trail_name_prefix`** (registry, optional, dk-v3 only; `--dk-name-prefix`).
+  OSM names many marked routes only by colour or number ('Grøn rute', 'Gul',
+  'Tur 2'), which the app's search and lists cannot tell from every other area's
+  'Grøn rute'. With a prefix (a place text, 1..40 characters, trimmed NFC, itself
+  not a colour/number), `trailforge/assemble/dk_names.py` renames ONLY generic
+  trails, as the last step of assemble: `Grøn rute` -> `Svanninge Grøn rute`,
+  `Gul Tur 1` -> `Almindingen Gul Tur 1`. A name is generic when every token is a
+  colour word, an ordinal, a digit string or a filler (`rute`, `tur`, `spor`,
+  `sti`, `og`, ...) and at least one token is a colour, ordinal or digit. Any
+  other name is never touched: `Kirkestien`, `Pamhule - rød rute`, `Spor ved
+  Tiset`, `Kollerup Plantage Blå`, a bare `Rute`/`Sti`.
+  - Separator is one space (matches live names like `Kollerup Plantage Blå` and
+    keeps `svanninge grøn` findable by the app's plain contains-search).
+  - The OSM name stays in the feature property `osm_name` (trails.geojson) and
+    the report block `name_prefix` (`prefix`, `renamed[]`, `unchanged`). It is not
+    written to the app geom (the iOS `Trail` decodes only id/name/distance/
+    difficulty/segments/elevation).
+  - **The trail id never depends on the prefix.** `to_app_json.convert` derives
+    the id (`slugify(name)`) from `osm_name` when present, so adopting a prefix
+    in a live area leaves every trail id, and so every stored completion,
+    unchanged. `exclude_trails` / `include_trails` selectors, the relation
+    ledger and every gate run on OSM names, before the rename.
+  - A rename that gives a trail the display name of a different trail fails the
+    area (assemble exits 2, report `status: failed`); nothing is merged or
+    numbered silently.
+  - The blessed table (`required_names` / `forbidden_names`) and the qualify
+    report see the final display names, so a newly prefixed area is blessed with
+    them. Adopting a prefix in a LIVE area renames its generic trails and is an
+    update-mode change (re-bless, then update).
+  - Without the field or the flag nothing changes: the output is byte-identical
+    (compared against `main` for legacy, dk-v2, dk-v3 and non-Danish runs).
+  - Rejected: a prefix on a legacy or dk-v2 entry (registry error, parser error),
+    an empty, padded, over-long or colour-only prefix, a prefix outside exact
+    Denmark assembly.
 - **Cross-area duplicate gate** (`dk_publish.py report-area` /
   `qualify-aggregate`): no route may appear in two areas of the selected set or
   in a live Danish area (`public/areas/geom`). A conflict is a relation id whole

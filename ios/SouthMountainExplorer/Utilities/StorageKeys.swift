@@ -21,6 +21,9 @@ enum StorageKeys {
     /// `MapStylePreference` enum (`standard` / `satellite` / `hybrid`).
     /// Default `standard` — same as the prior hardcoded `mv.mapType`.
     static let mapStyle = "summit:map-style"
+    /// Share (0.3-0.7) of the usable width the area screen's side panel takes
+    /// on wide windows (unfolded Duo). Unset/0 means "use the default".
+    static let areaPanelFraction = "summit:area-panel-fraction"
     /// Show the faint Tonto trail-mesh backdrop behind the main tabs. Default on.
     static let trailMesh = "summit:trail-mesh"
 

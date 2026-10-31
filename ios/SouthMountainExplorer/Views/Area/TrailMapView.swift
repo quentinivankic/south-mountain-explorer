@@ -233,6 +233,14 @@ struct TrailMapView: View {
     /// old one-shot was really there to keep: a map the user has framed is
     /// never yanked back to the overview.
     @State private var holdsOpeningFraming = true
+    /// This map's own measured size. Region/fit math must use the map's
+    /// viewport, not the window: in the wide side-panel layout the map is only
+    /// part of the window. Compact layouts are full-bleed, so it equals the
+    /// window size there.
+    @State private var measuredViewportSize: CGSize = .zero
+    private var viewportSize: CGSize {
+        MapViewportSizing.resolve(measured: measuredViewportSize, fallback: WindowMetrics.size)
+    }
     /// The refit waiting for `bottomInset` to stop moving. Each change
     /// cancels and replaces it, so a burst lands ONE refit, at the end.
     ///
@@ -475,6 +483,21 @@ struct TrailMapView: View {
                 return
             }
             centerOn(trail: trail)
+        }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+            guard size.width.isFinite, size.height.isFinite,
+                  abs(measuredViewportSize.width - size.width) >= 1
+                    || abs(measuredViewportSize.height - size.height) >= 1 else { return }
+            let first = measuredViewportSize == .zero
+            measuredViewportSize = size
+            // The map pane resized (divider drag, fold/unfold). Keep the
+            // opening framing fit to it; a no-op once another owner has the
+            // camera. The first measurement only matters when the map is not
+            // window-sized (side panel), since the initial fit used the window.
+            let window = WindowMetrics.size
+            let differsFromWindow = abs(size.width - window.width) >= 1
+                || abs(size.height - window.height) >= 1
+            if !first || differsFromWindow { scheduleOpeningRefit() }
         }
         .onChange(of: bottomInset) { _, _ in
             // The visible map just changed size. While the camera still holds
@@ -802,7 +825,7 @@ struct TrailMapView: View {
             : 0
 
         let latMeters = 1500.0
-        let b = CGRect(origin: .zero, size: WindowMetrics.size)
+        let b = CGRect(origin: .zero, size: viewportSize)
         let shortDim = min(b.width, b.height)
         let metersPerPoint = latMeters / max(shortDim, 1)
         let shiftMeters = (bottomInset / 2) * metersPerPoint
@@ -877,8 +900,8 @@ struct TrailMapView: View {
             latDelta: latDelta,
             lonDelta: lonDelta,
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
@@ -891,8 +914,8 @@ struct TrailMapView: View {
             setCameraTarget(Self.fittedRegion(
                 centerLat: r.0, centerLon: r.1, latDelta: r.2, lonDelta: r.3,
                 bottomInset: bottomInset,
-                screenHeight: WindowMetrics.size.height,
-                screenWidth: WindowMetrics.size.width
+                screenHeight: viewportSize.height,
+                screenWidth: viewportSize.width
             ))
             return
         }
@@ -900,8 +923,8 @@ struct TrailMapView: View {
         setCameraTarget(Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
@@ -939,8 +962,8 @@ struct TrailMapView: View {
             latDelta: 1500.0 / 111_000.0,
             lonDelta: 1500.0 / (111_000.0 * cosLat),
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
@@ -976,8 +999,8 @@ struct TrailMapView: View {
               let target = Self.selectedRouteRegion(
                 points: points,
                 viewportInsets: insets,
-                screenHeight: WindowMetrics.size.height,
-                screenWidth: WindowMetrics.size.width
+                screenHeight: viewportSize.height,
+                screenWidth: viewportSize.width
               ) else { return }
         setCameraTarget(target)
     }
@@ -1046,8 +1069,8 @@ struct TrailMapView: View {
         guard let target = Self.selectedRouteRegion(
             points: points,
             viewportInsets: selectedViewportInsets,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ) else { return }
         setCameraTarget(target)
     }

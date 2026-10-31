@@ -174,7 +174,7 @@ def _reg():
 BATCH2 = ("klosterhede-plantage-dk", "almindingen-dk", "skelhoj-plantage-dk", "hammer-bakker-dk",
           "stensbaek-plantage-dk", "rye-norreskov-dk", "pamhule-skov-dk", "godding-skov-dk",
           "skagen-klitplantage-dk", "nordskoven-416103-dk")
-# Way-backed areas (registry `way_id`, wayback curation): the 4 shippable ones carry bbox/centre
+# Way-backed areas (registry `way_id`, wayback curation): these four carry bbox/centre (svanninge is held until its colour-only names are fixed)
 WAYBACK_SHIP = ("svanninge-bjerge-dk", "haunstrup-brunkulslejer-dk", "fovslet-skov-dk", "nekselo-dk")
 WAYBACK_ALL = (*WAYBACK_SHIP, "dyrehaven-dk", "kalvebod-faelled-dk", "skjern-enge-dk",
                "lille-vildmose-dk", "vestskoven-dk", "egholm-dk")
@@ -203,9 +203,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 29, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        None: 28, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 4, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 49}
+        "curated-do-not-ship": 50}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]

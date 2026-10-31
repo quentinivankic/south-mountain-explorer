@@ -1936,10 +1936,10 @@
       "center": [55.13, 10.27],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 9,
       "est_mi": 15.0,
-      "notes": "Way-backed (way 983744481, Svanninge Bjerge; funen first area). Wayback curation (dk-v3): ship after inclusions. Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes: Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule; mapped twice (r8902909), no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen: Gul, Rød, Nørremark, Svanninge Bakker-ruten) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap), so they are not included here. Trail names are OSM colour-only names; the area name is their context.",
+      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap).",
       "include_trails": [
         {
           "id": "r8872389",

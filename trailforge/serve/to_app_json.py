@@ -84,12 +84,15 @@ def convert(fc: dict, area_id: str, name: str, state: str,
         # id continuity: if this is the SAME trail as a live one (same
         # merge_key) but our name-normalization changed the slug, keep the
         # LIVE id so the completion re-binds instead of orphaning.
-        preserved = id_by_mergekey.get(model.merge_key(nm)) if id_by_mergekey else None
+        # dk-v3 name prefix: the id is derived from the OSM name, never from the
+        # prefixed display name (osm_name is absent on every other path).
+        id_nm = p.get("osm_name") or nm
+        preserved = id_by_mergekey.get(model.merge_key(id_nm)) if id_by_mergekey else None
         if preserved and preserved not in slug_counts:
             tid = preserved
             slug_counts[preserved] = 1
         else:
-            base = trail_slug(nm)
+            base = trail_slug(id_nm)
             seen = slug_counts.get(base, 0)
             slug_counts[base] = seen + 1
             tid = base if seen == 0 else f"{base}-{seen}"

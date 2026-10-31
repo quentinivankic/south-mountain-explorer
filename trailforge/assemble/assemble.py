@@ -954,7 +954,23 @@ def main(argv=None) -> int:
                     help="JSON list of {id, name, reason} curated exclusions "
                          "(registry exclude_trails); dk-v2 only, fail-closed "
                          "when an entry matches no kept trail")
+    ap.add_argument("--dk-name-prefix", dest="dk_name_prefix",
+                    help="place name prefixed to trails OSM names only by colour "
+                         "or number ('Grøn rute' -> '<prefix> Grøn rute'); the "
+                         "OSM name stays in osm_name (registry trail_name_prefix); "
+                         "dk-v3 exact Denmark only")
     args = ap.parse_args(argv)
+    if args.dk_name_prefix is not None:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-name-prefix requires --dk-rules dk-v3")
+        if (not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error("--dk-name-prefix is limited to exact Denmark assembly")
+        try:
+            import dk_names as dk_names_args
+            dk_names_args.validate_prefix(args.dk_name_prefix)
+        except ValueError as error:
+            ap.error(f"--dk-name-prefix is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
         if args.dk_rules not in ("dk-v2", "dk-v3"):
@@ -1263,6 +1279,16 @@ def main(argv=None) -> int:
     # Retained-route ingest truth depends on the final diagnostic-published
     # population, after exact clipping and Denmark quality disposition.
     model.reconcile_ingest_dropped(ingest_dropped, features, args.region)
+    name_prefix_report = None
+    if args.dk_name_prefix is not None:
+        # dk-v3 only (parser-enforced). Last rename step: every selector, gate
+        # and removal above ran on the OSM names; the id is derived from osm_name.
+        import dk_names
+        name_prefix_report, prefix_failures = dk_names.apply_name_prefix(
+            features, args.dk_name_prefix)
+        if prefix_failures and not terminal_absorption_failure:
+            terminal_absorption_failure = "; ".join(prefix_failures)
+            print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
 
     fc = {"type": "FeatureCollection", "features": features,
           "coverage": coverage}
@@ -1431,6 +1457,8 @@ def main(argv=None) -> int:
         "assembled_trail_count": len(features),
         "coverage": coverage,
         "quality": quality_report,
+        **({"name_prefix": name_prefix_report}
+           if name_prefix_report is not None else {}),
     })
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")

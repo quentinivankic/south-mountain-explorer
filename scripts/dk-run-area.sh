@@ -41,6 +41,10 @@ EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .excl
 # Optional curated inclusions (registry include_trails; dk-v3 only, validated by dk_publish and assemble).
 INCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .include_trails // []' \
   trailforge/golden/dk-areas.json)"
+# Optional display prefix for colour/number-only trail names (registry trail_name_prefix; dk-v3 only,
+# validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
+NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
+  trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
 EXCLUDE_ARGS=()
@@ -51,6 +55,9 @@ fi
 if [ "$INCLUDE_JSON" != "[]" ]; then
   printf '%s\n' "$INCLUDE_JSON" > "$A/dk-curated-include.json"
   EXCLUDE_ARGS+=(--dk-curated-include "$A/dk-curated-include.json")
+fi
+if [ -n "$NAME_PREFIX" ]; then
+  EXCLUDE_ARGS+=(--dk-name-prefix "$NAME_PREFIX")
 fi
 ROOT="$(pwd)"
 SOURCE_PBF="$ROOT/trailforge/data/raw/denmark.osm.pbf"

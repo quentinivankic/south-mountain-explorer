@@ -188,9 +188,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 50, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        None: 46, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 1, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 21}
+        "curated-do-not-ship": 25}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
@@ -228,12 +228,12 @@ def test_batch_skips_held_and_explicit_areas_include_them():
 def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     reg = _reg()
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
-    assert [len(b) for b in batches] == [25, 24]
+    assert [len(b) for b in batches] == [25, 20]
     with pytest.raises(dk.DkError):
         dk.select_areas(reg, {MOLS}, "batch=3", 25, "qualify")
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
-    assert len(set(flat)) == 49 and MOLS not in flat
+    assert len(set(flat)) == 45 and MOLS not in flat
     assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
     mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
     assert mi == sorted(mi, reverse=True)

@@ -43,6 +43,8 @@ struct SouthMountainExplorerApp: App {
         // Subscribe to MetricKit so field crash/hang counts get
         // forwarded to analytics (delivered aggregated on a later launch).
         CrashReporter.shared.start()
+        // Observes recording state to drive the hike Live Activity.
+        LiveActivityCoordinator.shared.start()
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         AnalyticsService.shared.capture(.appLaunched(build: build))
     }

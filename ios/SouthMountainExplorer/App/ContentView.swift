@@ -182,6 +182,7 @@ struct ContentView: View {
                 }
             }
         }
+        .onOpenURL { handleLiveActivityURL($0) }
         // Warm the trail-shape thumbnails in the background at launch (while
         // the user is in onboarding / browsing), off the search critical path.
         .task { await TrailShapeService.shared.loadIfNeeded() }
@@ -378,6 +379,20 @@ struct ContentView: View {
     private func trailName(forAreaId areaId: String, trailId: String?) -> String? {
         guard let trailId else { return nil }
         return areas.cachedArea(id: areaId)?.trails.first { $0.id == trailId }?.name
+    }
+
+    /// Live Activity tap: open the active hike (mirrors the banner's onTap).
+    private func handleLiveActivityURL(_ url: URL) {
+        guard LiveActivityDeepLink.parse(url) == .activeHike else { return }
+        switch LiveActivityRouting.target(for: recording.activeRecording) {
+        case .walk:
+            showWalkCover = true
+        case .area(let areaId):
+            areaJumpRoute = AreaJumpRoute(areaId: areaId, trailId: nil, trailName: nil)
+        case .none:
+            // Stale activity with no hike behind it; the coordinator ends it.
+            Task { await LiveActivityCoordinator.shared.evaluate() }
+        }
     }
 
     private var activeRecordingIsWalk: Bool {

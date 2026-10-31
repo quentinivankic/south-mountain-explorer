@@ -69,6 +69,8 @@ def validate_prefix(prefix) -> str:
         raise ValueError("name prefix must be trimmed NFC text")
     if len(prefix) > MAX_PREFIX_LEN:
         raise ValueError(f"name prefix is longer than {MAX_PREFIX_LEN} characters")
+    if prefix.startswith("-"):
+        raise ValueError("name prefix must not start with '-'")
     if any(unicodedata.category(c).startswith("C") for c in prefix):
         raise ValueError("name prefix contains a control character")
     if is_generic_name(prefix):

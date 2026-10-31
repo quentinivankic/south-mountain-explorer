@@ -178,24 +178,38 @@ BATCH2 = ("klosterhede-plantage-dk", "almindingen-dk", "skelhoj-plantage-dk", "h
 WAYBACK_SHIP = ("svanninge-bjerge-dk", "haunstrup-brunkulslejer-dk", "fovslet-skov-dk", "nekselo-dk")
 WAYBACK_ALL = (*WAYBACK_SHIP, "dyrehaven-dk", "kalvebod-faelled-dk", "skjern-enge-dk",
                "lille-vildmose-dk", "vestskoven-dk", "egholm-dk")
+BATCH_B_WAY = ("hov-vig-dk",)   # batch B: the Hov Vig bird reserve (way 456982965) is a second way-backed area family
 WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
+# Prefix curation (dk-v3 + trail_name_prefix): svanninge (7 of 8, Rød rute is a known omission),
+# staurby and kongenshus ship; knagelbjerg (duplicate of svanninge) stays held; all four carry a
+# bbox/centre and a prefix.
+PREFIX_CURATED = {"svanninge-bjerge-dk": "Svanninge", "knagelbjerg-skov-dk": "Knagelbjerg",
+                  "staurby-skov-dk": "Staurby", "kongenshus-dk": "Kongenshus"}
+def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    for aid, prefix in PREFIX_CURATED.items():
+        assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
+        assert by_id[aid]["bbox"] and by_id[aid]["center"]
+    assert by_id["staurby-skov-dk"]["hold"] is None and by_id["kongenshus-dk"]["hold"] is None
+    assert by_id["svanninge-bjerge-dk"]["hold"] is None
+    assert by_id["knagelbjerg-skov-dk"]["hold"] == "curated-do-not-ship"
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 122
+    assert len(areas) == 129
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
-    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == len(WAYBACK_ALL)
-    assert {a["id"] for a in areas if "way_id" in a} == set(WAYBACK_ALL)
+    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == len(WAYBACK_ALL) + len(BATCH_B_WAY)
+    assert {a["id"] for a in areas if "way_id" in a} == set(WAYBACK_ALL) | set(BATCH_B_WAY)
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
-               and a["id"] not in WAYBACK_SHIP)
+               and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -204,14 +218,15 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 28, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
-        "needs-rescope": 4, "merge-pending": 4, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 50}
+        None: 37, "name-collision": 2, "np-nested": 16, "island": 9, "duplicate-of-live": 5,
+        "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
+        "curated-do-not-ship": 49}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
     assert sorted(holds["merge-pending"]) == [
-        "blabjerg-klitplantage-dk", "jonstrup-vang-dk", "randbol-hede-dk", "sonderskov-1891272-dk"]
+        "blabjerg-klitplantage-dk", "horreby-lyng-dk", "jonstrup-vang-dk", "randbol-hede-dk",
+        "sonderskov-1891272-dk"]
     assert holds["merge-into-klosterhede"] == ["kronhede-plantage-dk"]
     assert holds["mtb-centre"] == ["vesterskov-2325780-dk"]
     assert sorted(holds["name-collision"]) == ["hejede-overdrev-dk", "vestvolden-dk"]
@@ -325,6 +340,8 @@ DK_V3_BATCH_A = (
 DK_V3_UPDATE_1 = ("skagen-klitplantage-dk", "hammer-bakker-dk", "stensbaek-plantage-dk",
                   "klosterhede-plantage-dk", "rye-norreskov-dk")
 DK_V3_UPDATE_2 = ("almindingen-dk", "pamhule-skov-dk")
+DK_V3_BATCH_B = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk", "aero-dk",
+                 "horreby-lyng-dk", "boto-plantage-dk", "ulvshale-nyord-dk")
 DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
                  "nationalpark-kongernes-nordsjaelland-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
@@ -334,7 +351,8 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
     assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
-            *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL)}
+            *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
+            *DK_V3_BATCH_B)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -362,7 +380,7 @@ def test_registry_accepts_trail_name_prefix_only_on_dk_v3_and_only_valid_text(tm
         with pytest.raises(dk.DkError, match="requires rules dk-v3"):
             dk.load_registry(_write_registry(
                 tmp_path / "r2.json", lambda d, r=rules: _plain(d, rules=r, trail_name_prefix="Svanninge")))
-    for bad in ("", "  ", " Svanninge", "Gul", "x" * 41, 5, None, "Mo\u0308ns"):
+    for bad in ("", "  ", " Svanninge", "Gul", "x" * 41, 5, None, "Mo\u0308ns", "-Svanninge"):
         with pytest.raises(dk.DkError, match="trail_name_prefix is invalid"):
             dk.load_registry(_write_registry(
                 tmp_path / "r3.json",

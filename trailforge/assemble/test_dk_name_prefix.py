@@ -215,6 +215,18 @@ class ParserGuards(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertIn("--dk-name-prefix is invalid", result.stderr)
 
+    def test_leading_dash_prefix_is_rejected(self):
+        # The bare-argument form never reaches validation (argparse takes it for a flag and
+        # fails closed); the = form does, and the registry loader calls validate_prefix too.
+        for bad in ("-Svanninge", "--dk-rules", "-"):
+            with self.subTest(prefix=bad):
+                result = self.parse(f"--dk-name-prefix={bad}")
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("--dk-name-prefix is invalid", result.stderr)
+                self.assertIn("must not start with '-'", result.stderr)
+        result = self.parse("--dk-name-prefix", "-Svanninge")
+        self.assertEqual(result.returncode, 2)
+
     def test_prefix_requires_dk_v3(self):
         for rules in ("legacy", "dk-v2"):
             with self.subTest(rules=rules):

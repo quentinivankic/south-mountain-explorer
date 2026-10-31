@@ -421,7 +421,7 @@
       "hold": "needs-rescope",
       "est_trails": 134,
       "est_mi": 222.8,
-      "notes": "Tier 2I island, Bornholm. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island polygon is 15 clusters, not one hiking destination; re-scope into Almindingen, Roe Plantage, Hammeren, Paradisbakkerne, Dueodde."
+      "notes": "Tier 2I island, Bornholm. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island polygon is 15 clusters, not one hiking destination; re-scope into Almindingen, Roe Plantage, Hammeren, Paradisbakkerne, Dueodde. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): the one rescoped island area is almost clean. dk-v3 on rel 5176019 finds Rø Plantage Bornholm, Ringebakkerne, Døndal, Jons Kapel rundtur, Stenhuggerstien, Hammerknuden Rundt (Naturstyrelsen Nordbornholm guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/nordbornholm/praktisk: five walks Salomons Sti, Hammerknuden Rundt, Stenhuggerstien, Cirkelstien, Finnens fodspor), Finnens fodspor, Pedersker Jagthus Rød and Gul, Sandflugtsstien, plus the 8 live Almindingen routes (excludable by id), 8 name-stitches (excludable by name) and TWO UNNAMED lwn relations at Blykobbe (r21053823, r21053824) that cannot be excluded because a curated exclusion must match a trail name. Cirkelstien, SPOR - Folkemødet and Den Grønne Ring are dropped by the relation-gap gate. Needs code (exclusion by id for unnamed relations, or an allowlist-only island mode). Intended display name: Bornholm uden Almindingen."
     },
     {
       "id": "gribskov-dk",
@@ -444,12 +444,34 @@
       "relation_id": 5178556,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "island",
-      "est_trails": 53,
-      "est_mi": 121.5,
-      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 12,
+      "est_mi": 30.6,
+      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): ONE island destination for Falster instead of five small ones. 12 named routes: Horreby Lyng Lilla/Rød/Grøn/Hvid/Blå (VisitDenmark: several routes of 3 to 5 km over the only raised bog on Falster, https://www.visitdenmark.com/denmark/plan-your-trip/horreby-lyng-gdk1145973), Borremosen og Hannenov Skoven and Halskov Vænge (Naturstyrelsen guides Hannenov og Ovstrupskovene and Halskov Vænge og naturperler ved Falsters Østkyst), Bøtøskoven, Sporet ved Bønnet Slotsruin, Kroghage blå and grøn, Hasselø Natursti. Known omissions: the 4.5 km Hjertesti in Ovstrup Skov and the Hannenov walks beyond Borremosen (not in OSM), Gedser Odde (bird tower, no marked walk). Motionsslangen afstikker (spur of a 37 km exercise connector), the Naturlandet copy of the Bøtø loop and two name-stitches are excluded. Alternativ rute (a generic 10 mi Falster Rundt leg, r2776061) is dropped by the relation-gap gate on the Actions runner but kept by the local macOS replay (shapely/GEOS differs), so it is NOT in exclude_trails (a stale curated exclusion fails closed); it is a forbidden name in the proposed bless. Overlap: sibling entries horreby-lyng-dk, hannenov-skov-dk and boto-plantage-dk are held and must never be published next to this one. Rating: complete as far as OSM shows.",
+      "exclude_trails": [
+        {
+          "id": "r12497129",
+          "name": "Motionsslangen afstikker",
+          "reason": "spur of Motionsslangen, a 37 km exercise and cycling connector (Naturstyrelsen calls it a motionsrute); not a hiking trail"
+        },
+        {
+          "id": "r14870295",
+          "name": "Naturreservat Bøtøskoven",
+          "reason": "same Bøtø loop as the Naturstyrelsen-tagged Bøtøskoven relation (3.4 vs 3.2 mi, same bbox); one copy kept"
+        },
+        {
+          "id": "n:Vesterhave",
+          "name": "Vesterhave",
+          "reason": "0.6 mi name-stitch of beach-house paths, not a signed route"
+        },
+        {
+          "id": "n:Falsters Virke",
+          "name": "Falsters Virke",
+          "reason": "0.4 mi name-stitch of a forest-estate path, not a signed route"
+        }
+      ]
     },
     {
       "id": "langeland-dk",
@@ -463,7 +485,7 @@
       "hold": "island",
       "est_trails": 36,
       "est_mi": 119.5,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): 9 name-stitches are all named Øhavsstien (cannot be excluded one by one), Mørkholm Skov Rundtur (Naturstyrelsen) is lost to a gap, rwn legs shipped as trails. Real walks to keep when fixed: Vestre Stigtehave Rundtur, Ristinge Halvø rundtur, Vøjremosen rundtur (Naturstyrelsen)."
     },
     {
       "id": "als-dk",
@@ -477,7 +499,7 @@
       "hold": "island",
       "est_trails": 54,
       "est_mi": 115.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship as an island: 27 trails include the live Nørreskoven på Als routes and many local name-stitches."
     },
     {
       "id": "mon-dk",
@@ -491,7 +513,7 @@
       "hold": "island",
       "est_trails": 16,
       "est_mi": 106.8,
-      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Zealand. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship as an island: the replay repeats the live Møns Klint routes (Kridtstien, Jydelejet, Kvalitetssti, Klintekongens Rige). Ulvshale and Nyord are recorded in ulvshale-nyord-dk."
     },
     {
       "id": "amager-dk",
@@ -540,12 +562,34 @@
       "relation_id": 5178553,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "island",
-      "est_trails": 14,
-      "est_mi": 52.0,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 30.7,
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Ærø island: 4 named routes. Kyststien (lwn, 18.3 mi inside, VisitDenmark Coastal Path on Ærø about 30 km, https://www.visitdenmark.com/denmark/plan-your-trip/coastal-path-aero-island-gdk1101056), Vitsø rundtur (Naturstyrelsen), Sporet ved Gravendal and Sporet ved Gråsten Nor (spor.dk). Øhavsstien 7 is a rwn leg and stays out. Four name-stitches (Vitsø, Trampestien, Ejnars Sti, Kirkestien) are excluded. Known omission: the short Vorbjerg Skov loop on the Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/aeroe/praktisk) is not in OSM. Kyststien is a 29 km linear coastal path: a regional lwn route wholly inside the island, kept under the one-area regional-route rule. Rating: complete as far as OSM shows, with that omission.",
+      "exclude_trails": [
+        {
+          "id": "n:Vitsø",
+          "name": "Vitsø",
+          "reason": "0.3 mi name-stitch beside Vitsø Nor; the signed Vitsø rundtur already covers it"
+        },
+        {
+          "id": "n:Trampestien",
+          "name": "Trampestien",
+          "reason": "1.6 mi tramped-path name-stitch, not a signed route"
+        },
+        {
+          "id": "n:Ejnars Sti",
+          "name": "Ejnars Sti",
+          "reason": "0.7 mi name-stitch of a local path, not a signed route"
+        },
+        {
+          "id": "n:Kirkestien",
+          "name": "Kirkestien",
+          "reason": "0.4 mi church-path name-stitch, not a signed route"
+        }
+      ]
     },
     {
       "id": "mors-dk",
@@ -559,7 +603,7 @@
       "hold": "needs-rescope",
       "est_trails": 16,
       "est_mi": 50.5,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 3 clusters; re-scope before shipping."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 3 clusters; re-scope before shipping. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Legind Bjerge Gul and rwn fragments of Kystruten Mors only."
     },
     {
       "id": "naturnationalpark-gribskov-dk",
@@ -693,7 +737,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 27,
       "est_mi": 20.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped. HOLD (second review 2026-10-30): one real walk plus Forskerruten of which only a third lies inside (a truncated fragment); one trail is not an area.",
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped. HOLD (second review 2026-10-30): one real walk plus Forskerruten of which only a third lies inside (a truncated fragment); one trail is not an area. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: 2 trails (Rude Skov 5.58 mi, 96 percent inside; Forskerruten 6.74 mi whole but only 33 percent inside the forest). One Naturstyrelsen walk. Stays held: a completionist would walk four miles outside Rude Skov to finish Forskerruten.",
       "exclude_trails": [
         {
           "id": "n:Lysløjpe Rudeskov",
@@ -816,7 +860,7 @@
       "hold": "island",
       "est_trails": 8,
       "est_mi": 16.8,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Tur 1, 2, 3, 5 (the prefix would fix the names) but Orø (9.6 mi) and Tur 4 are lost to relation gaps, so 4 of 6 routes, and no official page names them."
     },
     {
       "id": "nordskoven-8166504-dk",
@@ -858,7 +902,7 @@
       "hold": "needs-rescope",
       "est_trails": 10,
       "est_mi": 15.5,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 4 clusters; re-scope (Nordby Bakker, coastal path) before shipping."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 4 clusters; re-scope (Nordby Bakker, coastal path) before shipping. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Gul and Blå (the prefix would fix the names) but Grøn (5.1 mi) is lost to a relation gap, name-stitches Alstrup and Besser Rev ship, and no official page names the routes."
     },
     {
       "id": "hedeland-dk",
@@ -900,7 +944,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 13,
       "est_mi": 13.7,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal)."
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held."
     },
     {
       "id": "randbol-hede-frederikshab-dk",
@@ -1023,7 +1067,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 9,
       "est_mi": 12.7,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: one 9.3 mi loop; Jyske Ås Vandrerute lost to relation gap."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: one 9.3 mi loop; Jyske Ås Vandrerute lost to relation gap. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: 1 trail (Dronninglund Storskov rundtur 9.3 mi). Jyske Ås Vandrerute (26.7 km regional) is still dropped by the relation-gap gate. One trail is not an area. Stays held."
     },
     {
       "id": "tasinge-dk",
@@ -1037,7 +1081,7 @@
       "hold": "island",
       "est_trails": 3,
       "est_mi": 12.7,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: no trails touch the island polygon after the rules. Stays held."
     },
     {
       "id": "lystrup-skov-dk",
@@ -1065,7 +1109,7 @@
       "hold": "island",
       "est_trails": 3,
       "est_mi": 12.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship: 2 of 3 Sønderborg Kommune routes (Langs sydkysten lost to a gap), no official page."
     },
     {
       "id": "nymindegab-blabjerg-dk",
@@ -1176,7 +1220,7 @@
       "hold": "island",
       "est_trails": 6,
       "est_mi": 10.8,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/himmerland-og-limfjorden/fur/praktisk) marks 5 walks (Gul 3.2 km, Rød 5.5, Blå 2.8, Grøn about 0.5, Hvid 5.8). OSM has Rød, Gul and Grøn Gammelhavn; Blå and Hvid are not in OSM. Grøn Gammelgård, Engelstør Odde and a brewery-campsite link are unverified extras."
     },
     {
       "id": "klosterris-hegn-dk",
@@ -1204,7 +1248,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 10.6,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rød rute 4.7 mi); Hvid rute lost to relation gap; MTB lines removed."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rød rute 4.7 mi); Hvid rute lost to relation gap; MTB lines removed. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields only Uhrehøje Plantage - Rød rute (4.7 mi). Hvid rute (4.26 mi) is dropped as unresolved-relation-gap: its OSM geometry has a gap of 829 m between two parts. Needs a gap rule or an OSM fix. Not shippable as one trail."
     },
     {
       "id": "sonderskov-10671204-dk",
@@ -1316,7 +1360,7 @@
       "hold": "island",
       "est_trails": 5,
       "est_mi": 9.1,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): four Haderslev Kommune colour routes are clean (grøn 0.66, lilla 2.5, rød 2.7, gul 4.1 mi), but two name-stitches are both named Aarø (0.9 and 1.3 mi) and a curated exclusion must match exactly one trail, so they cannot be removed."
     },
     {
       "id": "skagen-klitplantage-dk",
@@ -1344,7 +1388,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 9.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable."
     },
     {
       "id": "vestvolden-dk",
@@ -1372,7 +1416,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 9.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Borremosen og Hannenov Skoven 7.1 mi); guide names several marked walks, rest on udinaturen; Horreby Lyng (5 routes) is another place without a registry polygon."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Borremosen og Hannenov Skoven 7.1 mi); guide names several marked walks, rest on udinaturen; Horreby Lyng (5 routes) is another place without a registry polygon. Batch B (dk-v3 replay, 2026-10-31): Re-looked: still do not ship standalone. The one trail (Borremosen og Hannenov Skoven 7.1 mi, Naturstyrelsen) ships inside falster-dk. Motionsslangen is a 37 km exercise connector, the 4.5 km Ovstrup Hjertesti is not in OSM. Never publish next to falster-dk."
     },
     {
       "id": "horserod-hegn-dk",
@@ -1441,7 +1485,7 @@
       "hold": "island",
       "est_trails": 4,
       "est_mi": 8.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: 3 clean routes (Dalmoseruten 1.5 mi, Vesterby Havn-ruten 2.5 mi, Dybvig Havn-ruten 3.9 mi, operator Fejø). No official page naming them could be opened (routes appear only in the Naturlandet app), so unverified. Skaløruten belongs to Skalø. Stays held."
     },
     {
       "id": "stenderupskovene-dk",
@@ -1572,14 +1616,15 @@
       "name": "Knagelbjerg Skov",
       "state": "Denmark",
       "relation_id": 9132089,
-      "bbox": null,
-      "center": null,
+      "bbox": [10.22, 55.07, 10.34, 55.2],
+      "center": [55.134, 10.281],
       "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 7.7,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: Brun/Grøn/Gul/Blå are bare colour names without the area and Rød rute is lost to relation gap; no Naturstyrelsen guide; needs a display prefix (code gap, not invented). Wayback curation: Gul/Grøn/Brun here are the same three Bikubenfonden routes now carried by svanninge-bjerge-dk; never publish both."
+      "trail_name_prefix": "Knagelbjerg",
+      "notes": "Tier 2 forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): HOLD, not shipped. After the prefix the replay lists 3 trails / 14.1 mi (Knagelbjerg Brun/Grøn/Gul rute), but they are whole copies of the Svanninge Bjerge routes (relations r8902809, r8902765, r8845694); the qualify duplicate gate flags all three against svanninge-bjerge-dk. The Svanninge Bjerge area is the right home (7 routes there). Knagelbjerg Rød rute is lost to the same 322 m source gap. Never publish both."
     },
     {
       "id": "allerup-bakker-dk",
@@ -1643,7 +1688,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 7.3,
-      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one bare 'Blå rute' 3.8 mi; Bornholm split will assemble Paradisbakkerne with its rwn legs."
+      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one bare 'Blå rute' 3.8 mi; Bornholm split will assemble Paradisbakkerne with its rwn legs. Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail, Blå rute (3.8 mi; the prefix would fix the name). Stays held; see bornholm-dk."
     },
     {
       "id": "svinklov-klitplantage-dk",
@@ -1658,7 +1703,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 7.0,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Svinkløv og Kollerup Plantager (/thy-og-vendsyssel/svinkloev-og-kollerup-plantager/praktisk) is one destination with three marked walks in each plantation. OSM carries Svinkløv Rød rute (4.5 km) and Faldet Rundt (the gul rute to Faldet); Kollerup Plantage Grøn and Blå come in through include_trails. Missing in OSM: Svinkløv's second 4.3 km Rød rute and one Kollerup walk. Vestkyststien and Hærvejen are long-distance. Sibling kollerup-plantage-dk stays held curated-do-not-ship and must not be published separately. HOLD (second review 2026-10-30): only 4 of 7 guide walks, bare \"Rød rute\" name, Kollerup Blå is a TRIM exercise loop; revisit with way-based assembly of the missing walks.",
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Svinkløv og Kollerup Plantager (/thy-og-vendsyssel/svinkloev-og-kollerup-plantager/praktisk) is one destination with three marked walks in each plantation. OSM carries Svinkløv Rød rute (4.5 km) and Faldet Rundt (the gul rute to Faldet); Kollerup Plantage Grøn and Blå come in through include_trails. Missing in OSM: Svinkløv's second 4.3 km Rød rute and one Kollerup walk. Vestkyststien and Hærvejen are long-distance. Sibling kollerup-plantage-dk stays held curated-do-not-ship and must not be published separately. HOLD (second review 2026-10-30): only 4 of 7 guide walks, bare \"Rød rute\" name, Kollerup Blå is a TRIM exercise loop; revisit with way-based assembly of the missing walks. Batch B (dk-v3 replay, 2026-10-31): Re-checked on dk-v3 (main ae52868): same 4 trails, 10.4 mi. Still only 4 of the guide 7 walks, still a bare Rød rute, Kollerup Blå still a TRIM loop. No new walk appears. Stays held.",
       "exclude_trails": [
         {
           "id": "n:Børnenes Spor",
@@ -1719,7 +1764,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 6.8,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch B (dk-v3 replay, 2026-10-31): Re-checked: unchanged (Grøn, Blå and a 0.4 mi name-stitch Slugten). Kollerup routes belong to svinklov-klitplantage-dk, which is held. Stays held."
     },
     {
       "id": "stensbaek-plantage-dk",
@@ -1776,7 +1821,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added. HOLD (second review 2026-10-30): Fosdalen Rød (2.5 km, the walk through the namesake gorge) is missing; ship only with it, then rename to Fosdalen og Langdal Plantager with id fosdalen-og-langdal-dk.",
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added. HOLD (second review 2026-10-30): Fosdalen Rød (2.5 km, the walk through the namesake gorge) is missing; ship only with it, then rename to Fosdalen og Langdal Plantager with id fosdalen-og-langdal-dk. Batch B (dk-v3 replay, 2026-10-31): Re-checked on dk-v3 (main ae52868): same 4 trails, 11.4 mi (Langdal Gul 4.13, Rød 2.81, Fosdalen Gul 3.26, Grøn 1.23). Fosdalen Rød (2.5 km from Lerup Kirke, guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/thy-og-vendsyssel/fosdalen-og-lien/praktisk) still has no OSM relation, and Tranum-Fosdal (VisitDenmark, 6.5 mi) is still dropped by the gap gate. Stays held as the second review decided.",
       "include_trails": [
         {
           "id": "r12559613",
@@ -1928,14 +1973,15 @@
       "name": "Kongenshus",
       "state": "Denmark",
       "relation_id": 6028269,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.05, 56.3, 9.24, 56.45],
+      "center": [56.377, 9.147],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 3,
-      "est_mi": 6.3,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: 'Rød' and 'Gul' are bare colour names without the area (2 of 3 names generic) plus one unnamed relation."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.7,
+      "trail_name_prefix": "Kongenshus",
+      "notes": "Kongenshus Mindepark heath memorial park near Karup. Prefix curation (dk-v3 + trail_name_prefix): SHIP, thin. The two marked loops of the park (operator Kongenshus Mindepark): Rød 2.52 mi and Gul 2.13 mi (AllTrails lists the same two loops at about 2.5 and 2.2 mi), published as Kongenshus Rød and Kongenshus Gul. Removed by rule: Kalk Kaminoen (long-distance), a private road, a disconnected stitch. Two short loops: an honest destination but small."
     },
     {
       "id": "stenbjerg-klitplantage-dk",
@@ -1963,7 +2009,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 6.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: Brændegård 2.7 mi, Nørresø Rundt 3.0 mi and Gundestrup (only 0.46 of an 8.2 km route inside). Local kommune routes, no official page that names them; not verified as a destination. Stays held."
     },
     {
       "id": "danstrup-hegn-dk",
@@ -2124,7 +2170,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.4,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two municipal Pedersker Jagthus routes (Rød 3.7, Gul 2.2 mi) with no Naturstyrelsen guide; defer to the Bornholm split."
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two municipal Pedersker Jagthus routes (Rød 3.7, Gul 2.2 mi) with no Naturstyrelsen guide; defer to the Bornholm split. Batch B (dk-v3 replay, 2026-10-31): Re-looked: 2 Bornholms Regionskommune routes (Jagthus Rød 3.7 mi, Gul 2.2 mi), no official page. Thin. Stays held; see bornholm-dk."
     },
     {
       "id": "mellemskov-dk",
@@ -2138,7 +2184,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.3,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: no trails touch the polygon. Batch B (dk-v3 replay, 2026-10-31): Re-run: still no trails touch the polygon. Stays held."
     },
     {
       "id": "skelhoj-plantage-dk",
@@ -2187,14 +2233,15 @@
       "name": "Staurby Skov",
       "state": "Denmark",
       "relation_id": 18424570,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.71, 55.46, 9.84, 55.58],
+      "center": [55.521, 9.774],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 8,
-      "est_mi": 5.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: four bare colour names (Lilla/Blå/Grå Kulturrute/Rød) with no area prefix; no Naturstyrelsen guide."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 8.1,
+      "trail_name_prefix": "Staurby",
+      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi."
     },
     {
       "id": "sogard-skov-dk",
@@ -2262,10 +2309,10 @@
       "center": [55.13, 10.27],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 9,
-      "est_mi": 15.0,
-      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap).",
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 26.4,
+      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap). Batch B (dk-v3 replay, 2026-10-31): UN-PARKED (second review of the wayback batch said: fix the bare names, then ship). With trail_name_prefix \"Svanninge\" the seven colour routes read Svanninge Gul Rute, Lyseblå, Pink, Grøn, Brun, Blå, Lilla (26.4 mi). Official: Naturstyrelsen guide Svanninge Bakker (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/svanninge-bakker/praktisk): more than 35 km of marked paths, the red and yellow route plus six themed routes (svanningebjerge.dk). Known omissions: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source-gap rule (mapped twice, r8902909); the Naturstyrelsen Svanninge Bakker walks sit in a separate polygon and super-relations. Rating: mostly complete. Sibling knagelbjerg-skov-dk is the same three routes and stays held.",
       "include_trails": [
         {
           "id": "r8872389",
@@ -2277,7 +2324,8 @@
           "name": "Pink rute",
           "reason": "lwn relation 3.08 mi with the same Svanninge Bjerge colour-route symbol family; about 49% sits inside the boundary, whole route"
         }
-      ]
+      ],
+      "trail_name_prefix": "Svanninge"
     },
     {
       "id": "skjern-enge-dk",
@@ -2390,6 +2438,130 @@
           "reason": "4.87 mi lwn relation that is the union of the two official loops: it shares 77-82% of its ways with Nekselø Grøn rute and Brun rute (the two marked loops of the certified nature trail); not a separate walk"
         }
       ]
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "id": "staksrode-skov-dk",
+      "name": "Staksrode Skov",
+      "relation_id": 9542372,
+      "est_trails": 3,
+      "est_mi": 5.6,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Naturstyrelsen guide Staksrode Skov (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/staksrode-skov/praktisk) lists three marked walks from the Stenhøj car park: Gul 2.4 km, Rød 2.3 km, Blå almost 5 km. OSM has all three as Naturstyrelsen lwn relations (Gule 1.32 mi, Rød 1.36 mi, Blå 2.92 mi). Complete: 3 of 3."
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "id": "helnaes-dk",
+      "name": "Helnæs",
+      "relation_id": 5326788,
+      "est_trails": 2,
+      "est_mi": 3.2,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Naturstyrelsen guide Helnæs (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/helnaes/praktisk) names two marked walks: Bobakkerne about 2 km and Helnæs Made about 3 km. OSM has both (Helnæs Bobakkerne 1.42 mi, Helnæs Made 1.75 mi). Complete: 2 of 2. Small, like Nørreskoven på Als, but it is exactly the official set. The Lillebæltstien legs are thru-hike and stay out."
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "id": "elmelund-skov-dk",
+      "name": "Elmelund Skov",
+      "relation_id": 6229952,
+      "est_trails": 4,
+      "est_mi": 5.5,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Naturstyrelsen guide Elmelund Skov (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/elmelund-skov/praktisk): three marked walks from the Elmelundsvej car park, Gul 1.3 km, Grøn 2.4 km, Blå 3 km, plus a Hjerteforeningen hjertesti at Bolbro. OSM has all four. The Gul rute relation is 1.4 km but only a 0.22 mi fragment sits in the forest polygon, so it comes in whole through include_trails. Complete: 3 of 3 walks plus the hjertesti.",
+      "include_trails": [
+        {
+          "id": "r14276120",
+          "name": "Elmelund Skov - Gul Rute",
+          "reason": "Naturstyrelsen yellow walk (1.3 km on the guide); only a 0.22 mi fragment sits inside the forest polygon, so the whole route is included"
+        }
+      ]
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "id": "hov-vig-dk",
+      "name": "Hov Vig Vildtreservat",
+      "display_name": "Hov Vig",
+      "way_id": 456982965,
+      "est_trails": 3,
+      "est_mi": 6.1,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Way-backed (way 456982965, the Naturstyrelsen bird reserve, leisure=nature_reserve). Naturstyrelsen guide Hov Vig (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/oevrige-sjaelland-og-sydhavsoeerne/hov-vig/praktisk) marks one walk in each of three habitats: the red walk on the north side of the reserve past the cormorant colony, the yellow walk over meadow and heath, the blue walk through Nakke Skov to Mårbjerg. OSM has all three. Access to the reserve itself is forbidden, so the walks run just outside the polygon and come in whole through include_trails (the polygon alone yields no trails). The 4.2 mi lwn relation Hovvig (r3272364, no operator, an older loop over the same ground) is not included. Complete: 3 of 3.",
+      "include_trails": [
+        {
+          "id": "r11945439",
+          "name": "Hov Vig - Rød rute",
+          "reason": "Naturstyrelsen red walk by the Hov Vig bird reserve and cormorant colony; runs outside the reserve polygon, whole route"
+        },
+        {
+          "id": "r11945393",
+          "name": "Hov Vig - Gul rute",
+          "reason": "Naturstyrelsen yellow walk over the meadow and heath of Hov Vig; outside the reserve polygon, whole route"
+        },
+        {
+          "id": "r11945927",
+          "name": "Hov Vig - Blå rute",
+          "reason": "Naturstyrelsen blue walk through Nakke Skov to Mårbjerg; starts outside the reserve polygon, whole route"
+        }
+      ]
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "merge-pending",
+      "id": "horreby-lyng-dk",
+      "name": "Horreby Lyng",
+      "relation_id": 4649131,
+      "est_trails": 5,
+      "est_mi": 9.5,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Standalone replay is clean: 5 coloured lwn routes (Lilla 1.45, Rød 2.47, Grøn 2.71, Hvid 1.40, Blå 1.47 mi, 9.5 mi), VisitDenmark: several routes of 3 to 5 km through the raised bog (https://www.visitdenmark.com/denmark/plan-your-trip/horreby-lyng-gdk1145973). Held merge-pending: the same five routes ship inside falster-dk. Publish this one instead of falster-dk only if the island area is rejected; never both (duplicate gate)."
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "id": "boto-plantage-dk",
+      "name": "Bøtø Plantage",
+      "relation_id": 2728151,
+      "est_trails": 2,
+      "est_mi": 6.6,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Do not ship standalone: the two trails (Bøtøskoven 3.19 mi, Naturreservat Bøtøskoven 3.39 mi) are the same loop mapped twice (same bbox); one real walk. The Naturstyrelsen Gedser Odde og Bøtø Nor guide describes forest roads to Gedser, no marked walk list. Bøtøskoven ships inside falster-dk."
+    },
+    {
+      "state": "Denmark",
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "id": "ulvshale-nyord-dk",
+      "name": "Ulvshaleskoven",
+      "relation_id": 19847792,
+      "display_name": "Ulvshale og Nyord",
+      "est_trails": 2,
+      "est_mi": 8.3,
+      "notes": "Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): the Naturstyrelsen guide Ulvshale og Nyord (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/oevrige-sjaelland-og-sydhavsoeerne/ulvshale-og-nyord/praktisk) marks 5 walks on Ulvshale plus a bi-vandresti on Nyord. OSM has one Ulvshale relation (5.4 mi) and Nyord (2.9 mi, via include_trails r13310558): 2 of about 6. A completionist could not claim Ulvshale. Revisit when OSM maps the five walks separately."
     }
   ]
 }

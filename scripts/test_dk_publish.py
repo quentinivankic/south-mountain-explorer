@@ -194,9 +194,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 28, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        None: 25, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 4, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 40}
+        "curated-do-not-ship": 43}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
@@ -233,7 +233,7 @@ def test_batch_skips_held_and_explicit_areas_include_them():
     held = [a["id"] for a in reg["areas"] if a["hold"]]
     picked = set()
     for n in (1, 2):
-        picked |= set(dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify"))
+        picked |= set(dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify"))
     assert not picked & set(held)
     assert dk.select_areas(reg, set(), ",".join(held[:3]), 25, "qualify") == held[:3]
     assert dk.select_areas(reg, set(), "hammer-bakker-dk", 25, "publish") == ["hammer-bakker-dk"]
@@ -241,18 +241,18 @@ def test_batch_skips_held_and_explicit_areas_include_them():
 
 def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     reg = _reg()
-    batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
-    assert [len(b) for b in batches] == [25, 2]
+    batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
+    assert [len(b) for b in batches] == [12, 12]
     with pytest.raises(dk.DkError):
-        dk.select_areas(reg, {MOLS}, "batch=3", 25, "qualify")
-    assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
+        dk.select_areas(reg, {MOLS}, "batch=3", 12, "qualify")
+    assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
-    assert len(set(flat)) == 27 and MOLS not in flat
+    assert len(set(flat)) == 24 and MOLS not in flat
     assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
     mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
     assert mi == sorted(mi, reverse=True)
     # publishing batch 1 makes the old batch 2 the new batch 1
-    assert dk.select_areas(reg, {MOLS, *batches[0]}, "batch=1", 25, "publish") == batches[1]
+    assert dk.select_areas(reg, {MOLS, *batches[0]}, "batch=1", 12, "publish") == batches[1]
 
 
 @pytest.mark.parametrize("mutate", [
@@ -279,7 +279,7 @@ DK_V3_BATCH_A = (
     "hannenov-skov-dk",
     "store-hareskov-dk",
     "sonderskov-17950902-dk",
-    "norreskov-12537204-dk",
+    "norreskoven-pa-als-dk",
     "folehaven-dk",
     "paradisbakkerne-dk",
     "tversted-plantage-dk",
@@ -300,8 +300,8 @@ DK_V3_BATCH_A = (
     "staurby-skov-dk",
     "sogard-skov-dk",
     "rude-skov-dk",
-    "grastenskovene-dyrehaven-rinkenaes-skov-buskmose-skov-dk",
-    "norreskov-1965733-dk",
+    "grastenskovene-dk",
+    "stenderupskovene-dk",
     "knagelbjerg-skov-dk",
     "rorvig-sandflugtsplantage-dk",
     "svinklov-klitplantage-dk",
@@ -1306,7 +1306,8 @@ def test_real_registry_exclusions_and_inclusions_have_reasons_and_live_areas_sta
             assert "include_trails" not in a
     live = {p.stem for p in (ROOT / "public/areas/geom").glob("*-dk.json")}
     reg = dk.load_registry(REGISTRY)["by_id"]
-    assert all(reg[i]["rules"] != "dk-v3" for i in live if i in reg)         # live areas keep their rules
+    blessed = set(dk.load_expected(EXPECTED))
+    assert all(reg[i]["rules"] != "dk-v3" or i in blessed for i in live if i in reg)  # live dk-v3 areas are blessed ones
 def test_report_area_lists_curated_exclusions_and_forbids_them(tmp_path):
     d = tmp_path / "x-dk"
     d.mkdir()

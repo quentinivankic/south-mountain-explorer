@@ -357,10 +357,10 @@
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 27,
       "est_mi": 20.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped.",
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped. HOLD (second review 2026-10-30): one real walk plus Forskerruten of which only a third lies inside (a truncated fragment); one trail is not an area.",
       "exclude_trails": [
         {
           "id": "n:Lysløjpe Rudeskov",
@@ -621,7 +621,7 @@
       "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one 0.86 mi name-stitch; Rudersdalruten lost to relation gap."
     },
     {
-      "id": "grastenskovene-dyrehaven-rinkenaes-skov-buskmose-skov-dk",
+      "id": "grastenskovene-dk",
       "name": "Gråstenskovene (Dyrehaven, Rinkenæs Skov, Buskmose Skov)",
       "display_name": "Gråstenskovene",
       "state": "Denmark",
@@ -1111,7 +1111,7 @@
       "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run."
     },
     {
-      "id": "norreskov-1965733-dk",
+      "id": "stenderupskovene-dk",
       "name": "Nørreskov",
       "display_name": "Stenderupskovene",
       "state": "Denmark",
@@ -1263,7 +1263,7 @@
       "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
-      "id": "norreskov-12537204-dk",
+      "id": "norreskoven-pa-als-dk",
       "name": "Nørreskov",
       "display_name": "Nørreskoven på Als",
       "state": "Denmark",
@@ -1322,10 +1322,10 @@
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 7.0,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Svinkløv og Kollerup Plantager (/thy-og-vendsyssel/svinkloev-og-kollerup-plantager/praktisk) is one destination with three marked walks in each plantation. OSM carries Svinkløv Rød rute (4.5 km) and Faldet Rundt (the gul rute to Faldet); Kollerup Plantage Grøn and Blå come in through include_trails. Missing in OSM: Svinkløv's second 4.3 km Rød rute and one Kollerup walk. Vestkyststien and Hærvejen are long-distance. Sibling kollerup-plantage-dk stays held curated-do-not-ship and must not be published separately.",
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Svinkløv og Kollerup Plantager (/thy-og-vendsyssel/svinkloev-og-kollerup-plantager/praktisk) is one destination with three marked walks in each plantation. OSM carries Svinkløv Rød rute (4.5 km) and Faldet Rundt (the gul rute to Faldet); Kollerup Plantage Grøn and Blå come in through include_trails. Missing in OSM: Svinkløv's second 4.3 km Rød rute and one Kollerup walk. Vestkyststien and Hærvejen are long-distance. Sibling kollerup-plantage-dk stays held curated-do-not-ship and must not be published separately. HOLD (second review 2026-10-30): only 4 of 7 guide walks, bare \"Rød rute\" name, Kollerup Blå is a TRIM exercise loop; revisit with way-based assembly of the missing walks.",
       "exclude_trails": [
         {
           "id": "n:Børnenes Spor",
@@ -1464,10 +1464,10 @@
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added.",
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added. HOLD (second review 2026-10-30): Fosdalen Rød (2.5 km, the walk through the namesake gorge) is missing; ship only with it, then rename to Fosdalen og Langdal Plantager with id fosdalen-og-langdal-dk.",
       "include_trails": [
         {
           "id": "r12559613",
@@ -1682,7 +1682,14 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 6.0,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide Harrild Hede og Nørlund Plantage (/soehoejlandet-og-oestjylland/harrild-hede-og-noerlund-plantage/praktisk): yellow-marked 8 km walk (OSM Harrild Hede Rundtur, source=Naturstyrelsen turfolder) plus a 2 km purple accessible route, an unmarked Holtum Å walk (udinaturen only). Harrild blå vandrerute (2.3 km) is a signed lwn relation. Nørlund Plantage has no registry polygon."
+      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A (dk-v3): Naturstyrelsen guide Harrild Hede og Nørlund Plantage (/soehoejlandet-og-oestjylland/harrild-hede-og-noerlund-plantage/praktisk): yellow-marked 8 km walk (OSM Harrild Hede Rundtur, source=Naturstyrelsen turfolder) plus a 2 km purple accessible route, an unmarked Holtum Å walk (udinaturen only). Harrild blå vandrerute (2.3 km) is a signed lwn relation. Nørlund Plantage has no registry polygon.",
+      "include_trails": [
+        {
+          "id": "r18505384",
+          "name": "Rød vandrerute på Castenschiolds Hede",
+          "reason": "lwn hiking relation 2.52 mi, the 4 km Rød rute at Castenschiolds Hede named by the guide; lies outside the Harrild polygon (Nørlund Plantage has no registry polygon), whole route"
+        }
+      ]
     },
     {
       "id": "jonstrup-vang-dk",
@@ -1766,7 +1773,7 @@
       "hold": "merge-pending",
       "est_trails": 7,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): merged elsewhere: its Blå rute (Sydskoven) is brought into Stenderupskovene (norreskov-1965733-dk) through include_trails; publishing it would duplicate."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): merged elsewhere: its Blå rute (Sydskoven) is brought into Stenderupskovene (stenderupskovene-dk) through include_trails; publishing it would duplicate."
     },
     {
       "id": "harager-hegn-dk",

@@ -400,6 +400,19 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   split into several same-named stitches, e.g. Aaro x2, Langeland "Ohavsstien" x9).
   It is an explicit opt-in: `n:<name>` still demands exactly one match. `n*:` still
   fails closed on 0 matches and is rejected in `include_trails`.
+- **Legacy exclusion** (registry `legacy_exclude_trails`, same entries as
+  `exclude_trails`, `n*:` allowed; only for `rules: "legacy"`, i.e. Mols): the dk-run script
+  passes it as `--dk-curated-exclude`, which `assemble.py` accepts with `--dk-rules legacy`
+  only for exact Denmark assembly (any other region or non-exact run exits 2). Legacy has no
+  automatic Danish rules, so the entries run on everything legacy kept, with the same fail-closed
+  matching (0 matches, >1 match for `n:`/`r`, or a different trail name fails the area). Every
+  other trail is byte-identical to a run without the key, and without it the report has no
+  `dk_curated_*` keys. `exclude_trails` is still refused on a legacy entry.
+- **Update-mode rename** (registry `allow_rename: {"from": "<exact live name>", "reason": ...}`
+  plus `display_name` = the new name; `scripts/dk_publish.py`, not assemble): an update normally
+  refuses any change of the index row identity. With the opt-in the live row name must equal
+  `from` and the new name must be `display_name`; id, state and relation/way id must stay
+  equal. A row already carrying the new name passes (re-run).
 - **Include-aware window** (qualify/publish, `scripts/dk_publish.py`): for dk-v3
   areas with `include_trails` relation selectors, the registry bbox ceiling
   (`MARGIN_MAX` 0.10) is measured from the union of the boundary bbox and the

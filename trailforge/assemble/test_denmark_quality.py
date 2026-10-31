@@ -1,4 +1,5 @@
 """Focused structural and Denmark curation controls for exact-area output."""
+import json
 import math
 import unittest
 from pathlib import Path
@@ -1308,7 +1309,7 @@ class DenmarkCuratedExclude(unittest.TestCase):
         self.assertEqual(removed[0]["properties"]["removed_category"],
                          "dk-road-name")
         self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
-    def test_malformed_entries_and_legacy_rules_are_rejected(self):
+    def test_malformed_entries_are_rejected(self):
         good = {"id": "r900", "name": "Skovstien", "reason": "x"}
         for bad in ([{**good, "id": "900"}], [{**good, "reason": " "}],
                     [{**good, "extra": 1}], [good, good], "r900",
@@ -1316,12 +1317,99 @@ class DenmarkCuratedExclude(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(ValueError):
                     self._two_trails(bad)
-        with self.assertRaises(ValueError):
-            self._two_trails([good], rules="legacy")
+                with self.assertRaises(ValueError):   # legacy validates the same way
+                    self._two_trails(bad, rules="legacy")
     def test_no_exclusions_leaves_dk_v2_output_unchanged(self):
         kept, removed, report = self._two_trails([])
         self.assertEqual(len(kept), 2)
         self.assertEqual(report["dk_curated_excluded"], [])
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkLegacyCuratedExclude(unittest.TestCase):
+    """Legacy rules (Mols): exclusions only through the explicit opt-in; same fail-closed
+    matching; every other trail and a run without the opt-in are unchanged."""
+    def _run(self, exclude, count=1):
+        ways, nodes = {}, {}
+        for i in range(count):
+            ways[i + 1] = W([2 * i + 1, 2 * i + 2], highway="path", name="Aaro")
+            nodes[2 * i + 1], nodes[2 * i + 2] = (0, 0.5 * i), (0.01, 0.5 * i)
+        ways[98] = W([97, 98], highway="path", name="Skovstien")
+        nodes[97], nodes[98] = (0, 9), (0.01, 9)
+        relations = {900: {"tags": {"type": "route", "route": "hiking",
+                                    "name": "Skovstien", "network": "lwn"},
+                           "members": [("w", 98, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="legacy", dk_exclude=exclude)
+    def test_control_without_the_opt_in_is_unchanged(self):
+        kept, removed, report = self._run([])
+        self.assertEqual(sorted(k["properties"]["name"] for k in kept),
+                         ["Aaro", "Skovstien"])
+        self.assertEqual(removed, [])
+        for key in ("dk_curated_excluded", "dk_curated_exclude_failures",
+                    "dk_rules"):
+            self.assertNotIn(key, report)
+        self.assertEqual(report["validation_failures"], [])
+    def test_named_exclusion_removes_only_that_trail(self):
+        base_kept, _, _ = self._run([])
+        entry = {"id": "n:Aaro", "name": "Aaro", "reason": "children's trail"}
+        kept, removed, report = self._run([entry])
+        self.assertEqual([k["properties"]["name"] for k in kept], ["Skovstien"])
+        # the surviving trail is byte-identical to the control run
+        control = [k for k in base_kept
+                   if k["properties"]["name"] == "Skovstien"]
+        self.assertEqual(json.dumps(kept, sort_keys=True),
+                         json.dumps(control, sort_keys=True))
+        self.assertEqual(removed[0]["properties"]["removed_category"],
+                         "dk-curated-exclude")
+        self.assertEqual(removed[0]["properties"]["curated_exclude_reason"],
+                         entry["reason"])
+        self.assertEqual(report["dk_curated_exclude_failures"], [])
+        self.assertEqual(report["dk_curated_excluded"][0]["name"], "Aaro")
+        self.assertEqual(report["validation_failures"], [])
+        self.assertNotIn("dk_rules", report)
+    def test_relation_selector_works_on_legacy_too(self):
+        kept, removed, report = self._run(
+            [{"id": "r900", "name": "Skovstien", "reason": "x"}])
+        self.assertEqual([k["properties"]["name"] for k in kept], ["Aaro"])
+        self.assertEqual(report["dk_curated_exclude_failures"], [])
+    def test_stale_name_fails_closed(self):
+        kept, removed, report = self._run(
+            [{"id": "n:Findes Ikke", "name": "Findes Ikke", "reason": "x"}])
+        self.assertEqual(len(kept), 2)
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+        self.assertTrue(any("dk-curated-exclude" in item
+                            for item in report["validation_failures"]))
+    def test_ambiguous_exact_name_fails_closed_and_star_removes_all(self):
+        kept, removed, report = self._run(
+            [{"id": "n:Aaro", "name": "Aaro", "reason": "x"}], count=2)
+        self.assertEqual(removed, [])
+        self.assertIn("expected exactly 1",
+                      report["dk_curated_exclude_failures"][0])
+        kept, removed, report = self._run(
+            [{"id": "n*:Aaro", "name": "Aaro", "reason": "x"}], count=2)
+        self.assertEqual([k["properties"]["name"] for k in kept], ["Skovstien"])
+        self.assertEqual(report["dk_curated_exclude_failures"], [])
+        _, removed, report = self._run(
+            [{"id": "n*:Findes Ikke", "name": "Findes Ikke", "reason": "x"}])
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_dk_v2_behaviour_is_unchanged_by_the_refactor(self):
+        # Same shape as DenmarkCuratedExclude: the exclusion still runs after the automatic rules.
+        ways = {1: W([1, 2], highway="path", name="Hjortevejen")}
+        nodes = {1: (0, 0), 2: (0.01, 0)}
+        features = prepared(
+            [T("Hjortevejen", "name-stitch", [1], [[nodes[1], nodes[2]]])], ways)
+        _, removed, report = quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="dk-v2",
+            dk_exclude=[{"id": "n:Hjortevejen", "name": "Hjortevejen",
+                         "reason": "x"}])
+        self.assertEqual(removed[0]["properties"]["removed_category"],
+                         "dk-road-name")
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class DenmarkCuratedExcludeAll(unittest.TestCase):
     """`n*:<name>` opt-in: every kept trail with that exact name; n: stays exactly-1."""
@@ -1375,7 +1463,7 @@ class DenmarkCuratedExcludeAll(unittest.TestCase):
             quality.validate_dk_exclude([good], "include")
 class DenmarkCuratedExcludeCli(unittest.TestCase):
     """The real argument parser validates --dk-curated-exclude before reading any PBF."""
-    def _run(self, payload, *extra):
+    def _run(self, payload, *extra, region="dk"):
         import subprocess
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
@@ -1385,13 +1473,24 @@ class DenmarkCuratedExcludeCli(unittest.TestCase):
                 [sys.executable,
                  str(Path(__file__).resolve().parent / "assemble.py"),
                  "--in", str(Path(tmp) / "missing.pbf"), "--out", "y.geojson",
-                 "--region", "dk", "--dk-curated-exclude", str(path), *extra],
+                 "--region", region, "--dk-curated-exclude", str(path), *extra],
                 capture_output=True, text=True)
     GOOD = '[{"id": "r900", "name": "A", "reason": "r"}]'
-    def test_legacy_rules_reject_the_flag(self):
-        result = self._run(self.GOOD)
+    def test_legacy_rules_reject_the_flag_outside_exact_denmark(self):
+        result = self._run(self.GOOD)                       # Denmark, but not exact-area
         self.assertEqual(result.returncode, 2)
-        self.assertIn("requires --dk-rules dk-v2", result.stderr)
+        self.assertIn("limited to exact Denmark assembly", result.stderr)
+        # not Denmark at all: refused even with the exact-area flag
+        result = self._run(self.GOOD, "--only-area", "X", "--require-exact-area",
+                 "--expected-area-relation-id", "1",
+                           region="us")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("limited to exact Denmark assembly", result.stderr)
+    def test_legacy_rules_pass_the_parser_for_exact_denmark(self):
+        result = self._run(self.GOOD, "--only-area", "X", "--require-exact-area",
+                 "--expected-area-relation-id", "1")
+        self.assertNotIn("limited to exact Denmark", result.stderr)
+        self.assertNotIn("is invalid", result.stderr)
     def test_malformed_file_is_rejected(self):
         for payload in ("not json", '{"id": 1}', '[{"id": "x"}]'):
             with self.subTest(payload=payload):

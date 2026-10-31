@@ -268,13 +268,14 @@
       ]
     },
     "klosterhede-plantage-dk": {
-      "trail_count": 9,
-      "total_mi": 28.0,
+      "trail_count": 10,
+      "total_mi": 34.9,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
         "Bagskifteren",
         "Bagskærmen",
+        "Bentsvej",
         "Betonbanerne",
         "Blokgårdsvej",
         "Buldremosevej",
@@ -288,7 +289,6 @@
         "Hollandsvej",
         "Hospitalsbunkervej",
         "Jagtvej",
-        "Klosterheden Kirkestien",
         "Kylle Pylle Rylle",
         "Labyrinten",
         "Luskestien",
@@ -388,7 +388,7 @@
     },
     "hammer-bakker-dk": {
       "trail_count": 4,
-      "total_mi": 8.5,
+      "total_mi": 10.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -415,25 +415,22 @@
     },
     "stensbaek-plantage-dk": {
       "trail_count": 3,
-      "total_mi": 6.2,
+      "total_mi": 8.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
         "Bjørnebjerget",
         "Engvejen",
         "Gelsbrovej",
-        "Grænsesti Rundtur Stensbæk Plantage",
         "Grænsestien",
-        "Sporet ved Tiset",
         "Sukkenesdal",
         "Trappen",
-        "Varminglundvej",
-        "Åskov Hede - blå vandrerute"
+        "Varminglundvej"
       ]
     },
     "rye-norreskov-dk": {
-      "trail_count": 5,
-      "total_mi": 6.2,
+      "trail_count": 7,
+      "total_mi": 13.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -444,7 +441,6 @@
         "Hesterskoen",
         "Honey",
         "Knøsbakken",
-        "Mergelbanestien",
         "Min Ven Simon",
         "Ny Ko",
         "Op til Smeden",
@@ -453,7 +449,6 @@
         "Slangestien",
         "Smeden",
         "Sort Guld",
-        "Søruten",
         "Tinghusvej",
         "Tragten",
         "Vandreruten Aarhus-Silkeborg",
@@ -498,7 +493,7 @@
     },
     "skagen-klitplantage-dk": {
       "trail_count": 4,
-      "total_mi": 6.0,
+      "total_mi": 8.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

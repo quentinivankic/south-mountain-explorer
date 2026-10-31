@@ -1,5 +1,6 @@
 import CoreGraphics
 import Testing
+import UIKit
 @testable import SouthMountainExplorer
 
 struct DuoMapBleedAndLoadingTests {
@@ -61,5 +62,59 @@ struct DuoMapBleedAndLoadingTests {
         let mirror = Mirror(reflecting: view)
         let lines = mirror.children.first { $0.label == "orderedLines" }?.value as? [SilhouetteLine]
         #expect(lines?.map(\.d) == ["e", "h"])
+    }
+
+    // MARK: draw-in stagger and projection
+    @Test func staggerLandsTheLastLineAtTheTotalDuration() {
+        let n = 11
+        let last = LoadingDrawIn.beginOffset(index: n - 1, count: n) + LoadingDrawIn.perLineDuration(count: n)
+        #expect(abs(last - LoadingDrawIn.totalDuration) < 1e-9)
+        #expect(LoadingDrawIn.beginOffset(index: 0, count: n) == 0)
+        let offsets = (0..<n).map { LoadingDrawIn.beginOffset(index: $0, count: n) }
+        #expect(offsets == offsets.sorted())
+    }
+
+    @Test func singleLineGetsTheWholeDuration() {
+        #expect(LoadingDrawIn.perLineDuration(count: 1) == 1.0)
+        #expect(LoadingDrawIn.stagger(count: 1) == 0)
+        #expect(LoadingDrawIn.perLineDuration(count: 5) == 0.4)
+    }
+
+    @Test func projectionFitsAKnownPolylineIntoBounds() throws {
+        // lat 0...1, lon 0...1 near the equator (cos(0.5°) ≈ 1): square area, 100x100 view, pad 24 -> 52x52 centered.
+        let box: LoadingDrawIn.BBox = (w: 0, s: 0, e: 1, n: 1)
+        let fit = try #require(LoadingDrawIn.fit(bbox: box, size: CGSize(width: 100, height: 100)))
+        let pts = LoadingDrawIn.project([[0, 0], [1, 1], [0.5]], bbox: box, fit: fit)
+        #expect(pts.count == 2)
+        #expect(abs(pts[0].x - 24) < 0.01 && abs(pts[0].y - 76) < 0.01)
+        #expect(abs(pts[1].x - 76) < 0.01 && abs(pts[1].y - 24) < 0.01)
+    }
+
+    @Test func projectionCentersWhenAspectDiffers() throws {
+        let box: LoadingDrawIn.BBox = (w: 0, s: 0, e: 1, n: 1)
+        let fit = try #require(LoadingDrawIn.fit(bbox: box, size: CGSize(width: 248, height: 100)))
+        let pts = LoadingDrawIn.project([[0, 0], [1, 1]], bbox: box, fit: fit)
+        #expect(abs(pts[0].x - 98) < 0.01)   // (248 - 52) / 2
+        #expect(abs(pts[1].x - 150) < 0.01)
+        #expect(LoadingDrawIn.fit(bbox: box, size: .zero) == nil)
+    }
+
+    @Test func difficultyColorsMatchTheirCodes() {
+        #expect(LoadingDrawIn.color(forDifficulty: "e") == .systemGreen)
+        #expect(LoadingDrawIn.color(forDifficulty: "m") == .systemOrange)
+        #expect(LoadingDrawIn.color(forDifficulty: "h") == .systemRed)
+    }
+
+    // MARK: mount gate
+    @Test func mapIsNotMountedBeforeRevealCompletes() {
+        #expect(!AreaLoadingVisibility.mapMounted(hasArea: true, revealComplete: false))
+        #expect(AreaLoadingVisibility.mapMounted(hasArea: true, revealComplete: true))
+        #expect(!AreaLoadingVisibility.mapMounted(hasArea: false, revealComplete: true))
+    }
+
+    @Test func failureIsNeverGatedOnTheReveal() {
+        #expect(AreaLoadingVisibility.showsFailure(hasArea: false, isLoading: false))
+        #expect(AreaLoadingVisibility.revealDuration >= LoadingDrawIn.totalDuration)
+        #expect(AreaLoadingVisibility.revealDuration < AreaLoadingVisibility.floorDuration)
     }
 }

@@ -125,6 +125,17 @@ enum AreaLoadingVisibility {
         hasArea ? !floorElapsed : isLoading
     }
 
+    /// Draw-in finishes at 1.0 s; the map mounts just after it (behind the
+    /// finished silhouette) and the overlay fades at the 1.5 s floor.
+    static let revealDuration: TimeInterval = 1.1
+    static let floorDuration: TimeInterval = 1.5
+
+    /// The heavy live content waits for the reveal. Failure never does: it is
+    /// the area-less, not-loading case and is decided by `showsFailure`.
+    static func mapMounted(hasArea: Bool, revealComplete: Bool) -> Bool {
+        hasArea && revealComplete
+    }
+
     static func showsFailure(hasArea: Bool, isLoading: Bool) -> Bool {
         !hasArea && !isLoading
     }

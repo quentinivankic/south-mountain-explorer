@@ -64,6 +64,10 @@ struct AreaView: View {
     /// half a second. Flipped by a task timer that starts on
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
+    /// Set once the silhouette draw-in has finished. The live map, sheet and
+    /// wide panel stay unmounted until then so their mount cost lands behind a
+    /// fully drawn silhouette instead of freezing the reveal.
+    @State private var revealComplete = false
 
     // MARK: - Measured blocks behind the smallest sheet stop
     //
@@ -485,7 +489,7 @@ struct AreaView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if let area, !isWideLayout {
+            if let area, mapMounted, !isWideLayout {
                 // Full-screen map. The trail-list sheet (presented
                 // via .sheet below) covers the bottom portion and
                 // is system-native, so we hand TrailMapView the
@@ -542,9 +546,9 @@ struct AreaView: View {
                 // means. On a page they are simply laid out, and there is no
                 // distance to compute.
 
-            } else if let area {
+            } else if let area, mapMounted {
                 wideContent(area: area)
-            } else if !isLoading {
+            } else if AreaLoadingVisibility.showsFailure(hasArea: area != nil, isLoading: isLoading) {
                 // Human copy + a way out. This used to render the raw error
                 // straight through — including engineer-facing strings like
                 // "Fetch already in progress but returned no data." — with no
@@ -563,8 +567,8 @@ struct AreaView: View {
                 }
             }
         }
-        // The map mounts as soon as the area lands; the silhouette sits on top
-        // until the loading floor has elapsed, then fades out over the live
+        // The map mounts once the draw-in reveal completes; the silhouette sits on
+        // top until the loading floor has elapsed, then fades out over the live
         // map instead of hard-cutting to an empty one.
         .overlay {
             if loadingOverlayVisible {
@@ -822,7 +826,10 @@ struct AreaView: View {
             // animation always completes — even when the area's data is
             // already on disk and lands in microseconds.
             minLoadingTimeElapsed = false
-            try? await Task.sleep(for: .seconds(1.5))
+            revealComplete = false
+            try? await Task.sleep(for: .seconds(AreaLoadingVisibility.revealDuration))
+            revealComplete = true
+            try? await Task.sleep(for: .seconds(AreaLoadingVisibility.floorDuration - AreaLoadingVisibility.revealDuration))
             minLoadingTimeElapsed = true
         }
         .task(id: isRecording) {
@@ -1081,6 +1088,11 @@ struct AreaView: View {
 
     /// The silhouette stays on screen until the area has landed AND the loading
     /// floor has elapsed. The failure state is the area-less, not-loading case.
+    /// Live map / sheet / wide panel mount only after the draw-in reveal.
+    private var mapMounted: Bool {
+        AreaLoadingVisibility.mapMounted(hasArea: area != nil, revealComplete: revealComplete)
+    }
+
     private var loadingOverlayVisible: Bool {
         AreaLoadingVisibility.overlayVisible(
             hasArea: area != nil,
@@ -2265,8 +2277,6 @@ struct LoadingSilhouetteCanvas: View {
     let silhouette: AreaSilhouette
 
     @Environment(\.colorScheme) private var colorScheme
-    @State private var startDate = Date()
-
     /// Draw order is difficulty priority so where trails cross, the harder
     /// color wins (red over orange over green) instead of two translucent
     /// strokes blending. Within a difficulty, longest spines lead so the reveal
@@ -2292,97 +2302,10 @@ struct LoadingSilhouetteCanvas: View {
         }
     }
 
+    /// Core Animation draws the lines (`strokeEnd` on CAShapeLayers), so the
+    /// draw-in keeps playing while the main thread is busy mounting the map.
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { context in
-            Canvas { ctx, size in
-                guard let bbox = silhouette.bbox else { return }
-                let lines = orderedLines
-                guard !lines.isEmpty else { return }
-
-                let pad: CGFloat = 24
-                let drawW = size.width - 2 * pad
-                let drawH = size.height - 2 * pad
-                guard drawW > 0, drawH > 0 else { return }
-
-                let centerLat = (bbox.s + bbox.n) / 2
-                let lonScale = cos(centerLat * .pi / 180)
-                let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
-                let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
-                let scale = min(drawW / xRange, drawH / yRange)
-                let canvasW = xRange * scale
-                let canvasH = yRange * scale
-                let xOffset = pad + (drawW - canvasW) / 2
-                let yOffset = pad + (drawH - canvasH) / 2
-
-                let totalAnimation: TimeInterval = 1.0
-                // Single-line silhouettes get the full duration to
-                // themselves so a tiny area doesn't snap-in in 0.4 s and
-                // look broken; everything else uses 0.4 s per line with
-                // the stagger sized to land the last line exactly at
-                // totalAnimation. AreaView holds the loading view for
-                // 1.5 s total — the reveal lands at 1.0 s, leaving
-                // ~0.5 s of "all trails visible + gentle wave" before
-                // the loaded view takes over. That settled window is
-                // what stops the eye from registering trails as
-                // "cut off mid-reveal" on hundred-trail areas.
-                let perLineDuration: TimeInterval = lines.count == 1 ? totalAnimation : 0.4
-                let stagger: TimeInterval = lines.count > 1
-                    ? (totalAnimation - perLineDuration) / Double(lines.count - 1)
-                    : 0
-                let elapsed = context.date.timeIntervalSince(startDate)
-
-                // Post-reveal subtle wave: once the reveal is done, displace
-                // each path point vertically by a small sine of its x
-                // position + time so the silhouette feels alive instead of
-                // frozen while we wait for trail data. Ramped in over 0.6 s
-                // so it doesn't pop on the moment reveal completes.
-                let waveActive = max(0, elapsed - totalAnimation)
-                let waveRamp = min(1.0, waveActive / 0.6)
-                let waveAmp = 2.0 * waveRamp
-                let waveOmegaT = waveActive * 1.4
-
-                for (i, line) in lines.enumerated() {
-                    guard line.p.count >= 2 else { continue }
-                    let lineStart = Double(i) * stagger
-                    let raw = (elapsed - lineStart) / perLineDuration
-                    let progress = max(0, min(1, raw))
-                    if progress <= 0 { continue }
-
-                    var path = Path()
-                    for (j, pt) in line.p.enumerated() {
-                        guard pt.count >= 2 else { continue }
-                        let lat = pt[0], lon = pt[1]
-                        let x = xOffset + (lon - bbox.w) * lonScale * scale
-                        let yBase = yOffset + canvasH - (lat - bbox.s) * scale
-                        let y = yBase + waveAmp * sin(x / 60.0 + waveOmegaT)
-                        let p = CGPoint(x: x, y: y)
-                        if j == 0 { path.move(to: p) } else { path.addLine(to: p) }
-                    }
-                    let trimmed = progress >= 1 ? path : path.trimmedPath(from: 0, to: progress)
-
-                    let color: Color
-                    switch line.d {
-                    case "e": color = .green
-                    case "m": color = .orange
-                    case "h": color = .red
-                    default:  color = .gray
-                    }
-                    // Opaque: overlapping trails must NOT accumulate alpha — that
-                    // additive blend is what pushed a dimmed orange up into gold.
-                    // The faint-backdrop wash is applied once to the whole Canvas
-                    // via `.opacity` below, AFTER overlaps resolve by priority, so
-                    // orange stays orange instead of collapsing to gold.
-                    ctx.stroke(
-                        trimmed,
-                        with: .color(color),
-                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
-                    )
-                }
-            }
+        LoadingSilhouetteLayers(lines: orderedLines, bounds4: silhouette.b)
             .opacity(colorScheme == .dark ? 0.9 : 0.82)
-        }
-        .onAppear {
-            startDate = Date()
-        }
     }
 }

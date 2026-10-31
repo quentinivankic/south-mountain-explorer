@@ -1333,7 +1333,7 @@
       "hold": "island",
       "est_trails": 6,
       "est_mi": 10.8,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/himmerland-og-limfjorden/fur/praktisk) marks 5 walks (Gul 3.2 km, Rød 5.5, Blå 2.8, Grøn about 0.5, Hvid 5.8). OSM has Rød, Gul and Grøn Gammelhavn; Blå and Hvid are not in OSM. Grøn Gammelgård, Engelstør Odde and a brewery-campsite link are unverified extras."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/himmerland-og-limfjorden/fur/praktisk) marks 5 walks (Gul 3.2 km, Rød 5.5, Blå 2.8, Grøn about 0.5, Hvid 5.8). OSM has Rød, Gul and Grøn Gammelhavn; Blå and Hvid are not in OSM. Grøn Gammelgård, Engelstør Odde and a brewery-campsite link are unverified extras. Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): stays held (island). Replay gives 6 trails / 10.9 mi (Rød Knudeklinterne 3.30, Grøn Gammelgård 2.65, Engelstør Odde 1.87, Gul Den Røde Sten 1.62, Fur Bryghus-Campingpladsen 1.00 = a brewery link, Grøn Gammelhavn 0.49), all inside. The Naturstyrelsen guide lists 5 walks (Gul, Rød, Blå, Grøn, Hvid); Blå and Hvid have no OSM relation, so a completionist would find 2 of 5 official walks missing. Unlock: Blå and Hvid mapped in OSM."
     },
     {
       "id": "klosterris-hegn-dk",
@@ -1665,14 +1665,21 @@
       "name": "Vrøgum Klitplantage",
       "state": "Denmark",
       "relation_id": 7884502,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.16, 55.59, 8.34, 55.72],
+      "center": [55.653, 8.26],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 4,
-      "est_mi": 8.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.0,
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. Naturstyrelsen Vrøgum Klitplantage (relation 7884502): Vrøgum Klitplantage - Gul rute 6.08 mi (operator Naturstyrelsen, lwn, blue-yellow hiker waymark) and the Hjerteforeningen Vrøgum Ballon Park Hjertesti 2.96 mi (explicit lwn relation, 95 percent inside; Hjertesti rule). Kirkevejen (0.87 mi road name-stitch) excluded. Keargard Yellow/Red routes next door belong to Kærgård Klitplantage (held) and are outside this polygon. 2 trails is the floor; no further walk in OSM. No live overlap.",
+      "exclude_trails": [
+        {
+          "id": "n:Kirkevejen",
+          "name": "Kirkevejen",
+          "reason": "0.87 mi road name-stitch (Kirkevejen); not a signed route"
+        }
+      ]
     },
     {
       "id": "rorvig-sandflugtsplantage-dk",
@@ -1790,7 +1797,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 7.6,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): stays held. Only Blå rute (1.02 mi) survives; Allerup Bakker lwn 10.1 km, Jyske Ås and Pilgrimsrute are dropped (relation gaps, long-distance), the Flauenskjold walks are not lwn. One trail is not an area."
     },
     {
       "id": "norreskoven-pa-als-dk",
@@ -1993,29 +2000,16 @@
     {
       "id": "langdal-plantage-dk",
       "name": "Langdal Plantage",
-      "display_name": "Langdal og Fosdalen Plantage",
       "state": "Denmark",
       "relation_id": 8073879,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.38, 57.08, 9.51, 57.19],
+      "center": [57.136, 9.444],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 7,
-      "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added. HOLD (second review 2026-10-30): Fosdalen Rød (2.5 km, the walk through the namesake gorge) is missing; ship only with it, then rename to Fosdalen og Langdal Plantager with id fosdalen-og-langdal-dk. Batch B (dk-v3 replay, 2026-10-31): Re-checked on dk-v3 (main ae52868): same 4 trails, 11.4 mi (Langdal Gul 4.13, Rød 2.81, Fosdalen Gul 3.26, Grøn 1.23). Fosdalen Rød (2.5 km from Lerup Kirke, guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/thy-og-vendsyssel/fosdalen-og-lien/praktisk) still has no OSM relation, and Tranum-Fosdal (VisitDenmark, 6.5 mi) is still dropped by the gap gate. Stays held as the second review decided.",
-      "include_trails": [
-        {
-          "id": "r12559613",
-          "name": "Fosdalen Gul rute",
-          "reason": "lwn Naturstyrelsen relation 3.26 mi, the 5.5 km Gul rute of the same guide (Fosdal Plantage has no registry polygon)"
-        },
-        {
-          "id": "r12559639",
-          "name": "Fosdalen Grøn rute",
-          "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the same guide (Fosdal Plantage has no registry polygon)"
-        }
-      ]
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.9,
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Fosdalen og Lien (/thy-og-vendsyssel/fosdalen-og-lien/praktisk) presents Fosdal and Langdal Plantage as one destination: Langdal Rød 5 km + Gul 7 km, Fosdalen Rød 2.5 km, Gul 5.5 km, Grøn 2 km. Fosdalen Gul and Grøn come in through include_trails; Fosdalen Rød has no OSM relation (udinaturen only); Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate; 'Lien' (unsigned operator) not added. HOLD (second review 2026-10-30): Fosdalen Rød (2.5 km, the walk through the namesake gorge) is missing; ship only with it, then rename to Fosdalen og Langdal Plantager with id fosdalen-og-langdal-dk. Batch B (dk-v3 replay, 2026-10-31): Re-checked on dk-v3 (main ae52868): same 4 trails, 11.4 mi (Langdal Gul 4.13, Rød 2.81, Fosdalen Gul 3.26, Grøn 1.23). Fosdalen Rød (2.5 km from Lerup Kirke, guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/thy-og-vendsyssel/fosdalen-og-lien/praktisk) still has no OSM relation, and Tranum-Fosdal (VisitDenmark, 6.5 mi) is still dropped by the gap gate. Stays held as the second review decided. Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP as Langdal Plantage alone, without Fosdalen. The Naturstyrelsen Langdal Plantage walks are complete in OSM: Langdal Plantage Gul Rute 4.13 mi and Rød rute 2.81 mi (operator Naturstyrelsen, lwn, 97 to 99 percent inside); the red loop shares most of its path with the yellow one. The earlier four-trail shape needed Fosdalen Rød (no OSM relation) and stays held in fosdal-plantage-dk; Tranum-Fosdal (VisitDenmark) stays dropped by the relation-gap gate. The previous display name Langdal og Fosdalen Plantage and the Fosdalen include_trails were removed. No live overlap."
     },
     {
       "id": "hojbjerg-skove-dk",
@@ -3404,6 +3398,246 @@
       "est_trails": 2,
       "est_mi": 2.5,
       "notes": "Way-backed (way 109508933, forest Horslund Krat). Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. 2 Naturstyrelsen lwn routes, 2.5 mi: Horslund Krat - Gul rute 1.46 mi (r3473769, 2.4 km) and Rød rute 1.01 mi (r3473770, 1.6 km). Complete set for the forest, but the Rød rute runs 84 percent on the Gul rute (live 2-trail areas overlap at most 27 percent) and the whole area is a 2.4 km loop with a short variant. Too thin to call a destination. Unlock: a ruling that a 2.5 mi two-route Naturstyrelsen forest is enough."
+    },
+    {
+      "id": "storring-praestegards-skov-dk",
+      "name": "Storring Præstegårds Skov",
+      "state": "Denmark",
+      "way_id": 1460972036,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 2.9,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Storring Præstegårds Skov (way 1460972036, 0.32 km2, 0.020 x 0.005 degrees, needs container_by_id): three old lwn relations (Søhave 1.77 km, Langskov 1.84, Gammeldam 1.11) with place-word names that say nothing about the walk. The local pipeline run is refused with 'unresolved terminal relation absorptions: 1' and nothing is published. The same site also has the exercise-style Sporet Storring Stjær Søballe. Unlock: pipeline fix for the absorption plus names.",
+      "container_by_id": {
+        "reason": "Storring Præstegårds Skov (way 1460972036) is a real named forest of 0.020 x 0.005 degrees, under the 0.01 boundary floor; the three lwn walks come in whole via include_trails"
+      },
+      "include_trails": [
+        {
+          "id": "r380634",
+          "name": "Søhave",
+          "reason": "lwn blue walk in Storring Præstegårds Skov"
+        },
+        {
+          "id": "r380635",
+          "name": "Langskov",
+          "reason": "lwn red walk in Storring Præstegårds Skov"
+        },
+        {
+          "id": "r380636",
+          "name": "Gammeldam",
+          "reason": "lwn yellow walk in Storring Præstegårds Skov"
+        }
+      ]
+    },
+    {
+      "id": "osteradalen-dk",
+      "name": "Østerådalen",
+      "state": "Denmark",
+      "way_id": 1564704931,
+      "bbox": [9.86, 56.96, 9.97, 57.08],
+      "center": [57.017, 9.915],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 4.2,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. Østerådalen nature reserve (way 1564704931, boundary=protected_area, leisure=nature_reserve), north of Aalborg. Three lwn hiking relations with coloured-dot waymarks run inside the reserve: Østerådalen rundt 2.62 mi, Fugleruten 0.85, Indkilderuten 0.70 = 4.2 mi, complete set in OSM (no operator tag). Removed by rule: Planetstien (educational path), Egholm and Hærvejen/Pilgrimsrute legs, name-stitches. No live overlap. Known omission: none found; no official page opened."
+    },
+    {
+      "id": "grene-sande-dk",
+      "name": "Grene Sande",
+      "state": "Denmark",
+      "relation_id": 7005962,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 8.1,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Grene Sande heath (relation 7005962, natural=heath): two old lwn relations with bare names Gul tur (9.38 km) and Rød tur (3.68 km) come out as Grene Sande Gul tur 5.83 mi and Rød tur 2.29, but only 51 and 36 percent of their length lies inside the polygon and nothing (operator, website, symbol text) shows who signs them. Two bare-named walks, mostly outside the area. Unlock: operator evidence or a polygon that holds the loops.",
+      "trail_name_prefix": "Grene Sande"
+    },
+    {
+      "id": "rodding-skov-dk",
+      "name": "Rødding Skov",
+      "state": "Denmark",
+      "relation_id": 1949331,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 2.1,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD (thin). Rødding Skov (relation 1949331, Vejen Kommune): Gul natursti 1.31 mi and Rød natursti 0.80 mi (lwn, operator Menighedsrådet, i.e. the parish council), 2.1 mi total, generic names not renamed by the prefix (not detected as bare colours). Sort Kløversti Vejen is an exercise network and stays out. Under the 2.5 mi / 2 trail line used for Batch K. Unlock: more routes or a ruling that parish nature trails count."
+    },
+    {
+      "id": "kaergard-klitplantage-dk",
+      "name": "Kærgård Klitplantage",
+      "state": "Denmark",
+      "relation_id": 6162898,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 3.9,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Kærgård Klitplantage (relation 6162898): the two lwn walks are named in English with a misspelling (Keargard Yellow Hiking Route 2.71 mi, Keargard Red Hiking Route 0.73), no operator; the third trail is a road (Kærgårdvej, remove). Names would ship as written in OSM; the red route is a 0.73 mi stub. Unlock: OSM name fix (Kærgård Plantage Gul/Rød rute)."
+    },
+    {
+      "id": "klim-bjerg-dk",
+      "name": "Klim Bjerg",
+      "state": "Denmark",
+      "relation_id": 13579668,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 2.2,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD (thin). Klim Bjerg forest (relation 13579668, 0.42 km2, 0.010 x 0.012 degrees, so it needs container_by_id): Klim Bjerg blå rute 0.62 mi and grøn rute 1.56 mi (lwn, dot waymarks, no operator) = 2.2 mi. Parabelstien (1.49 mi) lies entirely outside the forest and is not added. Under the 2.5 mi line. Unlock: a ruling that 2 short signed walks suffice.",
+      "container_by_id": {
+        "reason": "Klim Bjerg forest polygon (relation 13579668) is 0.010 x 0.012 degrees, just under the 0.01 boundary floor; it is a real named forest and the walks come in whole via include_trails"
+      },
+      "include_trails": [
+        {
+          "id": "r13329885",
+          "name": "Klim Bjerg blå rute",
+          "reason": "lwn blue walk in Klim Bjerg forest"
+        },
+        {
+          "id": "r13329886",
+          "name": "Klim Bjerg grøn rute",
+          "reason": "lwn green walk in Klim Bjerg forest"
+        }
+      ]
+    },
+    {
+      "id": "vester-aslund-plantage-dk",
+      "name": "Vester Aslund Plantage",
+      "state": "Denmark",
+      "relation_id": 7016356,
+      "bbox": [10.09, 57.03, 10.21, 57.15],
+      "center": [57.089, 10.152],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 7.0,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. Vester Aslund Plantage near Aalborg (relation 7016356): four Aalborg Kommune lwn walks with dot waymarks, bare colour names prefixed with the place: Grøn rute 3.14 mi, Gul rute 3.04, Blå rute 0.43 (0.7 km), Rød rute 0.34 (0.7 km). All 95 to 100 percent inside. The two short loops are signed routes (kept per the route rule), reviewer may drop them (area stays 2 trails, 6.2 mi). No live overlap.",
+      "trail_name_prefix": "Vester Aslund"
+    },
+    {
+      "id": "kollemorten-krat-dk",
+      "name": "Kollemorten Krat",
+      "state": "Denmark",
+      "relation_id": 18085203,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 2.4,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Kollemorten Krat (relation 18085203, 0.87 km2): two lwn walks, Øster Nykirke 1.55 mi (named for a village, only 40 percent inside) and Kollemorten Krat 0.80 mi = 2.4 mi. Thin and the main route belongs to a wider Brædstrup-area network (Rørbæk Sø Rundt, Tinnet Krat, Odderbækstien are removed as outside). Unlock: a network-level area."
+    },
+    {
+      "id": "stoubaek-krat-dk",
+      "name": "Naturreservatet Stoubæk Krat",
+      "display_name": "Stoubæk Krat",
+      "state": "Denmark",
+      "way_id": 1257165149,
+      "bbox": [8.78, 56.25, 8.92, 56.36],
+      "center": [56.304, 8.854],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.8,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. Stoubæk Krat nature reserve (way 1257165149, owner/operator Fugleværnsfonden; the three signed walks are Herning Kommune): rød rute 2.83 mi (62 percent inside), blå rute 1.53 (100 percent), gul rute 1.40 (23 percent inside, come in whole via include_trails because the relation carries no lwn network tag and the pipeline otherwise drops it as a route elsewhere). Complete colour set of the site; a Lyngruten leg is long-distance and stays out. No live overlap. The red walk overlaps the blue and yellow ones (shared path, 77 to 84 percent of the shorter).",
+      "include_trails": [
+        {
+          "id": "r18946905",
+          "name": "Stoubæk Krat, gul rute",
+          "reason": "Herning Kommune yellow walk of the same Stoubæk Krat set (rød, gul, blå); the relation has no lwn network tag, so the pipeline drops it as a route elsewhere"
+        }
+      ]
+    },
+    {
+      "id": "hjelm-hede-dk",
+      "name": "Hjelm Hede",
+      "state": "Denmark",
+      "relation_id": 18299919,
+      "bbox": [8.84, 56.42, 9.0, 56.57],
+      "center": [56.515, 8.931],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.7,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP (thin, reviewer call). Hjelm Hede heath (relation 18299919, natural=heath) at Flyndersø: two Skive Kommune lwn walks, Flyndersø - Rød rute 2.99 mi (70 percent inside) and Flyndersø - Mågesøen 0.67 (100 percent), both with udinaturen.dk pages. Display name carries the lake because both routes are named for it. Not added: Rundt om Stubbergård Sø (9.9 mi) and the Jensen og Sørensens Plantage walks, which lie outside the heath. No live overlap.",
+      "display_name": "Flyndersø og Hjelm Hede"
+    },
+    {
+      "id": "anebjerg-skov-dk",
+      "name": "Anebjerg Skov",
+      "state": "Denmark",
+      "relation_id": 7750328,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 1,
+      "est_mi": 2.8,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Anebjerg Skov (relation 7750328, Naturstyrelsen polygon): only Vestermøllestien (2.82 mi, 30 percent inside) survives; the Udsigtsruten blå (NS Søhøjlandet) is dropped as a route elsewhere and Sporet ved Vestermølle is an exercise track. One trail is not an area."
+    },
+    {
+      "id": "alstrup-krat-dk",
+      "name": "Alstrup krat",
+      "state": "Denmark",
+      "relation_id": 2415386,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 4.1,
+      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Alstrup krat (relation 2415386): the polygon holds only Hohøj Ruten 2.84 mi (68 percent inside) and Oldtidsruten 1.24; the rest of the Mariagerfjord Kommune Hohøj/Mosely/Frydensbjerg/Låenhus/Ulvholm/Kvottrup network (about 8 more routes) is removed as outside. This is a municipal route cluster, not a forest area. Unlock: a cluster-level Hohøj area (container plus whole routes)."
+    },
+    {
+      "id": "fosdal-plantage-dk",
+      "name": "Fosdal Plantage",
+      "state": "Denmark",
+      "relation_id": 8067180,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 4.5,
+      "notes": "Batch K (D-US polygon tier, 2026-10-31): HOLD. Fosdal Plantage (relation 8067180): the two Naturstyrelsen walks in OSM, Fosdalen Gul rute 3.26 mi and Grøn rute 1.23, come in whole via include_trails (0 percent inside the polygon, so the polygon only anchors the area). The Naturstyrelsen guide Fosdalen og Lien lists a third walk, Fosdalen Rød (2.5 km, the walk through the namesake gorge), that has no OSM relation, and the second review (2026-10-30) required it. Langdal Plantage ships separately. Unlock: Fosdalen Rød mapped in OSM.",
+      "include_trails": [
+        {
+          "id": "r12559613",
+          "name": "Fosdalen Gul rute",
+          "reason": "lwn Naturstyrelsen relation 3.26 mi, the 5.5 km Gul rute of the Fosdalen og Lien guide"
+        },
+        {
+          "id": "r12559639",
+          "name": "Fosdalen Grøn rute",
+          "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the Fosdalen og Lien guide"
+        }
+      ]
     }
   ]
 }

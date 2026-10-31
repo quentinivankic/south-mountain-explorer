@@ -273,6 +273,7 @@
     {
       "id": "rold-skov-dk",
       "name": "Rold Skov",
+      "display_name": "Rold Skov og Rebild Bakker",
       "state": "Denmark",
       "relation_id": 2169360,
       "bbox": null,
@@ -282,7 +283,7 @@
       "hold": null,
       "est_trails": 10,
       "est_mi": 39.4,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, Phase 1c): whole routes owned by this area (Rebild Bakker Ruten, Lindenborg A rundtur, Gul, Gravlev Adal complete). Curated trail by trail; see exclude_trails/include_trails reasons. Juelstrup So Rundtur (2.34 mi, lwn, no operator/source, ~2 km north of the forest, not on the Naturstyrelsen Rold Skov guide) is deliberately NOT included.",
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, Phase 1c): whole routes owned by this area (Rebild Bakker Ruten, Lindenborg A rundtur, Gul, Gravlev Adal complete). Curated trail by trail; see exclude_trails/include_trails reasons. Juelstrup So Rundtur (2.34 mi, lwn, no operator/source, ~2 km north of the forest, not on the Naturstyrelsen Rold Skov guide) is deliberately NOT included. Release note: Troldeskoven, Ravnkilden, St. Øksø rundtur are named in the guide but not mapped as routes in OSM.",
       "exclude_trails": [
         {
           "id": "r19276823",
@@ -709,7 +710,7 @@
       "hold": null,
       "est_trails": 7,
       "est_mi": 21.9,
-      "notes": "Tier 2 state_forest_like, Jutland. Rescoped as ONE west-coast dune-plantation destination: the Nymindegab Plantage relation is the container; the Blåbjerg Klitplantage routes and the Houstrup Strand Rød route come in through include_trails (whole OSM relations). Sibling blabjerg-klitplantage-dk stays held merge-pending and must never be published. Stale dk-v2 excludes re-curated on dk-v3: the six -vej stitches re-confirmed (tracks/paths with road names, no route relation); Paradis Stien dropped (0.36 mi stitch); Houstrup Strand Rød is now included whole. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 state_forest_like, Jutland. Rescoped as ONE west-coast dune-plantation destination: the Nymindegab Plantage relation is the container; the Blåbjerg Klitplantage routes and the Houstrup Strand Rød route come in through include_trails (whole OSM relations). Sibling blabjerg-klitplantage-dk stays held merge-pending and must never be published. Stale dk-v2 excludes re-curated on dk-v3: the six -vej stitches re-confirmed (tracks/paths with road names, no route relation); Paradis Stien dropped (0.36 mi stitch); Houstrup Strand Rød is now included whole. bbox/center computed by the qualify run. Release note: not checked against a Naturstyrelsen route page, complete as far as OSM shows.",
       "exclude_trails": [
         {
           "id": "n:Gl. Redningsvejen",
@@ -1030,7 +1031,7 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 17.1,
-      "notes": "Tier 2 forest, Zealand. OSM boundary is the Store Klinteskov forest relation; the app name is Moens Klint via display_name (Moens Klint has no OSM relation). Id changed from store-klinteskov-dk to mons-klint-dk BEFORE any publish (nothing live), so the id matches the app name. dk-v3: Klintekongens Rige (9.54 mi) whole; the two cliff stairs via include_trails. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 forest, Zealand. OSM boundary is the Store Klinteskov forest relation; the app name is Moens Klint via display_name (Moens Klint has no OSM relation). Id changed from store-klinteskov-dk to mons-klint-dk BEFORE any publish (nothing live), so the id matches the app name. dk-v3: Klintekongens Rige (9.54 mi) whole; the two cliff stairs via include_trails. bbox/center computed by the qualify run. Release note: 4 mapped routes + 2 stairs; Naturstyrelsen lists 7 marked walks.",
       "include_trails": [
         {
           "id": "n:Maglevandstrappen",

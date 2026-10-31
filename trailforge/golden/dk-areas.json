@@ -3210,7 +3210,7 @@
       "tier": 2,
       "hold": null,
       "est_trails": 4,
-      "est_mi": 6.9,
+      "est_mi": 7.0,
       "notes": "Batch K (D-US polygon tier, dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. Vester Aslund Plantage near Aalborg (relation 7016356): four Aalborg Kommune lwn walks with dot waymarks, bare colour names prefixed with the place: Grøn rute 3.14 mi, Gul rute 3.04, Blå rute 0.43 (0.7 km), Rød rute 0.34 (0.7 km). All 95 to 100 percent inside. The two short loops are signed routes (kept per the route rule), reviewer may drop them (area stays 2 trails, 6.2 mi). No live overlap.",
       "trail_name_prefix": "Vester Aslund"
     },

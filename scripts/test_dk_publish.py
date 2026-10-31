@@ -271,7 +271,7 @@ def test_batch_k_ships_holds_and_opt_ins():
     # est counts = the replay (trails, miles) on main 99c788eda; centre inside the boundary, bbox covers the trails
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_K_SHIP} == {
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "naturreservatet-stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 6.9)}
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
     assert by_id["vester-aslund-plantage-dk"]["trail_name_prefix"] == "Vester Aslund"
     assert by_id["hjelm-hede-dk"]["display_name"] == "Flyndersø og Hjelm Hede"
     assert by_id["naturreservatet-stoubaek-krat-dk"]["display_name"] == "Stoubæk Krat"

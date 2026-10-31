@@ -567,6 +567,10 @@ struct AreaView: View {
                 }
             }
         }
+        // The ZStack is empty until the map mounts, and an overlay takes its
+        // parent's size, so without this the loading overlay is laid out at
+        // 0x0 and nothing is placed or drawn until the map mounts.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         // The map mounts once the draw-in reveal completes; the silhouette sits on
         // top until the loading floor has elapsed, then fades out over the live
         // map instead of hard-cutting to an empty one.

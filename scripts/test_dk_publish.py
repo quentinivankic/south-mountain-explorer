@@ -174,6 +174,7 @@ def _reg():
 BATCH2 = ("klosterhede-plantage-dk", "almindingen-dk", "skelhoj-plantage-dk", "hammer-bakker-dk",
           "stensbaek-plantage-dk", "rye-norreskov-dk", "pamhule-skov-dk", "godding-skov-dk",
           "skagen-klitplantage-dk", "nordskoven-416103-dk")
+FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
     assert len(areas) == 112
@@ -183,7 +184,8 @@ def test_full_registry_counts_ids_and_relations_are_unique():
     assert len(set(rels)) == len(rels)
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
     assert all(a["bbox"] is None for a in areas
-               if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2)
+               if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
+               and a["id"] not in FLAGSHIPS)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -209,7 +211,7 @@ def test_hold_counts_match_the_discovery_candidates():
 
 def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2():
     table = dk.load_expected(EXPECTED)
-    assert set(table) == {MOLS, *PARKS, *BATCH2}
+    assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (32, 64.8), "nationalpark-vadehavet-dk": (43, 63.0),
         "nationalpark-skjoldungernes-land-dk": (11, 40.5),
@@ -218,7 +220,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 8.5),
         "stensbaek-plantage-dk": (3, 6.2), "rye-norreskov-dk": (5, 6.2),
         "pamhule-skov-dk": (4, 6.6), "godding-skov-dk": (4, 6.4),
-        "skagen-klitplantage-dk": (4, 6.0), "nordskoven-416103-dk": (3, 6.8)}
+        "skagen-klitplantage-dk": (4, 6.0), "nordskoven-416103-dk": (3, 6.8),
+        "rold-skov-dk": (10, 39.4), "mons-klint-dk": (6, 17.1),
+        "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9)}
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

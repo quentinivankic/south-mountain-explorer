@@ -184,6 +184,7 @@ BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-v
                    "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
 BATCH_C_BLESSED = ("fejo-dk", "froslev-plantage-dk")
 BATCH_C_SHIP = ("fejo-dk", "froslev-plantage-dk")  # registry bbox/centre set in the curation PR
+BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov og Ferup Sø
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -214,7 +215,8 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
                and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED
-               and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP)
+               and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
+               and a["id"] not in BATCH_D_SHIP)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -223,9 +225,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 39, "name-collision": 2, "np-nested": 16, "island": 8, "duplicate-of-live": 5,
+        None: 42, "name-collision": 2, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 53}
+        "curated-do-not-ship": 51}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
@@ -351,7 +353,7 @@ DK_V3_UPDATE_1 = ("skagen-klitplantage-dk", "hammer-bakker-dk", "stensbaek-plant
 DK_V3_UPDATE_2 = ("almindingen-dk", "pamhule-skov-dk")
 DK_V3_BATCH_B = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk", "aero-dk",
                  "horreby-lyng-dk", "boto-plantage-dk", "ulvshale-nyord-dk")
-DK_V3_BATCH_C = ("fejo-dk", "froslev-plantage-dk", "harte-skov-dk", "kelstrup-plantage-dk",
+DK_V3_BATCH_C = ("aro-dk", "fejo-dk", "froslev-plantage-dk", "harte-skov-dk", "kelstrup-plantage-dk",
                  "straaso-plantage-dk", "velling-skov-dk")
 DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
                  "nationalpark-kongernes-nordsjaelland-dk")

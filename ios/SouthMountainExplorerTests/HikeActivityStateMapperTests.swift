@@ -78,4 +78,19 @@ struct HikeActivityStateMapperTests {
         #expect(HikeActivityStateMapper.contentState(from: snap(distance: 1609.344), now: now).distanceText.hasSuffix("mi"))
         #expect(HikeActivityStateMapper.contentState(from: snap(distance: 1609.344, metric: true), now: now).distanceText.hasSuffix("km"))
     }
+
+    @MainActor @Test func estimateSourceForwardsOnlyFreshValues() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        func est(_ status: HikeEstimate.Status, _ d: Double? = 600) -> HikeEstimate {
+            HikeEstimate(distanceMeters: 1000, durationSeconds: d, status: status,
+                         targetName: nil, computedAt: now)
+        }
+        #expect(LiveActivityEstimateSource.seconds(est(.ok), now: now) == 600)
+        #expect(LiveActivityEstimateSource.seconds(est(.approximate), now: now) == 600)
+        #expect(LiveActivityEstimateSource.seconds(est(.ok), now: now.addingTimeInterval(100)) == 500)
+        #expect(LiveActivityEstimateSource.seconds(est(.stale), now: now) == nil)
+        #expect(LiveActivityEstimateSource.seconds(est(.offTrail(rejoinMeters: 50)), now: now) == nil)
+        #expect(LiveActivityEstimateSource.seconds(est(.ok, nil), now: now) == nil)
+        #expect(LiveActivityEstimateSource.seconds(nil, now: now) == nil)
+    }
 }

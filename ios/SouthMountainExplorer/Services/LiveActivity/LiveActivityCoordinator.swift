@@ -130,8 +130,7 @@ final class LiveActivityCoordinator {
             title: title,
             subtitle: subtitle,
             trailLengthMeters: (rec.mode == .trail) ? trail.map { $0.distanceMi * 1609.344 } : nil,
-            estimates: LiveActivityEstimateSource.estimates(for: rec, recording: recording,
-                                                            location: location, areas: areas),
+            estimates: LiveActivityEstimateSource.estimates(for: rec, recording: recording),
             usesMetric: units == UnitsPreference.metric.rawValue
         )
         return LiveActivityObservedState(snapshot: snapshot, isStopping: recording.isStopping,

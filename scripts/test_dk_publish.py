@@ -179,6 +179,9 @@ WAYBACK_SHIP = ("svanninge-bjerge-dk", "haunstrup-brunkulslejer-dk", "fovslet-sk
 WAYBACK_ALL = (*WAYBACK_SHIP, "dyrehaven-dk", "kalvebod-faelled-dk", "skjern-enge-dk",
                "lille-vildmose-dk", "vestskoven-dk", "egholm-dk")
 BATCH_B_WAY = ("hov-vig-dk",)   # batch B: the Hov Vig bird reserve (way 456982965) is a second way-backed area family
+# batch E way-backed anchors: Kollund Skov, the Mørkholm Skov polygon under Vestre Stigtehave, Sandkule Skov under
+# Haderslev Dyrehave, and the held Livø island way
+BATCH_E_WAY = ("kollund-skov-dk", "vestre-stigtehave-dk", "sandkule-skov-dk", "livo-dk")
 WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk")
 BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk",
                    "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
@@ -186,6 +189,10 @@ BATCH_C_BLESSED = ("fejo-dk", "froslev-plantage-dk")
 BATCH_D_BLESSED = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")
 BATCH_C_SHIP = ("fejo-dk", "froslev-plantage-dk")  # registry bbox/centre set in the curation PR
 BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov
+BATCH_E_SHIP = ("straaso-plantage-dk", "kelstrup-plantage-dk", "kiskelund-plantage-dk", "kollund-skov-dk",
+                "sogard-skov-dk", "toftlund-skov-dk", "draved-skov-dk", "velling-skov-dk", "barsbol-skov-dk",
+                "vestre-stigtehave-dk", "lindet-skov-dk", "osterskoven-dk", "sandkule-skov-dk",
+                "kompedal-plantage-dk", "palsgard-skov-dk")  # registry bbox/centre set in the curation PR
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -210,20 +217,20 @@ def test_harte_skov_display_name_does_not_claim_ferup():
     assert [t["id"] for t in a["include_trails"]] == ["r3251112"]
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 134
+    assert len(areas) == 149
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
-    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == len(WAYBACK_ALL) + len(BATCH_B_WAY)
-    assert {a["id"] for a in areas if "way_id" in a} == set(WAYBACK_ALL) | set(BATCH_B_WAY)
+    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == len(WAYBACK_ALL) + len(BATCH_B_WAY) + len(BATCH_E_WAY)
+    assert {a["id"] for a in areas if "way_id" in a} == set(WAYBACK_ALL) | set(BATCH_B_WAY) | set(BATCH_E_WAY)
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
                and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
-               and a["id"] not in BATCH_D_SHIP)
+               and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -232,9 +239,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 42, "name-collision": 2, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
+        None: 55, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 51}
+        "curated-do-not-ship": 52}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
@@ -243,7 +250,7 @@ def test_hold_counts_match_the_discovery_candidates():
         "sonderskov-1891272-dk"]
     assert holds["merge-into-klosterhede"] == ["kronhede-plantage-dk"]
     assert holds["mtb-centre"] == ["vesterskov-2325780-dk"]
-    assert sorted(holds["name-collision"]) == ["hejede-overdrev-dk", "vestvolden-dk"]
+    assert sorted(holds["name-collision"]) == ["hejede-overdrev-dk", "klintenborg-plantage-dk", "vestvolden-dk"]
     assert all(a["hold"] is None for a in areas if a["id"] == MOLS or a["id"] in PARKS)
     assert all(a["tier"] in (1, 2) for a in areas)
 
@@ -292,7 +299,7 @@ def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     assert [len(b) for b in batches] == [12, 12]
     with pytest.raises(dk.DkError):
-        dk.select_areas(reg, {MOLS}, "batch=5", 12, "qualify")  # 38 unheld non-Mols ids: 4 batches
+        dk.select_areas(reg, {MOLS}, "batch=6", 12, "qualify")  # 53 unheld non-Mols ids: 5 batches
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
     assert len(set(flat)) == 24 and MOLS not in flat
@@ -363,6 +370,12 @@ DK_V3_BATCH_B = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig
                  "horreby-lyng-dk", "boto-plantage-dk", "ulvshale-nyord-dk")
 DK_V3_BATCH_C = ("aro-dk", "fejo-dk", "froslev-plantage-dk", "harte-skov-dk", "kelstrup-plantage-dk",
                  "straaso-plantage-dk", "velling-skov-dk")
+# batch E: 15 shipping areas plus 6 new held entries and the name-collision hold, all on dk-v3
+DK_V3_BATCH_E = ("kiskelund-plantage-dk", "kollund-skov-dk", "toftlund-skov-dk", "draved-skov-dk",
+                 "barsbol-skov-dk", "vestre-stigtehave-dk", "osterskoven-dk", "sandkule-skov-dk",
+                 "lindet-skov-dk", "kompedal-plantage-dk", "palsgard-skov-dk", "klintenborg-plantage-dk",
+                 "livo-dk", "hjermind-skov-dk", "bunken-klitplantage-dk", "lovrup-skov-dk",
+                 "askov-hede-dk", "bolderslev-skov-dk")
 DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
                  "nationalpark-kongernes-nordsjaelland-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
@@ -373,7 +386,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
-            *DK_V3_BATCH_B, *DK_V3_BATCH_C)}
+            *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(

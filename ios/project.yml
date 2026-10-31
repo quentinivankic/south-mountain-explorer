@@ -46,6 +46,10 @@ targets:
         NSLocationWhenInUseUsageDescription: "TrekDex uses your location to find nearby trails, show your position on the map, and record your hike — including in the background while recording."
         UIBackgroundModes:
           - location
+          # Spoken turn cues start an audio session while the screen is
+          # locked (recording keeps the app alive via `location`). Used only
+          # while a trail recording is active; see turn-cues design.md s7.
+          - audio
         ITSAppUsesNonExemptEncryption: false
         # PostHog config, read at runtime by PostHogBackend. The
         # project API key is a CLIENT-side key (safe to ship in the

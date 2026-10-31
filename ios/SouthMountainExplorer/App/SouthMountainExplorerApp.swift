@@ -16,6 +16,7 @@ struct SouthMountainExplorerApp: App {
     private let trailSearch = TrailSearchService.shared
     private let parkingPool = ParkingPoolService.shared
     private let trailShapes = TrailShapeService.shared
+    private let turnCues = TurnCueCoordinator.shared
 
     init() {
         // Remove only the retired automatic-diagnostics preference on upgrade.
@@ -65,6 +66,7 @@ struct SouthMountainExplorerApp: App {
                 .environment(activity)
                 .environment(trailSearch)
                 .environment(trailShapes)
+                .environment(turnCues)
         }
     }
 }

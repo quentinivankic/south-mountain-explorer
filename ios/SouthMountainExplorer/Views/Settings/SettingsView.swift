@@ -80,6 +80,8 @@ struct SettingsView: View {
     @AppStorage(StorageKeys.debugHUD) private var showDebugHUD: Bool = false
     /// Temporary, TestFlight-only: see the Developer picker below.
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+    @AppStorage(StorageKeys.turnCueVoice) private var turnCueVoice = true
+    @AppStorage(StorageKeys.turnCueHaptics) private var turnCueHaptics = true
 
     /// URL of the most recent diagnostics bundle. Non-nil while
     /// the share sheet is presented; cleared when it dismisses
@@ -207,6 +209,26 @@ struct SettingsView: View {
                         }
                 }
 
+                Section {
+                    Toggle("Voice cues", isOn: $turnCueVoice)
+                        .onChange(of: turnCueVoice) { _, newValue in
+                            ActivityLogService.shared.log(
+                                category: "settings", action: "turnCueVoice",
+                                context: ["value": String(newValue)]
+                            )
+                        }
+                    Toggle("Haptic cues", isOn: $turnCueHaptics)
+                        .onChange(of: turnCueHaptics) { _, newValue in
+                            ActivityLogService.shared.log(
+                                category: "settings", action: "turnCueHaptics",
+                                context: ["value": String(newValue)]
+                            )
+                        }
+                } header: {
+                    Text("Turn Cues")
+                } footer: {
+                    Text("While recording a trail, TrekDex warns you before forks and turns. Voice cues play even when the silent switch is on. Haptics only work while the screen is on.")
+                }
                 Section("Offline Trails") {
                     Text("Downloaded trail and catalog geometry stays available without a signal. Apple base-map tiles may not.")
                         .font(.caption)

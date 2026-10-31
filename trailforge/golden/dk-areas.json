@@ -935,6 +935,7 @@
     {
       "id": "ro-plantage-dk",
       "name": "Rø Plantage",
+      "display_name": "Nordbornholm",
       "state": "Denmark",
       "relation_id": 7838873,
       "bbox": [14.67, 55.12, 14.97, 55.35],
@@ -942,10 +943,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 7,
-      "est_mi": 25.9,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held. Batch C (2026-10-31): tried as the Nordbornholm container (include_trails r9690060, r11831724, r12492199, r12700350, r12700494, r14573577). Replay: 5 of the 6 includes have 0 candidates because they sit outside the area bbox; covering Hammeren needs a bbox 0.155 deg west and 0.105 deg north of the Rø boundary, beyond the 0.10 margin cap in dk_publish.py. Needs code (include-aware bbox) before Nordbornholm can ship. Stays held. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Nordbornholm. Container trick: relation 7838873 (Rø Plantage) plus six include_trails, so the destination is the Naturstyrelsen Nordbornholm guide area (Hammerknuden, Slotslyngen/Hammershus, Hammersholm; https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/nordbornholm). 7 trails / 25.9 mi: Rø Plantage Bornholm 4.51, Ringebakkerne 3.51, Døndal 5.36, Jons Kapel rundtur 1.63, Stenhuggerstien 2.82 (NS, 5.5 km), Hammerknuden Rundt 4.36 (NS, 7 km), Finnens fodspor 3.76 (about 6 km). Known omissions: Cirkelstien (2.7 km Allinge-Sandvig walk, dropped by the relation-gap gate) and Salomons Sti (2.7 km, a shortcut of Hammerknuden Rundt; no OSM relation). Jons Kapel rundtur is a different walk (Slotslyngen, 55.23N), not Salomons Sti. Bornholm south of Almindingen stays in bornholm-dk, which stays held (needs-rescope); its island polygon would re-ship these same routes, so it must never be published next to this entry. No overlap with live Almindingen (its relation 2353749 is a different forest; the qualify duplicate gate checks every live area). Registry bbox 14.67,55.12,14.97,55.35 (reaches the include relations, which the old 0.10 cap rejected); centre 55.19,14.87 sits inside the Rø boundary bbox and within 0.1 deg of the trail extent midpoint.",
-      "display_name": "Nordbornholm",
+      "est_trails": 8,
+      "est_mi": 27.5,
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held. Batch C (2026-10-31): tried as the Nordbornholm container (include_trails r9690060, r11831724, r12492199, r12700350, r12700494, r14573577). Replay: 5 of the 6 includes have 0 candidates because they sit outside the area bbox; covering Hammeren needs a bbox 0.155 deg west and 0.105 deg north of the Rø boundary, beyond the 0.10 margin cap in dk_publish.py. Needs code (include-aware bbox) before Nordbornholm can ship. Stays held. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Nordbornholm. Container trick: relation 7838873 (Rø Plantage) plus six include_trails, so the destination is the Naturstyrelsen Nordbornholm guide area (Hammerknuden, Slotslyngen/Hammershus, Hammersholm; https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/nordbornholm). 7 trails / 25.9 mi: Rø Plantage Bornholm 4.51, Ringebakkerne 3.51, Døndal 5.36, Jons Kapel rundtur 1.63, Stenhuggerstien 2.82 (NS, 5.5 km), Hammerknuden Rundt 4.36 (NS, 7 km), Finnens fodspor 3.76 (about 6 km). Known omissions: Cirkelstien (2.7 km Allinge-Sandvig walk, dropped by the relation-gap gate) and Salomons Sti (2.7 km, a shortcut of Hammerknuden Rundt; no OSM relation). Jons Kapel rundtur is a different walk (Slotslyngen, 55.23N), not Salomons Sti. Bornholm south of Almindingen stays in bornholm-dk, which stays held (needs-rescope); its island polygon would re-ship these same routes, so it must never be published next to this entry. No overlap with live Almindingen (its relation 2353749 is a different forest; the qualify duplicate gate checks every live area). Registry bbox 14.67,55.12,14.97,55.35 (reaches the include relations, which the old 0.10 cap rejected); centre 55.19,14.87 sits inside the Rø boundary bbox and within 0.1 deg of the trail extent midpoint. Batch F: Cirkelstien (r14573576, 1.54 mi) added via include + accept_gap (300 m cap, actual 265.1 m): 8 trails / 27.5 mi, the 7 existing trail ids unchanged. Its omission above is resolved; Salomons Sti (no OSM relation) remains.",
       "include_trails": [
         {
           "id": "r9690060",
@@ -976,6 +976,18 @@
           "id": "r14573577",
           "name": "Finnens fodspor",
           "reason": "lwn walking relation, about 6 km round trip from the Hammershus car park, listed by Naturstyrelsen 100 udvalgte vandreruter"
+        },
+        {
+          "id": "r14573576",
+          "name": "Cirkelstien",
+          "reason": "Naturstyrelsen Nordbornholm guide walk (Cirkelstien, Allinge-Sandvig); lwn relation outside the Rø polygon"
+        }
+      ],
+      "accept_gap": [
+        {
+          "relation": "r14573576",
+          "max_gap_m": 300,
+          "reason": "Cirkelstien: the OSM relation has a 265.1 m gap between 2 pieces (two member ways stay excluded as service driveways); the two parts ship as separate segments, no geometry is synthesized"
         }
       ]
     },
@@ -1281,7 +1293,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 10,
       "est_mi": 10.6,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rød rute 4.7 mi); Hvid rute lost to relation gap; MTB lines removed. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields only Uhrehøje Plantage - Rød rute (4.7 mi). Hvid rute (4.26 mi) is dropped as unresolved-relation-gap: its OSM geometry has a gap of 829 m between two parts. Needs a gap rule or an OSM fix. Not shippable as one trail."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rød rute 4.7 mi); Hvid rute lost to relation gap; MTB lines removed. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields only Uhrehøje Plantage - Rød rute (4.7 mi). Hvid rute (4.26 mi) is dropped as unresolved-relation-gap: its OSM geometry has a gap of 829 m between two parts. Needs a gap rule or an OSM fix. Not shippable as one trail. Batch F (2026-10-31): HOLD, accept_gap NOT used. The 829 m 'gap' is not inside one route: the published 'Hvid rute' is a same-name merge of two unrelated relations (r16233091, lwn 4 km, west part; r20591030, 'Hvid Rute' route=foot 2.7 km, east part), each internally connected, about 0.8 to 1.2 km apart. Bridging them would ship one invented 4.26 mi trail. The operator pages (Destination Himmerland, 'Uhrehøje og Myrhøj Plantage') list four routes: red 2.5 km, yellow 3.5 km, blue 4 km and red 7 km, so the OSM colour names (two 'Hvid', no yellow, no blue) do not match the signage and the set is 2 of 4. The official spelling is Uhrehøje. Unlock: OSM fix (names/colours per route), then re-qualify; do not use accept_gap on this merge."
     },
     {
       "id": "sonderskov-10671204-dk",
@@ -1421,14 +1433,21 @@
       "name": "Varde Søndre Plantage",
       "state": "Denmark",
       "relation_id": 10170851,
-      "bbox": null,
-      "center": null,
+      "bbox": [8.46, 55.53, 8.6, 55.66],
+      "center": [55.596, 8.524],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 6,
-      "est_mi": 9.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable."
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.2,
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out.",
+      "accept_gap": [
+        {
+          "relation": "r6153047",
+          "max_gap_m": 200,
+          "reason": "Søndre plantage Rød vandrerute: the OSM relation has a 130 m gap between 3 pieces (a signed walking loop; no geometry is synthesized, the three parts ship as separate segments)"
+        }
+      ]
     },
     {
       "id": "vestvolden-dk",
@@ -2377,9 +2396,10 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 7,
-      "est_mi": 26.4,
-      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap). Batch B (dk-v3 replay, 2026-10-31): UN-PARKED (second review of the wayback batch said: fix the bare names, then ship). With trail_name_prefix \"Svanninge\" the seven colour routes read Svanninge Gul Rute, Lyseblå, Pink, Grøn, Brun, Blå, Lilla (26.4 mi). Official: Naturstyrelsen guide Svanninge Bakker (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/svanninge-bakker/praktisk): more than 35 km of marked paths, the red and yellow route plus six themed routes (svanningebjerge.dk). Known omissions: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source-gap rule (mapped twice, r8902909); the Naturstyrelsen Svanninge Bakker walks sit in a separate polygon and super-relations. Rating: mostly complete. Sibling knagelbjerg-skov-dk is the same three routes and stays held.",
+      "est_trails": 8,
+      "est_mi": 30.9,
+      "trail_name_prefix": "Svanninge",
+      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap). Batch B (dk-v3 replay, 2026-10-31): UN-PARKED (second review of the wayback batch said: fix the bare names, then ship). With trail_name_prefix \"Svanninge\" the seven colour routes read Svanninge Gul Rute, Lyseblå, Pink, Grøn, Brun, Blå, Lilla (26.4 mi). Official: Naturstyrelsen guide Svanninge Bakker (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/svanninge-bakker/praktisk): more than 35 km of marked paths, the red and yellow route plus six themed routes (svanningebjerge.dk). Known omissions: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source-gap rule (mapped twice, r8902909); the Naturstyrelsen Svanninge Bakker walks sit in a separate polygon and super-relations. Rating: mostly complete. Sibling knagelbjerg-skov-dk is the same three routes and stays held. Batch F: Rød rute r8845680 now included via accept_gap (400 m cap, actual 322.1 m): 8 trails / 30.9 mi, the 7 existing trail ids unchanged.",
       "include_trails": [
         {
           "id": "r8872389",
@@ -2392,7 +2412,13 @@
           "reason": "lwn relation 3.08 mi with the same Svanninge Bjerge colour-route symbol family; about 49% sits inside the boundary, whole route"
         }
       ],
-      "trail_name_prefix": "Svanninge"
+      "accept_gap": [
+        {
+          "relation": "r8845680",
+          "max_gap_m": 400,
+          "reason": "Rød rute (4.58 mi): mapped with a 322 m gap between two pieces (also mapped as r8902909, which is the duplicate and not listed); the two parts ship as separate segments, no geometry is synthesized"
+        }
+      ]
     },
     {
       "id": "skjern-enge-dk",
@@ -2441,21 +2467,22 @@
       "name": "Egholm",
       "state": "Denmark",
       "way_id": 156597303,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.76, 57.0, 9.93, 57.12],
+      "center": [57.062, 9.846],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 4,
-      "est_mi": 8.3,
-      "notes": "Way-backed (way 156597303, Egholm). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. Four signed Vandrerute relations (Gul 5.59, Blå 4.76, Grøn 7.43 km tagged, Rød 1.54 mi) are the whole destination, but Egholm Grøn Vandrerute is published at 43% of its length (3.2 of 7.4 km): 5 of its 15 ways carry the member roles forward/backward, which the member-safety rule rejects as unsupported-role. Shipping three complete routes and a truncated fourth would break the completionist bar. Fix: accept forward/backward roles on out-and-back signed routes (live-output impact, needs a decision). The 1.62 mi name-stitch 'Egholm' is excluded below. Batch D (2026-10-31): n*: and the include-aware bbox do not help; the blocker is the forward/backward member roles on Egholm Grøn, so it stays held.",
+      "est_mi": 15.2,
+      "notes": "Way-backed (way 156597303, Egholm). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. Four signed Vandrerute relations (Gul 5.59, Blå 4.76, Grøn 7.43 km tagged, Rød 1.54 mi) are the whole destination, but Egholm Grøn Vandrerute is published at 43% of its length (3.2 of 7.4 km): 5 of its 15 ways carry the member roles forward/backward, which the member-safety rule rejects as unsupported-role. Shipping three complete routes and a truncated fourth would break the completionist bar. Fix: accept forward/backward roles on out-and-back signed routes (live-output impact, needs a decision). The 1.62 mi name-stitch 'Egholm' is excluded below. Batch D (2026-10-31): n*: and the include-aware bbox do not help; the blocker is the forward/backward member roles on Egholm Grøn, so it stays held. Batch F (dk-v3 + accept_directional_roles from PR 662, 2026-10-31): SHIP. Egholm Grøn lists its out-and-back ways twice with forward/backward roles; with the per-area opt-in all 15 unique ways are included and Grøn is 3.32 mi (5.34 km, was 2.02). 4 trails / 15.2 mi: Egholm Gul 5.59, Blå 4.76, Grøn 3.32, Rød 1.54 Vandrerute. The 1.62 mi 'Egholm' island-name stitch stays excluded.",
       "exclude_trails": [
         {
           "id": "n:Egholm",
           "name": "Egholm",
           "reason": "1.62 mi name-stitch of an island-name track; not a signed route"
         }
-      ]
+      ],
+      "accept_directional_roles": true
     },
     {
       "id": "haunstrup-brunkulslejer-dk",
@@ -2870,17 +2897,17 @@
     {
       "id": "vestre-stigtehave-dk",
       "name": "Mørkholm Skov",
-      "display_name": "Vestre Stigtehave",
+      "display_name": "Mørkholm Skov og Vestre Stigtehave",
       "state": "Denmark",
       "way_id": 109964466,
       "bbox": [10.86, 55.06, 10.99, 55.19],
-      "center": [55.125, 10.917],
+      "center": [55.125, 10.922],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 2,
-      "est_mi": 3.1,
-      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Langeland per-destination area, 2 Naturstyrelsen routes / 3.1 mi: Vestre Stigtehave Rundtur 2.10 and Vøjremosen rundtur 0.99 (both via include_trails r12667907, r12667882 on the Mørkholm Skov polygon, way 109964466, which only anchors the area). Known omission: Mørkholm Skov Rundtur (Naturstyrelsen, r12667890) is dropped by the relation-gap gate. Ristinge Halvø (one Naturstyrelsen walk plus a Hjerteforeningen loop) and the Skovsgaard walks have no named boundary or only one real walk and are not areas. The island-wide langeland-dk stays held. Second review HOLD: Mørkholm Skov Rundtur (r12667890, Naturstyrelsen, 2.04 mi) is blocked by a 269.7 m gap (limit 100 m, 2 components); it is the walk the polygon anchors on and one of three Naturstyrelsen walks of the area. Unlockable later by accept_gap from PR #662.",
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Langeland per-destination area, 2 Naturstyrelsen routes / 3.1 mi: Vestre Stigtehave Rundtur 2.10 and Vøjremosen rundtur 0.99 (both via include_trails r12667907, r12667882 on the Mørkholm Skov polygon, way 109964466, which only anchors the area). Known omission: Mørkholm Skov Rundtur (Naturstyrelsen, r12667890) is dropped by the relation-gap gate. Ristinge Halvø (one Naturstyrelsen walk plus a Hjerteforeningen loop) and the Skovsgaard walks have no named boundary or only one real walk and are not areas. The island-wide langeland-dk stays held. Second review HOLD: Mørkholm Skov Rundtur (r12667890, Naturstyrelsen, 2.04 mi) is blocked by a 269.7 m gap (limit 100 m, 2 components); it is the walk the polygon anchors on and one of three Naturstyrelsen walks of the area. Unlockable later by accept_gap from PR #662. Batch F (PR 662 accept_gap, 2026-10-31): SHIP with the third walk. Mørkholm Skov Rundtur (r12667890, 2.04 mi) is accepted with a 300 m cap (actual 269.7 m, 2 parts, no geometry synthesized). Now all three Naturstyrelsen walks of this corner of north-west Langeland: Mørkholm Skov Rundtur 2.04, Vestre Stigtehave Rundtur 2.10, Vøjremosen rundtur 0.99 = 3 trails / 5.1 mi, all within about 2.5 km of each other. Display name now names both places. Centre moved to the trail extent (clamped into the boundary bbox).",
       "include_trails": [
         {
           "id": "r12667907",
@@ -2891,6 +2918,13 @@
           "id": "r12667882",
           "name": "Vøjremosen rundtur",
           "reason": "Naturstyrelsen walk at Vøjremosen beside Vestre Stigtehave; whole route"
+        }
+      ],
+      "accept_gap": [
+        {
+          "relation": "r12667890",
+          "max_gap_m": 300,
+          "reason": "Mørkholm Skov Rundtur (Naturstyrelsen walk): the OSM relation has a 269.7 m gap between 2 pieces; the two parts ship as separate segments, no geometry is synthesized"
         }
       ]
     },

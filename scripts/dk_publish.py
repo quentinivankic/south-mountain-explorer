@@ -146,10 +146,12 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         raise DkError("registry has no areas")
     ids: set[str] = set()
     rels: set[int] = set()
+    ways: set[int] = set()
     for entry in areas:
         if not isinstance(entry, dict):
             raise DkError("registry entry is not an object")
         aid, name, rel = entry.get("id"), entry.get("name"), entry.get("relation_id")
+        way = entry.get("way_id")
         if not isinstance(aid, str) or not SLUG.fullmatch(aid):
             raise DkError(f"registry id is invalid: {aid!r}")
         if aid in ids:
@@ -159,7 +161,16 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: name is invalid")
         if entry.get("state") != STATE:
             raise DkError(f"{aid}: state must be {STATE!r}")
-        if not isinstance(rel, int) or isinstance(rel, bool) or rel <= 0 or rel in rels:
+        if "way_id" in entry:
+            # Way-backed boundary (closed OSM way): exactly one of relation_id / way_id,
+            # and never the legacy Mols control rule set.
+            if "relation_id" in entry:
+                raise DkError(f"{aid}: exactly one of relation_id and way_id is allowed")
+            if not isinstance(way, int) or isinstance(way, bool) or way <= 0 or way in ways:
+                raise DkError(f"{aid}: way_id is invalid or repeated")
+            if entry.get("rules") not in ("dk-v2", "dk-v3"):
+                raise DkError(f"{aid}: a way-backed area needs rules dk-v2 or dk-v3")
+        elif not isinstance(rel, int) or isinstance(rel, bool) or rel <= 0 or rel in rels:
             raise DkError(f"{aid}: relation_id is invalid or repeated")
         shown = entry.get("display_name")
         if shown is not None and (not isinstance(shown, str) or not shown.strip() or shown == name
@@ -198,7 +209,10 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
                                        or est_trails < 0):
             raise DkError(f"{aid}: est_trails must be a non-negative integer")
         ids.add(aid)
-        rels.add(rel)
+        if "way_id" in entry:
+            ways.add(way)
+        else:
+            rels.add(rel)
     doc["by_id"] = {a["id"]: a for a in areas}
     return doc
 
@@ -337,7 +351,9 @@ def select_cmd(args: argparse.Namespace) -> int:
     args.out.write_text("\n".join(chosen) + "\n", encoding="utf-8")
     if args.github_output:
         with args.github_output.open("a", encoding="utf-8") as stream:
-            relations = " ".join(f"r{registry['by_id'][i]['relation_id']}" for i in chosen)
+            relations = " ".join(
+                f"w{registry['by_id'][i]['way_id']}" if "way_id" in registry["by_id"][i]
+                else f"r{registry['by_id'][i]['relation_id']}" for i in chosen)
             stream.write(f"area_ids={','.join(chosen)}\narea_count={len(chosen)}\n"
                          f"getid_args={relations}\n")
     print(f"selected {len(chosen)} area(s): {','.join(chosen)}")
@@ -397,6 +413,34 @@ def boundary_info(pbf: Path, relation_ids: list[int]) -> dict[int, dict[str, Any
     return result
 
 
+def way_boundary_info(pbf: Path, way_ids: list[int]) -> dict[int, dict[str, Any]]:
+    """Per way-backed boundary: bbox of the way, its tags, whether it is a closed
+    ring, and how many times the way id occurs in the file (small `osmium getid -r`
+    extract). Counterpart of boundary_info for registry `way_id` entries."""
+    import osmium
+    wanted = set(way_ids)
+    found: dict[int, dict[str, Any]] = {}
+    seen_count: dict[int, int] = {}
+    class _Collector(osmium.SimpleHandler):  # works on pyosmium 3.7.x and 4.x
+        def way(self, w):
+            if w.id not in wanted:
+                return
+            seen_count[w.id] = seen_count.get(w.id, 0) + 1
+            lons, lats, refs = [], [], []
+            for node in w.nodes:
+                refs.append(node.ref)
+                try:
+                    lons.append(node.lon)
+                    lats.append(node.lat)
+                except Exception:  # missing location: skip the node
+                    continue
+            found[w.id] = {
+                "bbox": ([min(lons), min(lats), max(lons), max(lats)] if lons else None),
+                "tags": {t.k: t.v for t in w.tags},
+                "closed": len(refs) >= 4 and refs[0] == refs[-1]}
+    _Collector().apply_file(str(pbf), locations=True)
+    return {way: {**found.get(way, {"bbox": None, "tags": None, "closed": False}),
+                  "count": seen_count.get(way, 0)} for way in way_ids}
 def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float] | None]:
     return {rel: info["bbox"] for rel, info in boundary_info(pbf, relation_ids).items()}
 
@@ -434,6 +478,29 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
     return problems
 
 
+def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
+    """Fail-closed identity/size check of a way-backed registry entry against its own
+    PBF way: present once, a closed ring, named like the registry, plausible size."""
+    if not info or info.get("tags") is None:
+        return [f"registry way {entry['way_id']} is not in the PBF"]
+    problems: list[str] = []
+    if info.get("count") != 1:
+        problems.append(f"registry way {entry['way_id']} occurs {info.get('count')} times (not unique)")
+    if not info.get("closed"):
+        problems.append(f"way {entry['way_id']} is not a closed ring")
+    tags = info["tags"]
+    names = {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
+    if entry["name"] not in names:
+        problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
+    box = info.get("bbox")
+    if box is not None:
+        w, h = box[2] - box[0], box[3] - box[1]
+        if not (REL_SPAN_MIN <= w <= REL_SPAN_MAX and REL_SPAN_MIN <= h <= REL_SPAN_MAX):
+            problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
+                            f"(each side must be {REL_SPAN_MIN}..{REL_SPAN_MAX})")
+        if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
+            problems.append(f"boundary bbox {box} is outside Denmark")
+    return problems
 def pad_bbox(box: list[float]) -> list[float]:
     return [round(box[0] - PAD, 2), round(box[1] - PAD, 2), round(box[2] + PAD, 2), round(box[3] + PAD, 2)]
 
@@ -446,16 +513,25 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
                         mode: str, relation_info: dict[str, Any] | None = None) -> dict[str, Any]:
     """Derive/check one area's bbox + centre. Returns the per-area prepare record."""
     problems: list[str] = []
-    rec: dict[str, Any] = {"id": entry["id"], "name": entry["name"], "relation_id": entry["relation_id"],
+    way_backed = "way_id" in entry
+    rec: dict[str, Any] = {"id": entry["id"], "name": entry["name"],
+                           **({"way_id": entry["way_id"]} if way_backed
+                              else {"relation_id": entry["relation_id"]}),
                            "boundary_bbox": boundary, "registry_bbox": entry.get("bbox"),
                            "registry_center": entry.get("center")}
     if boundary is None:
-        problems.append("boundary relation not found in the PBF (no member way geometry)")
+        problems.append("boundary way not found in the PBF (no node geometry)" if way_backed
+                        else "boundary relation not found in the PBF (no member way geometry)")
         rec.update(status="failed", problems=problems, bbox_source=None, effective_bbox=None, center=None)
         return rec
     padded, centre = pad_bbox(boundary), center_of(boundary)
     rec["proposed_bbox"], rec["proposed_center"] = padded, centre
-    if isinstance(discovery_center, list) and len(discovery_center) == 2:
+    if way_backed:
+        # The discovery step lists relations; a way-backed area is always cross-checked
+        # against its own PBF way (identity, closed ring, name, size).
+        rec["cross_check"] = "registry-way"
+        problems += way_problems(entry, relation_info)
+    elif isinstance(discovery_center, list) and len(discovery_center) == 2:
         mid = [(boundary[1] + boundary[3]) / 2, (boundary[0] + boundary[2]) / 2]
         if abs(mid[0] - discovery_center[0]) > 0.05 or abs(mid[1] - discovery_center[1]) > 0.05:
             problems.append(f"boundary bbox midpoint {mid} disagrees with the discovery centre {discovery_center}")
@@ -497,18 +573,25 @@ def prepare_areas(args: argparse.Namespace) -> int:
     by_disc = {c["index_row"][0]: c for c in discovery.get("candidates", [])
                if isinstance(c, dict) and isinstance(c.get("index_row"), list) and c["index_row"]}
     entries = [registry["by_id"][i] for i in ids]
-    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in entries])
+    rel_entries = [e for e in entries if "way_id" not in e]
+    way_entries = [e for e in entries if "way_id" in e]
+    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries])
+    way_infos = (way_boundary_info(args.bounds_pbf, [e["way_id"] for e in way_entries])
+                 if way_entries else {})
     out: list[dict[str, Any]] = []
     for entry in entries:
         cand = by_disc.get(entry["id"])
         disc_center = cand["index_row"][3:5] if cand else None
-        info = infos[entry["relation_id"]]
+        info = way_infos[entry["way_id"]] if "way_id" in entry else infos[entry["relation_id"]]
         rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             rec["display_name"] = entry.get("display_name") or entry["name"]
-            row = [entry["id"], rec["display_name"], STATE, rec["center"][0], rec["center"][1], None, None,
-                   entry["relation_id"]]
+            row = [entry["id"], rec["display_name"], STATE, rec["center"][0], rec["center"][1], None, None]
+            if "way_id" not in entry:
+                # Way-backed rows stay 7 long (the field is ABSENT, not null): see
+                # check_new_row and publish_areas.py's note on iOS decoding.
+                row.append(entry["relation_id"])
             _write_json(args.out_dir / entry["id"] / "index.json", [row])
         _write_json(args.out_dir / entry["id"] / "area.json", rec)
         out.append(rec)
@@ -643,7 +726,9 @@ def report_area(args: argparse.Namespace) -> int:
     generic = [n for n in names if is_generic_trail_name(n)]
     generic_share = round(len(generic) / len(names), 3) if names else 0.0
     rec = {
-        "id": area["id"], "name": area["name"], "relation_id": area["relation_id"], "status": "ok",
+        "id": area["id"], "name": area["name"],
+        **({"way_id": area["way_id"]} if "way_id" in area else {"relation_id": area["relation_id"]}),
+        "status": "ok",
         "generic_names": generic, "generic_share": generic_share,
         "exclude_recommended": bool(names) and generic_share >= GENERIC_EXCLUDE_SHARE,
         "trail_count": geom.get("trail_count"), "total_mi": geom.get("total_mi"),
@@ -763,8 +848,13 @@ def _rows(payload: bytes, context: str, compact: bool) -> list[list[Any]]:
 
 
 def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], context: str) -> None:
-    if (len(row) != 8 or row[0] != entry["id"] or row[1] != (entry.get("display_name") or entry["name"]) or row[2] != STATE
-            or row[7] != entry["relation_id"]):
+    if "way_id" in entry:
+        # Way-backed: no relation id exists, so the row has no 8th element at all.
+        id_ok = len(row) == 7
+    else:
+        id_ok = len(row) == 8 and row[7] == entry["relation_id"]
+    if (not id_ok or row[0] != entry["id"] or row[1] != (entry.get("display_name") or entry["name"])
+            or row[2] != STATE):
         raise DkError(f"{context}: {entry['id']} row has the wrong identity")
     if entry.get("center") is None or [row[3], row[4]] != entry["center"]:
         raise DkError(f"{context}: {entry['id']} row centre differs from the registry")
@@ -933,7 +1023,8 @@ def _split_records(live: bytes, as_dict: bool, context: str, sep: str = ",") -> 
 
 
 def _row_identity_kept(old: list[Any], new: list[Any], aid: str) -> None:
-    if len(old) != 8 or (old[0], old[1], old[2], old[7]) != (new[0], new[1], new[2], new[7]):
+    if (len(old) not in (7, 8) or len(old) != len(new)
+            or (old[0], old[1], old[2], *old[7:]) != (new[0], new[1], new[2], *new[7:])):
         raise DkError(f"{aid}: update must keep the row identity (id, name, state, relation)")
 
 

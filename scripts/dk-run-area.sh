@@ -4,7 +4,9 @@
 # trailforge-publish-dk.yml once per selected area, from the repo root, after the
 # Denmark PBF was downloaded + prefiltered and discovery was run once.
 #
-# Inputs (env): AREA_ID AREA_NAME RELATION_ID BBOX (lon_min,lat_min,lon_max,lat_max)
+# Inputs (env): AREA_ID AREA_NAME BBOX (lon_min,lat_min,lon_max,lat_max) and EXACTLY ONE of
+#               RELATION_ID (relation-backed boundary) or WAY_ID (way-backed boundary: a closed
+#               OSM way, Denmark only; the other variable must be unset or empty)
 #               W (run work dir holding discovery-report.json, pbf-provenance.json)
 # Output: $W/$AREA_ID/{geom/<id>.json,index.json,trails.geojson,removed.geojson,assembly.json}
 #
@@ -13,9 +15,21 @@
 # strings (they are labels, never opened as paths). Each area runs in its own
 # $W/$AREA_ID directory, so reusing the labels cannot mix evidence.
 set -euo pipefail
-: "${AREA_ID:?}" "${AREA_NAME:?}" "${RELATION_ID:?}" "${BBOX:?}" "${W:?}"
+: "${AREA_ID:?}" "${AREA_NAME:?}" "${BBOX:?}" "${W:?}"
+RELATION_ID="${RELATION_ID:-}"
+WAY_ID="${WAY_ID:-}"
 [[ "$AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*-dk$ ]]
-[[ "$RELATION_ID" =~ ^[1-9][0-9]*$ ]]
+# Exactly one boundary id: a relation id or a way id, never both, never neither.
+if [ -n "$RELATION_ID" ] && [ -z "$WAY_ID" ]; then
+  [[ "$RELATION_ID" =~ ^[1-9][0-9]*$ ]]
+  BOUNDARY_ARGS=(--expected-area-relation-id "$RELATION_ID")
+elif [ -z "$RELATION_ID" ] && [ -n "$WAY_ID" ]; then
+  [[ "$WAY_ID" =~ ^[1-9][0-9]*$ ]]
+  BOUNDARY_ARGS=(--expected-area-way-id "$WAY_ID")
+else
+  echo "SAFETY BLOCK: exactly one of RELATION_ID and WAY_ID must be set" >&2
+  exit 2
+fi
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
 # Rule set comes from the registry entry (Mols = legacy, dk-v2 or dk-v3 elsewhere).
 RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
@@ -44,8 +58,9 @@ SOURCE_PBF="$ROOT/trailforge/data/raw/denmark.osm.pbf"
 # Discovery lists protected areas only. An area with a discovery candidate is validated
 # exactly as before. An area without one (forest, plantation, heath, island) must have
 # passed the registry-relation cross-check in prepare-areas (area.json cross_check);
-# anything else fails closed here.
-if jq -e --arg id "$AREA_ID" '[.candidates[]? | select(.index_row[0] == $id)] | length > 0' \
+# anything else fails closed here. A way-backed area never takes the discovery branch
+# (discovery lists relations): prepare-areas must have cross-checked its own PBF way.
+if [ -z "$WAY_ID" ] && jq -e --arg id "$AREA_ID" '[.candidates[]? | select(.index_row[0] == $id)] | length > 0' \
     "$W/discovery-report.json" >/dev/null; then
   python3 trailforge/tools/validate_publish_pilot.py discovery \
     --discovery-report "$W/discovery-report.json" \
@@ -58,10 +73,18 @@ if jq -e --arg id "$AREA_ID" '[.candidates[]? | select(.index_row[0] == $id)] | 
     --index-out "$A/discovery-index.json" \
     --result-json "$A/discovery-validation.json"
 else
-  jq -e --arg id "$AREA_ID" '.id == $id and .status == "ok" and .cross_check == "registry-relation"' \
-    "$A/area.json" >/dev/null
-  printf '{"stage":"discovery","status":"skipped","reason":"no discovery candidate; registry-relation cross-check passed in prepare-areas"}\n' \
-    > "$A/discovery-validation.json"
+  if [ -n "$WAY_ID" ]; then
+    jq -e --arg id "$AREA_ID" --argjson way "$WAY_ID" \
+      '.id == $id and .status == "ok" and .cross_check == "registry-way" and .way_id == $way' \
+      "$A/area.json" >/dev/null
+    printf '{"stage":"discovery","status":"skipped","reason":"way-backed area; registry-way cross-check passed in prepare-areas"}\n' \
+      > "$A/discovery-validation.json"
+  else
+    jq -e --arg id "$AREA_ID" '.id == $id and .status == "ok" and .cross_check == "registry-relation"' \
+      "$A/area.json" >/dev/null
+    printf '{"stage":"discovery","status":"skipped","reason":"no discovery candidate; registry-relation cross-check passed in prepare-areas"}\n' \
+      > "$A/discovery-validation.json"
+  fi
 fi
 
 cd trailforge
@@ -97,7 +120,7 @@ python3 tools/export_relation_members.py --in "$A/prefilter.osm.pbf" \
 python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --out "data/aoi/$AREA_ID.trails.geojson" \
   --only-area "$AREA_NAME" --require-exact-area \
-  --expected-area-relation-id "$RELATION_ID" \
+  "${BOUNDARY_ARGS[@]}" \
   --relation-authority "$A/relation-members.raw.json" \
   --prefilter-authority "$A/relation-members.prefilter.json" \
   --aoi-relation-members "$A/relation-members.aoi.json" \

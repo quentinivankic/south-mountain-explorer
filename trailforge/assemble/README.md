@@ -365,6 +365,37 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   in both, identical geometry, or the same name over the same ground (at least
   half of the sampled nodes shared). The aggregate lists every conflict (also in
   `qualify-report.md` and `duplicate-conflicts.json`), names both areas and exits 1.
+- **Way-backed boundary** (registry `way_id`, `--expected-area-way-id`, Denmark
+  only). Some real destinations (Jægersborg Dyrehave, Kalvebod Fælled, Svanninge
+  Bjerge, ...) are mapped as one closed OSM way, not a relation. The relation
+  gate rejects them by design ("came from 'way', not a relation"), so a registry
+  entry may carry `way_id` INSTEAD of `relation_id` (exactly one of the two,
+  validated; a way-backed entry needs `rules` dk-v2 or dk-v3, never `legacy`).
+  Everything else stays fail-closed and the same:
+  - `assemble.py --require-exact-area --expected-area-way-id N` is mutually
+    exclusive with `--expected-area-relation-id`, needs `--region dk` and dk-v2 or
+    dk-v3, and takes a DISTINCT branch: exactly one case-sensitive same-name
+    boundary, which must be an OSM way with id `N`. A same-name relation or
+    second way in the AOI fails the run (`found 2`). The report gains
+    `boundary_kind: "way"` and `expected_area_way_id` (and `boundary.osm_type` is
+    `way`); a relation run writes exactly the keys it always did.
+  - The exact-path same-name rule, the polygon clip and every dk-v3 rule
+    (whole-route ownership by area share, gaps <= 100 m, include/exclude fail
+    closed) apply unchanged. Nothing is synthesized.
+  - `dk_publish.py prepare-areas` checks the way in the PBF itself
+    (`cross_check: "registry-way"`: present once, closed ring, same name, plausible
+    size, inside Denmark) and never uses a discovery candidate for it;
+    `select` emits `w<id>` for `osmium getid -r`. `dk-run-area.sh` takes exactly
+    one of `RELATION_ID` / `WAY_ID`.
+  - Index row: the relation id is the 8th field. A way-backed area has none, so
+    its row has 7 fields (the element is absent, as the seeder and
+    `merge-published-geom.py` leave it; iOS reads `tuple.count > 7 ? ... : nil`).
+    A trailing `null` is refused on purpose, because older app builds cannot
+    decode a null in the index. The geom carries `osm_way_id` (existing
+    `to_app_json` field). The relation-authority ledgers describe route
+    relations, not the boundary, so they need no change.
+  - Tests: `trailforge/assemble/test_dk_way_boundary.py` (real CLI) and
+    `scripts/test_dk_wayback.py`.
 The US/other-region path never sets `keep_whole`, so its output is unchanged.
 Long-distance routes are not exempt from `unresolved-relation-gap`. The US
 thru-hike list (`_THRU_HIKE_RE`) removes named thru-hikes, and

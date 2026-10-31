@@ -109,6 +109,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil jq
 
       - name: Download + prefilter Denmark (once)
+        env:
+          GETID_ARGS: ${{ steps.select.outputs.getid_args }}
         run: |
           set -euo pipefail
           cd trailforge
@@ -118,6 +120,18 @@ jobs:
             "https://download.geofabrik.de/europe/denmark-latest.osm.pbf"
           ls -lh data/raw/denmark.osm.pbf
           PREFILTER_DK_AREAS=1 bash extract/prefilter.sh data/raw/denmark.osm.pbf data/hiking.osm.pbf
+          # Way-backed boundaries (registry way_id) are only kept by the prefilter when their
+          # tags happen to match (leisure=park, place=island, boundary=forest, ... are not).
+          # Add exactly the selected closed ways (plus their nodes) from the raw file, and only
+          # when a way-backed area is selected: every other run keeps the prefilter bytes.
+          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E '^w[1-9][0-9]*$' || true)"
+          if [ -n "$WAY_IDS" ]; then
+            # shellcheck disable=SC2086
+            osmium getid -r --overwrite -o data/way-boundaries.osm.pbf data/raw/denmark.osm.pbf $WAY_IDS
+            osmium merge --overwrite -o data/hiking.merged.osm.pbf data/hiking.osm.pbf data/way-boundaries.osm.pbf
+            mv data/hiking.merged.osm.pbf data/hiking.osm.pbf
+            rm -f data/way-boundaries.osm.pbf
+          fi
 
       - name: Discovery (once) and boundary bbox derivation
         id: prepare
@@ -165,10 +179,11 @@ jobs:
               FAILED=1; echo "::endgroup::"; continue
             fi
             NAME="$(jq -r .name "$A/area.json")"
-            REL="$(jq -r .relation_id "$A/area.json")"
+            REL="$(jq -r '.relation_id // empty' "$A/area.json")"
+            WAY="$(jq -r '.way_id // empty' "$A/area.json")"
             BBOX="$(jq -r .bbox_arg "$A/area.json")"
             ( set -euo pipefail
-              AREA_ID="$ID" AREA_NAME="$NAME" RELATION_ID="$REL" BBOX="$BBOX" W="$W" \
+              AREA_ID="$ID" AREA_NAME="$NAME" RELATION_ID="$REL" WAY_ID="$WAY" BBOX="$BBOX" W="$W" \
                 bash scripts/dk-run-area.sh ) 2>&1 | tee "$W/$ID.log"
             if [ "${PIPESTATUS[0]}" -ne 0 ]; then
               python3 scripts/dk_publish.py mark-failed --area-id "$ID" --stage pipeline \

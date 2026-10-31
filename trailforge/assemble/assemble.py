@@ -120,6 +120,13 @@ def _boundary_record(area: dict) -> dict:
     }
 
 
+def _way_report_fields(args) -> dict:
+    """Report keys that exist only for a way-backed (Denmark) boundary, so the
+    relation branch writes exactly the keys it always wrote."""
+    way_id = getattr(args, "expected_area_way_id", None)
+    if way_id is None:
+        return {}
+    return {"boundary_kind": "way", "expected_area_way_id": way_id}
 def _write_report(path: str | None, report: dict) -> None:
     if not path:
         return
@@ -903,6 +910,10 @@ def main(argv=None) -> int:
                          "from the expected relation; never fall back to unclipped")
     ap.add_argument("--expected-area-relation-id", type=int,
                     help="relation id required by --require-exact-area")
+    ap.add_argument("--expected-area-way-id", type=int,
+                    help="Denmark only: way id of a way-backed (closed way) "
+                         "boundary required by --require-exact-area; mutually "
+                         "exclusive with --expected-area-relation-id")
     ap.add_argument("--report-json",
                     help="write versioned machine-readable assembly evidence")
     ap.add_argument(
@@ -983,14 +994,29 @@ def main(argv=None) -> int:
     if args.require_exact_area:
         if not args.only_area:
             ap.error("--require-exact-area requires --only-area")
-        if args.expected_area_relation_id is None:
+        if (args.expected_area_relation_id is not None
+                and args.expected_area_way_id is not None):
+            ap.error("--expected-area-relation-id and --expected-area-way-id "
+                     "are mutually exclusive")
+        if (args.expected_area_relation_id is None
+                and args.expected_area_way_id is None):
             ap.error("--require-exact-area requires --expected-area-relation-id")
-        if args.expected_area_relation_id <= 0:
+        if (args.expected_area_relation_id is not None
+                and args.expected_area_relation_id <= 0):
             ap.error("--expected-area-relation-id must be positive")
+        if args.expected_area_way_id is not None:
+            if args.expected_area_way_id <= 0:
+                ap.error("--expected-area-way-id must be positive")
+            if (model.member_safety.normalize(args.region) != "dk"
+                    or args.dk_rules not in ("dk-v2", "dk-v3")):
+                ap.error("--expected-area-way-id is limited to Denmark "
+                         "(--region dk with --dk-rules dk-v2 or dk-v3)")
         if not args.report_json:
             ap.error("--require-exact-area requires --report-json")
     elif args.expected_area_relation_id is not None:
         ap.error("--expected-area-relation-id requires --require-exact-area")
+    elif args.expected_area_way_id is not None:
+        ap.error("--expected-area-way-id requires --require-exact-area")
 
     input_pbf = _pbf_identity(args.inp) if args.require_exact_area else None
     exact_denmark = (
@@ -1034,9 +1060,19 @@ def main(argv=None) -> int:
         exact_matches = areamod.select_exact(area_objs, args.only_area)
         boundary_matches = [_boundary_record(area) for area in exact_matches]
         failure = None
+        way_backed = args.expected_area_way_id is not None
         if len(exact_matches) != 1:
             failure = (f"expected exactly one boundary named {args.only_area!r}; "
                        f"found {len(exact_matches)}")
+        elif way_backed:
+            # Distinct way-backed branch (Denmark only): the single same-name
+            # boundary must be a closed WAY with exactly the expected id.
+            if exact_matches[0].get("osm_type") != "way":
+                failure = (f"boundary {args.only_area!r} came from "
+                           f"{exact_matches[0].get('osm_type')!r}, not a way")
+            elif int(exact_matches[0].get("osm_id") or 0) != args.expected_area_way_id:
+                failure = (f"boundary way id {exact_matches[0].get('osm_id')!r} "
+                           f"does not match expected {args.expected_area_way_id}")
         elif exact_matches[0].get("osm_type") != "relation":
             failure = (f"boundary {args.only_area!r} came from "
                        f"{exact_matches[0].get('osm_type')!r}, not a relation")
@@ -1051,6 +1087,7 @@ def main(argv=None) -> int:
                 "exact_area_required": True,
                 "area_query": args.only_area,
                 "expected_area_relation_id": args.expected_area_relation_id,
+                **_way_report_fields(args),
                 "input_pbf": input_pbf,
                 "boundary_match_count": len(exact_matches),
                 "boundary_matches": boundary_matches,
@@ -1369,6 +1406,7 @@ def main(argv=None) -> int:
         "exact_area_required": bool(args.require_exact_area),
         "area_query": args.only_area,
         "expected_area_relation_id": args.expected_area_relation_id,
+        **_way_report_fields(args),
         "input_pbf": input_pbf,
         "relation_authority": ({
             "mode": "raw-primary-prefilter-witness-aoi-render-scope",

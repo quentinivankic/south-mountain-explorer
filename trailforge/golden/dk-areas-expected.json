@@ -1322,6 +1322,109 @@
       "forbidden_names": [
         "Østerhusevej"
       ]
+    },
+    "hastrup-plantage-dk": {
+      "trail_count": 4,
+      "total_mi": 7.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hastrup Gul vandrerute"
+      ],
+      "forbidden_names": [
+        "Gammel Ågårdsvej",
+        "Kjærvej",
+        "Ågård Brandlinje"
+      ]
+    },
+    "kegnaes-dk": {
+      "trail_count": 3,
+      "total_mi": 12.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Langs sydkysten, Kegnæs"
+      ],
+      "forbidden_names": []
+    },
+    "oro-dk": {
+      "trail_count": 4,
+      "total_mi": 12.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Orø Tur 4"
+      ],
+      "forbidden_names": [
+        "Fjordstien Vandresti",
+        "Mejerivej",
+        "Nørrestængevej",
+        "Orø",
+        "Pilestien",
+        "Trampesti",
+        "Tur 5",
+        "Vibesti"
+      ]
+    },
+    "samso-dk": {
+      "trail_count": 4,
+      "total_mi": 13.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Samsø Grøn"
+      ],
+      "forbidden_names": [
+        "0-vejen",
+        "Alstrup",
+        "Alstrup Fjord",
+        "Ballebjergvejen",
+        "Besser Rev",
+        "Besser Smedegade",
+        "Bækvejen",
+        "Flyvervej",
+        "Haardmark Mark",
+        "Holmevej",
+        "Jettehøj",
+        "Kærbakken",
+        "Lupinvej",
+        "Maden",
+        "Mejerivej",
+        "Møgelskårvejen",
+        "Onsbjerg Mark",
+        "Plantagevej",
+        "Ringebjergvej",
+        "Skolestien",
+        "Skægsholm",
+        "Strandskoven",
+        "Svenskgyden",
+        "Sølyst",
+        "Søndenbysvej",
+        "Teglværksvej"
+      ]
+    },
+    "svinklov-klitplantage-dk": {
+      "trail_count": 6,
+      "total_mi": 14.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Svinkløv Hjertesti, Rød rute",
+        "Søbakkeruten",
+        "Svinkløv Rød rute"
+      ],
+      "forbidden_names": [
+        "Bukkevej",
+        "Børnenes Spor",
+        "Den danske pilgrimsrute- Nordjylland Vest",
+        "Hærvejen",
+        "Kirkevej",
+        "Maries Drop",
+        "Mariesvej",
+        "Ministervej",
+        "Plantørvej",
+        "Slangehusvej",
+        "Svinkløvvej",
+        "Sømærkesti",
+        "Vestre Bjerregaardsvej",
+        "Æblehaven",
+        "Østre Bjerregårdsvej"
+      ]
     }
   }
 }

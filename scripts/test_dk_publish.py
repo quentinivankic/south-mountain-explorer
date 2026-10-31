@@ -192,13 +192,14 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 50, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
-        "needs-rescope": 4, "merge-pending": 2, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 20}
+        None: 28, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        "needs-rescope": 4, "merge-pending": 4, "merge-into-klosterhede": 1, "mtb-centre": 1,
+        "curated-do-not-ship": 40}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
-    assert sorted(holds["merge-pending"]) == ["blabjerg-klitplantage-dk", "randbol-hede-dk"]
+    assert sorted(holds["merge-pending"]) == [
+        "blabjerg-klitplantage-dk", "jonstrup-vang-dk", "randbol-hede-dk", "sonderskov-1891272-dk"]
     assert holds["merge-into-klosterhede"] == ["kronhede-plantage-dk"]
     assert holds["mtb-centre"] == ["vesterskov-2325780-dk"]
     assert sorted(holds["name-collision"]) == ["hejede-overdrev-dk", "vestvolden-dk"]
@@ -237,12 +238,12 @@ def test_batch_skips_held_and_explicit_areas_include_them():
 def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     reg = _reg()
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
-    assert [len(b) for b in batches] == [25, 24]
+    assert [len(b) for b in batches] == [25, 2]
     with pytest.raises(dk.DkError):
         dk.select_areas(reg, {MOLS}, "batch=3", 25, "qualify")
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 25, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
-    assert len(set(flat)) == 49 and MOLS not in flat
+    assert len(set(flat)) == 27 and MOLS not in flat
     assert set(flat[:4]) == set(PARKS)               # priority rule: tier 1 parks lead batch 1
     mi = [reg["by_id"][i]["est_mi"] for i in flat[4:]]
     assert mi == sorted(mi, reverse=True)
@@ -262,13 +263,55 @@ def test_registry_rejects_bad_hold_and_estimates(tmp_path, mutate):
 
 
 # ------------------------------------------------------------- rule sets ----
+DK_V3_BATCH_A = (
+    "tokkekob-hegn-dk",
+    "ro-plantage-dk",
+    "jaegersborg-hegn-dk",
+    "lystrup-skov-dk",
+    "urhoje-plantage-dk",
+    "sonderskov-10671204-dk",
+    "ganlose-ore-dk",
+    "varde-sondre-plantage-dk",
+    "hannenov-skov-dk",
+    "store-hareskov-dk",
+    "sonderskov-17950902-dk",
+    "norreskov-12537204-dk",
+    "folehaven-dk",
+    "paradisbakkerne-dk",
+    "tversted-plantage-dk",
+    "albaek-klitplantage-dk",
+    "hojbjerg-skove-dk",
+    "stursbol-plantage-dk",
+    "lild-klit-dk",
+    "norreskov-2823046-dk",
+    "ravnsholt-dk",
+    "kongenshus-dk",
+    "harrild-hede-dk",
+    "jonstrup-vang-dk",
+    "bjerge-skov-dk",
+    "sonderskov-1891272-dk",
+    "pedersker-plantage-dk",
+    "mellemskov-dk",
+    "husby-klitplantage-dk",
+    "staurby-skov-dk",
+    "sogard-skov-dk",
+    "rude-skov-dk",
+    "grastenskovene-dyrehaven-rinkenaes-skov-buskmose-skov-dk",
+    "norreskov-1965733-dk",
+    "knagelbjerg-skov-dk",
+    "rorvig-sandflugtsplantage-dk",
+    "svinklov-klitplantage-dk",
+    "dronninglund-storskov-dk",
+    "langdal-plantage-dk",
+)
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
     areas = dk.load_registry(REGISTRY)["areas"]
     assert areas[0]["id"] == MOLS and areas[0]["rules"] == "legacy"
     assert len(areas) > 1
     assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {
-        "rold-skov-dk": "dk-v3", "mons-klint-dk": "dk-v3",
-        "randbol-hede-frederikshab-dk": "dk-v3", "nymindegab-blabjerg-dk": "dk-v3"}
+        i: "dk-v3" for i in (
+            "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
+            *DK_V3_BATCH_A)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(

@@ -1616,14 +1616,15 @@
       "name": "Knagelbjerg Skov",
       "state": "Denmark",
       "relation_id": 9132089,
-      "bbox": null,
-      "center": null,
+      "bbox": [10.22, 55.07, 10.34, 55.2],
+      "center": [55.134, 10.281],
       "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 7.7,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: Brun/Grøn/Gul/Blå are bare colour names without the area and Rød rute is lost to relation gap; no Naturstyrelsen guide; needs a display prefix (code gap, not invented). Wayback curation: Gul/Grøn/Brun here are the same three Bikubenfonden routes now carried by svanninge-bjerge-dk; never publish both. Batch B (dk-v3 replay, 2026-10-31): Folded into svanninge-bjerge-dk: on dk-v3 with trail_name_prefix the three trails (Gul, Grøn, Brun, 14.1 mi) are the same Bikubenfonden routes (same geometry keys) that ship there, and Rød rute is the same relation-gap omission. Never publish next to svanninge-bjerge-dk."
+      "trail_name_prefix": "Knagelbjerg",
+      "notes": "Tier 2 forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): HOLD, not shipped. After the prefix the replay lists 3 trails / 14.1 mi (Knagelbjerg Brun/Grøn/Gul rute), but they are whole copies of the Svanninge Bjerge routes (relations r8902809, r8902765, r8845694); the qualify duplicate gate flags all three against svanninge-bjerge-dk. The Svanninge Bjerge area is the right home (7 routes there). Knagelbjerg Rød rute is lost to the same 322 m source gap. Never publish both."
     },
     {
       "id": "allerup-bakker-dk",
@@ -1972,14 +1973,15 @@
       "name": "Kongenshus",
       "state": "Denmark",
       "relation_id": 6028269,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.05, 56.3, 9.24, 56.45],
+      "center": [56.377, 9.147],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 3,
-      "est_mi": 6.3,
-      "notes": "Tier 2 landscape_misc, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: 'Rød' and 'Gul' are bare colour names without the area (2 of 3 names generic) plus one unnamed relation. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): with trail_name_prefix the names are fine (Kongenshus Rød 2.5 mi, Kongenshus Gul 2.1 mi, operator Kongenshus Mindepark) but a third unnamed lwn relation (1.04 mi) also ships and cannot be excluded, because a curated exclusion must match a trail name. Two trails would still be thin. Stays held."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.7,
+      "trail_name_prefix": "Kongenshus",
+      "notes": "Kongenshus Mindepark heath memorial park near Karup. Prefix curation (dk-v3 + trail_name_prefix): SHIP, thin. The two marked loops of the park (operator Kongenshus Mindepark): Rød 2.52 mi and Gul 2.13 mi (AllTrails lists the same two loops at about 2.5 and 2.2 mi), published as Kongenshus Rød and Kongenshus Gul. Removed by rule: Kalk Kaminoen (long-distance), a private road, a disconnected stitch. Two short loops: an honest destination but small."
     },
     {
       "id": "stenbjerg-klitplantage-dk",
@@ -2231,14 +2233,15 @@
       "name": "Staurby Skov",
       "state": "Denmark",
       "relation_id": 18424570,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.71, 55.46, 9.84, 55.58],
+      "center": [55.521, 9.774],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 8,
-      "est_mi": 5.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: four bare colour names (Lilla/Blå/Grå Kulturrute/Rød) with no area prefix; no Naturstyrelsen guide. Batch B (dk-v3 replay, 2026-10-31): Re-looked with the new trail_name_prefix (replay: Staurby Rød Rute 0.58 mi, Blå Rute 2.27, Lilla Rute 3.45, Grå Kulturrute 1.84). Do not ship: no official page names these routes (no Naturstyrelsen guide, no municipality page found), Rød Rute is a fragment, and the operator is unknown. Revisit when a source is found."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 8.1,
+      "trail_name_prefix": "Staurby",
+      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi."
     },
     {
       "id": "sogard-skov-dk",

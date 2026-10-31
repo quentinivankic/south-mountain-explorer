@@ -14,6 +14,8 @@
     <dict>
         <key>com.southmountainexplorer.app</key>
         <string>PROFILE_UUID_PLACEHOLDER</string>
+        <key>com.southmountainexplorer.app.liveactivity</key>
+        <string>LIVEACTIVITY_PROFILE_UUID_TOKEN</string>
     </dict>
     <key>uploadSymbols</key>
     <true/>

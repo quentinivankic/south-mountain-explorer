@@ -344,6 +344,19 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   structural gates (missing members, gaps, exact geometry). FAIL CLOSED: an
   entry that matches no candidate, matches several, is renamed, or is not
   published fails the area (assemble exits 2, `dk_curated_include_failures`).
+- **Multi-match exclusion** (`exclude_trails` only): `{"id": "n*:<name>", "name":
+  "<name>", ...}` excludes EVERY kept trail with that exact name (an OSM route
+  split into several same-named stitches, e.g. Aaro x2, Langeland "Ohavsstien" x9).
+  It is an explicit opt-in: `n:<name>` still demands exactly one match. `n*:` still
+  fails closed on 0 matches and is rejected in `include_trails`.
+- **Include-aware window** (qualify/publish, `scripts/dk_publish.py`): for dk-v3
+  areas with `include_trails` relation selectors, the registry bbox ceiling
+  (`MARGIN_MAX` 0.10) is measured from the union of the boundary bbox and the
+  include relations' bbox, and the proposed bbox pads that union. `MARGIN_MIN` (from the
+  boundary), `MARGIN_MAX` itself and the "centre inside the boundary bbox" rule are
+  unchanged; `select` appends the include relation ids to `getid_args` so the
+  bounds PBF holds them. `assemble.py` takes the bbox only as the AOI argument and has
+  no margin limit, so nothing changes on the assemble side.
 - Because dk-v3 removes some trails earlier than dk-v2 did, a curated
   `exclude_trails` entry whose trail is now removed by `dk-route-elsewhere` is
   stale and fails the area: re-curate when moving an area to dk-v3.

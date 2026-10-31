@@ -57,6 +57,8 @@ HOLD_REASONS = {
 # Curated per-area exclusions (registry `exclude_trails`, dk-v2 only); same shape as
 # trailforge/assemble/quality.py validate_dk_exclude: {"id": "r<relation>" | "n:<name>", "name", "reason"}.
 EXCLUDE_ID = re.compile(r"^(r[1-9][0-9]*|n:\S.*)$")
+# exclude_trails only: "n*:<name>" excludes every trail with that exact name (>= 1 match).
+EXCLUDE_ALL_ID = re.compile(r"^n\*:\S.*$")
 EXCLUDE_KEYS = {"id", "name", "reason"}
 # A trail list this generic after filtering is not a hiking destination (no names are invented).
 GENERIC_EXCLUDE_SHARE = 0.5
@@ -136,10 +138,13 @@ def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude
         if not all(isinstance(item[k], str) and item[k].strip() for k in EXCLUDE_KEYS):
             raise DkError(f"{aid}: {field} entry has an empty field: {item.get('id')!r}")
         ident, name = item["id"], item["name"]
+        multi = bool(EXCLUDE_ALL_ID.fullmatch(ident))
+        if multi and field != "exclude_trails":
+            raise DkError(f"{aid}: {field} {ident!r}: the n*: selector is exclude_trails-only")
         if (ident != unicodedata.normalize("NFC", ident) or name != unicodedata.normalize("NFC", name)
-                or not EXCLUDE_ID.fullmatch(ident)):
+                or not (multi or EXCLUDE_ID.fullmatch(ident))):
             raise DkError(f"{aid}: {field} id/name is invalid: {ident!r}")
-        if ident.startswith("n:") and ident[2:] != name:
+        if (ident.startswith("n:") and ident[2:] != name) or (multi and ident[3:] != name):
             raise DkError(f"{aid}: {field} {ident!r}: name must equal the id name")
         if ident in seen:
             raise DkError(f"{aid}: {field} repeats {ident!r}")
@@ -367,9 +372,13 @@ def select_cmd(args: argparse.Namespace) -> int:
     args.out.write_text("\n".join(chosen) + "\n", encoding="utf-8")
     if args.github_output:
         with args.github_output.open("a", encoding="utf-8") as stream:
-            relations = " ".join(
-                f"w{registry['by_id'][i]['way_id']}" if "way_id" in registry["by_id"][i]
-                else f"r{registry['by_id'][i]['relation_id']}" for i in chosen)
+            ids = [f"w{registry['by_id'][i]['way_id']}" if "way_id" in registry["by_id"][i]
+                   else f"r{registry['by_id'][i]['relation_id']}" for i in chosen]
+            # dk-v3 include_trails relations ride along so prepare-areas can size the window
+            # to reach them (no include_trails: the list is unchanged).
+            for i in chosen:
+                ids += [f"r{r}" for r in include_relation_ids(registry["by_id"][i])]
+            relations = " ".join(dict.fromkeys(ids))
             stream.write(f"area_ids={','.join(chosen)}\narea_count={len(chosen)}\n"
                          f"getid_args={relations}\n")
     print(f"selected {len(chosen)} area(s): {','.join(chosen)}")
@@ -517,6 +526,14 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems
+def include_relation_ids(entry: dict[str, Any]) -> list[int]:
+    """Relation ids of a dk-v3 area's include_trails (r<id> selectors only); [] otherwise."""
+    if entry.get("rules") != "dk-v3":
+        return []
+    return [int(i["id"][1:]) for i in entry.get("include_trails") or [] if i["id"].startswith("r")]
+def union_bbox(boxes: list[list[float]]) -> list[float]:
+    return [min(b[0] for b in boxes), min(b[1] for b in boxes),
+            max(b[2] for b in boxes), max(b[3] for b in boxes)]
 def pad_bbox(box: list[float]) -> list[float]:
     return [round(box[0] - PAD, 2), round(box[1] - PAD, 2), round(box[2] + PAD, 2), round(box[3] + PAD, 2)]
 
@@ -526,8 +543,12 @@ def center_of(box: list[float]) -> list[float]:
 
 
 def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, discovery_center: Any,
-                        mode: str, relation_info: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Derive/check one area's bbox + centre. Returns the per-area prepare record."""
+                        mode: str, relation_info: dict[str, Any] | None = None,
+                        include_boxes: list[list[float]] | None = None) -> dict[str, Any]:
+    """Derive/check one area's bbox + centre. Returns the per-area prepare record.
+    include_boxes (dk-v3 include_trails relation bboxes found in the PBF) widen only the
+    ceiling of the margin check and the proposed bbox: the window must be able to reach the
+    included routes. MARGIN_MIN/MARGIN_MAX and the centre-in-boundary rule are unchanged."""
     problems: list[str] = []
     way_backed = "way_id" in entry
     rec: dict[str, Any] = {"id": entry["id"], "name": entry["name"],
@@ -540,7 +561,17 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
                         else "boundary relation not found in the PBF (no member way geometry)")
         rec.update(status="failed", problems=problems, bbox_source=None, effective_bbox=None, center=None)
         return rec
-    padded, centre = pad_bbox(boundary), center_of(boundary)
+    reg = entry.get("bbox")
+    reach = union_bbox([boundary, *include_boxes]) if include_boxes else boundary
+    if reg is not None:
+        # A blessed bbox keeps every existing record byte-identical: the include reach is
+        # consulted only when the boundary alone would reject it (a bbox widened for includes).
+        within = [boundary[0] - reg[0], boundary[1] - reg[1], reg[2] - boundary[2], reg[3] - boundary[3]]
+        if all(MARGIN_MIN - 1e-9 <= m <= MARGIN_MAX + 1e-9 for m in within):
+            reach = boundary
+    padded, centre = pad_bbox(reach if reg is None else boundary), center_of(boundary)
+    if reach != boundary:
+        rec["include_reach_bbox"] = [round(v, 6) for v in reach]
     rec["proposed_bbox"], rec["proposed_center"] = padded, centre
     if way_backed:
         # The discovery step lists relations; a way-backed area is always cross-checked
@@ -557,7 +588,6 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         # after the registry's own relation (id, type, name, size) checks out.
         rec["cross_check"] = "registry-relation"
         problems += relation_problems(entry, relation_info)
-    reg = entry.get("bbox")
     if reg is None:
         if mode == "publish":
             problems.append("registry bbox/center missing: run qualify and commit the proposed values first")
@@ -565,9 +595,13 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
     else:
         margins = [boundary[0] - reg[0], boundary[1] - reg[1], reg[2] - boundary[2], reg[3] - boundary[3]]
         rec["registry_margins"] = [round(m, 4) for m in margins]
-        if any(m < MARGIN_MIN - 1e-9 or m > MARGIN_MAX + 1e-9 for m in margins):
+        reach_margins = [reach[0] - reg[0], reach[1] - reg[1], reg[2] - reach[2], reg[3] - reach[3]]
+        if (any(m < MARGIN_MIN - 1e-9 for m in margins)
+                or any(m > MARGIN_MAX + 1e-9 for m in reach_margins)):
             problems.append(f"registry bbox margins {rec['registry_margins']} outside "
-                            f"[{MARGIN_MIN}, {MARGIN_MAX}] of the boundary bbox {boundary}")
+                            f"[{MARGIN_MIN}, {MARGIN_MAX}] of the boundary bbox {boundary}"
+                            + (f" (max measured from the include_trails reach {rec['include_reach_bbox']})"
+                               if reach != boundary else ""))
         if entry.get("rules") == "dk-v3":
             # dk-v3 only: the pin may sit on the trails instead of the rounded boundary midpoint,
             # but it must stay inside the boundary bbox (the trail-centroid check runs at publish).
@@ -591,7 +625,8 @@ def prepare_areas(args: argparse.Namespace) -> int:
     entries = [registry["by_id"][i] for i in ids]
     rel_entries = [e for e in entries if "way_id" not in e]
     way_entries = [e for e in entries if "way_id" in e]
-    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries])
+    inc_ids = sorted({r for e in entries for r in include_relation_ids(e)})
+    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries] + inc_ids)
     way_infos = (way_boundary_info(args.bounds_pbf, [e["way_id"] for e in way_entries])
                  if way_entries else {})
     out: list[dict[str, Any]] = []
@@ -599,7 +634,9 @@ def prepare_areas(args: argparse.Namespace) -> int:
         cand = by_disc.get(entry["id"])
         disc_center = cand["index_row"][3:5] if cand else None
         info = way_infos[entry["way_id"]] if "way_id" in entry else infos[entry["relation_id"]]
-        rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info)
+        inc_boxes = [b for r in include_relation_ids(entry)
+                     if (b := (infos.get(r) or {}).get("bbox")) is not None]
+        rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info, inc_boxes)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             rec["display_name"] = entry.get("display_name") or entry["name"]

@@ -1322,6 +1322,57 @@ class DenmarkCuratedExclude(unittest.TestCase):
         kept, removed, report = self._two_trails([])
         self.assertEqual(len(kept), 2)
         self.assertEqual(report["dk_curated_excluded"], [])
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkCuratedExcludeAll(unittest.TestCase):
+    """`n*:<name>` opt-in: every kept trail with that exact name; n: stays exactly-1."""
+    def _stitches(self, exclude, count=2):
+        ways, nodes, trails = {}, {}, []
+        for i in range(count):
+            ways[i + 1] = W([2 * i + 1, 2 * i + 2], highway="path", name="Aaro")
+            nodes[2 * i + 1], nodes[2 * i + 2] = (0, 0.5 * i), (0.01, 0.5 * i)
+        ways[99] = W([97, 98], highway="path", name="Engstien")
+        nodes[97], nodes[98] = (0, 9), (0.01, 9)
+        relations = {900: {"tags": {"type": "route", "route": "hiking",
+                                    "name": "Engstien", "network": "lwn"},
+                           "members": [("w", 99, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="dk-v3", dk_exclude=exclude)
+    def test_multi_selector_removes_every_same_named_trail_only(self):
+        entry = {"id": "n*:Aaro", "name": "Aaro", "reason": "stitched twice"}
+        kept, removed, report = self._stitches([entry])
+        self.assertEqual([k["properties"]["name"] for k in kept], ["Engstien"])
+        self.assertGreaterEqual(len(removed), 2)
+        self.assertEqual(report["dk_curated_exclude_failures"], [])
+        self.assertTrue(all(r["properties"]["removed_category"] == "dk-curated-exclude"
+                            for r in removed))
+        self.assertEqual({e["name"] for e in report["dk_curated_excluded"]}, {"Aaro"})
+    def test_multi_selector_zero_match_fails_closed(self):
+        _, removed, report = self._stitches(
+            [{"id": "n*:Findes Ikke", "name": "Findes Ikke", "reason": "x"}])
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_exact_selector_still_demands_exactly_one(self):
+        kept, removed, report = self._stitches(
+            [{"id": "n:Aaro", "name": "Aaro", "reason": "x"}])
+        self.assertEqual(removed, [])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+        self.assertIn("expected exactly 1", report["dk_curated_exclude_failures"][0])
+    def test_exact_selector_single_match_unchanged(self):
+        kept, removed, report = self._stitches(
+            [{"id": "n:Engstien", "name": "Engstien", "reason": "x"}])
+        self.assertEqual(sorted(k["properties"]["name"] for k in kept), ["Aaro", "Aaro"])
+        self.assertEqual(len(removed), 1)
+    def test_validation(self):
+        good = {"id": "n*:Aaro", "name": "Aaro", "reason": "x"}
+        self.assertEqual(quality.validate_dk_exclude([good])[0]["id"], "n*:Aaro")
+        for bad in ([{**good, "name": "Other"}], [{**good, "id": "n*:"}]):
+            with self.assertRaises(ValueError):
+                quality.validate_dk_exclude(bad)
+        with self.assertRaises(ValueError):  # exclude-only: never valid as an include
+            quality.validate_dk_exclude([good], "include")
 class DenmarkCuratedExcludeCli(unittest.TestCase):
     """The real argument parser validates --dk-curated-exclude before reading any PBF."""
     def _run(self, payload, *extra):

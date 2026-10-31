@@ -2127,3 +2127,91 @@ def test_update_write_order_in_plan_is_geoms_silhouettes_shapes_search_index_las
     ids = sorted(fx["upd"])
     assert keys == [f"{i}.json" for i in ids] + [f"silhouettes/{i}.json" for i in ids] + [
         "trail-shapes.json", "trail-search.json", "index.json"]
+
+# ---------------------------------------- include-aware window + n*: selector --
+def _v3_entry(**extra):
+    e = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+    e.update(rules="dk-v3", **extra)
+    return e
+# Nordbornholm-like: boundary 14.80..14.95 / 55.20..55.30; includes reach 0.155 W / 0.105 N.
+NB_BOUNDARY = [14.80, 55.20, 14.95, 55.30]
+NB_INCLUDE_BOX = [14.645, 55.20, 14.90, 55.405]
+NB_DISC = [55.25, 14.875]
+NB_WIDE = [14.60, 55.18, 14.99, 55.45]   # 0.20 W of boundary, 0.15 N
+def _nb_entry(**extra):
+    return _v3_entry(bbox=NB_WIDE, center=[55.25, 14.875], **extra)
+def test_wide_bbox_rejected_without_include_reach():
+    rec = dk.check_area_geometry(_nb_entry(), NB_BOUNDARY, NB_DISC, "qualify")
+    assert rec["status"] == "failed" and any("outside" in p for p in rec["problems"])
+def test_include_reach_lets_the_window_cover_includes():
+    rec = dk.check_area_geometry(_nb_entry(), NB_BOUNDARY, NB_DISC, "qualify",
+                                 include_boxes=[NB_INCLUDE_BOX])
+    # NB_WIDE is 0.05 beyond the include reach on W (14.645-14.60) and N (55.45-55.405).
+    assert rec["status"] == "ok", rec["problems"]
+    assert rec["include_reach_bbox"] == [14.645, 55.2, 14.95, 55.405]
+def test_include_reach_does_not_relax_the_floor_or_the_ceiling_beyond_reach():
+    too_wide = _nb_entry(); too_wide["bbox"] = [14.40, 55.18, 14.99, 55.45]
+    rec = dk.check_area_geometry(too_wide, NB_BOUNDARY, NB_DISC, "qualify", include_boxes=[NB_INCLUDE_BOX])
+    assert rec["status"] == "failed"
+    tight = _nb_entry(); tight["bbox"] = [14.79, 55.18, 14.99, 55.45]   # 0.01 < MARGIN_MIN of boundary
+    rec = dk.check_area_geometry(tight, NB_BOUNDARY, NB_DISC, "qualify", include_boxes=[NB_INCLUDE_BOX])
+    assert rec["status"] == "failed"
+def test_include_reach_still_requires_centre_inside_boundary():
+    e = _nb_entry(); e["center"] = [55.35, 14.70]    # inside reach, outside boundary
+    rec = dk.check_area_geometry(e, NB_BOUNDARY, NB_DISC, "qualify", include_boxes=[NB_INCLUDE_BOX])
+    assert rec["status"] == "failed" and any("center" in p for p in rec["problems"])
+def test_includes_inside_boundary_or_absent_change_nothing():
+    base = dk.check_area_geometry(_v3_entry(), MOLS_BOUNDARY, [56.2251, 10.6493], "publish")
+    inside = dk.check_area_geometry(_v3_entry(), MOLS_BOUNDARY, [56.2251, 10.6493], "publish",
+                                    include_boxes=[[10.5, 56.2, 10.6, 56.25]])
+    assert inside == base and "include_reach_bbox" not in base
+def test_proposed_bbox_pads_the_include_reach_only_when_it_exceeds_the_boundary():
+    e = _nb_entry(); e.update(bbox=None, center=None)
+    plain = dk.check_area_geometry(e, NB_BOUNDARY, NB_DISC, "qualify")
+    wide = dk.check_area_geometry(e, NB_BOUNDARY, NB_DISC, "qualify", include_boxes=[NB_INCLUDE_BOX])
+    assert plain["proposed_bbox"] == dk.pad_bbox(NB_BOUNDARY)
+    assert wide["proposed_bbox"] == dk.pad_bbox([14.645, 55.2, 14.95, 55.405])
+    assert wide["proposed_center"] == plain["proposed_center"]
+def test_include_relation_ids_only_for_dk_v3_relation_selectors():
+    inc = [{"id": "r77", "name": "A", "reason": "x"}, {"id": "n:B", "name": "B", "reason": "x"}]
+    assert dk.include_relation_ids(_v3_entry(include_trails=inc)) == [77]
+    legacy = dk.load_registry(REGISTRY)["by_id"][MOLS]
+    assert dk.include_relation_ids(legacy) == []
+    v2 = copy.deepcopy(legacy); v2.update(rules="dk-v2", include_trails=inc)
+    assert dk.include_relation_ids(v2) == []
+def test_select_getid_args_add_include_relations_only_for_dk_v3_with_includes(tmp_path):
+    reg_path = _write_registry(tmp_path / "r.json", lambda d: None)
+    reg = dk.load_registry(reg_path)
+    ids = [a["id"] for a in reg["areas"] if a.get("hold") is None][:2]
+    index = tmp_path / "index.json"
+    index.write_text("[]", encoding="utf-8")
+    def run(path):
+        out, gh = tmp_path / "sel.txt", tmp_path / "gh.txt"
+        gh.write_text("")
+        dk.select_cmd(Namespace(registry=path, expected=None, mode="qualify", index=index,
+                                areas=",".join(ids), chunk_size=25, out=out, github_output=gh))
+        return [l for l in gh.read_text().splitlines() if l.startswith("getid_args=")][0]
+    base = run(reg_path)
+    def add(d):
+        a = next(x for x in d["areas"] if x["id"] == ids[1])
+        a.update(rules="dk-v3", include_trails=[{"id": "r424242", "name": "X", "reason": "x"}])
+    changed = run(_write_registry(tmp_path / "r2.json", add))
+    assert changed == base + " r424242"
+def test_registry_accepts_n_star_in_exclude_trails_only(tmp_path):
+    star = {"id": "n*:Aaro", "name": "Aaro", "reason": "two stitches"}
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][1].update(exclude_trails=[star])))
+    assert reg["areas"][1]["exclude_trails"] == [star]
+    for bad in ({"id": "n*:Aaro", "name": "Other", "reason": "x"}, {"id": "n*:", "name": "", "reason": "x"}):
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(
+                tmp_path / "b.json", lambda d: d["areas"][1].update(exclude_trails=[bad])))
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "c.json", lambda d: d["areas"][1].update(rules="dk-v3", include_trails=[star])))
+def test_blessed_bbox_that_fits_the_boundary_ignores_include_reach_byte_for_byte():
+    entry = _v3_entry()
+    base = dk.check_area_geometry(entry, MOLS_BOUNDARY, [56.2251, 10.6493], "publish")
+    far = dk.check_area_geometry(entry, MOLS_BOUNDARY, [56.2251, 10.6493], "publish",
+                                 include_boxes=[[10.30, 56.0, 10.9, 56.4]])
+    assert far == base and "include_reach_bbox" not in far

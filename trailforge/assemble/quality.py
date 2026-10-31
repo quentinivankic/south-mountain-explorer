@@ -111,6 +111,12 @@ DK_V2_FAMILY = ("dk-v2", "dk-v3")
 # Curated per-area exclusions (registry `exclude_trails`, dk-v2 only). Each entry
 # is {"id": "r<osm relation id>" | "n:<exact trail name>", "name", "reason"}.
 DK_EXCLUDE_ID = re.compile(r"^(r[1-9][0-9]*|n:\S.*)$")
+# Explicit opt-in multi-match selector (exclude only): "n*:<exact trail name>"
+# excludes EVERY kept trail with that name (stitched routes OSM splits into
+# several same-named trails) and still fails closed on 0 matches. "n:" keeps
+# its exactly-one-match rule.
+DK_EXCLUDE_ALL_PREFIX = "n*:"
+DK_EXCLUDE_ALL_ID = re.compile(r"^n\*:\S.*$")
 DK_EXCLUDE_KEYS = {"id", "name", "reason"}
 
 
@@ -132,10 +138,19 @@ def validate_dk_exclude(entries: Any, label: str = "exclude"
             raise ValueError(f"curated {label} entry has an empty field: {entry!r}")
         ident = unicodedata.normalize("NFC", entry["id"])
         name = unicodedata.normalize("NFC", entry["name"])
-        if not DK_EXCLUDE_ID.fullmatch(ident):
+        multi = bool(DK_EXCLUDE_ALL_ID.fullmatch(ident))
+        if multi and label != "exclude":
+            raise ValueError(
+                f"curated {label} id {entry['id']!r}: the n*: selector is "
+                "exclude-only")
+        if not (multi or DK_EXCLUDE_ID.fullmatch(ident)):
             raise ValueError(f"curated {label} id is invalid: {entry['id']!r}")
         if ident.startswith("n:") and unicodedata.normalize(
                 "NFC", ident[2:]) != name:
+            raise ValueError(
+                f"curated {label} {ident!r}: name must equal the id name")
+        if multi and unicodedata.normalize(
+                "NFC", ident[len(DK_EXCLUDE_ALL_PREFIX):]) != name:
             raise ValueError(
                 f"curated {label} {ident!r}: name must equal the id name")
         if ident in seen:
@@ -147,7 +162,7 @@ def validate_dk_exclude(entries: Any, label: str = "exclude"
 
 def _dk_exclude_matches(entry: dict[str, str], properties: dict) -> bool:
     ident = entry["id"]
-    if ident.startswith("n:"):
+    if ident.startswith(("n:", DK_EXCLUDE_ALL_PREFIX)):
         return unicodedata.normalize(
             "NFC", str(properties.get("name") or "")) == entry["name"]
     relation = int(ident[1:])
@@ -1802,26 +1817,28 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 state for state in states
                 if state["removed_category"] is None
                 and _dk_exclude_matches(entry, state["feature"]["properties"])]
-            if len(matches) != 1:
+            multi = entry["id"].startswith(DK_EXCLUDE_ALL_PREFIX)
+            if (len(matches) < 1) if multi else (len(matches) != 1):
                 curated_exclude_failures.append(
                     f"{entry['id']} ({entry['name']!r}): "
-                    f"{len(matches)} matching kept trails, expected exactly 1")
+                    f"{len(matches)} matching kept trails, expected "
+                    f"{'at least 1' if multi else 'exactly 1'}")
                 continue
-            state = matches[0]
-            properties = state["feature"]["properties"]
-            if unicodedata.normalize(
-                    "NFC", str(properties.get("name") or "")) != entry["name"]:
-                curated_exclude_failures.append(
-                    f"{entry['id']}: trail is named "
-                    f"{properties.get('name')!r}, not {entry['name']!r}")
-                continue
-            state["removed_category"] = "dk-curated-exclude"
-            properties["curated_exclude_id"] = entry["id"]
-            properties["curated_exclude_reason"] = entry["reason"]
-            curated_excluded.append({
-                "id": entry["id"], "name": properties.get("name"),
-                "miles": properties.get("length_mi"),
-                "reason": entry["reason"]})
+            for state in matches:
+                properties = state["feature"]["properties"]
+                if unicodedata.normalize(
+                        "NFC", str(properties.get("name") or "")) != entry["name"]:
+                    curated_exclude_failures.append(
+                        f"{entry['id']}: trail is named "
+                        f"{properties.get('name')!r}, not {entry['name']!r}")
+                    continue
+                state["removed_category"] = "dk-curated-exclude"
+                properties["curated_exclude_id"] = entry["id"]
+                properties["curated_exclude_reason"] = entry["reason"]
+                curated_excluded.append({
+                    "id": entry["id"], "name": properties.get("name"),
+                    "miles": properties.get("length_mi"),
+                    "reason": entry["reason"]})
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)

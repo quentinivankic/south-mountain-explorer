@@ -312,6 +312,8 @@ DK_V3_BATCH_A = (
     "dronninglund-storskov-dk",
     "langdal-plantage-dk",
 )
+DK_V3_UPDATE_1 = ("skagen-klitplantage-dk", "hammer-bakker-dk", "stensbaek-plantage-dk",
+                  "klosterhede-plantage-dk", "rye-norreskov-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
     areas = dk.load_registry(REGISTRY)["areas"]
     assert areas[0]["id"] == MOLS and areas[0]["rules"] == "legacy"
@@ -319,7 +321,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
     assert {a["id"]: a.get("rules") for a in areas[1:] if a.get("rules") != "dk-v2"} == {
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
-            *DK_V3_BATCH_A)}
+            *DK_V3_BATCH_A, *DK_V3_UPDATE_1)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(

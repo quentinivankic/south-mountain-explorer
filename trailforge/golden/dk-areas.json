@@ -249,12 +249,12 @@
       "relation_id": 8387696,
       "bbox": [8.22, 56.36, 8.56, 56.56],
       "center": [56.5, 8.4],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 25,
       "est_mi": 37.9,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
     },
     {
       "id": "tisvilde-hegn-dk",
@@ -506,12 +506,12 @@
       "relation_id": 298913,
       "bbox": [9.58, 56.03, 9.79, 56.17],
       "center": [56.1, 9.7],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 28,
       "est_mi": 15.8,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
     },
     {
       "id": "samso-dk",
@@ -671,12 +671,12 @@
       "relation_id": 4043026,
       "bbox": [9.92, 57.06, 10.12, 57.20],
       "center": [57.1, 10.0],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 15,
       "est_mi": 12.9,
-      "notes": "Tier 2 forest, Jutland. Held: name collision within 0.05 deg. bbox/center computed by the qualify run. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match."
+      "notes": "Tier 2 forest, Jutland. Held: name collision within 0.05 deg. bbox/center computed by the qualify run. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
     },
     {
       "id": "dronninglund-storskov-dk",
@@ -992,12 +992,12 @@
       "relation_id": 6046443,
       "bbox": [10.42, 57.64, 10.61, 57.77],
       "center": [57.7, 10.5],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 8,
       "est_mi": 9.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
     },
     {
       "id": "varde-sondre-plantage-dk",
@@ -1402,29 +1402,12 @@
       "relation_id": 1947594,
       "bbox": [8.86, 55.21, 9.03, 55.34],
       "center": [55.3, 8.9],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 10,
       "est_mi": 6.8,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
-      "exclude_trails": [
-        {
-          "id": "r2162236",
-          "name": "Sporet ved Tiset",
-          "reason": "0.40 of 3.61 mi inside; belongs to Tiset area"
-        },
-        {
-          "id": "r11334521",
-          "name": "Grænsesti Rundtur Stensbæk Plantage",
-          "reason": "0.28 of 14.05 mi inside; border-path loop mostly outside"
-        },
-        {
-          "id": "r2055214",
-          "name": "Åskov Hede - blå vandrerute",
-          "reason": "0.24 of 2.63 mi inside; belongs to Åskov Hede"
-        }
-      ]
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
     },
     {
       "id": "tversted-plantage-dk",

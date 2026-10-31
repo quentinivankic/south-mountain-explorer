@@ -1247,6 +1247,114 @@ class DenmarkRulesCli(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid choice", result.stderr)
 @unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
+class DenmarkCuratedExclude(unittest.TestCase):
+    """dk-v2 `dk-curated-exclude`: registry exclude_trails, fail closed."""
+    def _two_trails(self, exclude, rules="dk-v2"):
+        ways = {1: W([1, 2], highway="path", name="Skovstien"),
+                2: W([3, 4], highway="path", name="Engstien")}
+        nodes = {1: (0, 0), 2: (0.01, 0), 3: (0, 0.5), 4: (0.01, 0.5)}
+        relations = {900: {"tags": {"type": "route", "route": "hiking",
+                                    "name": "Skovstien", "network": "lwn"},
+                           "members": [("w", 1, "")]}}
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
+        features = prepared(trails, ways)
+        return quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules=rules, dk_exclude=exclude)
+    def test_relation_and_name_entries_remove_exactly_the_listed_trail(self):
+        for entry, other in (
+                ({"id": "r900", "name": "Skovstien", "reason": "test reason"},
+                 "Engstien"),
+                ({"id": "n:Engstien", "name": "Engstien", "reason": "why"},
+                 "Skovstien")):
+            with self.subTest(entry=entry["id"]):
+                kept, removed, report = self._two_trails([entry])
+                self.assertEqual([k["properties"]["name"] for k in kept], [other])
+                props = removed[0]["properties"]
+                self.assertEqual(props["removed_category"], "dk-curated-exclude")
+                self.assertEqual(props["curated_exclude_reason"], entry["reason"])
+                self.assertEqual(report["removed_counts"],
+                                 {"dk-curated-exclude": 1})
+                self.assertEqual(report["dk_curated_exclude_failures"], [])
+                self.assertEqual(report["validation_failures"], [])
+                self.assertEqual(report["dk_curated_excluded"][0]["reason"],
+                                 entry["reason"])
+                self.assertEqual(report["dk_curated_excluded"][0]["name"],
+                                 entry["name"])
+    def test_stale_id_fails_closed(self):
+        for entry in ({"id": "r12345", "name": "Skovstien", "reason": "x"},
+                      {"id": "n:Findes Ikke", "name": "Findes Ikke", "reason": "x"}):
+            kept, removed, report = self._two_trails([entry])
+            self.assertEqual(len(kept), 2)
+            self.assertEqual(removed, [])
+            self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+            self.assertTrue(any("dk-curated-exclude" in item
+                                for item in report["validation_failures"]))
+    def test_name_must_match_the_relation_trail(self):
+        _, _, report = self._two_trails(
+            [{"id": "r900", "name": "Andet Navn", "reason": "x"}])
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_trail_already_removed_by_an_automatic_rule_is_stale(self):
+        # "Hjortevejen" on a plain path is dk-road-name; listing it is a stale entry.
+        ways = {1: W([1, 2], highway="path", name="Hjortevejen")}
+        nodes = {1: (0, 0), 2: (0.01, 0)}
+        features = prepared(
+            [T("Hjortevejen", "name-stitch", [1], [[nodes[1], nodes[2]]])], ways)
+        kept, removed, report = quality.curate_exact_area(
+            features, ways=ways, nodes=nodes, area_union=box(-2, -2, 20, 20),
+            area_name=AREA, region="dk", dk_rules="dk-v2",
+            dk_exclude=[{"id": "n:Hjortevejen", "name": "Hjortevejen",
+                         "reason": "x"}])
+        self.assertEqual(removed[0]["properties"]["removed_category"],
+                         "dk-road-name")
+        self.assertEqual(len(report["dk_curated_exclude_failures"]), 1)
+    def test_malformed_entries_and_legacy_rules_are_rejected(self):
+        good = {"id": "r900", "name": "Skovstien", "reason": "x"}
+        for bad in ([{**good, "id": "900"}], [{**good, "reason": " "}],
+                    [{**good, "extra": 1}], [good, good], "r900",
+                    [{"id": "n:A", "name": "B", "reason": "x"}]):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ValueError):
+                    self._two_trails(bad)
+        with self.assertRaises(ValueError):
+            self._two_trails([good], rules="legacy")
+    def test_no_exclusions_leaves_dk_v2_output_unchanged(self):
+        kept, removed, report = self._two_trails([])
+        self.assertEqual(len(kept), 2)
+        self.assertEqual(report["dk_curated_excluded"], [])
+class DenmarkCuratedExcludeCli(unittest.TestCase):
+    """The real argument parser validates --dk-curated-exclude before reading any PBF."""
+    def _run(self, payload, *extra):
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "ex.json"
+            path.write_text(payload, encoding="utf-8")
+            return subprocess.run(
+                [sys.executable,
+                 str(Path(__file__).resolve().parent / "assemble.py"),
+                 "--in", str(Path(tmp) / "missing.pbf"), "--out", "y.geojson",
+                 "--region", "dk", "--dk-curated-exclude", str(path), *extra],
+                capture_output=True, text=True)
+    GOOD = '[{"id": "r900", "name": "A", "reason": "r"}]'
+    def test_legacy_rules_reject_the_flag(self):
+        result = self._run(self.GOOD)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("requires --dk-rules dk-v2", result.stderr)
+    def test_malformed_file_is_rejected(self):
+        for payload in ("not json", '{"id": 1}', '[{"id": "x"}]'):
+            with self.subTest(payload=payload):
+                result = self._run(payload, "--dk-rules", "dk-v2")
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("--dk-curated-exclude is invalid", result.stderr)
+    def test_valid_file_passes_the_parser(self):
+        result = self._run(self.GOOD, "--dk-rules", "dk-v2")
+        self.assertNotIn("is invalid", result.stderr)
+        self.assertNotIn("requires --dk-rules", result.stderr)
+        self.assertNotIn("unrecognized arguments", result.stderr)
+
+
+@unittest.skipUnless(HAVE_SHAPELY, "shapely not installed")
 class CompleteOverlapLedger(unittest.TestCase):
     def test_structurally_removed_candidate_is_still_in_complete_ledger(self):
         nodes = {

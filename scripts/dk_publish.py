@@ -47,10 +47,16 @@ RULE_SETS = {"legacy", "dk-v2"}
 #   needs-rescope                              island polygon is not one hiking destination
 #   merge-pending                              should become one area with its sibling
 #   mtb-centre                                 mostly an MTB trail centre
+#   curated-do-not-ship                        reviewed by a local-expert curation pass: not a hiking destination
 HOLD_REASONS = {
     "island", "np-nested", "name-collision", "merge-into-klosterhede",
     "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
+    "curated-do-not-ship",
 }
+# Curated per-area exclusions (registry `exclude_trails`, dk-v2 only); same shape as
+# trailforge/assemble/quality.py validate_dk_exclude: {"id": "r<relation>" | "n:<name>", "name", "reason"}.
+EXCLUDE_ID = re.compile(r"^(r[1-9][0-9]*|n:\S.*)$")
+EXCLUDE_KEYS = {"id", "name", "reason"}
 # A trail list this generic after filtering is not a hiking destination (no names are invented).
 GENERIC_EXCLUDE_SHARE = 0.5
 _GENERIC_WORDS = {
@@ -104,6 +110,29 @@ def _is_num(value: Any) -> bool:
 
 # ----------------------------------------------------------------- registry --
 
+def _check_exclude_trails(aid: str, entry: dict[str, Any]) -> None:
+    if "exclude_trails" not in entry:
+        return
+    items = entry["exclude_trails"]
+    if entry.get("rules", "legacy") != "dk-v2":
+        raise DkError(f"{aid}: exclude_trails requires rules dk-v2")
+    if not isinstance(items, list) or not items:
+        raise DkError(f"{aid}: exclude_trails must be a non-empty list when present")
+    seen: set[str] = set()
+    for item in items:
+        if not isinstance(item, dict) or set(item) != EXCLUDE_KEYS:
+            raise DkError(f"{aid}: exclude_trails entries need exactly {sorted(EXCLUDE_KEYS)}")
+        if not all(isinstance(item[k], str) and item[k].strip() for k in EXCLUDE_KEYS):
+            raise DkError(f"{aid}: exclude_trails entry has an empty field: {item.get('id')!r}")
+        ident, name = item["id"], item["name"]
+        if (ident != unicodedata.normalize("NFC", ident) or name != unicodedata.normalize("NFC", name)
+                or not EXCLUDE_ID.fullmatch(ident)):
+            raise DkError(f"{aid}: exclude_trails id/name is invalid: {ident!r}")
+        if ident.startswith("n:") and ident[2:] != name:
+            raise DkError(f"{aid}: exclude_trails {ident!r}: name must equal the id name")
+        if ident in seen:
+            raise DkError(f"{aid}: exclude_trails repeats {ident!r}")
+        seen.add(ident)
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -151,6 +180,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: hold must be null or a reason string")
         if hold is not None and hold not in HOLD_REASONS:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
+        _check_exclude_trails(aid, entry)
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -472,9 +502,14 @@ def report_area(args: argparse.Namespace) -> int:
                  key=lambda item: (str(item[0]), item[1] or 0))
     junk_categories = {"dk-unqualified-road-track", "dk-road-name", "disconnected-name-stitch",
                        "unresolved-relation-gap", "dk-mtb-trail", "dk-non-hiking",
-                       "dk-long-distance", "dk-fragment"}
+                       "dk-long-distance", "dk-fragment", "dk-curated-exclude"}
     forbidden = sorted({p.get("name") for p in removed
                         if p.get("removed_category") in junk_categories and p.get("name")} - set(names))
+    curated = sorted(
+        ({"id": p.get("curated_exclude_id"), "name": p.get("name"), "length_mi": p.get("length_mi"),
+          "reason": p.get("curated_exclude_reason")}
+         for p in removed if p.get("removed_category") == "dk-curated-exclude"),
+        key=lambda item: str(item["id"]))
     generic = [n for n in names if is_generic_trail_name(n)]
     generic_share = round(len(generic) / len(names), 3) if names else 0.0
     rec = {
@@ -487,6 +522,7 @@ def report_area(args: argparse.Namespace) -> int:
         "removed_category_counts": dict(sorted(categories.items())),
         "trail_names": names,
         "route_segments": routes,
+        "curated_excluded": curated,
         "dropped_unresolved_relation_gap": [{"name": n, "length_mi": m} for n, m in gap],
         "boundary_bbox": area.get("boundary_bbox"), "effective_bbox": area.get("effective_bbox"),
         "bbox_source": area.get("bbox_source"), "center": area.get("center"),
@@ -541,6 +577,7 @@ def qualify_aggregate(args: argparse.Namespace) -> int:
                   f"removed: `{json.dumps(r['removed_category_counts'], ensure_ascii=False)}`",
                   f"generic names ({r.get('generic_share', 0)}): {r.get('generic_names', [])}",
                   f"route segments: {[(x['name'], x['length_mi']) for x in r['route_segments']]}",
+                  f"curated excluded: {[(x['id'], x['name'], x['length_mi'], x['reason']) for x in r.get('curated_excluded', [])]}",
                   f"dropped unresolved-relation-gap: {[(x['name'], x['length_mi']) for x in r['dropped_unresolved_relation_gap']]}",
                   f"bbox: boundary {r['boundary_bbox']} proposed {r['proposed_bbox']} centre {r['proposed_center']}",
                   "", "trails: " + "; ".join(str(n) for n in r["trail_names"])]

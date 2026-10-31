@@ -21,8 +21,16 @@ set -euo pipefail
 RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
   trailforge/golden/dk-areas.json)"
 [[ "$RULES" =~ ^(legacy|dk-v2)$ ]]
+# Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble).
+EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .exclude_trails // []' \
+  trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
+EXCLUDE_ARGS=()
+if [ "$EXCLUDE_JSON" != "[]" ]; then
+  printf '%s\n' "$EXCLUDE_JSON" > "$A/dk-curated-exclude.json"
+  EXCLUDE_ARGS=(--dk-curated-exclude "$A/dk-curated-exclude.json")
+fi
 ROOT="$(pwd)"
 SOURCE_PBF="$ROOT/trailforge/data/raw/denmark.osm.pbf"
 
@@ -87,6 +95,7 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --prefilter-authority "$A/relation-members.prefilter.json" \
   --aoi-relation-members "$A/relation-members.aoi.json" \
   --min-length-mi 0.1 --per-area-merge --region dk --dk-rules "$RULES" \
+  ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"} \
   --report-json "$A/assembly.json"
 
 # Exact park polygon + exact assembly, no elevation, one --only-area per call.

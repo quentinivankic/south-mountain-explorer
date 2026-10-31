@@ -186,7 +186,19 @@
       "hold": null,
       "est_trails": 64,
       "est_mi": 54.3,
-      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "n:Rågelundsvej",
+          "name": "Rågelundsvej",
+          "reason": "gravel forest track (highway=track, foot/bicycle yes), road name; not a marked hiking trail"
+        },
+        {
+          "id": "n:Jagtsporet",
+          "name": "Jagtsporet",
+          "reason": "gravel hunting-access track, no hiking tags; not a marked trail"
+        }
+      ]
     },
     {
       "id": "aero-dk",
@@ -270,7 +282,34 @@
       "hold": null,
       "est_trails": 28,
       "est_mi": 30.2,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "r19276823",
+          "name": "Rebild Skovhusevej",
+          "reason": "road-named relation (no network/operator) on forest track and path; unverified as a walking route"
+        },
+        {
+          "id": "r19276825",
+          "name": "Storedalsvej",
+          "reason": "road-named relation (no network/operator), mostly gravel track; unverified as a walking route"
+        },
+        {
+          "id": "n:Aldalen",
+          "name": "Aldalen",
+          "reason": "gravel forest track open to bicycles; valley name, not a marked trail"
+        },
+        {
+          "id": "n:Viergyde",
+          "name": "Viergyde",
+          "reason": "untagged forest ride (gyde = lane); no trail identity"
+        },
+        {
+          "id": "n:Tyvdalsvej",
+          "name": "Tyvdalsvej",
+          "reason": "0.19 mi gravel track with a road name"
+        }
+      ]
     },
     {
       "id": "bidstrup-skovene-dk",
@@ -295,10 +334,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 27,
       "est_mi": 20.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "store-dyrehave-dk",
@@ -354,7 +393,34 @@
       "hold": null,
       "est_trails": 36,
       "est_mi": 18.4,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "n:Gjernstien",
+          "name": "Gjernstien",
+          "reason": "asphalt cycleway shared with the long-distance Gjernstien; not a forest hiking trail"
+        },
+        {
+          "id": "n:Engdalsvej",
+          "name": "Engdalsvej",
+          "reason": "gravel forest road (tracktype grade2)"
+        },
+        {
+          "id": "r14095582",
+          "name": "Ulvedalsvej",
+          "reason": "road-named relation on gravel/asphalt tracks"
+        },
+        {
+          "id": "r14095579",
+          "name": "Hattenæs",
+          "reason": "road-named relation on residential/gravel roads"
+        },
+        {
+          "id": "r14975342",
+          "name": "Nyløkkevej",
+          "reason": "0.35 of 4.51 mi inside; road-named sliver"
+        }
+      ]
     },
     {
       "id": "tokkekob-hegn-dk",
@@ -435,10 +501,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 17,
       "est_mi": 15.3,
-      "notes": "Tier 2 landscape_misc, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 landscape_misc, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "vesterskov-2325780-dk",
@@ -477,10 +543,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "merge-pending",
+      "hold": null,
       "est_trails": 10,
       "est_mi": 13.5,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (dk-quality): shares Ranboel rute and the Rundtur with randbol-hede-dk; they should become ONE area (Frederikshaab Plantage og Randboel Hede). Not merged here. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match."
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -505,10 +571,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 26,
       "est_mi": 13.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "hammer-bakker-dk",
@@ -519,10 +585,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "name-collision",
+      "hold": null,
       "est_trails": 15,
       "est_mi": 12.9,
-      "notes": "Tier 2 forest, Jutland. Held: name collision within 0.05 deg. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. Held: name collision within 0.05 deg. bbox/center computed by the qualify run. Unheld (curation): reviewed and cleared to ship; qualify re-proves the exact-area match."
     },
     {
       "id": "dronninglund-storskov-dk",
@@ -533,10 +599,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 9,
       "est_mi": 12.7,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "tasinge-dk",
@@ -592,7 +658,44 @@
       "hold": null,
       "est_trails": 15,
       "est_mi": 12.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "r19721094",
+          "name": "Houstrup Strand Rød Vandrerute",
+          "reason": "0.28 of 1.99 mi inside the area: sliver of a route that lies outside"
+        },
+        {
+          "id": "n:Gl. Redningsvejen",
+          "name": "Gl. Redningsvejen",
+          "reason": "road-named sand/gravel track (old rescue road); no walking-route evidence"
+        },
+        {
+          "id": "n:Hundevejen",
+          "name": "Hundevejen",
+          "reason": "road-named track mix; not a marked trail"
+        },
+        {
+          "id": "n:Bay's Vej",
+          "name": "Bay's Vej",
+          "reason": "road-named gravel/grass track"
+        },
+        {
+          "id": "n:Søren Hats Vej",
+          "name": "Søren Hats Vej",
+          "reason": "road-named 0.51 mi path; not a named trail a visitor would look for"
+        },
+        {
+          "id": "n:Drewsens Vej",
+          "name": "Drewsens Vej",
+          "reason": "road-named 0.43 mi path"
+        },
+        {
+          "id": "n:Vagn Åges Vej",
+          "name": "Vagn Åges Vej",
+          "reason": "road-named 0.40 mi path"
+        }
+      ]
     },
     {
       "id": "tvorup-klitplantage-dk",
@@ -743,10 +846,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 19,
       "est_mi": 9.5,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "hejede-overdrev-dk",
@@ -869,10 +972,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 12,
       "est_mi": 8.3,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "fejo-dk",
@@ -897,10 +1000,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 8.1,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "vrogum-klitplantage-dk",
@@ -911,10 +1014,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 8.1,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "rorvig-sandflugtsplantage-dk",
@@ -925,10 +1028,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 17,
       "est_mi": 8.0,
-      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "store-hareskov-dk",
@@ -981,10 +1084,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 7.7,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "allerup-bakker-dk",
@@ -995,10 +1098,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 8,
       "est_mi": 7.6,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "norreskov-12537204-dk",
@@ -1051,10 +1154,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 7.0,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "kompedal-plantage-dk",
@@ -1065,10 +1168,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 6.9,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "pamhule-skov-dk",
@@ -1082,7 +1185,14 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 6.9,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "r2625676",
+          "name": "Geheimeraadens Sti",
+          "reason": "0.14 of 3.54 mi inside; sliver of a route that lies elsewhere"
+        }
+      ]
     },
     {
       "id": "kollerup-plantage-dk",
@@ -1093,10 +1203,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 6.8,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "stensbaek-plantage-dk",
@@ -1110,7 +1220,24 @@
       "hold": null,
       "est_trails": 10,
       "est_mi": 6.8,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "r2162236",
+          "name": "Sporet ved Tiset",
+          "reason": "0.40 of 3.61 mi inside; belongs to Tiset area"
+        },
+        {
+          "id": "r11334521",
+          "name": "Grænsesti Rundtur Stensbæk Plantage",
+          "reason": "0.28 of 14.05 mi inside; border-path loop mostly outside"
+        },
+        {
+          "id": "r2055214",
+          "name": "Åskov Hede - blå vandrerute",
+          "reason": "0.24 of 2.63 mi inside; belongs to Åskov Hede"
+        }
+      ]
     },
     {
       "id": "tversted-plantage-dk",
@@ -1149,10 +1276,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 7,
       "est_mi": 6.7,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "hojbjerg-skove-dk",
@@ -1233,10 +1360,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 16,
       "est_mi": 6.5,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "godding-skov-dk",
@@ -1250,7 +1377,14 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 6.4,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
+      "exclude_trails": [
+        {
+          "id": "r3240425",
+          "name": "Gul tur - Engelsholm Skov",
+          "reason": "0.26 of 2.84 mi inside; belongs to Engelsholm Skov"
+        }
+      ]
     },
     {
       "id": "palsgard-skov-dk",
@@ -1261,10 +1395,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 5,
       "est_mi": 6.4,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "ravnsholt-dk",
@@ -1317,10 +1451,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 6.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "danstrup-hegn-dk",
@@ -1401,10 +1535,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 5,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "lindet-skov-dk",
@@ -1415,10 +1549,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 4,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "sonderskov-1891272-dk",
@@ -1457,10 +1591,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 3,
       "est_mi": 5.4,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
     },
     {
       "id": "pedersker-plantage-dk",

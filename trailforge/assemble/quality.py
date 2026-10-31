@@ -66,6 +66,11 @@ _QUALITY_REMOVAL_REASONS = {
         "Denmark-only rootless name stitch shorter than 0.3 mi: a fragment, "
         "not a checklist trail."
     ),
+    "dk-curated-exclude": (
+        "Denmark-only trail named in the registry's exclude_trails list by a "
+        "reviewed per-area curation decision (the written reason is recorded "
+        "on the removed feature); applied after every automatic rule."
+    ),
     "nested-name-stitch-overlap": (
         "Low-authority rootless name stitch is at least 90% nested in a signed "
         "relation-backed object."
@@ -82,6 +87,49 @@ _QUALITY_REMOVAL_REASONS = {
 # "dk-v2" adds the dk-road-name removal below. Name-stitch candidates only: a
 # signed hiking-route relation (or any way in one) is never touched.
 DK_RULES = ("legacy", "dk-v2")
+# Curated per-area exclusions (registry `exclude_trails`, dk-v2 only). Each entry
+# is {"id": "r<osm relation id>" | "n:<exact trail name>", "name", "reason"}.
+DK_EXCLUDE_ID = re.compile(r"^(r[1-9][0-9]*|n:\S.*)$")
+DK_EXCLUDE_KEYS = {"id", "name", "reason"}
+
+
+def validate_dk_exclude(entries: Any) -> list[dict[str, str]]:
+    """Return a normalized copy of a curated-exclude list or raise ValueError."""
+    if not isinstance(entries, list):
+        raise ValueError("curated exclude list must be a list")
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != DK_EXCLUDE_KEYS:
+            raise ValueError(
+                "curated exclude entry must be an object with exactly "
+                f"{sorted(DK_EXCLUDE_KEYS)}: {entry!r}")
+        if not all(isinstance(entry[key], str) and entry[key].strip()
+                   for key in DK_EXCLUDE_KEYS):
+            raise ValueError(f"curated exclude entry has an empty field: {entry!r}")
+        ident = unicodedata.normalize("NFC", entry["id"])
+        name = unicodedata.normalize("NFC", entry["name"])
+        if not DK_EXCLUDE_ID.fullmatch(ident):
+            raise ValueError(f"curated exclude id is invalid: {entry['id']!r}")
+        if ident.startswith("n:") and unicodedata.normalize(
+                "NFC", ident[2:]) != name:
+            raise ValueError(
+                f"curated exclude {ident!r}: name must equal the id name")
+        if ident in seen:
+            raise ValueError(f"curated exclude repeats id {ident!r}")
+        seen.add(ident)
+        out.append({"id": ident, "name": name, "reason": entry["reason"].strip()})
+    return out
+
+
+def _dk_exclude_matches(entry: dict[str, str], properties: dict) -> bool:
+    ident = entry["id"]
+    if ident.startswith("n:"):
+        return unicodedata.normalize(
+            "NFC", str(properties.get("name") or "")) == entry["name"]
+    relation = int(ident[1:])
+    return relation in (properties.get("relation_ids") or []) \
+        or relation in (properties.get("root_relation_ids") or [])
 _DK_ROAD_HIGHWAYS = {
     "track", "service", "residential", "unclassified", "tertiary", "secondary",
     "primary", "living_street", "road",
@@ -1125,7 +1173,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        relation_member_audit: list[dict] | None = None,
                        relation_scope_evidence: dict | None = None,
                        promotion_decisions: list[dict] | None = None,
-                       dk_rules: str = "legacy"
+                       dk_rules: str = "legacy",
+                       dk_exclude: list[dict] | None = None
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -1135,6 +1184,9 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     """
     if dk_rules not in DK_RULES:
         raise ValueError(f"unknown Denmark rules {dk_rules!r}")
+    dk_exclude = validate_dk_exclude(dk_exclude or [])
+    if dk_exclude and dk_rules != "dk-v2":
+        raise ValueError("curated exclusions require the dk-v2 rule set")
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
         for feature in features:
@@ -1426,6 +1478,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     road_name_evidence = []
     dk_removed_evidence = []
     long_distance_ambiguous = []
+    curated_excluded: list[dict] = []
+    curated_exclude_failures: list[str] = []
     if dk_rules == "dk-v2":
         for state in states:
             properties = state["feature"]["properties"]
@@ -1475,6 +1529,34 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     dk_removed_evidence.append({
                         "name": properties.get("name"), "category": category,
                         "rule": rule, "miles": properties.get("length_mi")})
+        # Curated exclusions run last, on what the automatic rules kept. Every
+        # entry must match exactly one such trail: a missing or ambiguous match
+        # (stale list) is a failure, never silently skipped.
+        for entry in dk_exclude:
+            matches = [
+                state for state in states
+                if state["removed_category"] is None
+                and _dk_exclude_matches(entry, state["feature"]["properties"])]
+            if len(matches) != 1:
+                curated_exclude_failures.append(
+                    f"{entry['id']} ({entry['name']!r}): "
+                    f"{len(matches)} matching kept trails, expected exactly 1")
+                continue
+            state = matches[0]
+            properties = state["feature"]["properties"]
+            if unicodedata.normalize(
+                    "NFC", str(properties.get("name") or "")) != entry["name"]:
+                curated_exclude_failures.append(
+                    f"{entry['id']}: trail is named "
+                    f"{properties.get('name')!r}, not {entry['name']!r}")
+                continue
+            state["removed_category"] = "dk-curated-exclude"
+            properties["curated_exclude_id"] = entry["id"]
+            properties["curated_exclude_reason"] = entry["reason"]
+            curated_excluded.append({
+                "id": entry["id"], "name": properties.get("name"),
+                "miles": properties.get("length_mi"),
+                "reason": entry["reason"]})
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)
@@ -1608,6 +1690,12 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         if dk_rules == "dk-v2":
             report["dk_quality_removed"] = dk_removed_evidence
             report["dk_long_distance_ambiguous"] = long_distance_ambiguous
+            report["dk_curated_excluded"] = curated_excluded
+            report["dk_curated_exclude_failures"] = curated_exclude_failures
+            report["validation_failures"] = list(dict.fromkeys(
+                [*report["validation_failures"],
+                 *(f"dk-curated-exclude {item}"
+                   for item in curated_exclude_failures)]))
     return kept, removed, report
 
 

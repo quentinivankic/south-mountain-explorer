@@ -944,7 +944,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 13,
       "est_mi": 13.7,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held."
+      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held. Batch C (2026-10-31): tried as the Nordbornholm container (include_trails r9690060, r11831724, r12492199, r12700350, r12700494, r14573577). Replay: 5 of the 6 includes have 0 candidates because they sit outside the area bbox; covering Hammeren needs a bbox 0.155 deg west and 0.105 deg north of the Rø boundary, beyond the 0.10 margin cap in dk_publish.py. Needs code (include-aware bbox) before Nordbornholm can ship. Stays held."
     },
     {
       "id": "randbol-hede-frederikshab-dk",
@@ -1478,14 +1478,14 @@
       "name": "Fejø",
       "state": "Denmark",
       "relation_id": 5325755,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [11.31, 54.87, 11.52, 55.02],
+      "center": [54.945, 11.417],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "island",
+      "hold": null,
       "est_trails": 4,
       "est_mi": 8.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: 3 clean routes (Dalmoseruten 1.5 mi, Vesterby Havn-ruten 2.5 mi, Dybvig Havn-ruten 3.9 mi, operator Fejø). No official page naming them could be opened (routes appear only in the Naturlandet app), so unverified. Skaløruten belongs to Skalø. Stays held."
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Replay: 3 clean routes (Dalmoseruten 1.5 mi, Vesterby Havn-ruten 2.5 mi, Dybvig Havn-ruten 3.9 mi, operator Fejø). No official page naming them could be opened (routes appear only in the Naturlandet app), so unverified. Skaløruten belongs to Skalø. Stays held. Batch C (dk-v3 replay, 2026-10-31): unheld. 3 trails / 7.9 mi, same as batch B; the island hold was a category judgment, not a defect. Three signed Fejø routes cover the island; a single destination. Official route page still not openable (Naturlandet app only)."
     },
     {
       "id": "stenderupskovene-dk",
@@ -2562,6 +2562,77 @@
       "est_trails": 2,
       "est_mi": 8.3,
       "notes": "Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): the Naturstyrelsen guide Ulvshale og Nyord (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/oevrige-sjaelland-og-sydhavsoeerne/ulvshale-og-nyord/praktisk) marks 5 walks on Ulvshale plus a bi-vandresti on Nyord. OSM has one Ulvshale relation (5.4 mi) and Nyord (2.9 mi, via include_trails r13310558): 2 of about 6. A completionist could not claim Ulvshale. Revisit when OSM maps the five walks separately."
+    },
+    {
+      "id": "froslev-plantage-dk",
+      "name": "Frøslev Plantage",
+      "state": "Denmark",
+      "relation_id": 2885275,
+      "bbox": [9.21, 54.76, 9.39, 54.9],
+      "center": [54.832, 9.303],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.9,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Naturstyrelsen Frøslev Plantage - rød rute (1.33 mi) and gul rute (3.56 mi), operator Naturstyrelsen; the two named NS walks of the border plantation. No duplicate of a live area. Frøslev-Jardelund Mose is a separate relation and is not merged."
+    },
+    {
+      "id": "harte-skov-dk",
+      "name": "Harte Skov",
+      "state": "Denmark",
+      "relation_id": 3255036,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 5.1,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): 4 Naturstyrelsen routes (Rød 1.45, Lilla rute i Harde Skov 2.65, Blå 0.63, Gul 0.37 mi). Held: the area has about 7 NS routes (Ferup Sø, Ferup-Holmsmindesti) that need include_trails and a wider bbox; 4 of ~7 is not completionist. Intended display name Harte Skov og Ferup Sø."
+    },
+    {
+      "id": "kelstrup-plantage-dk",
+      "name": "Kelstrup Plantage",
+      "state": "Denmark",
+      "relation_id": 3189120,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 1,
+      "est_mi": 0.3,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Gedestien (0.31 mi, unsigned). The NS routes (Rode Mose blå, Rode Mose og Rode Skov gul, Sønderhavskovene gul) do not resolve inside this polygon. Held."
+    },
+    {
+      "id": "straaso-plantage-dk",
+      "name": "Stråsø Plantage",
+      "state": "Denmark",
+      "relation_id": 7077974,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 8.3,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Stråsø Plantage rød rute 3.65 and Sønder Vosborg Hede gul rute 3.65 (Naturstyrelsen) plus Gl. Jagtsti (0.96 mi, no operator). Held: Lystbæk og Klovsig Nørre Plantage blå is missing (neighbouring plantation, needs include) and Gl. Jagtsti is unverified."
+    },
+    {
+      "id": "velling-skov-dk",
+      "name": "Velling Skov",
+      "state": "Denmark",
+      "relation_id": 1625060,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 1,
+      "est_mi": 2.1,
+      "trail_name_prefix": "Velling",
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): Only Velling Gul rute (2.07 mi, Naturstyrelsen). Hundsøstien and Lystrupminde rundtur do not resolve in the polygon. One trail is not an area. Held."
     }
   ]
 }

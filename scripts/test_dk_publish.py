@@ -184,7 +184,7 @@ BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-v
                    "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
 BATCH_C_BLESSED = ("fejo-dk", "froslev-plantage-dk")
 BATCH_C_SHIP = ("fejo-dk", "froslev-plantage-dk")  # registry bbox/centre set in the curation PR
-BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov og Ferup Sø
+BATCH_D_SHIP = ("ro-plantage-dk", "aro-dk", "harte-skov-dk")  # Nordbornholm, Aarø, Harte Skov
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -201,6 +201,12 @@ def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
     assert by_id["staurby-skov-dk"]["hold"] is None and by_id["kongenshus-dk"]["hold"] is None
     assert by_id["svanninge-bjerge-dk"]["hold"] is None
     assert by_id["knagelbjerg-skov-dk"]["hold"] == "curated-do-not-ship"
+def test_harte_skov_display_name_does_not_claim_ferup():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    a = by_id["harte-skov-dk"]
+    assert a["name"] == "Harte Skov" and "display_name" not in a and a["hold"] is None
+    assert (a["est_trails"], a["est_mi"]) == (5, 6.4)
+    assert [t["id"] for t in a["include_trails"]] == ["r3251112"]
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
     assert len(areas) == 134

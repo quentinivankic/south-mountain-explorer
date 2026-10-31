@@ -203,6 +203,11 @@ BATCH_E_SHIP = ("straaso-plantage-dk", "kelstrup-plantage-dk", "kiskelund-planta
 # batch F: Egholm (accept_directional_roles) and Varde Søndre Plantage (accept_gap); registry bbox/centre set in the
 # curation PR (Vestre Stigtehave above also gains Mørkholm Skov Rundtur via accept_gap)
 BATCH_F_SHIP = ("egholm-dk", "varde-sondre-plantage-dk")
+# batch H: five curated shipping areas (registry bbox/centre set in the curation PR) plus two new held entries
+# (Læsø Klitplantage and the way-backed Horslund Krat); the other held re-reviews keep their original shape
+BATCH_H_SHIP = ("hastrup-plantage-dk", "oro-dk", "samso-dk", "kegnaes-dk", "svinklov-klitplantage-dk")
+BATCH_H_HELD_NEW = ("laeso-klitplantage-dk", "horslund-krat-dk")
+BATCH_H_WAY = ("horslund-krat-dk",)
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -227,13 +232,15 @@ def test_harte_skov_display_name_does_not_claim_ferup():
     assert [t["id"] for t in a["include_trails"]] == ["r3251112"]
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 149
+    assert len(areas) == 151
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
-    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == len(WAYBACK_ALL) + len(BATCH_B_WAY) + len(BATCH_E_WAY)
-    assert {a["id"] for a in areas if "way_id" in a} == set(WAYBACK_ALL) | set(BATCH_B_WAY) | set(BATCH_E_WAY)
+    assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == (
+        len(WAYBACK_ALL) + len(BATCH_B_WAY) + len(BATCH_E_WAY) + len(BATCH_H_WAY))
+    assert {a["id"] for a in areas if "way_id" in a} == (
+        set(WAYBACK_ALL) | set(BATCH_B_WAY) | set(BATCH_E_WAY) | set(BATCH_H_WAY))
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
@@ -241,7 +248,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
-               and a["id"] not in BATCH_F_SHIP)
+               and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -249,23 +256,51 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     assert by_id["egholm-dk"]["accept_directional_roles"] is True and by_id["egholm-dk"]["hold"] is None
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in by_id if "accept_gap" in by_id[i]}
     assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "ro-plantage-dk": {"r14573576": 300},
-                    "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300}}
+                    "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300},
+                    # batch H: Orø Tur 4, Samsø Grøn, Kegnæs Langs sydkysten (all under the 1000 m cap)
+                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
     assert "r14573576" in {t["id"] for t in by_id["ro-plantage-dk"]["include_trails"]}
     assert by_id["vestre-stigtehave-dk"]["hold"] is None and by_id["varde-sondre-plantage-dk"]["hold"] is None
     # Urhoje: the 829 m "gap" is between two unrelated same-name relations; no accept_gap, stays held
     assert by_id["urhoje-plantage-dk"]["hold"] == "curated-do-not-ship" and "accept_gap" not in by_id["urhoje-plantage-dk"]
+def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    assert all(by_id[i]["hold"] is None and by_id[i]["rules"] == "dk-v3" and by_id[i]["bbox"] and by_id[i]["center"]
+               for i in BATCH_H_SHIP)
+    prefixes = {i: by_id[i].get("trail_name_prefix") for i in BATCH_H_SHIP}
+    assert prefixes == {"hastrup-plantage-dk": "Hastrup", "oro-dk": "Orø", "samso-dk": "Samsø",
+                        "kegnaes-dk": None, "svinklov-klitplantage-dk": "Svinkløv"}
+    # accept_gap stays at or under the 1000 m cap and just above the measured gaps (Orø 142, Samsø 216.4, Kegnæs 922.8)
+    gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in BATCH_H_SHIP if "accept_gap" in by_id[i]}
+    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
+    assert {i: [e["id"] for e in by_id[i]["exclude_trails"]] for i in ("oro-dk", "samso-dk")} == {
+        "oro-dk": ["n:Trampesti", "n:Tur 5"], "samso-dk": ["n:Alstrup", "n:Besser Rev"]}
+    assert [t["id"] for t in by_id["hastrup-plantage-dk"]["include_trails"]] == ["r6395876"]
+    assert {t["id"] for t in by_id["svinklov-klitplantage-dk"]["include_trails"]} == {
+        "r12700220", "r12700248", "r10043412", "r13482006"}
+    assert by_id["samso-dk"]["display_name"] == "Nordby Bakker på Samsø"
+    assert (by_id["hastrup-plantage-dk"]["est_trails"], by_id["hastrup-plantage-dk"]["est_mi"]) == (4, 7.1)
+    assert (by_id["oro-dk"]["est_trails"], by_id["oro-dk"]["est_mi"]) == (4, 12.4)
+    assert (by_id["samso-dk"]["est_trails"], by_id["samso-dk"]["est_mi"]) == (4, 13.2)
+    assert (by_id["kegnaes-dk"]["est_trails"], by_id["kegnaes-dk"]["est_mi"]) == (3, 12.8)
+    assert (by_id["svinklov-klitplantage-dk"]["est_trails"], by_id["svinklov-klitplantage-dk"]["est_mi"]) == (6, 14.2)
+    # held after the replay: Læsø (one real route + an overlapping heart loop), Horslund Krat (Rød is 84 percent on Gul),
+    # the Sydbornholm composite (two Paradisbakkerne walks unmapped), Rude Skov, Skjern, Fiskerup
+    for i in (*BATCH_H_HELD_NEW, "pedersker-plantage-dk", "rude-skov-dk", "skjern-enge-dk", "fiskerup-skov-dk"):
+        assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None and "Batch H" in by_id[i]["notes"]
+    assert by_id["horslund-krat-dk"]["way_id"] == 109508933 and by_id["laeso-klitplantage-dk"]["relation_id"] == 6708421
 def test_hold_counts_match_the_discovery_candidates():
     areas = _reg()["areas"]
     holds = {}
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 58, "name-collision": 3, "np-nested": 16, "island": 7, "duplicate-of-live": 5,
-        "needs-rescope": 4, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
+        None: 63, "name-collision": 3, "np-nested": 16, "island": 5, "duplicate-of-live": 5,
+        "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
         "curated-do-not-ship": 49}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
-    assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
+    assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk"]
     assert sorted(holds["merge-pending"]) == [
         "blabjerg-klitplantage-dk", "horreby-lyng-dk", "jonstrup-vang-dk", "randbol-hede-dk",
         "sonderskov-1891272-dk"]
@@ -341,7 +376,7 @@ def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     assert [len(b) for b in batches] == [12, 12]
     with pytest.raises(dk.DkError):
-        dk.select_areas(reg, {MOLS}, "batch=6", 12, "qualify")  # 53 unheld non-Mols ids: 5 batches
+        dk.select_areas(reg, {MOLS}, "batch=7", 12, "qualify")  # 62 unheld non-Mols ids: 6 batches
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
     assert len(set(flat)) == 24 and MOLS not in flat
@@ -418,6 +453,9 @@ DK_V3_BATCH_E = ("kiskelund-plantage-dk", "kollund-skov-dk", "toftlund-skov-dk",
                  "lindet-skov-dk", "kompedal-plantage-dk", "palsgard-skov-dk", "klintenborg-plantage-dk",
                  "livo-dk", "hjermind-skov-dk", "bunken-klitplantage-dk", "lovrup-skov-dk",
                  "askov-hede-dk", "bolderslev-skov-dk")
+# batch H: four curated shipping areas moved to dk-v3 (Svinkløv is already in batch A) and the two new held entries
+DK_V3_BATCH_H = ("hastrup-plantage-dk", "oro-dk", "samso-dk", "kegnaes-dk", "laeso-klitplantage-dk",
+                 "horslund-krat-dk")
 DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
                  "nationalpark-kongernes-nordsjaelland-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
@@ -428,7 +466,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
-            *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E)}
+            *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(

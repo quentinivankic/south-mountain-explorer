@@ -78,6 +78,14 @@ def _script_node_arguments() -> list[str]:
 
 def _script_node_selectors() -> list[tuple[str, str]]:
     return _node_selectors(_script_node_arguments())
+def _script_dk_poi_arguments() -> list[str]:
+    match = re.search(
+        r"^\s+DK_POI_SELECTORS=\(([^)]*)\)\s*$",
+        _PREFILTER_SCRIPT.read_text(encoding="utf-8"), re.MULTILINE)
+    return match.group(1).split() if match else []
+def _legacy_prefilter_command() -> list[str]:
+    return [argument for argument in validator._pinned_prefilter_command()
+            if argument not in _DK_ONLY_RAW_VIEWER_ARGUMENTS]
 
 
 class PrefilterScriptReceipt(unittest.TestCase):
@@ -140,6 +148,8 @@ class PrefilterScriptReceipt(unittest.TestCase):
             root = Path(tmp)
             work = self._worktree(root)
             environment, log = self._environment(root)
+            # The Mols pilot step sets PREFILTER_DK_POIS=1 (trailforge-publish.yml).
+            environment["PREFILTER_DK_POIS"] = "1"
 
             completed = subprocess.run([
                 "bash", str(_PREFILTER_SCRIPT),
@@ -191,13 +201,17 @@ class PrefilterScriptReceipt(unittest.TestCase):
     def test_denmark_area_selectors_are_opt_in_and_append_only(self):
         extra = ["r/natural=wood,heath", "r/landuse=recreation_ground", "r/place=island"]
         argv = {}
-        for flag in (None, "1"):
+        for flag in (None, "1", "pois"):
             with TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 work = self._worktree(root)
                 environment, log = self._environment(root)
                 environment.pop("RECEIPT_GITHUB_OUTPUT")
-                if flag:
+                environment.pop("PREFILTER_DK_AREAS", None)
+                environment.pop("PREFILTER_DK_POIS", None)
+                if flag == "pois":
+                    environment["PREFILTER_DK_POIS"] = "1"
+                elif flag:
                     environment["PREFILTER_DK_AREAS"] = flag
                 completed = subprocess.run([
                     "bash", str(_PREFILTER_SCRIPT), "data/raw/denmark.osm.pbf", "data/hiking.osm.pbf",
@@ -205,8 +219,11 @@ class PrefilterScriptReceipt(unittest.TestCase):
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 argv[flag] = ["osmium", *json.loads(log.read_text(encoding="utf-8").splitlines()[0])]
-        self.assertEqual(argv[None], validator._pinned_prefilter_command())
+        # Unset: the legacy (pre-Denmark, 72c6c7d22) command, no DK POI classes.
+        self.assertEqual(argv[None], _legacy_prefilter_command())
         pinned = validator._pinned_prefilter_command()
+        # Mols pilot (PREFILTER_DK_POIS=1): exactly the validator pin.
+        self.assertEqual(argv["pois"], pinned)
         cut = pinned.index("-o")
         self.assertEqual(argv["1"], [*pinned[:cut], *extra, *pinned[cut:]])
 
@@ -239,7 +256,8 @@ class DestinationPolicyParity(unittest.TestCase):
         self.assertEqual(producer, exporter)
         self.assertEqual(exporter, final_validator)
 
-        selectors = set(_script_node_selectors())
+        selectors = set(_script_node_selectors()) | set(
+            _node_selectors(_script_dk_poi_arguments()))
         self.assertEqual(
             selectors,
             set(_node_selectors(validator._pinned_prefilter_command())))
@@ -252,14 +270,12 @@ class DestinationPolicyParity(unittest.TestCase):
         selectors = set(_script_node_selectors())
         self.assertEqual(
             selectors,
-            set(_node_selectors(validator._pinned_prefilter_command())))
+            set(_node_selectors(_legacy_prefilter_command())))
         self.assertEqual(
-            _script_node_arguments(),
-            _HEAD_COMPATIBLE_NODE_ARGUMENTS +
-            _DK_ONLY_RAW_VIEWER_ARGUMENTS)
+            _script_node_arguments(), _HEAD_COMPATIBLE_NODE_ARGUMENTS)
         self.assertEqual(
-            selectors - _DK_ONLY_RAW_VIEWER_SELECTORS,
-            _HEAD_COMPATIBLE_NODE_SELECTORS)
+            _script_dk_poi_arguments(), _DK_ONLY_RAW_VIEWER_ARGUMENTS)
+        self.assertEqual(selectors, _HEAD_COMPATIBLE_NODE_SELECTORS)
         self.assertTrue(_DK_ONLY_RAW_VIEWER_SELECTORS.isdisjoint(
             validator.assembly_model.DESTINATION_POIS))
         self.assertTrue({

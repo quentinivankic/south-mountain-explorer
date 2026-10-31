@@ -1706,8 +1706,9 @@ def _fuse_cluster(cluster: list["Trail"], *, legacy: bool = False) -> "Trail":
             if way_id not in known_geometry_way_ids
         }
         # legacy (non-Denmark): pre-Denmark fuse appended every fused piece's
-        # linework unconditionally and ordered member_ways base-first. Only
-        # those two behaviors differ; provenance bookkeeping below is shared.
+        # linework unconditionally, ordered member_ways base-first and never
+        # inherited `hike`. Only those behaviors differ; the provenance
+        # bookkeeping below is shared (not emitted for non-Denmark runs).
         adds_geometry = legacy or bool(novel_geometry_way_ids)
         if legacy:
             base.member_ways.extend(
@@ -1760,7 +1761,9 @@ def _fuse_cluster(cluster: list["Trail"], *, legacy: bool = False) -> "Trail":
         base.destination_evidence.extend(
             evidence for evidence in t.destination_evidence
             if evidence not in base.destination_evidence)
-        base.hike = base.hike or t.hike
+        if not legacy:
+            # b1db2afb4 (PR #612): pre-Denmark fuse never inherited `hike`.
+            base.hike = base.hike or t.hike
         base.welds.extend(t.welds)
         base.terminal_nodes.extend(t.terminal_nodes)
         if base.source != "relation" and t.source == "relation":

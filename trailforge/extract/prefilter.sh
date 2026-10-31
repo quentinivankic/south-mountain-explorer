@@ -40,6 +40,14 @@ DK_AREA_SELECTORS=()
 if [[ "${PREFILTER_DK_AREAS:-}" == "1" ]]; then
   DK_AREA_SELECTORS=(r/natural=wood,heath r/landuse=recreation_ground r/place=island)
 fi
+# Exact-Denmark raw-viewer POI classes (ignored by the legacy POI model, but they pull in
+# nodes that ALSO carry legacy destination tags, e.g. a US natural=hot_spring that is
+# tourism=attraction). Denmark runs only: PREFILTER_DK_AREAS=1 (registry workflow) or
+# PREFILTER_DK_POIS=1 (Mols pilot). Unset, the US/legacy command is byte-identical to 72c6c7d22.
+DK_POI_SELECTORS=()
+if [[ "${PREFILTER_DK_AREAS:-}" == "1" || "${PREFILTER_DK_POIS:-}" == "1" ]]; then
+  DK_POI_SELECTORS=(n/tourism=attraction n/historic=archaeological_site,castle,ruins n/amenity=shelter)
+fi
 COMMAND=(
   osmium tags-filter "$IN"
   w/highway=path,footway,steps,track,bridleway,via_ferrata,pedestrian
@@ -54,10 +62,7 @@ COMMAND=(
   n/tourism=viewpoint,alpine_hut,wilderness_hut
   n/mountain_pass=yes
   n/highway=trailhead
-  # Exact-Denmark raw-viewer classes are ignored by the legacy POI model.
-  n/tourism=attraction
-  n/historic=archaeological_site,castle,ruins
-  n/amenity=shelter
+  ${DK_POI_SELECTORS[@]+"${DK_POI_SELECTORS[@]}"}
   ${DK_AREA_SELECTORS[@]+"${DK_AREA_SELECTORS[@]}"}
   -o "$OUT" --overwrite
 )

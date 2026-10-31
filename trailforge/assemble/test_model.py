@@ -988,6 +988,15 @@ class UsLegacyGate(unittest.TestCase):
         self.assertEqual(fused.lines, [line])            # no novel ways
         self.assertEqual(fused.member_ways, [10, 11])
 
+    def test_fuse_hike_inherited_only_when_not_legacy(self):
+        for legacy, expect in ((True, False), (False, True)):
+            cluster, _line = self._dup_cluster()
+            cluster[0].member_ways.append(12)            # make [0] the base
+            cluster[1].hike = True
+            fused = m._fuse_cluster(cluster, legacy=legacy)
+            self.assertIs(fused, cluster[0])
+            self.assertEqual(fused.hike, expect, legacy)
+
     def test_merge_and_coalesce_thread_the_gate(self):
         for fn, kwargs in ((m.merge_same_name, {}),
                            (m.coalesce_by_area, {})):

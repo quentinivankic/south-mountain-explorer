@@ -27,12 +27,39 @@
       "relation_id": 7045682,
       "bbox": [8.16, 56.65, 8.73, 57.17],
       "center": [56.9, 8.4],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 1,
       "hold": null,
       "est_trails": 55,
       "est_mi": 117.1,
-      "notes": "National park. bbox/center are computed from the PBF boundary by the qualify run."
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): whole named routes instead of polygon-clipped fragments; Rute N stitches, MTB numbers and Sundhedsspor out; live-upgrade review p1c. OSM-only, not checked against a Thy route table.",
+      "exclude_trails": [
+        {
+          "id": "n:Rute 10 - Gul",
+          "name": "Rute 10 - Gul",
+          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
+        },
+        {
+          "id": "n:Rute 9 - Gul",
+          "name": "Rute 9 - Gul",
+          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
+        },
+        {
+          "id": "n:Rute 8 - Gul",
+          "name": "Rute 8 - Gul",
+          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
+        },
+        {
+          "id": "n:Rute10 - Gul",
+          "name": "Rute10 - Gul",
+          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
+        },
+        {
+          "id": "n:Sundhedsspor",
+          "name": "Sundhedsspor",
+          "reason": "generic name, boundary-induced split (3 of 5 ways shared with Vandetruten); not a stand-alone route"
+        }
+      ]
     },
     {
       "id": "nationalpark-vadehavet-dk",
@@ -40,13 +67,130 @@
       "state": "Denmark",
       "relation_id": 14045506,
       "bbox": [7.94, 54.84, 8.92, 55.68],
-      "center": [55.3, 8.4],
-      "rules": "dk-v2",
+      "center": [55.2, 8.6],
+      "rules": "dk-v3",
       "tier": 1,
       "hold": null,
       "est_trails": 59,
       "est_mi": 76.8,
-      "notes": "National park, mostly tidal flats and sea. Expect few land trails per km2."
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): Tondermarsk stisloejfer, Landskabsgang, Papegoejestien whole; bathing paths, long-distance legs and tiny stitches out. Known omission: the two Fano marked loops (relations 4215022/23, 4209046/47, siblings 4215703/04) sit under road names; restore with a real route name. Sporet i Ballum groen belongs to no live area.",
+      "exclude_trails": [
+        {
+          "id": "r6617467",
+          "name": "Badesti 1",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617478",
+          "name": "Badesti 2",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617481",
+          "name": "Badesti 3",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617482",
+          "name": "Badesti 4",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617483",
+          "name": "Badesti 5",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617484",
+          "name": "Badesti 6",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617486",
+          "name": "Badesti 8",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617487",
+          "name": "Badesti 9",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617468",
+          "name": "Badesti 10",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617469",
+          "name": "Badesti 11",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617470",
+          "name": "Badesti 12",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617471",
+          "name": "Badesti 13",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617473",
+          "name": "Badesti 15",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617474",
+          "name": "Badesti 16",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617475",
+          "name": "Badesti 17",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617476",
+          "name": "Badesti 18",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "r6617477",
+          "name": "Badesti 19",
+          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
+        },
+        {
+          "id": "n:Vester Bjergvej",
+          "name": "Vester Bjergvej",
+          "reason": "road-named stitch of 7 track and path pieces (vej); no route evidence"
+        },
+        {
+          "id": "r18353890",
+          "name": "Drivvejen alternativ Råhede",
+          "reason": "'alternative' variant of the long drove road Drivvejen; no network tag, 3.08 mi live -> 7.98 mi whole, a leg rather than a stand-alone local route; restore if a local source names it a day walk"
+        },
+        {
+          "id": "r4215022",
+          "name": "Mågekolonievej",
+          "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"
+        },
+        {
+          "id": "r4209046",
+          "name": "Nørrebjergevej",
+          "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"
+        },
+        {
+          "id": "n:Vandskellet",
+          "name": "Vandskellet",
+          "reason": "0.39 mi single-way name stitch; not a stand-alone route"
+        },
+        {
+          "id": "n:Kanalstien",
+          "name": "Kanalstien",
+          "reason": "0.43 mi two-part name stitch; not a stand-alone route"
+        }
+      ]
     },
     {
       "id": "nationalpark-skjoldungernes-land-dk",
@@ -55,12 +199,24 @@
       "relation_id": 13648864,
       "bbox": [11.75, 55.49, 12.17, 55.82],
       "center": [55.7, 12.0],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 1,
       "hold": null,
       "est_trails": 45,
       "est_mi": 86.8,
-      "notes": "National park."
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): thin by design, 4 trails. Fjordstien Vandresti (18.74 mi) is a leg of the 275 km Fjordstien ring and stays out as long-distance; Skjoldungestien and Gudernes Straede (rwn) likewise. Completeness note: area is thin, not padded.",
+      "exclude_trails": [
+        {
+          "id": "n:Fjordstien",
+          "name": "Fjordstien",
+          "reason": "gravel track plus asphalt cycleway (bicycle designated); the Fjordstien walking route is the long-distance rwn already removed"
+        },
+        {
+          "id": "r17885734",
+          "name": "Blå Rute",
+          "reason": "generic 'Blå Rute' (ref Sagnlandet): museum park map route, not a national-park hiking trail"
+        }
+      ]
     },
     {
       "id": "nationalpark-kongernes-nordsjaelland-dk",
@@ -69,12 +225,189 @@
       "relation_id": 15312449,
       "bbox": [11.8, 55.84, 12.67, 56.15],
       "center": [56.0, 12.2],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 1,
       "hold": null,
       "est_trails": 364,
       "est_mi": 364.5,
-      "notes": "National park."
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): signed routes and Hjertestier only; GPS stage traces, gravel ride names and rootless stitches out. Known omission: Ramlose Kloverstier (Ellemosestien / Sort Kloversti 2.37 mi), OSM relation gap, not synthesized.",
+      "exclude_trails": [
+        {
+          "id": "r3651146",
+          "name": "Helsingør - Havreholm",
+          "reason": "GPS-sourced 15.2 mi point-to-point trace (no operator, no source), stage-length, not a local trail"
+        },
+        {
+          "id": "r3635559",
+          "name": "Feel & Taste 1",
+          "reason": "GPS-sourced 10.5 mi trace of a branded event walk (no operator); not a standing marked trail"
+        },
+        {
+          "id": "n:Kulmilespor",
+          "name": "Kulmilespor",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Troldeskovsporet",
+          "name": "Troldeskovsporet",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Tjørnegabsspor",
+          "name": "Tjørnegabsspor",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Kulsviersporet",
+          "name": "Kulsviersporet",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Skovløbersporet",
+          "name": "Skovløbersporet",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Brændevinsstien",
+          "name": "Brændevinsstien",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Lyssporet",
+          "name": "Lyssporet",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Ridelågen",
+          "name": "Ridelågen",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Kræmmersti",
+          "name": "Kræmmersti",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Amaliesti",
+          "name": "Amaliesti",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Stenvredet",
+          "name": "Stenvredet",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Krogerupstien",
+          "name": "Krogerupstien",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Gadeledsstien",
+          "name": "Gadeledsstien",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Reerstrup Fægyde",
+          "name": "Reerstrup Fægyde",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Fægyden",
+          "name": "Fægyden",
+          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
+        },
+        {
+          "id": "n:Den Enarmede Kongevej",
+          "name": "Den Enarmede Kongevej",
+          "reason": "gravel track, road name (historic king's road); not a walking trail"
+        },
+        {
+          "id": "n:Nordkyst Stien",
+          "name": "Nordkyst Stien",
+          "reason": "highway=cycleway designated for bicycles and foot (asphalt/fine gravel); a cycle path, not a hiking trail"
+        },
+        {
+          "id": "n:Sandgravsvej",
+          "name": "Sandgravsvej",
+          "reason": "road-named short path (vej); no route evidence"
+        },
+        {
+          "id": "n:Hulvejen",
+          "name": "Hulvejen",
+          "reason": "sunken-road name; track and grade5 path stitch with no route evidence"
+        },
+        {
+          "id": "n:Esrum Å",
+          "name": "Esrum Å",
+          "reason": "river name on a 6-piece stitch of dirt paths; not a named trail"
+        },
+        {
+          "id": "n:Farlige Rødder",
+          "name": "Farlige Rødder",
+          "reason": "mountain-bike style name ('dangerous roots'), bicycle=yes horse=no path with bad visibility"
+        },
+        {
+          "id": "n:Pandehave Å Sti",
+          "name": "Pandehave Å Sti",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Brede Åsti",
+          "name": "Brede Åsti",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Kanalstien",
+          "name": "Kanalstien",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Kærlighedsstien",
+          "name": "Kærlighedsstien",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Lersporet",
+          "name": "Lersporet",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Flammespor",
+          "name": "Flammespor",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Togsporet",
+          "name": "Togsporet",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Salenesporet",
+          "name": "Salenesporet",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Skæftegårdsstien",
+          "name": "Skæftegårdsstien",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Udridderalléen",
+          "name": "Udridderalléen",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Triangelsporet",
+          "name": "Triangelsporet",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        },
+        {
+          "id": "n:Brøndsporet",
+          "name": "Brøndsporet",
+          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
+        }
+      ]
     },
     {
       "id": "bornholm-dk",
@@ -181,12 +514,12 @@
       "relation_id": 2353749,
       "bbox": [14.81, 55.04, 15.03, 55.19],
       "center": [55.1, 14.9],
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 64,
       "est_mi": 54.3,
-      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run.",
+      "notes": "Tier 2 forest, Bornholm. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c.",
       "exclude_trails": [
         {
           "id": "n:Rågelundsvej",
@@ -1366,20 +1699,13 @@
       "state": "Denmark",
       "relation_id": 12525768,
       "bbox": [9.33, 55.16, 9.47, 55.29],
-      "center": [55.2, 9.4],
-      "rules": "dk-v2",
+      "center": [55.22, 9.4],
+      "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 6,
       "est_mi": 6.9,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run.",
-      "exclude_trails": [
-        {
-          "id": "r2625676",
-          "name": "Geheimeraadens Sti",
-          "reason": "0.14 of 3.54 mi inside; sliver of a route that lies elsewhere"
-        }
-      ]
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. Centre moved onto the trails (was outside the boundary bbox); stale dk-v2 Geheimeraadens Sti exclude dropped (route lies outside the area)."
     },
     {
       "id": "kollerup-plantage-dk",

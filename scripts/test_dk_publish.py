@@ -1408,6 +1408,60 @@ def test_registry_rejects_bad_include_trails(tmp_path, value):
         dk.load_registry(_write_registry(
             tmp_path / "r.json",
             lambda d: d["areas"][1].update(rules="dk-v3", include_trails=value)))
+# ------------------------------------------- accept_gap / accept_directional_roles --
+GOOD_GAP = {"relation": "r8845680", "max_gap_m": 400, "reason": "reviewed: source gap, real route"}
+def test_registry_accepts_accept_gap_and_directional_roles_only_on_dk_v3(tmp_path):
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", accept_gap=[GOOD_GAP],
+                                              accept_directional_roles=True)))
+    assert reg["areas"][1]["accept_gap"] == [GOOD_GAP]
+    assert reg["areas"][1]["accept_directional_roles"] is True
+    for field, value in (("accept_gap", [GOOD_GAP]), ("accept_directional_roles", True)):
+        for rules, idx in (("dk-v2", 1), ("legacy", 0)):
+            with pytest.raises(dk.DkError, match="requires rules dk-v3"):
+                dk.load_registry(_write_registry(
+                    tmp_path / "r2.json",
+                    lambda d, rules=rules, idx=idx, f=field, v=value: (
+                        d["areas"][idx].pop("exclude_trails", None), d["areas"][idx].update(rules=rules, **{f: v}))))
+@pytest.mark.parametrize("value", [
+    [], "r8845680", [{**GOOD_GAP, "relation": "8845680"}], [{**GOOD_GAP, "max_gap_m": 100}],
+    [{**GOOD_GAP, "max_gap_m": 1001}], [{**GOOD_GAP, "max_gap_m": True}], [{**GOOD_GAP, "max_gap_m": "400"}],
+    [{**GOOD_GAP, "reason": " "}], [{**GOOD_GAP, "extra": 1}], [GOOD_GAP, GOOD_GAP],
+    [{"relation": "r1", "max_gap_m": 400}],
+])
+def test_registry_rejects_bad_accept_gap(tmp_path, value):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", accept_gap=value)))
+@pytest.mark.parametrize("value", [False, "true", 1, None])
+def test_registry_rejects_non_true_directional_roles(tmp_path, value):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: _plain(d, rules="dk-v3", accept_directional_roles=value)))
+def test_run_area_script_passes_the_gap_and_role_opt_ins_only_when_set():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    assert ".accept_gap // []" in script and '"$ACCEPT_GAP_JSON" != "[]"' in script
+    assert "--dk-accept-gap" in script
+    assert ".accept_directional_roles // empty" in script and '"$DIRECTIONAL_ROLES" = "true"' in script
+    assert "--dk-accept-directional-roles" in script
+def test_report_area_lists_accepted_gaps_only_when_present(tmp_path):
+    def run(quality):
+        d = tmp_path / ("g%d-dk" % len(list(tmp_path.glob("g*-dk"))))
+        d.mkdir()
+        (d / "area.json").write_text(json.dumps({"id": "x-dk", "name": "X", "relation_id": 1}), encoding="utf-8")
+        (d / "geom.json").write_text(json.dumps(_geom("x-dk", names=["Kirkestien"], total_mi=5.0)))
+        (d / "trails.geojson").write_text(json.dumps({"features": []}))
+        (d / "removed.geojson").write_text(json.dumps({"features": []}))
+        (d / "assembly.json").write_text(json.dumps({"pre_clip_trail_count": 1, "post_clip_trail_count": 1,
+                                                     "quality": quality}))
+        assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                        "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+                        "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json")]) == 0
+        return json.loads((d / "report.json").read_text())
+    row = {"relation": "r8845680", "name": "Rød rute", "parts": 2, "widest_gap_m": 322.0, "max_gap_m": 400.0}
+    assert run({"dk_accept_gap": [row]})["accepted_gaps"] == [row]
+    assert "accepted_gaps" not in run({})
+    assert "accepted_gaps" not in run({"dk_accept_gap": []})
 def test_dk_v3_entry_may_carry_exclude_trails_too(tmp_path):
     reg = dk.load_registry(_write_registry(
         tmp_path / "r.json",

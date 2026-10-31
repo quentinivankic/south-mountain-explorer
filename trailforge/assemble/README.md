@@ -336,6 +336,35 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   Wider gaps, missing member ways, or rendered geometry that is not exactly the
   union of the member ways stay `unresolved-relation-gap`. Evidence per route:
   `connectivity.widest_gap_m`, report `dk_v3_whole_routes`.
+- **Accepted gaps** (registry `accept_gap`, `--dk-accept-gap`, dk-v3 exact Denmark
+  only): `[{"relation": "r<id>", "max_gap_m": N, "reason": "..."}]`, `100 < N <=
+  1000` (`DK_ACCEPT_GAP_CAP_M`; the registry cannot raise the cap). A named whole
+  route whose real member pieces are joined only by gaps wider than 100 m is
+  published as its connected parts when the widest gap needed is at most `N`.
+  Same output shape as a <=100 m route: a multi-part trail whose parts keep only
+  their own real member-way coordinates, nothing drawn across the gap
+  (`connectivity.accepted_reasons = ["accepted-gap"]`, `bridge_limit_m = N`,
+  report `dk_accept_gap`, trail property `dk_accept_gap`). Miles are the sum of
+  the parts (the gap adds nothing). The app sees ONE trail with several
+  segments, exactly as for the existing <=100 m trails. FAIL CLOSED: an entry
+  that matches no candidate or several, is not a route published whole, is not
+  accepted at its limit (actual widest gap over `N`, missing member ways), does
+  not need the opt-in (widest gap <= 100 m), or is removed by a later rule fails
+  the area (assemble exits 2, `dk_accept_gap_failures`). Only the listed
+  relation changes; every other route keeps the 100 m rule. Two relations that
+  map the same route (duplicate mappings): list only the one you publish.
+- **Directional roles** (registry `accept_directional_roles: true`,
+  `--dk-accept-directional-roles`, dk-v3 exact Denmark only): a `forward` /
+  `backward` way member of a `route=hiking` relation counts as a main-line member
+  (`effective_role` "main", the raw `role` is kept in the audit). Today
+  `model._build_relation_member_audit` rejects them as `unsupported-role-forward`
+  / `-backward`, so a route with such members publishes truncated. Other roles
+  (approach/connection as before, alternative/excursion still rejected) and
+  non-`hiking` route relations are unchanged, and an outer approach/connection
+  role still overrides nested roles. Off by default: every other area resolves
+  roles exactly as before. The independent Mols-only `final` validator
+  (`validate_publish_pilot.py`) recomputes roles without this opt-in and is not
+  used by the Denmark pipeline.
 - **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
   dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
   and validation as `exclude_trails`. A listed trail is published whole whatever

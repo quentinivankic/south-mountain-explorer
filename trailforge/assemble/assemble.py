@@ -950,6 +950,18 @@ def main(argv=None) -> int:
                          "(registry include_trails): published whole whatever "
                          "their share of this area; dk-v3 only, fail-closed "
                          "when an entry matches no published trail")
+    ap.add_argument("--dk-accept-gap", dest="dk_accept_gap",
+                    help="JSON list of {relation, max_gap_m, reason} (registry "
+                         "accept_gap): a named whole route whose pieces are "
+                         "joined only by gaps over 100 m (at most max_gap_m, "
+                         "hard-capped at 1000) is published as its connected "
+                         "parts, never bridged; dk-v3 only, fail-closed when "
+                         "an entry is stale, unneeded or over its limit")
+    ap.add_argument("--dk-accept-directional-roles",
+                    dest="dk_accept_directional_roles", action="store_true",
+                    help="count forward/backward way members of route=hiking "
+                         "relations as main-line members (registry "
+                         "accept_directional_roles); dk-v3 exact Denmark only")
     ap.add_argument("--dk-curated-exclude", dest="dk_curated_exclude",
                     help="JSON list of {id, name, reason} curated exclusions "
                          "(registry exclude_trails); dk-v2 only, fail-closed "
@@ -971,6 +983,25 @@ def main(argv=None) -> int:
             dk_names_args.validate_prefix(args.dk_name_prefix)
         except ValueError as error:
             ap.error(f"--dk-name-prefix is invalid: {error}")
+    if args.dk_accept_directional_roles and (
+            args.dk_rules != "dk-v3" or not args.require_exact_area
+            or model.member_safety.normalize(args.region) != "dk"):
+        ap.error("--dk-accept-directional-roles requires --dk-rules dk-v3 "
+                 "and exact Denmark assembly")
+    args.dk_gap = []
+    if args.dk_accept_gap:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-accept-gap requires --dk-rules dk-v3")
+        if (not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error("--dk-accept-gap is limited to exact Denmark assembly")
+        try:
+            import quality as quality_gap_args
+            args.dk_gap = quality_gap_args.validate_dk_accept_gap(
+                json.loads(Path(args.dk_accept_gap).read_text(
+                    encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-accept-gap is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
         if args.dk_rules not in ("dk-v2", "dk-v3"):
@@ -1137,7 +1168,9 @@ def main(argv=None) -> int:
                             standalone_way_ids=aoi_way_ids,
                             defer_relation_absorption=exact_denmark,
                             exact_denmark=exact_denmark,
-                            defer_promotion=exact_denmark)
+                            defer_promotion=exact_denmark,
+                            accept_directional_roles=bool(
+                                args.dk_accept_directional_roles))
     features = [t.to_feature() for t in trails]
     curation_removed_features = [t.to_feature() for t in removed]
     terminal_absorption_targets = (
@@ -1221,7 +1254,8 @@ def main(argv=None) -> int:
                     promotion_decisions=promotion_decisions,
                     dk_rules=getattr(args, "dk_rules", "legacy"),
                     dk_exclude=args.dk_exclude,
-                    dk_include=args.dk_include)
+                    dk_include=args.dk_include,
+                    dk_accept_gap=args.dk_gap)
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")
@@ -1266,6 +1300,14 @@ def main(argv=None) -> int:
         terminal_absorption_failure = (
             "dk-curated-include failures: "
             + "; ".join(quality_report["dk_curated_include_failures"]))
+        print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+    if (isinstance(quality_report, dict)
+            and quality_report.get("dk_accept_gap_failures")):
+        # An accept_gap entry that is stale, unneeded, ambiguous or over its
+        # limit fails the area: a gap is only ever accepted on purpose.
+        terminal_absorption_failure = (
+            "dk-accept-gap failures: "
+            + "; ".join(quality_report["dk_accept_gap_failures"]))
         print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if exact_denmark and terminal_absorption_unresolved:
         terminal_absorption_failure = (

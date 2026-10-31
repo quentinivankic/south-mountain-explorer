@@ -149,6 +149,33 @@ def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude
         if ident in seen:
             raise DkError(f"{aid}: {field} repeats {ident!r}")
         seen.add(ident)
+def _dk_quality():
+    """trailforge/assemble/quality.py (the one definition of a valid accept_gap list), loaded
+    by path like _dk_names. Its top-level imports are stdlib only."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "dk_quality_rules", ROOT / "trailforge" / "assemble" / "quality.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
+    """dk-v3-only opt-ins: accept_gap (per-relation wide-gap acceptance) and
+    accept_directional_roles (forward/backward hiking-relation members)."""
+    if "accept_gap" in entry:
+        if entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: accept_gap requires rules dk-v3")
+        items = entry["accept_gap"]
+        if not isinstance(items, list) or not items:
+            raise DkError(f"{aid}: accept_gap must be a non-empty list when present")
+        try:
+            _dk_quality().validate_dk_accept_gap(items)
+        except ValueError as error:
+            raise DkError(f"{aid}: accept_gap is invalid: {error}") from None
+    if "accept_directional_roles" in entry:
+        if entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: accept_directional_roles requires rules dk-v3")
+        if entry["accept_directional_roles"] is not True:
+            raise DkError(f"{aid}: accept_directional_roles must be true when present")
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -215,6 +242,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
+        _check_gap_and_roles(aid, entry)
         if "trail_name_prefix" in entry:
             if entry.get("rules") != "dk-v3":
                 raise DkError(f"{aid}: trail_name_prefix requires rules dk-v3")
@@ -821,6 +849,11 @@ def report_area(args: argparse.Namespace) -> int:
              for p in kept if p.get("dk_whole_route")]
     if whole:
         rec["whole_routes"] = sorted(whole, key=lambda item: str(item["name"]))
+    # dk-v3 registry accept_gap only: routes published as connected parts across a source gap
+    # wider than 100 m (key absent otherwise, so other reports are unchanged).
+    accepted = (assembly.get("quality") or {}).get("dk_accept_gap")
+    if accepted:
+        rec["accepted_gaps"] = accepted
     if args.expected and Path(args.expected).is_file():
         table = load_expected(args.expected)
         if area["id"] in table:
@@ -868,6 +901,8 @@ def qualify_aggregate(args: argparse.Namespace) -> int:
                   f"route segments: {[(x['name'], x['length_mi']) for x in r['route_segments']]}",
                   f"curated excluded: {[(x['id'], x['name'], x['length_mi'], x['reason']) for x in r.get('curated_excluded', [])]}",
                   f"dropped unresolved-relation-gap: {[(x['name'], x['length_mi']) for x in r['dropped_unresolved_relation_gap']]}",
+                  *([f"accepted gaps (registry accept_gap): {[(x['relation'], x['name'], x['parts'], x['widest_gap_m'], x['max_gap_m']) for x in r['accepted_gaps']]}"]
+                    if r.get("accepted_gaps") else []),
                   f"bbox: boundary {r['boundary_bbox']} proposed {r['proposed_bbox']} centre {r['proposed_center']}",
                   "", "trails: " + "; ".join(str(n) for n in r["trail_names"])]
     lines += ["", "## Cross-area duplicates", ""]

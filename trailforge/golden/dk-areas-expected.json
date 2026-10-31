@@ -200,8 +200,8 @@
       ]
     },
     "nationalpark-kongernes-nordsjaelland-dk": {
-      "trail_count": 21,
-      "total_mi": 77.3,
+      "trail_count": 19,
+      "total_mi": 75.3,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -664,8 +664,8 @@
       ]
     },
     "grastenskovene-dk": {
-      "trail_count": 4,
-      "total_mi": 13.3,
+      "trail_count": 5,
+      "total_mi": 15.9,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -775,8 +775,8 @@
       ]
     },
     "fovslet-skov-dk": {
-      "trail_count": 3,
-      "total_mi": 4.5,
+      "trail_count": 8,
+      "total_mi": 12.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -802,8 +802,8 @@
       ]
     },
     "staksrode-skov-dk": {
-      "trail_count": 3,
-      "total_mi": 5.6,
+      "trail_count": 4,
+      "total_mi": 8.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -980,8 +980,8 @@
       ]
     },
     "fejo-dk": {
-      "trail_count": 3,
-      "total_mi": 7.9,
+      "trail_count": 4,
+      "total_mi": 9.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

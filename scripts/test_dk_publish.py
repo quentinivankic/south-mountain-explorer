@@ -67,7 +67,7 @@ def test_registry_has_the_four_national_parks_with_blessed_computed_geometry():
             "nationalpark-kongernes-nordsjaelland-dk": 15312449}
     geom = {"nationalpark-thy-dk": ([8.16, 56.65, 8.73, 57.17], [56.9, 8.4]),
             "nationalpark-vadehavet-dk": ([7.94, 54.84, 8.92, 55.68], [55.2, 8.6]),
-            "nationalpark-skjoldungernes-land-dk": ([11.75, 55.49, 12.17, 55.82], [55.7, 12.0]),
+            "nationalpark-skjoldungernes-land-dk": ([11.75, 55.49, 12.17, 55.82], [55.619, 11.958]),
             "nationalpark-kongernes-nordsjaelland-dk": ([11.8, 55.84, 12.67, 56.15], [56.0, 12.2])}
     for aid, rel in rels.items():
         assert by_id[aid]["relation_id"] == rel
@@ -219,6 +219,27 @@ def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
     assert by_id["staurby-skov-dk"]["hold"] is None and by_id["kongenshus-dk"]["hold"] is None
     assert by_id["svanninge-bjerge-dk"]["hold"] is None
     assert by_id["knagelbjerg-skov-dk"]["hold"] == "curated-do-not-ship"
+# Batch G (live-area quality + completeness, update mode, registry only): bare colour names get the
+# area prefix (display only, trail ids come from osm_name), missing whole routes are included, the
+# Kongernes Sundhedsspor exercise loops are excluded and five pins move onto their trails.
+BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
+                  "randbol-hede-frederikshab-dk": "Randbøl", "nationalpark-thy-dk": "Thy",
+                  "nationalpark-vadehavet-dk": "Vadehavet"}
+BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r17635362", "r15655202", "r15655203", "r15655204"},
+                   "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
+BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
+                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.705, 11.993]}
+def test_batch_g_registry_prefixes_includes_excludes_and_centres():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    for aid, prefix in BATCH_G_PREFIX.items():
+        assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
+    for aid, ids in BATCH_G_INCLUDE.items():
+        assert by_id[aid]["rules"] == "dk-v3" and ids <= {t["id"] for t in by_id[aid]["include_trails"]}
+    assert by_id["fovslet-skov-dk"]["display_name"] == "Fovslet, Hoppeshuse og Svanemosen"
+    kong = {t["id"] for t in by_id["nationalpark-kongernes-nordsjaelland-dk"]["exclude_trails"]}
+    assert {"r12585237", "r13649311"} <= kong
+    for aid, centre in BATCH_G_CENTRES.items():
+        assert by_id[aid]["center"] == centre and by_id[aid]["rules"] == "dk-v3"
 def test_harte_skov_display_name_does_not_claim_ferup():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     a = by_id["harte-skov-dk"]
@@ -284,7 +305,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
-        "nationalpark-kongernes-nordsjaelland-dk": (21, 77.3),
+        "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (7, 20.4),
         "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
@@ -292,13 +313,13 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
         "rold-skov-dk": (10, 39.4), "mons-klint-dk": (6, 17.1),
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
-        "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (4, 13.3), "store-hareskov-dk": (2, 6.4),
+        "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 15.9), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
-        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (3, 4.5),
-        "staksrode-skov-dk": (3, 5.6), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
+        "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (8, 12.7),
+        "staksrode-skov-dk": (4, 8.8), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
         "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
         "svanninge-bjerge-dk": (8, 30.9), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),
-        "fejo-dk": (3, 7.9), "froslev-plantage-dk": (2, 4.9),
+        "fejo-dk": (4, 9.4), "froslev-plantage-dk": (2, 4.9),
         "ro-plantage-dk": (8, 27.5), "aro-dk": (4, 10.0), "harte-skov-dk": (5, 6.4),
         "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (4, 10.6), "kiskelund-plantage-dk": (2, 3.6),
         "kollund-skov-dk": (4, 5.7), "sogard-skov-dk": (3, 6.2), "toftlund-skov-dk": (2, 2.8),
@@ -1645,8 +1666,10 @@ def test_prepare_areas_writes_the_display_name_into_the_row_but_keeps_the_osm_na
     row = json.loads((out / FOREST / "index.json").read_text())[0]
     assert row[1] == "Nordskoven Nord"                                              # app-visible name
 def test_check_new_row_expects_the_display_name(tmp_path):
-    registry = dk.load_registry(_write_registry(
-        tmp_path / "r.json", lambda d: d["areas"][1].update(display_name="Thy Nationalpark", rules="dk-v2")))
+    def to_v2(d):                                   # the dk-v3-only trail_name_prefix cannot stay on a dk-v2 copy
+        d["areas"][1].pop("trail_name_prefix", None)
+        d["areas"][1].update(display_name="Thy Nationalpark", rules="dk-v2")
+    registry = dk.load_registry(_write_registry(tmp_path / "r.json", to_v2))
     entry = registry["areas"][1]
     geom = _geom(entry["id"], names=["A"], total_mi=1.0)
     row = [entry["id"], "Thy Nationalpark", "Denmark", entry["center"][0], entry["center"][1], 1, 1.0,

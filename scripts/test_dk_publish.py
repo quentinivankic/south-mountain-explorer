@@ -182,6 +182,18 @@ WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk"
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
+# Prefix curation (dk-v3 + trail_name_prefix): staurby and kongenshus ship, knagelbjerg (duplicate of
+# svanninge) and svanninge (missing Rød rute) stay held; all four carry a bbox/centre and a prefix.
+PREFIX_CURATED = {"svanninge-bjerge-dk": "Svanninge", "knagelbjerg-skov-dk": "Knagelbjerg",
+                  "staurby-skov-dk": "Staurby", "kongenshus-dk": "Kongenshus"}
+def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    for aid, prefix in PREFIX_CURATED.items():
+        assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
+        assert by_id[aid]["bbox"] and by_id[aid]["center"]
+    assert by_id["staurby-skov-dk"]["hold"] is None and by_id["kongenshus-dk"]["hold"] is None
+    assert by_id["svanninge-bjerge-dk"]["hold"] == "curated-do-not-ship"
+    assert by_id["knagelbjerg-skov-dk"]["hold"] == "curated-do-not-ship"
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
     assert len(areas) == 122
@@ -195,7 +207,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
                and a["id"] not in FLAGSHIPS and a["id"] not in BATCH_A_SHIP
-               and a["id"] not in WAYBACK_SHIP)
+               and a["id"] not in WAYBACK_SHIP and a["id"] not in PREFIX_CURATED)
 
 
 def test_hold_counts_match_the_discovery_candidates():
@@ -204,9 +216,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 28, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
+        None: 30, "name-collision": 2, "np-nested": 16, "island": 11, "duplicate-of-live": 5,
         "needs-rescope": 4, "merge-pending": 4, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 50}
+        "curated-do-not-ship": 48}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk", "samso-dk"]
@@ -362,7 +374,7 @@ def test_registry_accepts_trail_name_prefix_only_on_dk_v3_and_only_valid_text(tm
         with pytest.raises(dk.DkError, match="requires rules dk-v3"):
             dk.load_registry(_write_registry(
                 tmp_path / "r2.json", lambda d, r=rules: _plain(d, rules=r, trail_name_prefix="Svanninge")))
-    for bad in ("", "  ", " Svanninge", "Gul", "x" * 41, 5, None, "Mo\u0308ns"):
+    for bad in ("", "  ", " Svanninge", "Gul", "x" * 41, 5, None, "Mo\u0308ns", "-Svanninge"):
         with pytest.raises(dk.DkError, match="trail_name_prefix is invalid"):
             dk.load_registry(_write_registry(
                 tmp_path / "r3.json",

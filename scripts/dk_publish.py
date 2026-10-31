@@ -12,7 +12,8 @@ calls R2/AWS; the sync workflow does that with the files this script builds.
                     inconsistent registry bbox when publishing
   assert-expected   refuse unless a published geom matches the blessed table
   report-area       qualify: per-area report from the pipeline outputs
-  qualify-aggregate qualify: merge per-area reports + proposed tables
+  qualify-aggregate qualify: merge per-area reports + proposed tables; fails closed
+                    when one route appears whole in two areas of the set or in a live area
   merge-index       append the new area rows to public/areas/index.json
   verify-staged / verify-commit   exact 2N+2 path allowlist, rows append-only
   derive-areas / build-candidates   splice N areas onto LIVE R2 bytes
@@ -160,6 +161,10 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise DkError(f"{aid}: state must be {STATE!r}")
         if not isinstance(rel, int) or isinstance(rel, bool) or rel <= 0 or rel in rels:
             raise DkError(f"{aid}: relation_id is invalid or repeated")
+        shown = entry.get("display_name")
+        if shown is not None and (not isinstance(shown, str) or not shown.strip() or shown == name
+                                  or shown != unicodedata.normalize("NFC", shown)):
+            raise DkError(f"{aid}: display_name must be a non-empty NFC text different from name")
         bbox, center = entry.get("bbox"), entry.get("center")
         if (bbox is None) != (center is None):
             raise DkError(f"{aid}: bbox and center must both be set or both be null")
@@ -495,7 +500,8 @@ def prepare_areas(args: argparse.Namespace) -> int:
         rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
-            row = [entry["id"], entry["name"], STATE, rec["center"][0], rec["center"][1], None, None,
+            rec["display_name"] = entry.get("display_name") or entry["name"]
+            row = [entry["id"], rec["display_name"], STATE, rec["center"][0], rec["center"][1], None, None,
                    entry["relation_id"]]
             _write_json(args.out_dir / entry["id"] / "index.json", [row])
         _write_json(args.out_dir / entry["id"] / "area.json", rec)
@@ -520,6 +526,88 @@ def is_generic_trail_name(name: Any) -> bool:
     """'Rute 8', 'Spor 3', 'gul rute', 'Blå Rute': only colour/number/route words."""
     tokens = [t for t in re.split(r"[\s,;:/()\-–.]+", str(name or "").casefold()) if t]
     return bool(tokens) and all(t in _GENERIC_WORDS or t.isdigit() for t in tokens)
+# ----------------------------------------------- cross-area duplicate gate --
+# A route (relation id, or identical geometry, or the same name over the same ground)
+# must not be listed whole in two areas: the selected set and the live Danish areas.
+DUP_NODE_SAMPLE = 4          # keep nodes whose hash % 4 == 0 (same rule on both sides)
+DUP_NAME_OVERLAP = 0.5       # same normalized name + this share of the smaller sample
+DUP_MIN_SAMPLE = 5
+LIVE_GEOM_DIR = ROOT / "public" / "areas" / "geom"
+def _norm_name(name: Any) -> str:
+    return " ".join(unicodedata.normalize("NFC", str(name or "")).casefold().split())
+def _segments(trail: dict[str, Any]) -> list[list[tuple[float, float]]]:
+    out = []
+    for seg in trail.get("segments") or []:
+        pts = [(round(float(p[0]), 5), round(float(p[1]), 5)) for p in seg]
+        if pts:
+            out.append(min(pts, list(reversed(pts))))
+    return sorted(out)
+def trail_identity(trail: dict[str, Any]) -> dict[str, Any]:
+    segs = _segments(trail)
+    digest = hashlib.sha256(json.dumps(segs, separators=(",", ":")).encode("utf-8")).hexdigest()
+    nodes = {hashlib.sha1(f"{a:.5f},{b:.5f}".encode("ascii")).hexdigest()[:8]
+             for seg in segs for a, b in seg}
+    sample = sorted(n for n in nodes if int(n, 16) % DUP_NODE_SAMPLE == 0)
+    return {"name": trail.get("name"), "geom_sha256": digest, "nodes": sample}
+def _overlap(a: list[str], b: list[str]) -> float:
+    sa, sb = set(a), set(b)
+    if min(len(sa), len(sb)) < DUP_MIN_SAMPLE:
+        return 0.0
+    return len(sa & sb) / min(len(sa), len(sb))
+def _same_route(a: dict[str, Any], b: dict[str, Any]) -> str | None:
+    if a["geom_sha256"] == b["geom_sha256"]:
+        return "identical geometry"
+    if _norm_name(a["name"]) == _norm_name(b["name"]) and _overlap(a["nodes"], b["nodes"]) >= DUP_NAME_OVERLAP:
+        return "same name over the same ground"
+    return None
+def live_conflicts(area_id: str, identities: list[dict[str, Any]], live_dir: Path) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    if not live_dir.is_dir():
+        return found
+    for path in sorted(live_dir.glob("*-dk.json")):
+        live = _read_json(path, "live geom")
+        if not isinstance(live, dict) or live.get("id") == area_id:
+            continue
+        for lt in live.get("trails") or []:
+            li = trail_identity(lt)
+            for mine in identities:
+                why = _same_route(mine, li)
+                if why:
+                    found.append({"area": area_id, "trail": mine["name"], "other_area": live.get("id"),
+                                  "other_trail": li["name"], "other_is_live": True, "reason": why})
+    return found
+def selected_conflicts(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    for i, ra in enumerate(reports):
+        for rb in reports[i + 1:]:
+            for ta in ra.get("trail_identities") or []:
+                for tb in rb.get("trail_identities") or []:
+                    shared = sorted(set(ta.get("relation_ids") or []) & set(tb.get("relation_ids") or []))
+                    if shared and ta.get("whole") and tb.get("whole"):
+                        why = "relation " + ", ".join(f"r{r}" for r in shared) + " whole in both"
+                    else:
+                        why = _same_route(ta, tb)
+                    if why:
+                        found.append({"area": ra["id"], "trail": ta["name"], "other_area": rb["id"],
+                                      "other_trail": tb["name"], "other_is_live": False, "reason": why})
+    return found
+def duplicate_conflicts(reports: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    found = selected_conflicts(reports)
+    for r in reports:
+        found += r.get("live_duplicates") or []
+    return found
+def duplicate_message(c: dict[str, Any]) -> str:
+    where = "live area" if c.get("other_is_live") else "area"
+    return (f"{c['area']} '{c['trail']}' duplicates {where} {c['other_area']} '{c['other_trail']}' "
+            f"({c['reason']})")
+def _trail_relations(features: list[dict[str, Any]], name: Any) -> tuple[list[int], bool]:
+    rels: set[int] = set()
+    whole = False
+    for p in features:
+        if p.get("name") == name and p.get("kind") != "poi":
+            rels.update(int(r) for r in (p.get("relation_ids") or []) if isinstance(r, int))
+            whole = whole or bool(p.get("dk_whole_route"))
+    return sorted(rels), whole
 def report_area(args: argparse.Namespace) -> int:
     area = _read_json(args.area_json, "area.json")
     geom = _read_json(args.geom, "geom")
@@ -570,6 +658,13 @@ def report_area(args: argparse.Namespace) -> int:
             "forbidden_names": forbidden[:50],
         },
     }
+    identities = []
+    for t in geom.get("trails") or []:
+        ident = trail_identity(t)
+        ident["relation_ids"], ident["whole"] = _trail_relations(kept, t.get("name"))
+        identities.append(ident)
+    rec["trail_identities"] = identities
+    rec["live_duplicates"] = live_conflicts(area["id"], identities, args.live_geom_dir)
     # dk-v3 only: routes published whole (key absent for dk-v2/legacy runs).
     whole = [{"name": p.get("name"), "length_mi": p.get("length_mi"),
               "area_share": p.get("dk_route_share")}
@@ -603,6 +698,8 @@ def qualify_aggregate(args: argparse.Namespace) -> int:
         rec = next((r for r in ok if r["id"] == entry["id"]), None)
         if rec and entry["bbox"] is None and rec.get("proposed_bbox"):
             entry["bbox"], entry["center"] = rec["proposed_bbox"], rec["proposed_center"]
+    conflicts = duplicate_conflicts(ok)
+    _write_json(args.out_dir / "duplicate-conflicts.json", {"conflicts": conflicts})
     _write_json(args.out_dir / "qualify-report.json", {"areas": reports})
     _write_json(args.out_dir / "dk-areas-expected.proposed.json", proposed_expected)
     _write_json(args.out_dir / "dk-areas.proposed.json", proposed_registry)
@@ -623,11 +720,15 @@ def qualify_aggregate(args: argparse.Namespace) -> int:
                   f"dropped unresolved-relation-gap: {[(x['name'], x['length_mi']) for x in r['dropped_unresolved_relation_gap']]}",
                   f"bbox: boundary {r['boundary_bbox']} proposed {r['proposed_bbox']} centre {r['proposed_center']}",
                   "", "trails: " + "; ".join(str(n) for n in r["trail_names"])]
+    lines += ["", "## Cross-area duplicates", ""]
+    lines += [f"- {duplicate_message(c)}" for c in conflicts] or ["none"]
     for r in failed:
         lines += ["", f"## {r['id']} FAILED at {r.get('stage', 'prepare')}", *[f"- {p}" for p in r.get("problems", [])]]
     (args.out_dir / "qualify-report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines[:6 + len(reports)]))
-    return 1 if failed else 0
+    for c in conflicts:
+        print(f"REFUSED: {duplicate_message(c)}", file=sys.stderr)
+    return 1 if failed or conflicts else 0
 
 
 # ------------------------------------------------------------- index handling --
@@ -656,7 +757,7 @@ def _rows(payload: bytes, context: str, compact: bool) -> list[list[Any]]:
 
 
 def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], context: str) -> None:
-    if (len(row) != 8 or row[0] != entry["id"] or row[1] != entry["name"] or row[2] != STATE
+    if (len(row) != 8 or row[0] != entry["id"] or row[1] != (entry.get("display_name") or entry["name"]) or row[2] != STATE
             or row[7] != entry["relation_id"]):
         raise DkError(f"{context}: {entry['id']} row has the wrong identity")
     if entry.get("center") is None or [row[3], row[4]] != entry["center"]:
@@ -1360,6 +1461,7 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("area-json", "geom", "trails-geojson", "removed-geojson", "assembly-json", "out"):
         r.add_argument(f"--{name}", required=True, type=Path)
     r.add_argument("--expected", type=Path, default=EXPECTED_PATH)
+    r.add_argument("--live-geom-dir", type=Path, default=LIVE_GEOM_DIR)
 
     f = sub.add_parser("mark-failed")
     f.add_argument("--area-id", required=True)

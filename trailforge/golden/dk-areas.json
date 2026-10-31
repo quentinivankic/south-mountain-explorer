@@ -1579,7 +1579,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 6,
       "est_mi": 7.7,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: Brun/Grøn/Gul/Blå are bare colour names without the area and Rød rute is lost to relation gap; no Naturstyrelsen guide; needs a display prefix (code gap, not invented)."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A curation (dk-v3): do not ship: Brun/Grøn/Gul/Blå are bare colour names without the area and Rød rute is lost to relation gap; no Naturstyrelsen guide; needs a display prefix (code gap, not invented). Wayback curation: Gul/Grøn/Brun here are the same three Bikubenfonden routes now carried by svanninge-bjerge-dk; never publish both."
     },
     {
       "id": "allerup-bakker-dk",
@@ -2223,6 +2223,173 @@
       "est_trails": 6,
       "est_mi": 5.0,
       "notes": "Tier 2 landscape_misc, Jutland. Held: nested in national park. bbox/center computed by the qualify run."
+    },
+    {
+      "id": "dyrehaven-dk",
+      "name": "Jægersborg Dyrehave",
+      "display_name": "Dyrehaven",
+      "state": "Denmark",
+      "way_id": 38458861,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 37,
+      "est_mi": 25.4,
+      "notes": "Way-backed (way 38458861, Jægersborg Dyrehave). Wayback curation (dk-v3): do not ship. No signed hiking route lies inside the polygon (Naturstyrelsen sends walkers to udinaturen.dk; the lwn routes Blixenruten, Mølleådalen and Rudersdalruten leave the park). All 10 survivors are OSM name-stitches: Chausseen and Kongevej are carriage drives (track, horse and bicycle yes), Dyrehavsbakken is the lit asphalt footway network of the Bakken fairground, Rådvadsti and Golfsti are asphalt/golf tracks; only about five short paths (Åsti, Vesthussti, Vildthussti, Fortunstien, Teatersti, ~3.5 mi) are real walking paths. Finishing them would not be completing Dyrehaven."
+    },
+    {
+      "id": "kalvebod-faelled-dk",
+      "name": "Kalvebod Fælled",
+      "state": "Denmark",
+      "way_id": 4248461,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 23,
+      "est_mi": 29.0,
+      "notes": "Way-backed (way 4248461, Kalvebod Fælled / Vestamager). Wayback curation (dk-v3): do not ship. Only 4 short name-stitched paths (Sneppestien, Lærkestien, Birkestien, Fårestien; 3.1 mi) in a 23 km2 reserve. 3'eren, 5'eren and 10'eren are Frederiksberg city exercise loops that only clip the reserve; Amarminoen and E6 are long-distance; the Naturstyrelsen leaflet no. 65 walks are not mapped as routes in OSM. Revisit if the leaflet walks get mapped."
+    },
+    {
+      "id": "svanninge-bjerge-dk",
+      "name": "Svanninge Bjerge",
+      "state": "Denmark",
+      "way_id": 983744481,
+      "bbox": [10.2, 55.06, 10.34, 55.2],
+      "center": [55.13, 10.27],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 9,
+      "est_mi": 15.0,
+      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (r8845680, 4.58 mi) is dropped by the 322 m source gap rule (mapped twice, r8902909); no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap).",
+      "include_trails": [
+        {
+          "id": "r8872389",
+          "name": "Lyseblå rute",
+          "reason": "lwn relation 2.47 mi with the same Bikubenfonden folder source and hiker symbols as the five colour routes inside the polygon; about 42% sits inside the boundary, whole route"
+        },
+        {
+          "id": "r8872501",
+          "name": "Pink rute",
+          "reason": "lwn relation 3.08 mi with the same Svanninge Bjerge colour-route symbol family; about 49% sits inside the boundary, whole route"
+        }
+      ]
+    },
+    {
+      "id": "skjern-enge-dk",
+      "name": "Skjern Enge",
+      "state": "Denmark",
+      "way_id": 126717547,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 8.3,
+      "notes": "Way-backed (way 126717547, Skjern Enge). Wayback curation (dk-v3): do not ship. 0 trails: only long-distance rwn/iwn routes (Drivvejen, Nymindegab til Skjern) touch the polygon plus one 0.75 mi clipped Kløversti that belongs to the town loops outside it. The Skjern Å walks are not mapped as named hiking routes inside the polygon."
+    },
+    {
+      "id": "lille-vildmose-dk",
+      "name": "Lille Vildmose",
+      "state": "Denmark",
+      "way_id": 479741966,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 7.0,
+      "notes": "Way-backed (way 479741966, Lille Vildmose). Wayback curation (dk-v3): do not ship. Only 2 trails, 2.2 mi (Kællingbjerg Klint, Plankestien i Portlandsmosen) in a 75 km2 Natura 2000 area; the Hals Mose and Øster Hurup routes (about 30 mi) are outside the polygon and are different places. Too thin to call complete."
+    },
+    {
+      "id": "vestskoven-dk",
+      "name": "Vestskoven",
+      "state": "Denmark",
+      "way_id": 927880756,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 29,
+      "est_mi": 24.3,
+      "notes": "Way-backed (way 927880756, Vestskoven). Wayback curation (dk-v3): do not ship. One signed route (Kringelstien 2.5 mi) plus five name-stitched gravel/bicycle forest tracks (Gåsehøj, Slettestien, Egeskoven, Gartnervangen, Åbakken). The Løberuter i Albertslund routes are running trails and the 20 more lwn routes are outside the polygon. A one-route area is not a destination."
+    },
+    {
+      "id": "egholm-dk",
+      "name": "Egholm",
+      "state": "Denmark",
+      "way_id": 156597303,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 8.3,
+      "notes": "Way-backed (way 156597303, Egholm). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. Four signed Vandrerute relations (Gul 5.59, Blå 4.76, Grøn 7.43 km tagged, Rød 1.54 mi) are the whole destination, but Egholm Grøn Vandrerute is published at 43% of its length (3.2 of 7.4 km): 5 of its 15 ways carry the member roles forward/backward, which the member-safety rule rejects as unsupported-role. Shipping three complete routes and a truncated fourth would break the completionist bar. Fix: accept forward/backward roles on out-and-back signed routes (live-output impact, needs a decision). The 1.62 mi name-stitch 'Egholm' is excluded below.",
+      "exclude_trails": [
+        {
+          "id": "n:Egholm",
+          "name": "Egholm",
+          "reason": "1.62 mi name-stitch of an island-name track; not a signed route"
+        }
+      ]
+    },
+    {
+      "id": "haunstrup-brunkulslejer-dk",
+      "name": "Haunstrup Brunkulslejer",
+      "state": "Denmark",
+      "way_id": 164733808,
+      "bbox": [8.76, 56.04, 8.89, 56.16],
+      "center": [56.104, 8.826],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.5,
+      "notes": "Way-backed (way 164733808, Haunstrup Brunkulslejer). Wayback curation (dk-v3): ship. Three Naturstyrelsen lwn routes (Gul, Rød, Blå; operator Naturstyrelsen, source = the Naturstyrelsen turfolder), all whole with gap 0 m. The Naturstyrelsen guide (/midt-og-vestjylland/haunstrup-brunkulslejer) lists walks plus an MTB route (not included). Neighbouring Skibbild-ruten, wheelchair route and the 1/2 km exercise routes are outside the polygon. Complete as far as OSM shows."
+    },
+    {
+      "id": "fovslet-skov-dk",
+      "name": "Fovslet Skov",
+      "state": "Denmark",
+      "way_id": 157392184,
+      "bbox": [9.34, 55.37, 9.47, 55.49],
+      "center": [55.432, 9.402],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 5.0,
+      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen, Rød i Hoppeshuse carries a fixme 'does this route still exist?') lie in neighbouring polygons and are not included because the guide's current route list could not be opened. Complete for Fovslet Skov itself; partial against the Naturstyrelsen destination."
+    },
+    {
+      "id": "nekselo-dk",
+      "name": "Nekselø",
+      "state": "Denmark",
+      "way_id": 4122608,
+      "bbox": [11.23, 55.71, 11.36, 55.85],
+      "center": [55.779, 11.292],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.0,
+      "notes": "Way-backed (way 4122608, Nekselø). Wayback curation (dk-v3): ship after exclusion. VisitDenmark: the Dansk Vandrelaug-certified Nekselø Nature Trail is two marked loops, the southern Grøn rute (green arrows) and the northern Brun rute (brown arrows), 6.7 km in all. Both are whole lwn relations here (fredninger.dk folder source). The third relation 'Nekselø' (4.87 mi) is the union of the two loops and is excluded as a duplicate. Sjællandsleden and Nordsøvandreruten are thru-hikes and excluded by rule. Complete: matches the two official loops.",
+      "exclude_trails": [
+        {
+          "id": "r2764184",
+          "name": "Nekselø",
+          "reason": "4.87 mi lwn relation that is the union of the two official loops: it shares 77-82% of its ways with Nekselø Grøn rute and Brun rute (the two marked loops of the certified nature trail); not a separate walk"
+        }
+      ]
     }
   ]
 }

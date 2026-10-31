@@ -156,12 +156,33 @@ class PbfRelationMemberLoading(unittest.TestCase):
         with patch.dict(sys.modules, {
                 "osmium": SimpleNamespace(SimpleHandler=FakeHandler)}):
             loaded_nodes, loaded_ways, loaded_relations, _ = \
+                assemble.read_pbf("synthetic.osm.pbf", denmark=True)
+            _n, legacy_ways, legacy_relations, _ = \
                 assemble.read_pbf("synthetic.osm.pbf")
+        # Non-Denmark (US) keeps the pre-Denmark loading: no tagless members.
+        self.assertEqual(legacy_ways, {})
+        self.assertEqual(legacy_relations[700]["members"], [("w", 10, "")])
 
         self.assertEqual(set(loaded_ways), {10})
         self.assertEqual(loaded_ways[10]["tags"], {"surface": "ground"})
         self.assertEqual(loaded_nodes, {1: (1.0, 0.0), 2: (2.0, 0.0)})
         self.assertEqual(loaded_relations[700]["members"], [("w", 10, "")])
+    def test_route_type_is_normalized_only_for_denmark(self):
+        relation = SimpleNamespace(
+            id=701, tags=[SimpleNamespace(k="type", v=" Route ")],
+            members=[SimpleNamespace(type="w", ref=11, role="")])
+
+        class FakeHandler:
+            def apply_file(self, _path):
+                if hasattr(self, "relation"):
+                    self.relation(relation)
+        with patch.dict(sys.modules, {
+                "osmium": SimpleNamespace(SimpleHandler=FakeHandler)}):
+            *_, legacy_relations, _ = assemble.read_pbf("synthetic.osm.pbf")
+            *_, dk_relations, _ = assemble.read_pbf(
+                "synthetic.osm.pbf", denmark=True)
+        self.assertEqual(legacy_relations, {})
+        self.assertEqual(set(dk_relations), {701})
     def test_exact_denmark_and_legacy_poi_loading_policies_do_not_leak(self):
         poi_nodes = [
             SimpleNamespace(
@@ -225,7 +246,7 @@ class PbfRelationMemberLoading(unittest.TestCase):
         }
         read_modes = []
 
-        def read_pbf(_path, *, exact_denmark=False):
+        def read_pbf(_path, *, exact_denmark=False, denmark=False):
             read_modes.append(exact_denmark)
             pois = [*legacy_pois]
             if exact_denmark:

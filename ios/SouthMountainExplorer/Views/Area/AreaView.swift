@@ -122,6 +122,7 @@ struct AreaView: View {
     /// the first layout, when `WindowMetrics` stands in.
     @State private var measuredWindowWidth: CGFloat = 0
     @State private var measuredUsableWidth: CGFloat = 0
+    @State private var measuredTrailingInset: CGFloat = 0
     /// Persisted share of the usable width the wide side panel takes. 0 = unset.
     @AppStorage(StorageKeys.areaPanelFraction) private var storedPanelFraction: Double = 0
     /// Live panel width while the divider is being dragged; committed on release.
@@ -576,13 +577,17 @@ struct AreaView: View {
             AreaWidths(
                 window: proxy.size.width
                     + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
-                usable: proxy.size.width
+                usable: proxy.size.width,
+                trailing: proxy.safeAreaInsets.trailing
             )
         } action: { widths in
             guard widths.window.isFinite, widths.usable.isFinite else { return }
             let wasWide = isWideLayout
             if abs(measuredWindowWidth - widths.window) >= 1 { measuredWindowWidth = widths.window }
             if abs(measuredUsableWidth - widths.usable) >= 1 { measuredUsableWidth = widths.usable }
+            if widths.trailing.isFinite, abs(measuredTrailingInset - widths.trailing) >= 1 {
+                measuredTrailingInset = widths.trailing
+            }
             // The map pane resized with the window: refit a selected trail.
             if wasWide || isWideLayout, selectedTrailId != nil, !isRecording {
                 scheduleSelectedTrailRefit()
@@ -1091,6 +1096,9 @@ struct AreaView: View {
     private func wideContent(area: Area) -> some View {
         let width = panelWidth
         let ax = dynamicTypeSize.isAccessibilitySize
+        // The map pane bleeds under the Duo's right rail; controls, banner and
+        // panel stay inside the safe area, and the camera insets add the bleed.
+        let bleed = AreaPanelLayout.mapTrailingBleed(trailingInset: measuredTrailingInset, isWide: true)
         HStack(spacing: 0) {
             sheetContent(area: area)
                 .frame(width: width)
@@ -1119,15 +1127,16 @@ struct AreaView: View {
                         top: measuredMapControlsBottom + 40,
                         leading: 20,
                         bottom: ax ? 80 : 20,
-                        trailing: 20
+                        trailing: AreaPanelLayout.mapTrailingCameraInset(margin: 20, bleed: bleed)
                     ),
                     selectedVisibleInsets: MapViewportInsets(
                         top: measuredMapControlsBottom,
-                        bottom: 0
+                        bottom: 0,
+                        trailing: bleed
                     ),
                     trackingMode: $trackingMode
                 )
-                .ignoresSafeArea(edges: [.top, .bottom])
+                .ignoresSafeArea(edges: [.top, .bottom, .trailing])
                 .accessibilityHidden(loadingOverlayVisible)
 
                 floatingRetargetBanner(area: area)
@@ -2252,7 +2261,7 @@ struct AreaView: View {
 /// arriving instead of dead air. Long trails are drawn first (they carry
 /// the most visual weight); then medium, then short. Total animation is
 /// capped so a 200-trail area still finishes in ~2.5s.
-private struct LoadingSilhouetteCanvas: View {
+struct LoadingSilhouetteCanvas: View {
     let silhouette: AreaSilhouette
 
     @Environment(\.colorScheme) private var colorScheme
@@ -2262,17 +2271,23 @@ private struct LoadingSilhouetteCanvas: View {
     /// color wins (red over orange over green) instead of two translucent
     /// strokes blending. Within a difficulty, longest spines lead so the reveal
     /// still fills big-to-small.
-    private static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
-    /// Sorted ONCE per silhouette, not per animation frame. This was a computed
-    /// property read inside the Canvas closure of a 60 fps TimelineView, so it
-    /// re-allocated and re-sorted the line list every frame — up to ~1,300 lines
-    /// on the largest areas, during the loading reveal that is meant to look
-    /// smooth.
-    @State private var orderedLines: [SilhouetteLine] = []
+    nonisolated fileprivate static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
+    /// Sorted once per silhouette (in `init`), not per animation frame. This is a
+    /// plain `let`, NOT `@State` filled in `onAppear`: state that only the Canvas
+    /// closure reads never invalidates `body`, so the Canvas kept drawing from
+    /// the empty initial list and the draw-in never appeared on some paths.
+    private let orderedLines: [SilhouetteLine]
 
-    private func computeOrderedLines() -> [SilhouetteLine] {
-        silhouette.l.filter { $0.p.count >= 2 }.sorted {
-            let pa = Self.priority($0.d), pb = Self.priority($1.d)
+    init(silhouette: AreaSilhouette) {
+        self.silhouette = silhouette
+        self.orderedLines = Self.ordered(silhouette.l)
+    }
+
+    /// Draw order: difficulty priority (easy, moderate, hard), longer spines
+    /// first within a difficulty. Lines with fewer than 2 points are dropped.
+    nonisolated static func ordered(_ lines: [SilhouetteLine]) -> [SilhouetteLine] {
+        lines.filter { $0.p.count >= 2 }.sorted {
+            let pa = priority($0.d), pb = priority($1.d)
             return pa == pb ? $0.p.count > $1.p.count : pa < pb
         }
     }
@@ -2368,7 +2383,6 @@ private struct LoadingSilhouetteCanvas: View {
         }
         .onAppear {
             startDate = Date()
-            orderedLines = computeOrderedLines()
         }
     }
 }

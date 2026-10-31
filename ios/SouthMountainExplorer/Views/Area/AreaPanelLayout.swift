@@ -26,6 +26,20 @@ enum AreaPanelLayout {
     /// Minimum touch target of the divider.
     static let dividerHitWidth: CGFloat = 44
 
+    /// Extra width the map pane bleeds under the system rail on the trailing
+    /// edge. Wide layout only; compact layouts are unchanged. Bounded so a bad
+    /// measurement can never push the map far off-screen.
+    static func mapTrailingBleed(trailingInset: CGFloat, isWide: Bool) -> CGFloat {
+        guard isWide, trailingInset.isFinite, trailingInset > 0 else { return 0 }
+        return min(trailingInset, 120)
+    }
+
+    /// Trailing camera inset for the map: the normal margin plus the bleed, so
+    /// fitted trails stay clear of the rail rather than sliding under it.
+    static func mapTrailingCameraInset(margin: CGFloat, bleed: CGFloat) -> CGFloat {
+        margin + bleed
+    }
+
     static func minPanelWidth(accessibility: Bool) -> CGFloat {
         accessibility ? minPanelWidthAccessibility : minPanelWidth
     }
@@ -86,6 +100,8 @@ enum AreaPanelLayout {
 struct AreaWidths: Equatable {
     var window: CGFloat
     var usable: CGFloat
+    /// Trailing safe-area inset (the Duo's right rail). Zero on compact windows.
+    var trailing: CGFloat = 0
 }
 
 /// Resolves the map's own viewport size for camera math. A measured size wins
@@ -126,6 +142,9 @@ struct AreaPanelDivider: View {
     /// Final width on release (persist + refit once).
     let onCommit: (CGFloat) -> Void
 
+    static let grabberWidth: CGFloat = 5
+    static let grabberHeight: CGFloat = 48
+
     @State private var dragStartWidth: CGFloat?
 
     var body: some View {
@@ -134,9 +153,16 @@ struct AreaPanelDivider: View {
             .frame(width: 1)
             .frame(maxHeight: .infinity)
             .overlay {
+                // Grabber: a high-contrast pill with a thin contrasting rim and
+                // a soft shadow so it reads over both the map and the panel in
+                // light and dark mode.
                 Capsule()
-                    .fill(Color(.tertiaryLabel))
-                    .frame(width: 4, height: 36)
+                    .fill(Color(.label).opacity(0.75))
+                    .frame(width: Self.grabberWidth, height: Self.grabberHeight)
+                    .overlay(
+                        Capsule().strokeBorder(Color(.systemBackground).opacity(0.9), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 1)
             }
             .overlay {
                 Color.clear

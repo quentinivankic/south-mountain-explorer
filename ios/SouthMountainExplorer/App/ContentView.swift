@@ -61,6 +61,7 @@ struct ContentView: View {
     @Environment(ProgressService.self) private var progress
     @Environment(ActivityService.self) private var activity
     @Environment(LocationService.self) private var location
+    @Environment(TurnCueCoordinator.self) private var turnCues
     @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage(StorageKeys.onboarded) private var onboarded = false
@@ -176,6 +177,9 @@ struct ContentView: View {
                         onStop: { showStopConfirm = true }
                     )
                 }
+                if let cue = turnCues.bannerCue {
+                    TurnCueBanner(cue: cue)
+                }
             }
         }
         // Warm the trail-shape thumbnails in the background at launch (while
@@ -185,6 +189,7 @@ struct ContentView: View {
         // the TAB level, not in AreaView, because WalkView draws parking too and a
         // user can reach a walk without opening an area first.
         .task { await ParkingPoolService.shared.loadIfNeeded() }
+        .task { turnCues.start() }
         // Banner tap for an in-progress WALK reopens the walk screen
         // (which restores from the recording's own nearby-area list)
         // instead of the primary area's AreaView.

@@ -15,6 +15,16 @@ enum LocationAccuracyDemand: Equatable, Sendable {
     case precise
 }
 
+/// Latest raw fix with the quality fields the other published values drop.
+/// Read by turn cues; additive, no effect on recording.
+struct LiveFix: Equatable, Sendable {
+    let coordinate: CLLocationCoordinate2D
+    let horizontalAccuracy: Double
+    /// m/s; nil when CoreLocation reports an invalid (negative) speed.
+    let speed: Double?
+    let timestamp: Date
+}
+
 enum LocationFixResult: Equatable {
     case success(CLLocationCoordinate2D)
     case denied
@@ -140,6 +150,8 @@ final class LocationService: NSObject, RecordingLocationControlling {
     /// UserDefaults). Lets callers tell a genuinely fresh fix from the
     /// stale restored one. `nil` until the first live fix arrives.
     private(set) var lastFixDate: Date? = nil
+    /// Latest fix with accuracy/speed (see `LiveFix`).
+    private(set) var liveFix: LiveFix? = nil
 
     private struct PendingFix {
         let accuracy: LocationAccuracyDemand
@@ -381,7 +393,13 @@ extension LocationService: CLLocationManagerDelegate {
         let coord = loc.coordinate
         let altitude: Double? = loc.verticalAccuracy >= 0 ? loc.altitude : nil
         let fixDate = loc.timestamp
+        let fixAccuracy = loc.horizontalAccuracy
+        let fixSpeed: Double? = loc.speed >= 0 ? loc.speed : nil
         Task { @MainActor in
+            self.liveFix = LiveFix(
+                coordinate: coord, horizontalAccuracy: fixAccuracy,
+                speed: fixSpeed, timestamp: fixDate
+            )
             self.liveLocation = coord
             self.liveAltitude = altitude
             self.userLocation = coord

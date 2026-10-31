@@ -32,6 +32,11 @@ enum StorageKeys {
     /// (Arizona dev). Affects every distance / elevation display
     /// site via `UnitFormatter`.
     static let units = "summit:units"
+    /// Turn cues: spoken guidance and haptics. Both default ON; an unset key
+    /// means on (read through `TurnCueDispatcher.boolSetting`). Preferences,
+    /// so Reset All Progress leaves them alone.
+    static let turnCueVoice = "summit:turn-cue-voice"
+    static let turnCueHaptics = "summit:turn-cue-haptics"
 
     // MARK: - User progress (cleared by Reset All Progress)
 

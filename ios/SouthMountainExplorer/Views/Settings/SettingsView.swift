@@ -328,6 +328,12 @@ struct SettingsView: View {
                     }
 
                     NavigationLink {
+                        StateDownloadsView()
+                    } label: {
+                        Label("Download by State or Country", systemImage: "map")
+                    }
+
+                    NavigationLink {
                         DownloadedAreasView()
                     } label: {
                         Label("Manage Offline Trails", systemImage: "internaldrive")
@@ -827,6 +833,7 @@ struct SettingsView: View {
         if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
             try? FileManager.default.removeItem(at: caches.appendingPathComponent("areas"))
         }
+        StateDownloadManager.shared.resetAll()
     }
 
     private var appVersion: String {

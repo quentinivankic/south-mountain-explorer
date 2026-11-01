@@ -62,6 +62,7 @@ struct DownloadedAreasView: View {
         ) {
             Button("Clear All", role: .destructive) {
                 AreaDataService.shared.clearAreaCache()
+                StateDownloadManager.shared.resetAll()
                 rows = []
             }
             Button("Cancel", role: .cancel) { }

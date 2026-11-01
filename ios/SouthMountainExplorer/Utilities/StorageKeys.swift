@@ -117,6 +117,12 @@ enum StorageKeys {
 
     static let prefetchNearbyLastLat = "prefetch.nearby.lastLat"
     static let prefetchNearbyLastLon = "prefetch.nearby.lastLon"
+    /// Settings > Offline Trails > Download by State: allow cellular data.
+    /// Default false. Not reset by Reset All Progress (a preference).
+    static let offlineStatesAllowCellular = "offline.states.allowCellular"
+    /// Area ids the user downloaded via the per-area flows. State Remove
+    /// never deletes these. Cleared together with the offline ledger.
+    static let offlineStatesUserHeld = "offline.states.userHeld"
 
     // MARK: - One-time migrations
 

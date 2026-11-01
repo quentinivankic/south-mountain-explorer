@@ -487,11 +487,18 @@ final class AreaDataService {
                     && self.cacheStore.validArea(id: id) != nil
             }
         )
-        return await prefetcher.run(
+        let result = await prefetcher.run(
             ids: ids,
             forceRefresh: forceRefresh,
             progress: progress
         )
+        // Areas the user fetched through the per-area flows are theirs: a
+        // later state Remove must keep them. Refresh re-fetches everything
+        // already on the device, so it must not claim ownership.
+        if !forceRefresh {
+            UserHeldAreas.add(result.succeededIDs + result.alreadyCurrentIDs)
+        }
+        return result
     }
 
     // MARK: - Full Area Data
@@ -1051,6 +1058,15 @@ final class AreaDataService {
     /// Remove a single area from the on-disk + in-memory cache. The
     /// next `area(id:)` call will re-fetch from the CDN. Used by the
     /// Manage Downloads list's swipe-to-delete.
+    /// Directory holding durable area files (`Caches/areas`).
+    var areaCacheDirectory: URL { cacheDir }
+
+    /// Drop in-memory copies after files were removed on disk.
+    func dropMemoryCache(ids: [String]) {
+        for id in ids { areaCache.removeValue(forKey: id) }
+        trailHitsCacheKey = -1
+    }
+
     func removeDownloadedArea(id: String) {
         areaCache.removeValue(forKey: id)
         try? FileManager.default.removeItem(at: areaDiskURL(id: id))

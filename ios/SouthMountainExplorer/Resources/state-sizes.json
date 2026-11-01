@@ -1,0 +1,375 @@
+{
+ "states": [
+  {
+   "state": "Alabama",
+   "areas": 51,
+   "trails": 520,
+   "rawBytes": 2042398,
+   "wireBytes": 494448
+  },
+  {
+   "state": "Alaska",
+   "areas": 98,
+   "trails": 1027,
+   "rawBytes": 4167210,
+   "wireBytes": 1143607
+  },
+  {
+   "state": "Arizona",
+   "areas": 165,
+   "trails": 4063,
+   "rawBytes": 29171701,
+   "wireBytes": 7318826
+  },
+  {
+   "state": "Arkansas",
+   "areas": 40,
+   "trails": 454,
+   "rawBytes": 2463512,
+   "wireBytes": 615967
+  },
+  {
+   "state": "California",
+   "areas": 898,
+   "trails": 13877,
+   "rawBytes": 78586648,
+   "wireBytes": 20044138
+  },
+  {
+   "state": "Colorado",
+   "areas": 262,
+   "trails": 6133,
+   "rawBytes": 32421725,
+   "wireBytes": 8543406
+  },
+  {
+   "state": "Connecticut",
+   "areas": 358,
+   "trails": 1155,
+   "rawBytes": 4469789,
+   "wireBytes": 1091633
+  },
+  {
+   "state": "Delaware",
+   "areas": 28,
+   "trails": 98,
+   "rawBytes": 264040,
+   "wireBytes": 67541
+  },
+  {
+   "state": "Denmark",
+   "areas": 74,
+   "trails": 374,
+   "rawBytes": 1415116,
+   "wireBytes": 350351
+  },
+  {
+   "state": "District of Columbia",
+   "areas": 19,
+   "trails": 44,
+   "rawBytes": 175167,
+   "wireBytes": 46246
+  },
+  {
+   "state": "Florida",
+   "areas": 226,
+   "trails": 1208,
+   "rawBytes": 3922654,
+   "wireBytes": 953770
+  },
+  {
+   "state": "Georgia",
+   "areas": 70,
+   "trails": 837,
+   "rawBytes": 4410587,
+   "wireBytes": 1151495
+  },
+  {
+   "state": "Hawaii",
+   "areas": 71,
+   "trails": 356,
+   "rawBytes": 1788656,
+   "wireBytes": 463779
+  },
+  {
+   "state": "Idaho",
+   "areas": 95,
+   "trails": 3025,
+   "rawBytes": 30574824,
+   "wireBytes": 8116585
+  },
+  {
+   "state": "Illinois",
+   "areas": 294,
+   "trails": 1364,
+   "rawBytes": 5380373,
+   "wireBytes": 1346166
+  },
+  {
+   "state": "Indiana",
+   "areas": 78,
+   "trails": 595,
+   "rawBytes": 2320170,
+   "wireBytes": 564981
+  },
+  {
+   "state": "Iowa",
+   "areas": 73,
+   "trails": 317,
+   "rawBytes": 961516,
+   "wireBytes": 239037
+  },
+  {
+   "state": "Kansas",
+   "areas": 33,
+   "trails": 167,
+   "rawBytes": 969178,
+   "wireBytes": 234128
+  },
+  {
+   "state": "Kentucky",
+   "areas": 46,
+   "trails": 525,
+   "rawBytes": 1789677,
+   "wireBytes": 471403
+  },
+  {
+   "state": "Louisiana",
+   "areas": 25,
+   "trails": 118,
+   "rawBytes": 334684,
+   "wireBytes": 86169
+  },
+  {
+   "state": "Maine",
+   "areas": 461,
+   "trails": 1648,
+   "rawBytes": 3748928,
+   "wireBytes": 1038495
+  },
+  {
+   "state": "Maryland",
+   "areas": 229,
+   "trails": 1817,
+   "rawBytes": 7954859,
+   "wireBytes": 1848826
+  },
+  {
+   "state": "Massachusetts",
+   "areas": 762,
+   "trails": 3083,
+   "rawBytes": 8198287,
+   "wireBytes": 2109975
+  },
+  {
+   "state": "Michigan",
+   "areas": 261,
+   "trails": 2006,
+   "rawBytes": 7165386,
+   "wireBytes": 1840678
+  },
+  {
+   "state": "Minnesota",
+   "areas": 107,
+   "trails": 823,
+   "rawBytes": 4113607,
+   "wireBytes": 967166
+  },
+  {
+   "state": "Mississippi",
+   "areas": 10,
+   "trails": 63,
+   "rawBytes": 437502,
+   "wireBytes": 113241
+  },
+  {
+   "state": "Missouri",
+   "areas": 123,
+   "trails": 914,
+   "rawBytes": 6958827,
+   "wireBytes": 1685674
+  },
+  {
+   "state": "Montana",
+   "areas": 78,
+   "trails": 2503,
+   "rawBytes": 18933162,
+   "wireBytes": 5243762
+  },
+  {
+   "state": "Nebraska",
+   "areas": 26,
+   "trails": 128,
+   "rawBytes": 373062,
+   "wireBytes": 91218
+  },
+  {
+   "state": "Nevada",
+   "areas": 61,
+   "trails": 1092,
+   "rawBytes": 6227283,
+   "wireBytes": 1625500
+  },
+  {
+   "state": "New Hampshire",
+   "areas": 412,
+   "trails": 1725,
+   "rawBytes": 4171014,
+   "wireBytes": 1126494
+  },
+  {
+   "state": "New Jersey",
+   "areas": 193,
+   "trails": 1813,
+   "rawBytes": 16081813,
+   "wireBytes": 3934886
+  },
+  {
+   "state": "New Mexico",
+   "areas": 119,
+   "trails": 2717,
+   "rawBytes": 19231272,
+   "wireBytes": 4661562
+  },
+  {
+   "state": "New York",
+   "areas": 738,
+   "trails": 5717,
+   "rawBytes": 16923253,
+   "wireBytes": 4407044
+  },
+  {
+   "state": "North Carolina",
+   "areas": 170,
+   "trails": 1844,
+   "rawBytes": 10354128,
+   "wireBytes": 2584881
+  },
+  {
+   "state": "North Dakota",
+   "areas": 15,
+   "trails": 64,
+   "rawBytes": 774211,
+   "wireBytes": 194629
+  },
+  {
+   "state": "Ohio",
+   "areas": 229,
+   "trails": 1455,
+   "rawBytes": 6531088,
+   "wireBytes": 1538276
+  },
+  {
+   "state": "Oklahoma",
+   "areas": 16,
+   "trails": 116,
+   "rawBytes": 478758,
+   "wireBytes": 121437
+  },
+  {
+   "state": "Oregon",
+   "areas": 268,
+   "trails": 4102,
+   "rawBytes": 23552988,
+   "wireBytes": 6158287
+  },
+  {
+   "state": "Pennsylvania",
+   "areas": 362,
+   "trails": 4187,
+   "rawBytes": 12856819,
+   "wireBytes": 3313146
+  },
+  {
+   "state": "Rhode Island",
+   "areas": 79,
+   "trails": 447,
+   "rawBytes": 923367,
+   "wireBytes": 242253
+  },
+  {
+   "state": "South Carolina",
+   "areas": 55,
+   "trails": 376,
+   "rawBytes": 2091280,
+   "wireBytes": 517731
+  },
+  {
+   "state": "South Dakota",
+   "areas": 21,
+   "trails": 220,
+   "rawBytes": 1481514,
+   "wireBytes": 336649
+  },
+  {
+   "state": "Tennessee",
+   "areas": 96,
+   "trails": 999,
+   "rawBytes": 4730232,
+   "wireBytes": 1259094
+  },
+  {
+   "state": "Texas",
+   "areas": 109,
+   "trails": 856,
+   "rawBytes": 3624854,
+   "wireBytes": 911769
+  },
+  {
+   "state": "Utah",
+   "areas": 117,
+   "trails": 2764,
+   "rawBytes": 17938252,
+   "wireBytes": 4582988
+  },
+  {
+   "state": "Vermont",
+   "areas": 103,
+   "trails": 685,
+   "rawBytes": 2084112,
+   "wireBytes": 569383
+  },
+  {
+   "state": "Virginia",
+   "areas": 211,
+   "trails": 2219,
+   "rawBytes": 11530775,
+   "wireBytes": 2953094
+  },
+  {
+   "state": "Washington",
+   "areas": 383,
+   "trails": 5743,
+   "rawBytes": 38380504,
+   "wireBytes": 9331180
+  },
+  {
+   "state": "West Virginia",
+   "areas": 98,
+   "trails": 1362,
+   "rawBytes": 4886016,
+   "wireBytes": 1326117
+  },
+  {
+   "state": "Wisconsin",
+   "areas": 192,
+   "trails": 933,
+   "rawBytes": 3207627,
+   "wireBytes": 819476
+  },
+  {
+   "state": "Wyoming",
+   "areas": 40,
+   "trails": 2138,
+   "rawBytes": 15160891,
+   "wireBytes": 4164636
+  }
+ ],
+ "global": {
+  "state": "global",
+  "areas": 9148,
+  "trails": 92816,
+  "rawBytes": 488735296,
+  "wireBytes": 124963223
+ }
+}

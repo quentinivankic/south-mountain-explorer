@@ -1601,6 +1601,240 @@
         "Tømmervej",
         "Vestvej"
       ]
+    },
+    "slivso-dk": {
+      "trail_count": 2,
+      "total_mi": 4.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Slivsø, nord",
+        "Slivsø, syd"
+      ],
+      "forbidden_names": [
+        "Camino Haderslev Næs"
+      ]
+    },
+    "bangsbo-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Bangsbo Skov blå rute",
+        "Bangsbo Skov rød rute",
+        "Bangsbo Skov gul rute"
+      ],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute- Nordjylland Øst",
+        "Dronning Margrethes Vej",
+        "Hærvejen"
+      ]
+    },
+    "hellevad-dk": {
+      "trail_count": 4,
+      "total_mi": 13.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Rundt om Hellevad, grøn rute",
+        "Rundt om Hellevad, gul rute",
+        "Rundt om Hellevad, blå rute",
+        "Rundt om Hellevad, rød rute"
+      ],
+      "forbidden_names": []
+    },
+    "grenen-dk": {
+      "trail_count": 4,
+      "total_mi": 12.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Grenensporet Rød rute",
+        "Grenensporet Blå rute",
+        "Grenensporet Grøn rute",
+        "Grenensporet Gul rute"
+      ],
+      "forbidden_names": []
+    },
+    "asted-adal-dk": {
+      "trail_count": 3,
+      "total_mi": 6.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Åsted Ådal - rød rute",
+        "Åsted Ådal - blå rute",
+        "Åsted Ådal - gul rute"
+      ],
+      "forbidden_names": []
+    },
+    "ammitsbol-baek-dk": {
+      "trail_count": 3,
+      "total_mi": 4.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Ammitsbøl Bæk Rød Rute",
+        "Ammitsbøl Bæk Gul Rute",
+        "Ammitsbøl Bæk Blå rute"
+      ],
+      "forbidden_names": [
+        "Rans togt"
+      ]
+    },
+    "tinglev-dk": {
+      "trail_count": 6,
+      "total_mi": 18.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Olger-Ruten",
+        "Amalienborg-Ruten",
+        "Mosevang-Ruten",
+        "Tinglev Vest-Ruten",
+        "Kælkebakke-Ruten",
+        "Tinglev Mose"
+      ],
+      "forbidden_names": [
+        "Olgerstien",
+        "Tønder-Tinglev-banen",
+        "Visgårdvej"
+      ]
+    },
+    "skaelskor-dk": {
+      "trail_count": 6,
+      "total_mi": 16.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Noret Rundt",
+        "Lodshusstien",
+        "Kobæk Kvalitetssti",
+        "Skælskør Lystskov",
+        "Skælskør Inderfjord",
+        "Stien ved Borreby Mose"
+      ],
+      "forbidden_names": [
+        "Lagunestien"
+      ]
+    },
+    "hingelbjerge-dk": {
+      "trail_count": 2,
+      "total_mi": 3.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hingelbjerge - Rød Rute",
+        "Hingelbjerge - Gul Rute"
+      ],
+      "forbidden_names": []
+    },
+    "nybol-nor-dk": {
+      "trail_count": 2,
+      "total_mi": 11.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Nybøl Nor Stien",
+        "Nybølstien"
+      ],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Sydfyn"
+      ]
+    },
+    "skamlingsbanken-dk": {
+      "trail_count": 3,
+      "total_mi": 5.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Skamlingsbankestien",
+        "Udsigtsruten",
+        "Højskamling"
+      ],
+      "forbidden_names": [
+        "Tværvejen",
+        "Æ Gruevej"
+      ]
+    },
+    "kas-hoved-dk": {
+      "trail_count": 2,
+      "total_mi": 6.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Ålbæk Kås Rundtur",
+        "Sønderhøje - Kås"
+      ],
+      "forbidden_names": [
+        "Ålbæk Strandvej"
+      ]
+    },
+    "nysted-dk": {
+      "trail_count": 2,
+      "total_mi": 7.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "En kultur- og natursti rundt om Nysted",
+        "Aalholm Slot rundtur"
+      ],
+      "forbidden_names": [
+        "Den Danske Klosterrute",
+        "Paradisruten",
+        "Sjællandsleden 2012",
+        "sti",
+        "Ålholm Parkvej"
+      ]
+    },
+    "bovbjerg-fyr-dk": {
+      "trail_count": 2,
+      "total_mi": 12.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Bovbjerg Fyr - fire kirker",
+        "Bovbjerg Fyr - Trans rundtur"
+      ],
+      "forbidden_names": []
+    },
+    "orslevkloster-so-dk": {
+      "trail_count": 2,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Virksund - Blå rute",
+        "Ørslevkloster Sø"
+      ],
+      "forbidden_names": []
+    },
+    "troldhede-brunkulsleje-dk": {
+      "trail_count": 2,
+      "total_mi": 3.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Troldhede Brunkulsleje, rute 1",
+        "Troldhede Brunkulsleje, rute 2"
+      ],
+      "forbidden_names": []
+    },
+    "bogense-dk": {
+      "trail_count": 2,
+      "total_mi": 8.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Engruten",
+        "Digerouten"
+      ],
+      "forbidden_names": []
+    },
+    "sindal-dk": {
+      "trail_count": 3,
+      "total_mi": 11.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Soldalstien",
+        "Skovstien",
+        "Ulstedbostien"
+      ],
+      "forbidden_names": []
+    },
+    "jensen-og-sorensens-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 2.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Jensen og Sørensens Plantage - Gul rute",
+        "Jensen og Sørensens Plantage - Blå rute"
+      ],
+      "forbidden_names": []
     }
   }
 }

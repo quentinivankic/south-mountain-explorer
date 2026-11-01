@@ -511,7 +511,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                           *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
-                          *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED}
+                          *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (17, 79.8), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
@@ -542,7 +542,13 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
         "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8),
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0),
+        "slivso-dk": (2, 4.1), "bangsbo-skov-dk": (3, 5.6), "hellevad-dk": (4, 13.5), "grenen-dk": (4, 12.7),
+        "asted-adal-dk": (3, 6.7), "ammitsbol-baek-dk": (3, 4.0), "tinglev-dk": (6, 18.4),
+        "skaelskor-dk": (6, 16.6), "hingelbjerge-dk": (2, 3.3), "nybol-nor-dk": (2, 11.4),
+        "skamlingsbanken-dk": (3, 5.0), "kas-hoved-dk": (2, 6.7), "nysted-dk": (2, 7.4),
+        "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
+        "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -573,19 +579,26 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert "Trampesti" in table["oro-dk"]["forbidden_names"] and "Hærvejen" in table["svinklov-klitplantage-dk"]["forbidden_names"]
     assert not set(table) & {"laeso-klitplantage-dk", "horslund-krat-dk", "pedersker-plantage-dk", "rude-skov-dk",
                              "skjern-enge-dk", "fiskerup-skov-dk"}
-    # batch I: required names per area; Slivsø is held and not blessed
+    # batch I: required names per area; Slivsø was held then, and is blessed with batch L
     for aid, name in (("klintenborg-plantage-dk", "Rød rute i Klintenborg Plantage"),
                       ("sonderskov-slaaenso-dk", "Slåensøen Rundt"), ("sonderskov-slaaenso-dk", "Høgdal rød rute"),
                       ("hald-so-dk", "Hald Sø gul sti"), ("hald-so-dk", "Gletsjerruten"),
                       ("farrestierne-dk", "Farrestierne Rød vandrerute"), ("soheden-plantage-dk", "Rød Rute Søheden Skov")):
         assert name in table[aid]["required_names"]
-    assert "Hærvejen" in table["hald-so-dk"]["forbidden_names"] and "slivso-dk" not in table
+    assert "Hærvejen" in table["hald-so-dk"]["forbidden_names"]
     # batch K: every shipped trail is a required name; the nine held entries and the old Stoubæk id are not blessed
     for aid, name in (("osteradalen-dk", "Østerådalen rundt"), ("vrogum-klitplantage-dk", "Vrøgum Klitplantage - Gul rute"),
                       ("stoubaek-krat-dk", "Stoubæk Krat, gul rute"), ("langdal-plantage-dk", "Langdal Plantage Rød rute"),
                       ("hjelm-hede-dk", "Flyndersø - Mågesøen"), ("vester-aslund-plantage-dk", "Vester Aslund Rød rute")):
         assert name in table[aid]["required_names"]
     assert not set(table) & {*BATCH_K_HELD_NEW, "naturreservatet-stoubaek-krat-dk"}
+    # batch L (second-review-l, qualify on main 41274401263): every shipped trail is a required name, Skælskør is
+    # blessed at the Actions 16.6, and the eight held entries are not blessed
+    for aid, name in (("bangsbo-skov-dk", "Bangsbo Skov blå rute"), ("tinglev-dk", "Tinglev Mose"),
+                      ("skaelskor-dk", "Kobæk Kvalitetssti"), ("slivso-dk", "Slivsø, nord"),
+                      ("sindal-dk", "Ulstedbostien"), ("bogense-dk", "Engruten")):
+        assert name in table[aid]["required_names"], (aid, name)
+    assert not set(table) & set(BATCH_L_HELD_NEW)
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

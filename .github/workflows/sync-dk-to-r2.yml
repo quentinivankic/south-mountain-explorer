@@ -41,17 +41,32 @@ name: Sync Danish areas to R2 (N areas, registry)
 # mode=rollback-update  restore the old bytes of every overwritten object from the
 #                       apply run's snapshot (candidate -> restore, old -> skip,
 #                       anything else refused), final sha256 readback, parking check.
+#
+# REMOVE modes (UNLIST Danish areas the repo already dropped via
+# `dk_publish.py remove-areas`; registry hold=superseded is required, so only a Danish
+# registry area can ever be removed). The 2N per-area objects are NEVER deleted (archive):
+# only the three shared files change, with the removed areas' rows/blocks dropped.
+# mode=plan-remove      read-only: derive the removal set (live Danish rows absent from
+#                       the repo bundle; NOT an input, 1..40), record the ETags of the
+#                       2N kept objects (they must exist), build the candidates (shared
+#                       files = LIVE bytes minus those areas' records), prove every other
+#                       record byte-identical, upload the snapshot.
+# mode=apply-remove     plan-remove, then If-Match overwrite of index, search, shapes
+#                       (index first so the app stops listing), sha256 readback, kept
+#                       objects + parking.json ETags unchanged. PARTIAL APPLY trap.
+# mode=rollback-remove  restore the three shared files from the apply run's snapshot
+#                       (candidate -> restore, baseline -> skip, anything else refused).
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "plan | apply | rollback (append new areas) ; plan-update | apply-update | rollback-update (overwrite existing areas)"
+        description: "plan | apply | rollback (append new areas) ; plan-update | apply-update | rollback-update (overwrite existing areas) ; plan-remove | apply-remove | rollback-remove (unlist superseded areas)"
         type: choice
-        options: [plan, apply, rollback, plan-update, apply-update, rollback-update]
+        options: [plan, apply, rollback, plan-update, apply-update, rollback-update, plan-remove, apply-remove, rollback-remove]
         default: plan
       rollback_run_id:
-        description: "rollback / rollback-update only: run id of the apply run whose snapshot to restore"
+        description: "rollback / rollback-update / rollback-remove only: run id of the apply run whose snapshot to restore"
         default: ""
 
 permissions:
@@ -85,8 +100,8 @@ jobs:
       - name: Guards (main tip, inputs, secrets)
         run: |
           set -euo pipefail
-          [[ "$MODE" =~ ^(plan|apply|rollback|plan-update|apply-update|rollback-update)$ ]]
-          if [ "$MODE" = "rollback" ] || [ "$MODE" = "rollback-update" ]; then
+          [[ "$MODE" =~ ^(plan|apply|rollback|plan-update|apply-update|rollback-update|plan-remove|apply-remove|rollback-remove)$ ]]
+          if [ "$MODE" = "rollback" ] || [ "$MODE" = "rollback-update" ] || [ "$MODE" = "rollback-remove" ]; then
             [[ "$ROLLBACK_RUN_ID" =~ ^[0-9]+$ ]]
           else
             test -z "$ROLLBACK_RUN_ID"
@@ -380,3 +395,127 @@ jobs:
           parking_after="$(aws s3api head-object --bucket "$BUCKET" --key parking.json --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
           test "$parking_after" = "$parking_before" || { echo "parking.json changed"; exit 1; }
           echo "update rollback verified"
+
+      # ---------------------------------------------------------------------
+      # REMOVE modes (unlist superseded Danish areas; per-area objects are kept).
+      # Everything above this line is unchanged.
+      # ---------------------------------------------------------------------
+      - name: Remove plan (removal set from the repo vs live index, kept objects, candidates, proofs)
+        if: ${{ inputs.mode == 'plan-remove' || inputs.mode == 'apply-remove' }}
+        run: |
+          set -euo pipefail
+          mkdir -p cand
+          # The removal set is NOT an input: live Danish rows the repo bundle no longer lists.
+          python3 scripts/dk_publish.py derive-remove-areas \
+            --repo . --live-index snap/index.json --out cand/areas.txt
+          # The 2N per-area objects are kept: they must exist and are never written or deleted.
+          : > snap/kept-etags.tsv
+          while read -r area; do
+            for key in "$area.json" "silhouettes/$area.json"; do
+              etag="$(aws s3api head-object --bucket "$BUCKET" --key "$key" \
+                --endpoint-url "$ENDPOINT" --query ETag --output text)"
+              printf '%s\t%s\n' "$key" "${etag//\"/}" >> snap/kept-etags.tsv
+            done
+          done < cand/areas.txt
+          python3 scripts/dk_publish.py build-remove-candidates \
+            --repo . \
+            --live-index snap/index.json --live-search snap/trail-search.json \
+            --live-shapes snap/trail-shapes.json \
+            --areas-file cand/areas.txt --out-dir cand
+          test "$(wc -l < snap/kept-etags.tsv)" -eq "$(jq '.kept_objects | length' cand/plan.json)"
+          cp snap/etags.tsv cand/baseline-etags.tsv
+          jq -r '.writes[] | .key' cand/plan.json
+
+      - name: Save remove snapshot + candidates (rollback source; before any write)
+        if: ${{ inputs.mode == 'plan-remove' || inputs.mode == 'apply-remove' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dk-r2-remove-snapshot-${{ github.run_id }}
+          path: |
+            snap/
+            cand/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Apply remove (conditional overwrite of the 3 shared files, nothing deleted)
+        if: ${{ inputs.mode == 'apply-remove' }}
+        run: |
+          set -euo pipefail
+          put() { # file key cache-control etag
+            aws s3api put-object --bucket "$BUCKET" --key "$2" --body "$1" \
+              --content-type "application/json" --cache-control "$3" --if-match "$4" \
+              --endpoint-url "$ENDPOINT" > /dev/null
+          }
+          cur() { aws s3api head-object --bucket "$BUCKET" --key "$1" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"'; }
+          base() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv; }
+          # Race guard: the shared files and parking must still be the snapshotted objects.
+          for key in index.json trail-search.json trail-shapes.json parking.json; do
+            test "$(cur "$key")" = "$(base "$key")" || { echo "$key changed since snapshot; aborting before any write"; exit 1; }
+          done
+          trap 'rc=$?; [ "$rc" -eq 0 ] || echo "PARTIAL APPLY: dispatch mode=rollback-remove with rollback_run_id=$GITHUB_RUN_ID"' EXIT
+          # plan.json lists writes in order: index first (the app stops listing), search, shapes.
+          jq -r '.writes[] | [.key, .file] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file; do
+            put "cand/$file" "$key" "public, max-age=300" "$(base "$key")"
+          done
+          mkdir -p verify
+          jq -r '.writes[] | [.key, .file, .sha256] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file sha; do
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$file" > /dev/null
+            test "$(sha256sum "verify/$file" | cut -d' ' -f1)" = "$sha" || { echo "READBACK MISMATCH $key"; exit 1; }
+            echo "verified $key $sha"
+          done
+          # The kept per-area objects were not touched.
+          while IFS=$'\t' read -r key etag; do
+            test "$(cur "$key")" = "$etag" || { echo "KEPT OBJECT CHANGED $key"; exit 1; }
+          done < snap/kept-etags.tsv
+          test "$(cur parking.json)" = "$(base parking.json)" || { echo "parking.json changed"; exit 1; }
+          trap - EXIT
+          echo "remove apply complete. rollback: dispatch mode=rollback-remove rollback_run_id=$GITHUB_RUN_ID"
+
+      - name: Rollback remove (restore the 3 shared files; nothing was deleted)
+        if: ${{ inputs.mode == 'rollback-remove' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p rb rb/live
+          gh run download "$ROLLBACK_RUN_ID" -R "$GITHUB_REPOSITORY" -n "dk-r2-remove-snapshot-$ROLLBACK_RUN_ID" -D rb
+          test -f rb/cand/plan.json
+          jq -e '.schema == "trekdex-dk-r2-remove-plan-v1"' rb/cand/plan.json > /dev/null
+          for key in index.json trail-search.json trail-shapes.json; do
+            want="$(jq -r --arg k "$key" '.baseline[$k].sha256' rb/cand/plan.json)"
+            test "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" = "$want" || { echo "snapshot $key corrupt"; exit 1; }
+          done
+          parking_before="$(awk -F'\t' '$1=="parking.json" {print $2}' snap/etags.tsv)"
+          : > rb/live-etags.tsv
+          for key in index.json trail-search.json trail-shapes.json; do
+            etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" \
+              --query ETag --output text "rb/live/$key")"
+            printf '%s\t%s\n' "$key" "${etag//\"/}" >> rb/live-etags.tsv
+          done
+          # Each shared file must be the applied candidate (restore) or already baseline (skip);
+          # a third party's bytes refuse the whole rollback before anything is written.
+          python3 scripts/dk_publish.py rollback-decide-remove --plan rb/cand/plan.json --live-dir rb/live > rb/actions.tsv
+          cat rb/actions.tsv
+          while IFS=$'\t' read -r key action; do
+            case "$action" in
+              restore)
+                aws s3api put-object --bucket "$BUCKET" --key "$key" --body "rb/snap/$key" \
+                  --content-type "application/json" --cache-control "public, max-age=300" \
+                  --if-match "$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/live-etags.tsv)" \
+                  --endpoint-url "$ENDPOINT" > /dev/null ;;
+              skip) echo "skip $key (already baseline)" ;;
+              *) echo "unknown action $action"; exit 1 ;;
+            esac
+          done < rb/actions.tsv
+          mkdir -p verify
+          for key in index.json trail-search.json trail-shapes.json; do
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$key" > /dev/null
+            test "$(sha256sum "verify/$key" | cut -d' ' -f1)" = "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" || { echo "ROLLBACK READBACK MISMATCH $key"; exit 1; }
+          done
+          while IFS=$'\t' read -r key etag; do
+            now="$(aws s3api head-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
+            test "$now" = "$etag" || { echo "KEPT OBJECT CHANGED $key"; exit 1; }
+          done < rb/snap/kept-etags.tsv
+          parking_after="$(aws s3api head-object --bucket "$BUCKET" --key parking.json --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
+          test "$parking_after" = "$parking_before" || { echo "parking.json changed"; exit 1; }
+          echo "remove rollback verified"

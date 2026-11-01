@@ -19,6 +19,9 @@ calls R2/AWS; the sync workflow does that with the files this script builds.
   derive-areas / build-candidates   splice N areas onto LIVE R2 bytes
   rollback-decide   per shared file restore/skip (refuse on third-party bytes)
                     plus the exact 2N keys to delete
+  remove-areas / derive-remove-areas / build-remove-candidates / rollback-decide-remove
+                    UNLIST superseded Danish areas (rows leave the 3 shared files; the
+                    2N per-area objects are kept, never deleted); Denmark-only opt-in
 """
 from __future__ import annotations
 
@@ -49,10 +52,12 @@ RULE_SETS = {"legacy", "dk-v2", "dk-v3"}
 #   merge-pending                              should become one area with its sibling
 #   mtb-centre                                 mostly an MTB trail centre
 #   curated-do-not-ship                        reviewed by a local-expert curation pass: not a hiking destination
+#   superseded                                 live area being removed (remove-areas / sync-dk-to-r2 *-remove); required
 HOLD_REASONS = {
     "island", "np-nested", "name-collision", "merge-into-klosterhede",
     "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
     "curated-do-not-ship",
+    "superseded",
 }
 # Curated per-area exclusions (registry `exclude_trails`, dk-v2 only); same shape as
 # trailforge/assemble/quality.py validate_dk_exclude: {"id": "r<relation>" | "n:<name>", "name", "reason"}.
@@ -1200,6 +1205,8 @@ def verify_cmd(args: argparse.Namespace) -> int:
         if len(ids) > MAX_UPDATE_AREAS:
             raise DkError(f"update is capped at {MAX_UPDATE_AREAS} areas")
         summary = _verify_update_delta(args.repo.resolve(), ids, staged=staged)
+    elif args.mode == "remove":
+        summary = _verify_remove_delta(args.repo.resolve(), ids, staged=staged)
     else:
         summary = _verify_delta(args.repo.resolve(), ids, staged=staged)
     summary["receipt_sha256"] = contract.canonical_sha256(summary)
@@ -1774,6 +1781,230 @@ def rollback_decide_update(args: argparse.Namespace) -> int:
     return 0
 
 
+# ------------------------------------------------------------ REMOVE mode ----
+# UNLIST existing Danish areas (Denmark-only, opt-in). A removed area's rows leave
+# index.json, trail-search.json and trail-shapes.json; the area's own 2N per-area
+# objects (<id>.json, silhouettes/<id>.json) are NEVER deleted (archive, not delete):
+# nothing lists them, removed ids are never re-used, and rollback is only "restore the
+# three shared files". Every id must be a registry area marked hold=superseded, so a
+# non-Danish area can never be removed. Append/update modes above are untouched.
+
+REMOVE_SCHEMA = "trekdex-dk-r2-remove-plan-v1"
+MAX_REMOVE_AREAS = HARD_MAX_CHUNK
+SUPERSEDED = "superseded"
+REMOVE_WRITE_ORDER = ("index.json", "trail-search.json", "trail-shapes.json")   # index first: app stops listing
+
+
+def _check_removable(registry: dict[str, Any], ids: list[str]) -> None:
+    if not 1 <= len(ids) <= MAX_REMOVE_AREAS or len(set(ids)) != len(ids):
+        raise DkError(f"removal needs 1..{MAX_REMOVE_AREAS} unique areas")
+    for aid in ids:
+        entry = registry["by_id"].get(aid)
+        if entry is None:
+            raise DkError(f"{aid}: not a Danish registry area; removal is Denmark-only")
+        if entry.get("hold") != SUPERSEDED:
+            raise DkError(f"{aid}: registry hold must be {SUPERSEDED!r} before removal (got {entry.get('hold')!r})")
+
+
+def drop_index_rows(live: bytes, ids: list[str], sep: str, context: str) -> bytes:
+    """`live` index bytes without the listed rows; every other row keeps its exact bytes."""
+    pieces = _split_records(live, False, context, sep)
+    gone = set(ids)
+    found = [row[0] for row, _ in pieces if isinstance(row, list) and row and row[0] in gone]
+    if sorted(found) != sorted(ids):
+        raise DkError(f"{context} must list each removed area exactly once")
+    return ("[" + sep.join(raw for row, raw in pieces if row[0] not in gone) + "]").encode("utf-8")
+
+
+def drop_area_records(live: bytes, key: str, ids: list[str]) -> bytes:
+    """`live` trail-search/trail-shapes bytes without the listed areas' contiguous record
+    blocks; every other record keeps its exact live bytes and position."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    pieces = _split_records(live, as_dict, f"live {key}")
+    gone = set(ids)
+    for aid in ids:
+        idx = [n for n, (rec, _) in enumerate(pieces) if owner(rec) == aid]
+        if not idx or idx != list(range(idx[0], idx[-1] + 1)):
+            raise DkError(f"live {key} has no single contiguous block for {aid}; refusing to remove it")
+    opener, closer = ("{", "}") if as_dict else ("[", "]")
+    return (opener + ",".join(raw for rec, raw in pieces if owner(rec) not in gone) + closer).encode("utf-8")
+
+
+def prove_remove_delta(key: str, before: bytes, after: bytes, ids: list[str]) -> dict[str, Any]:
+    """Only the listed areas' records are gone; every other record is byte-identical and in place."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    strict = contract._strict_trail_shape_records if as_dict else contract._strict_trail_search_records
+    gone = set(ids)
+    base, cand = strict(before, f"baseline {key}"), strict(after, f"candidate {key}")
+    bp = _split_records(before, as_dict, f"baseline {key}")
+    ap = _split_records(after, as_dict, f"candidate {key}")
+    if any(owner(rec) in gone for rec, _ in ap):
+        raise DkError(f"candidate {key} still has a record of a removed area")
+    if [raw for rec, raw in bp if owner(rec) not in gone] != [raw for _, raw in ap]:
+        raise DkError(f"candidate {key} changed a record outside the removed areas")
+    if cand != [r for r in base if owner(r) not in gone]:
+        raise DkError(f"candidate {key} is not the live records minus the removed areas")
+    removed = len(base) - len(cand)
+    if removed < len(ids):
+        raise DkError(f"live {key} had fewer records than removed areas")
+    return {"key": key, "baseline_records": len(base), "candidate_records": len(cand), "removed_records": removed,
+            "other_records_byte_identical": len(cand), "baseline_sha256": _sha(before),
+            "candidate_sha256": _sha(after)}
+
+
+def _removal_paths(aid: str) -> list[str]:
+    return [f"public/areas/geom/{aid}.json", f"public/areas/silhouettes/{aid}.json"]
+
+
+def remove_areas(args: argparse.Namespace) -> int:
+    """Repo edit for the removal commit: drop the rows from both index files and delete the
+    repo copies of the geom/silhouette. Nothing is written until every input is validated."""
+    repo = args.repo.resolve()
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    ids = [i for i in args.ids.split(",") if i]
+    _check_removable(registry, ids)
+    files = [repo / p for aid in ids for p in _removal_paths(aid)]
+    for path in files:
+        if path.is_symlink() or not path.is_file():
+            raise DkError(f"{path.relative_to(repo)} is missing or unsafe")
+    new_index: dict[str, bytes] = {}
+    for rel, compact in ((INDEX_REPO, False), (BUNDLE_REPO, True)):
+        target = repo / rel
+        if target.is_symlink() or not target.is_file():
+            raise DkError(f"{rel} is missing or unsafe")
+        data = target.read_bytes()
+        _rows(data, rel, compact)
+        new_index[rel] = drop_index_rows(data, ids, "," if compact else ", ", rel)
+        _rows(new_index[rel], f"{rel} after removal", compact)
+    for rel, data in new_index.items():
+        (repo / rel).write_bytes(data)
+    for path in files:
+        path.unlink()
+    print(f"removed {len(ids)} area(s) from both index files and deleted {len(files)} repo file(s): {','.join(ids)}")
+    return 0
+
+
+def _verify_remove_delta(repo: Path, ids: list[str], *, staged: bool) -> dict[str, Any]:
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    _check_removable(registry, ids)
+    names_cmd = ["diff", "--cached"] if staged else ["diff"]
+    span = [] if staged else ["HEAD^", "HEAD"]
+
+    def names(flt: str) -> list[str]:
+        return [n for n in _git(repo, *names_cmd, "--name-only", f"--diff-filter={flt}", "-z", *span)
+                .decode("utf-8").split("\0") if n]
+
+    if names("A") or names("R") or names("C") or names("T"):
+        raise DkError("removal diff contains an added, renamed, copied or type-changed path")
+    want_deleted = sorted(p for aid in ids for p in _removal_paths(aid))
+    if sorted(names("D")) != want_deleted:
+        raise DkError(f"removal must delete exactly the 2N area files: {sorted(names('D'))}")
+    if sorted(names("M")) != sorted([INDEX_REPO, BUNDLE_REPO]):
+        raise DkError(f"removal must modify exactly the two index files: {names('M')}")
+
+    def show(path: str, new: bool) -> bytes:
+        return _git(repo, "show", (f":{path}" if staged else f"HEAD:{path}") if new else
+                    (f"HEAD:{path}" if staged else f"HEAD^:{path}"))
+
+    transitions = []
+    for path, compact in ((INDEX_REPO, False), (BUNDLE_REPO, True)):
+        before, after = show(path, False), show(path, True)
+        _rows(before, f"baseline {path}", compact)
+        _rows(after, f"candidate {path}", compact)
+        if after != drop_index_rows(before, ids, "," if compact else ", ", path):
+            raise DkError(f"{path}: candidate is not the baseline minus the removed rows (others byte-identical)")
+        transitions.append({"path": path, "baseline_sha256": _sha(before), "candidate_sha256": _sha(after),
+                            "removed_ids": sorted(ids)})
+    return {"schema": "trekdex-dk-remove-delta-v1", "area_ids": ids, "deleted_paths": want_deleted,
+            "allowed_paths": sorted(set(want_deleted) | {INDEX_REPO, BUNDLE_REPO}), "index_transitions": transitions}
+
+
+def derive_remove_ids(repo: Path, live_index: bytes) -> list[str]:
+    """The removal set = live Danish rows absent from the repo bundle. The bundle must be EXACTLY the
+    live rows minus that set (same rows, same order), and every removed id must be a registry area
+    marked hold=superseded whose repo geom/silhouette are already gone."""
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    live_rows = json.loads(live_index)
+    bundle_rows = _rows((repo / BUNDLE_REPO).read_bytes(), "repo bundle index", compact=True)
+    keep = {r[0] for r in bundle_rows}
+    removed = [r[0] for r in live_rows if r[0] not in keep]
+    if not removed:
+        raise DkError("nothing to remove: the repo bundle lists every live area")
+    _check_removable(registry, removed)
+    if [r for r in live_rows if r[0] not in set(removed)] != bundle_rows:
+        raise DkError("repo bundle index is not the live index minus the removed areas "
+                      "(same rows, same order); remove-areas only removes")
+    for aid in removed:
+        for rel in _removal_paths(aid):
+            if (repo / rel).exists():
+                raise DkError(f"{rel} still exists in the repo for a removed area")
+    return removed
+
+
+def derive_remove_areas_cmd(args: argparse.Namespace) -> int:
+    ids = derive_remove_ids(args.repo, args.live_index.read_bytes())
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("\n".join(ids) + "\n", encoding="utf-8")
+    print(f"{len(ids)} area(s) to remove from the repo vs live R2: {','.join(ids)}")
+    return 0
+
+
+def build_remove_candidates(args: argparse.Namespace) -> int:
+    repo = args.repo
+    live = {k: Path(v).read_bytes() for k, v in (("index.json", args.live_index),
+            ("trail-search.json", args.live_search), ("trail-shapes.json", args.live_shapes))}
+    ids = derive_remove_ids(repo, live["index.json"])
+    if args.areas_file:
+        listed = [i for i in args.areas_file.read_text(encoding="utf-8").split() if i]
+        if listed != ids:
+            raise DkError("areas file differs from the repo-vs-live derivation")
+    bundle_rows = _rows((repo / BUNDLE_REPO).read_bytes(), "repo bundle index", compact=True)
+    index_after = drop_index_rows(live["index.json"], ids, ",", "live index.json")
+    if json.loads(index_after) != bundle_rows:
+        raise DkError("candidate index.json rows differ from the repo bundle index")
+    candidates = {"index.json": index_after}
+    proofs = [{"key": "index.json", "baseline_sha256": _sha(live["index.json"]),
+               "candidate_sha256": _sha(index_after), "removed_ids": ids,
+               "other_rows_byte_identical": len(bundle_rows)}]
+    for key in ("trail-search.json", "trail-shapes.json"):
+        after = drop_area_records(live[key], key, ids)
+        proofs.append(prove_remove_delta(key, live[key], after, ids))
+        candidates[key] = after
+    out = args.out_dir
+    plan: dict[str, Any] = {"schema": REMOVE_SCHEMA, "mode": "remove", "areas": ids, "writes": [], "baseline": {},
+                            "kept_objects": [k for a in ids for k in (f"{a}.json", f"silhouettes/{a}.json")],
+                            "proofs": proofs}
+    if len(plan["kept_objects"]) != 2 * len(ids):
+        raise DkError("kept object set is not exactly 2N keys")
+    for key in REMOVE_WRITE_ORDER:
+        (out / key).parent.mkdir(parents=True, exist_ok=True)
+        (out / key).write_bytes(candidates[key])
+        plan["writes"].append({"key": key, "file": key, "bytes": len(candidates[key]), "sha256": _sha(candidates[key])})
+    for key, data in live.items():
+        plan["baseline"][key] = {"bytes": len(data), "sha256": _sha(data)}
+    _write_json(out / "plan.json", plan)
+    print(json.dumps({"areas": ids, "writes": len(plan["writes"]), "kept_objects": len(plan["kept_objects"])}, indent=2))
+    return 0
+
+
+def rollback_remove_actions(plan: dict[str, Any], live_dir: Path) -> list[tuple[str, str]]:
+    """Per shared file: 'restore' when live is the applied candidate, 'skip' when it is already the
+    baseline, REFUSE for anything else. A removal never deleted an object, so there is no delete."""
+    if plan.get("schema") != REMOVE_SCHEMA:
+        raise DkError("plan is not a removal plan")
+    shared = smp.rollback_actions(plan, live_dir)
+    return [(key, shared[key]) for key in SHARED_KEYS]
+
+
+def rollback_decide_remove(args: argparse.Namespace) -> int:
+    plan = json.loads(args.plan.read_text(encoding="utf-8"))
+    for key, action in rollback_remove_actions(plan, args.live_dir):
+        print(f"{key}\t{action}")
+    return 0
+
+
 # ----------------------------------------------------------------------- CLI --
 
 def main(argv: list[str] | None = None) -> int:
@@ -1831,7 +2062,7 @@ def main(argv: list[str] | None = None) -> int:
         v = sub.add_parser(name)
         v.add_argument("--repo", type=Path, default=Path("."))
         v.add_argument("--areas", required=True)
-        v.add_argument("--mode", choices=["publish", "update"], default="publish")
+        v.add_argument("--mode", choices=["publish", "update", "remove"], default="publish")
         v.add_argument("--output", type=Path)
 
     d = sub.add_parser("derive-areas")
@@ -1879,8 +2110,31 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--plan", required=True, type=Path)
     ru.add_argument("--live-dir", required=True, type=Path)
 
+    ra = sub.add_parser("remove-areas")
+    ra.add_argument("--repo", type=Path, default=Path("."))
+    ra.add_argument("--ids", required=True)
+
+    dr = sub.add_parser("derive-remove-areas")
+    dr.add_argument("--repo", type=Path, default=Path("."))
+    dr.add_argument("--live-index", required=True, type=Path)
+    dr.add_argument("--out", required=True, type=Path)
+
+    br = sub.add_parser("build-remove-candidates")
+    br.add_argument("--repo", type=Path, default=Path("."))
+    for name in ("live-index", "live-search", "live-shapes"):
+        br.add_argument(f"--{name}", required=True, type=Path)
+    br.add_argument("--areas-file", type=Path)
+    br.add_argument("--out-dir", required=True, type=Path)
+
+    rr = sub.add_parser("rollback-decide-remove")
+    rr.add_argument("--plan", required=True, type=Path)
+    rr.add_argument("--live-dir", required=True, type=Path)
+
     args = p.parse_args(argv)
-    handlers = {"replace-index": replace_index, "live-dk-ids": live_dk_ids_cmd,
+    handlers = {"remove-areas": remove_areas, "derive-remove-areas": derive_remove_areas_cmd,
+                "build-remove-candidates": build_remove_candidates,
+                "rollback-decide-remove": rollback_decide_remove,
+                "replace-index": replace_index, "live-dk-ids": live_dk_ids_cmd,
                 "derive-update-areas": derive_update_areas_cmd,
                 "build-update-candidates": build_update_candidates,
                 "rollback-decide-update": rollback_decide_update,

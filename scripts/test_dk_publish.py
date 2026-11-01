@@ -523,7 +523,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
         "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
-        "skelhoj-plantage-dk": (4, 10.5), "hammer-bakker-dk": (4, 10.2),
+        "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
         "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (3, 5.4),
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),

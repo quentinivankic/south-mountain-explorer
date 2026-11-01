@@ -46,36 +46,16 @@
       "center": [56.9, 8.4],
       "rules": "dk-v3",
       "tier": 1,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 55,
       "est_mi": 117.1,
-      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): whole named routes instead of polygon-clipped fragments; Rute N stitches, MTB numbers and Sundhedsspor out; live-upgrade review p1c. OSM-only, not checked against a Thy route table.",
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): whole named routes instead of polygon-clipped fragments; Rute N stitches, MTB numbers and Sundhedsspor out; live-upgrade review p1c. OSM-only, not checked against a Thy route table. SUPERSEDED split into tvorup, nystrup, vandet, vilsbol, stenbjerg, flade-so and hanstholm (BATCH-3 reviewed 2026-11-01 (BATCH-3)).",
       "exclude_trails": [
-        {
-          "id": "n:Rute 10 - Gul",
-          "name": "Rute 10 - Gul",
-          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
-        },
-        {
-          "id": "n:Rute 9 - Gul",
-          "name": "Rute 9 - Gul",
-          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
-        },
-        {
-          "id": "n:Rute 8 - Gul",
-          "name": "Rute 8 - Gul",
-          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
-        },
-        {
-          "id": "n:Rute10 - Gul",
-          "name": "Rute10 - Gul",
-          "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"
-        },
-        {
-          "id": "n:Sundhedsspor",
-          "name": "Sundhedsspor",
-          "reason": "generic name, boundary-induced split (3 of 5 ways shared with Vandetruten); not a stand-alone route"
-        }
+        {"id": "n:Rute 10 - Gul", "name": "Rute 10 - Gul", "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"},
+        {"id": "n:Rute 9 - Gul", "name": "Rute 9 - Gul", "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"},
+        {"id": "n:Rute 8 - Gul", "name": "Rute 8 - Gul", "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"},
+        {"id": "n:Rute10 - Gul", "name": "Rute10 - Gul", "reason": "numbered route stitch ('Rute N - Gul') of footway/path pieces with no route relation; siblings Rute 14/15 are already removed as MTB"},
+        {"id": "n:Sundhedsspor", "name": "Sundhedsspor", "reason": "generic name, boundary-induced split (3 of 5 ways shared with Vandetruten); not a stand-alone route"}
       ],
       "trail_name_prefix": "Thy"
     },
@@ -88,126 +68,34 @@
       "center": [55.2, 8.6],
       "rules": "dk-v3",
       "tier": 1,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 59,
       "est_mi": 76.8,
-      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): Tondermarsk stisloejfer, Landskabsgang, Papegoejestien whole; bathing paths, long-distance legs and tiny stitches out. Known omission: the two Fano marked loops (relations 4215022/23, 4209046/47, siblings 4215703/04) sit under road names; restore with a real route name. Sporet i Ballum groen belongs to no live area.",
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): Tondermarsk stisloejfer, Landskabsgang, Papegoejestien whole; bathing paths, long-distance legs and tiny stitches out. Known omission: the two Fano marked loops (relations 4215022/23, 4209046/47, siblings 4215703/04) sit under road names; restore with a real route name. Sporet i Ballum groen belongs to no live area. SUPERSEDED split into romo-dk, tondermarsken-dk, vester-vedsted-dk (BATCH-3 reviewed 2026-11-01 (BATCH-3)).",
       "exclude_trails": [
-        {
-          "id": "r6617467",
-          "name": "Badesti 1",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617478",
-          "name": "Badesti 2",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617481",
-          "name": "Badesti 3",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617482",
-          "name": "Badesti 4",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617483",
-          "name": "Badesti 5",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617484",
-          "name": "Badesti 6",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617486",
-          "name": "Badesti 8",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617487",
-          "name": "Badesti 9",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617468",
-          "name": "Badesti 10",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617469",
-          "name": "Badesti 11",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617470",
-          "name": "Badesti 12",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617471",
-          "name": "Badesti 13",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617473",
-          "name": "Badesti 15",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617474",
-          "name": "Badesti 16",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617475",
-          "name": "Badesti 17",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617476",
-          "name": "Badesti 18",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "r6617477",
-          "name": "Badesti 19",
-          "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"
-        },
-        {
-          "id": "n:Vester Bjergvej",
-          "name": "Vester Bjergvej",
-          "reason": "road-named stitch of 7 track and path pieces (vej); no route evidence"
-        },
-        {
-          "id": "r18353890",
-          "name": "Drivvejen alternativ Råhede",
-          "reason": "'alternative' variant of the long drove road Drivvejen; no network tag, 3.08 mi live -> 7.98 mi whole, a leg rather than a stand-alone local route; restore if a local source names it a day walk"
-        },
-        {
-          "id": "r4215022",
-          "name": "Mågekolonievej",
-          "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"
-        },
-        {
-          "id": "r4209046",
-          "name": "Nørrebjergevej",
-          "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"
-        },
-        {
-          "id": "n:Vandskellet",
-          "name": "Vandskellet",
-          "reason": "0.39 mi single-way name stitch; not a stand-alone route"
-        },
-        {
-          "id": "n:Kanalstien",
-          "name": "Kanalstien",
-          "reason": "0.43 mi two-part name stitch; not a stand-alone route"
-        }
+        {"id": "r6617467", "name": "Badesti 1", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617478", "name": "Badesti 2", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617481", "name": "Badesti 3", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617482", "name": "Badesti 4", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617483", "name": "Badesti 5", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617484", "name": "Badesti 6", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617486", "name": "Badesti 8", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617487", "name": "Badesti 9", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617468", "name": "Badesti 10", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617469", "name": "Badesti 11", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617470", "name": "Badesti 12", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617471", "name": "Badesti 13", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617473", "name": "Badesti 15", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617474", "name": "Badesti 16", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617475", "name": "Badesti 17", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617476", "name": "Badesti 18", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617477", "name": "Badesti 19", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "n:Vester Bjergvej", "name": "Vester Bjergvej", "reason": "road-named stitch of 7 track and path pieces (vej); no route evidence"},
+        {"id": "r18353890", "name": "Drivvejen alternativ Råhede", "reason": "'alternative' variant of the long drove road Drivvejen; no network tag, 3.08 mi live -> 7.98 mi whole, a leg rather than a stand-alone local route; restore if a local source names it a day walk"},
+        {"id": "r4215022", "name": "Mågekolonievej", "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"},
+        {"id": "r4209046", "name": "Nørrebjergevej", "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"},
+        {"id": "n:Vandskellet", "name": "Vandskellet", "reason": "0.39 mi single-way name stitch; not a stand-alone route"},
+        {"id": "n:Kanalstien", "name": "Kanalstien", "reason": "0.43 mi two-part name stitch; not a stand-alone route"}
       ],
       "trail_name_prefix": "Vadehavet"
     },
@@ -220,21 +108,13 @@
       "center": [55.619, 11.958],
       "rules": "dk-v3",
       "tier": 1,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 45,
       "est_mi": 86.8,
-      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): thin by design, 4 trails. Fjordstien Vandresti (18.74 mi) is a leg of the 275 km Fjordstien ring and stays out as long-distance; Skjoldungestien and Gudernes Straede (rwn) likewise. Completeness note: area is thin, not padded.",
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): thin by design, 4 trails. Fjordstien Vandresti (18.74 mi) is a leg of the 275 km Fjordstien ring and stays out as long-distance; Skjoldungestien and Gudernes Straede (rwn) likewise. Completeness note: area is thin, not padded. SUPERSEDED split into boserup-skov-dk, bidstrup-skovene-dk (BATCH-3 reviewed 2026-11-01 (BATCH-3)).",
       "exclude_trails": [
-        {
-          "id": "n:Fjordstien",
-          "name": "Fjordstien",
-          "reason": "gravel track plus asphalt cycleway (bicycle designated); the Fjordstien walking route is the long-distance rwn already removed"
-        },
-        {
-          "id": "r17885734",
-          "name": "Blå Rute",
-          "reason": "generic 'Blå Rute' (ref Sagnlandet): museum park map route, not a national-park hiking trail"
-        }
+        {"id": "n:Fjordstien", "name": "Fjordstien", "reason": "gravel track plus asphalt cycleway (bicycle designated); the Fjordstien walking route is the long-distance rwn already removed"},
+        {"id": "r17885734", "name": "Blå Rute", "reason": "generic 'Blå Rute' (ref Sagnlandet): museum park map route, not a national-park hiking trail"}
       ]
     },
     {
@@ -246,196 +126,48 @@
       "center": [56.0, 12.2],
       "rules": "dk-v3",
       "tier": 1,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 364,
       "est_mi": 364.5,
-      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): signed routes and Hjertestier only; GPS stage traces, gravel ride names and rootless stitches out. Known omission: Ramlose Kloverstier (Ellemosestien / Sort Kloversti 2.37 mi), OSM relation gap, not synthesized.",
+      "notes": "dk-v3 (2026-10-30, live upgrade batch 3): signed routes and Hjertestier only; GPS stage traces, gravel ride names and rootless stitches out. Known omission: Ramlose Kloverstier (Ellemosestien / Sort Kloversti 2.37 mi), OSM relation gap, not synthesized. SUPERSEDED split into gribskov-dk, tisvilde-hegn-dk, frederiksvaerk-dk, gurre-dk (BATCH-3 reviewed 2026-11-01 (BATCH-3)).",
       "exclude_trails": [
-        {
-          "id": "r3651146",
-          "name": "Helsingør - Havreholm",
-          "reason": "GPS-sourced 15.2 mi point-to-point trace (no operator, no source), stage-length, not a local trail"
-        },
-        {
-          "id": "r3635559",
-          "name": "Feel & Taste 1",
-          "reason": "GPS-sourced 10.5 mi trace of a branded event walk (no operator); not a standing marked trail"
-        },
-        {
-          "id": "n:Kulmilespor",
-          "name": "Kulmilespor",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Troldeskovsporet",
-          "name": "Troldeskovsporet",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Tjørnegabsspor",
-          "name": "Tjørnegabsspor",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Kulsviersporet",
-          "name": "Kulsviersporet",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Skovløbersporet",
-          "name": "Skovløbersporet",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Brændevinsstien",
-          "name": "Brændevinsstien",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Lyssporet",
-          "name": "Lyssporet",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Ridelågen",
-          "name": "Ridelågen",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Kræmmersti",
-          "name": "Kræmmersti",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Amaliesti",
-          "name": "Amaliesti",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Stenvredet",
-          "name": "Stenvredet",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Krogerupstien",
-          "name": "Krogerupstien",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Gadeledsstien",
-          "name": "Gadeledsstien",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Reerstrup Fægyde",
-          "name": "Reerstrup Fægyde",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Fægyden",
-          "name": "Fægyden",
-          "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"
-        },
-        {
-          "id": "n:Den Enarmede Kongevej",
-          "name": "Den Enarmede Kongevej",
-          "reason": "gravel track, road name (historic king's road); not a walking trail"
-        },
-        {
-          "id": "n:Nordkyst Stien",
-          "name": "Nordkyst Stien",
-          "reason": "highway=cycleway designated for bicycles and foot (asphalt/fine gravel); a cycle path, not a hiking trail"
-        },
-        {
-          "id": "n:Sandgravsvej",
-          "name": "Sandgravsvej",
-          "reason": "road-named short path (vej); no route evidence"
-        },
-        {
-          "id": "n:Hulvejen",
-          "name": "Hulvejen",
-          "reason": "sunken-road name; track and grade5 path stitch with no route evidence"
-        },
-        {
-          "id": "n:Esrum Å",
-          "name": "Esrum Å",
-          "reason": "river name on a 6-piece stitch of dirt paths; not a named trail"
-        },
-        {
-          "id": "n:Farlige Rødder",
-          "name": "Farlige Rødder",
-          "reason": "mountain-bike style name ('dangerous roots'), bicycle=yes horse=no path with bad visibility"
-        },
-        {
-          "id": "n:Pandehave Å Sti",
-          "name": "Pandehave Å Sti",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Brede Åsti",
-          "name": "Brede Åsti",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Kanalstien",
-          "name": "Kanalstien",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Kærlighedsstien",
-          "name": "Kærlighedsstien",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Lersporet",
-          "name": "Lersporet",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Flammespor",
-          "name": "Flammespor",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Togsporet",
-          "name": "Togsporet",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Salenesporet",
-          "name": "Salenesporet",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Skæftegårdsstien",
-          "name": "Skæftegårdsstien",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Udridderalléen",
-          "name": "Udridderalléen",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Triangelsporet",
-          "name": "Triangelsporet",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "n:Brøndsporet",
-          "name": "Brøndsporet",
-          "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"
-        },
-        {
-          "id": "r12585237",
-          "name": "Sundhedsspor Melby Overdrev",
-          "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"
-        },
-        {
-          "id": "r13649311",
-          "name": "Sundhedsspor Arresødal Skov",
-          "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"
-        }
+        {"id": "r3651146", "name": "Helsingør - Havreholm", "reason": "GPS-sourced 15.2 mi point-to-point trace (no operator, no source), stage-length, not a local trail"},
+        {"id": "r3635559", "name": "Feel & Taste 1", "reason": "GPS-sourced 10.5 mi trace of a branded event walk (no operator); not a standing marked trail"},
+        {"id": "n:Kulmilespor", "name": "Kulmilespor", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Troldeskovsporet", "name": "Troldeskovsporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Tjørnegabsspor", "name": "Tjørnegabsspor", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Kulsviersporet", "name": "Kulsviersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Skovløbersporet", "name": "Skovløbersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Brændevinsstien", "name": "Brændevinsstien", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Lyssporet", "name": "Lyssporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Ridelågen", "name": "Ridelågen", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Kræmmersti", "name": "Kræmmersti", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Amaliesti", "name": "Amaliesti", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Stenvredet", "name": "Stenvredet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Krogerupstien", "name": "Krogerupstien", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Gadeledsstien", "name": "Gadeledsstien", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Reerstrup Fægyde", "name": "Reerstrup Fægyde", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Fægyden", "name": "Fægyden", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Den Enarmede Kongevej", "name": "Den Enarmede Kongevej", "reason": "gravel track, road name (historic king's road); not a walking trail"},
+        {"id": "n:Nordkyst Stien", "name": "Nordkyst Stien", "reason": "highway=cycleway designated for bicycles and foot (asphalt/fine gravel); a cycle path, not a hiking trail"},
+        {"id": "n:Sandgravsvej", "name": "Sandgravsvej", "reason": "road-named short path (vej); no route evidence"},
+        {"id": "n:Hulvejen", "name": "Hulvejen", "reason": "sunken-road name; track and grade5 path stitch with no route evidence"},
+        {"id": "n:Esrum Å", "name": "Esrum Å", "reason": "river name on a 6-piece stitch of dirt paths; not a named trail"},
+        {"id": "n:Farlige Rødder", "name": "Farlige Rødder", "reason": "mountain-bike style name ('dangerous roots'), bicycle=yes horse=no path with bad visibility"},
+        {"id": "n:Pandehave Å Sti", "name": "Pandehave Å Sti", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Brede Åsti", "name": "Brede Åsti", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Kanalstien", "name": "Kanalstien", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Kærlighedsstien", "name": "Kærlighedsstien", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Lersporet", "name": "Lersporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Flammespor", "name": "Flammespor", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Togsporet", "name": "Togsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Salenesporet", "name": "Salenesporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Skæftegårdsstien", "name": "Skæftegårdsstien", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Udridderalléen", "name": "Udridderalléen", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Triangelsporet", "name": "Triangelsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Brøndsporet", "name": "Brøndsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "r12585237", "name": "Sundhedsspor Melby Overdrev", "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"},
+        {"id": "r13649311", "name": "Sundhedsspor Arresødal Skov", "reason": "exercise track ('Sundhedsspor' = health trail, like the Sundhedsspor already excluded in Thy); a short fitness loop, not a hiking trail"}
       ]
     },
     {
@@ -457,14 +189,28 @@
       "name": "Gribskov",
       "state": "Denmark",
       "relation_id": 1560085,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [12.2, 55.9, 12.43, 56.11],
+      "center": [56.001, 12.326],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "duplicate-of-live",
-      "est_trails": 147,
-      "est_mi": 130.8,
-      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): core of live Nationalpark Kongernes Nordsjaelland; same trails, no separate area."
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 24.5,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Gribskov core: the six Naturstyrelsen walks of the guide Gribskov (NST: seks afmærkede vandreruter): Fønstrup Damme, Røde Dam, Store Gribsø, Pibergården, Hvide- og Grønnekilder, Søskoven og Esrum Møllegård og Kanal; 97-99% of each in the national park. The eleven forest-ride names of the polygon stay excluded as in the umbrella.",
+      "display_name": "Gribskov · Nationalpark Kongernes Nordsjælland",
+      "exclude_trails": [
+        {"id": "n:Gadeledsstien", "name": "Gadeledsstien", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Amaliesti", "name": "Amaliesti", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Fægyden", "name": "Fægyden", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Kærlighedsstien", "name": "Kærlighedsstien", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Stenvredet", "name": "Stenvredet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Den Enarmede Kongevej", "name": "Den Enarmede Kongevej", "reason": "gravel track, road name (historic king's road); not a walking trail"},
+        {"id": "n:Tjørnegabsspor", "name": "Tjørnegabsspor", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Salenesporet", "name": "Salenesporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Kulsviersporet", "name": "Kulsviersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Skovløbersporet", "name": "Skovløbersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Farlige Rødder", "name": "Farlige Rødder", "reason": "mountain-bike style name ('dangerous roots'), bicycle=yes horse=no path with bad visibility"}
+      ]
     },
     {
       "id": "falster-dk",
@@ -683,14 +429,24 @@
       "name": "Tisvilde Hegn",
       "state": "Denmark",
       "relation_id": 8186868,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [11.96, 55.94, 12.16, 56.11],
+      "center": [56.019, 12.062],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "duplicate-of-live",
-      "est_trails": 25,
-      "est_mi": 33.6,
-      "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): inside live Nationalpark Kongernes Nordsjaelland; same trails."
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 13.7,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Tisvilde Hegn Gul rute (whole route, 10.5 mi) plus the two Asserbo/Arrenakke walks on the same Halsnæs coast.",
+      "display_name": "Tisvilde Hegn og Asserbo · Nationalpark Kongernes Nordsjælland",
+      "exclude_trails": [
+        {"id": "n:Troldeskovsporet", "name": "Troldeskovsporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
+        {"id": "n:Brøndsporet", "name": "Brøndsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"},
+        {"id": "n:Triangelsporet", "name": "Triangelsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"}
+      ],
+      "include_trails": [
+        {"id": "r15764225", "name": "Asserbo Golfklub Hjertesti", "reason": "OSM lwn hiking relation r15764225 (2.5 mi), whole route, waymarked white:white:red_triangle_turned; Asserbo Plantage heart path next to Tisvilde Hegn, was in the umbrella"},
+        {"id": "r12589905", "name": "Arrenakke Bakker", "reason": "Halsnæs Kommune lwn hiking relation r12589905 (2.55 mi), whole route, waymarked blue:white:blue_hiker; Halsnæs Kommune walk at Arrenakke Bakker, 2 km from Asserbo"}
+      ]
     },
     {
       "id": "rold-skov-dk",
@@ -767,34 +523,34 @@
       "name": "Bidstrup Skovene",
       "state": "Denmark",
       "relation_id": 21142886,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [11.77, 55.49, 11.97, 55.64],
+      "center": [55.551, 11.863],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 24,
-      "est_mi": 24.9,
-      "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 12.4,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Skjoldungernes Land umbrella. Bidstrupskovene Avnstrup plus the Skjoldnæsholm Sløjfe (blue hiker waymarks), 3 km south-west in the same Bidstrup/Skjoldnæsholm estate forests.",
+      "display_name": "Bidstrup Skovene · Nationalpark Skjoldungernes Land",
+      "include_trails": [
+        {"id": "r12105130", "name": "Skjoldnæsholm Sløjfe", "reason": "OSM lwn hiking relation r12105130 (6.49 mi), whole route, waymarked blue:white:blue_hiker; Skjoldnæsholm loop of the Bidstrup/Skjoldnæsholm forests, 3 km from the Bidstrup polygon"}
+      ]
     },
     {
       "id": "rude-skov-dk",
       "name": "Rude Skov",
       "state": "Denmark",
       "relation_id": 6664022,
-      "bbox": null,
-      "center": null,
+      "bbox": [12.4, 55.77, 12.55, 55.91],
+      "center": [55.853, 12.476],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 27,
-      "est_mi": 20.0,
-      "notes": "Tier 2 forest, Zealand. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch A (dk-v3): Naturstyrelsen guide Rude Skov (/hovedstaden-og-nordsjaelland/rude-skov/praktisk) names one marked walk (yellow dots, 8 km = OSM relation Rude Skov); Forskerruten (lwn, 6.7 mi, one third inside) is a signed local route through the forest. Lysløjpen (lit ski/jogging track) and the Blå Spor MTB are not hiking. Rudersdalruten (26 mi regional) stays dropped. HOLD (second review 2026-10-30): one real walk plus Forskerruten of which only a third lies inside (a truncated fragment); one trail is not an area. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: 2 trails (Rude Skov 5.58 mi, 96 percent inside; Forskerruten 6.74 mi whole but only 33 percent inside the forest). One Naturstyrelsen walk. Stays held: a completionist would walk four miles outside Rude Skov to finish Forskerruten. Batch H (2026-10-31): HOLD after a 4-trail replay with includes (Rude Skov 5.58 mi 96 percent inside, Forskerruten 6.74 whole but 33 percent inside, Sjælsø Rundtur 6.55 and Malmmose rundtur 3.24 both 0 percent inside = 3 of 4 trails outside the forest, 22.1 mi). Naturstyrelsen names one marked walk for Rude Skov. Sjælsø and Malmmose are different places, so a Rude Skov card would show trails 5-10 km from the forest. Unlock: a ruling that Forskerruten alone may be added (2 trails, 12.3 mi) or a separate Sjælsø area.",
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 12.3,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Rude Skov (lwn, blue hiker waymarks, 5.6 mi) and Forskerruten (lwn, 6.7 mi) are the two named signed walks of the forest in OSM. Thin: no operator tags on either; the reviewer decides.",
       "exclude_trails": [
-        {
-          "id": "n:Lysløjpe Rudeskov",
-          "name": "Lysløjpe Rudeskov",
-          "reason": "lit jogging/ski track (Lysløjpen, 239 lamps), run-only per Naturstyrelsen; not a hiking trail"
-        }
+        {"id": "n:Lysløjpe Rudeskov", "name": "Lysløjpe Rudeskov", "reason": "lit jogging/ski track (Lysløjpen, 239 lamps), run-only per Naturstyrelsen; not a hiking trail"}
       ]
     },
     {
@@ -806,24 +562,29 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "duplicate-of-live",
+      "hold": "curated-do-not-ship",
       "est_trails": 23,
       "est_mi": 19.9,
-      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): nested in live Nationalpark Kongernes Nordsjaelland; no trails of its own."
+      "notes": "Tier 2 forest, Zealand. Held: nested in national park. bbox/center computed by the qualify run. Hold (dk-quality): nested in live Nationalpark Kongernes Nordsjaelland; no trails of its own. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Store Dyrehave/Præstevang: the only hiking relation in OSM is Præstevang hjertesti (1.64 mi, Hjerteforeningen); one walk is not an area. Known omission."
     },
     {
       "id": "nystrup-klitplantage-dk",
       "name": "Nystrup Klitplantage",
       "state": "Denmark",
       "relation_id": 1542560,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.41, 56.93, 8.61, 57.08],
+      "center": [57.014, 8.504],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 11,
-      "est_mi": 19.5,
-      "notes": "Tier 2 state_forest_like, Jutland. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 8,
+      "est_mi": 22.9,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella (Naturstyrelsen waymarked routes of the plantation).",
+      "exclude_trails": [
+        {"id": "n*:Rute 5 - blå", "name": "Rute 5 - blå", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute 5 blå", "name": "Rute 5 blå", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"}
+      ],
+      "display_name": "Nystrup Plantage · Nationalpark Thy"
     },
     {
       "id": "kronhede-plantage-dk",
@@ -1034,61 +795,21 @@
     {
       "id": "ro-plantage-dk",
       "name": "Rø Plantage",
-      "display_name": "Nordbornholm",
+      "display_name": "Rø Plantage og Døndal",
       "state": "Denmark",
       "relation_id": 7838873,
-      "bbox": [14.67, 55.12, 14.97, 55.35],
-      "center": [55.19, 14.87],
+      "bbox": [14.78, 55.12, 14.97, 55.26],
+      "center": [55.185, 14.885],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 8,
-      "est_mi": 27.5,
+      "est_trails": 2,
+      "est_mi": 9.9,
       "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: one trail (Rø Plantage Bornholm 4.5 mi); guide lists two (Stien Borgen 3 km, Borgedalsstien 6 km), Døndal is a separate unsigned-operator relation. Belongs to the Bornholm split (Rø + Døndal). Batch B (dk-v3 replay, 2026-10-31): Re-looked: 1 trail (Rø Plantage Bornholm 4.5 mi). The Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/roe-plantage/praktisk) lists two short walks (Borgen about 3 km, Borgedalsstien); OSM has one relation. Bornholm is handled in bornholm-dk (needs-source-fix). Stays held. Batch C (2026-10-31): tried as the Nordbornholm container (include_trails r9690060, r11831724, r12492199, r12700350, r12700494, r14573577). Replay: 5 of the 6 includes have 0 candidates because they sit outside the area bbox; covering Hammeren needs a bbox 0.155 deg west and 0.105 deg north of the Rø boundary, beyond the 0.10 margin cap in dk_publish.py. Needs code (include-aware bbox) before Nordbornholm can ship. Stays held. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Nordbornholm. Container trick: relation 7838873 (Rø Plantage) plus six include_trails, so the destination is the Naturstyrelsen Nordbornholm guide area (Hammerknuden, Slotslyngen/Hammershus, Hammersholm; https://naturstyrelsen.dk/find-et-naturomraade/naturguider/bornholm/nordbornholm). 7 trails / 25.9 mi: Rø Plantage Bornholm 4.51, Ringebakkerne 3.51, Døndal 5.36, Jons Kapel rundtur 1.63, Stenhuggerstien 2.82 (NS, 5.5 km), Hammerknuden Rundt 4.36 (NS, 7 km), Finnens fodspor 3.76 (about 6 km). Known omissions: Cirkelstien (2.7 km Allinge-Sandvig walk, dropped by the relation-gap gate) and Salomons Sti (2.7 km, a shortcut of Hammerknuden Rundt; no OSM relation). Jons Kapel rundtur is a different walk (Slotslyngen, 55.23N), not Salomons Sti. Bornholm south of Almindingen stays in bornholm-dk, which stays held (needs-rescope); its island polygon would re-ship these same routes, so it must never be published next to this entry. No overlap with live Almindingen (its relation 2353749 is a different forest; the qualify duplicate gate checks every live area). Registry bbox 14.67,55.12,14.97,55.35 (reaches the include relations, which the old 0.10 cap rejected); centre 55.19,14.87 sits inside the Rø boundary bbox and within 0.1 deg of the trail extent midpoint. Batch F: Cirkelstien (r14573576, 1.54 mi) added via include + accept_gap (300 m cap, actual 265.1 m): 8 trails / 27.5 mi, the 7 existing trail ids unchanged. Its omission above is resolved; Salomons Sti (no OSM relation) remains.",
       "include_trails": [
-        {
-          "id": "r9690060",
-          "name": "Ringebakkerne",
-          "reason": "lwn hiking relation on Hammeren, inside the Naturstyrelsen Nordbornholm guide area but outside the Rø plantation polygon"
-        },
-        {
-          "id": "r11831724",
-          "name": "Døndal",
-          "reason": "lwn foot relation through Døndal gorge (Naturstyrelsen Nordbornholm region), outside the Rø polygon"
-        },
-        {
-          "id": "r12492199",
-          "name": "Jons Kapel rundtur",
-          "reason": "lwn hiking round trip at Jons Kapel on Slotslyngen (Nordbornholm guide area), outside the Rø polygon"
-        },
-        {
-          "id": "r12700350",
-          "name": "Stenhuggerstien",
-          "reason": "Naturstyrelsen lwn relation, 5.5 km, red-marked Stonecutter path on Hammerknuden; one of the guide walks"
-        },
-        {
-          "id": "r12700494",
-          "name": "Hammerknuden Rundt",
-          "reason": "Naturstyrelsen lwn relation, 7 km blue-marked loop around Hammerknuden; one of the guide walks"
-        },
-        {
-          "id": "r14573577",
-          "name": "Finnens fodspor",
-          "reason": "lwn walking relation, about 6 km round trip from the Hammershus car park, listed by Naturstyrelsen 100 udvalgte vandreruter"
-        },
-        {
-          "id": "r14573576",
-          "name": "Cirkelstien",
-          "reason": "Naturstyrelsen Nordbornholm guide walk (Cirkelstien, Allinge-Sandvig); lwn relation outside the Rø polygon"
-        }
+        {"id": "r11831724", "name": "Døndal", "reason": "lwn foot relation through Døndal gorge (Naturstyrelsen Nordbornholm region), outside the Rø polygon"}
       ],
-      "accept_gap": [
-        {
-          "relation": "r14573576",
-          "max_gap_m": 300,
-          "reason": "Cirkelstien: the OSM relation has a 265.1 m gap between 2 pieces (two member ways stay excluded as service driveways); the two parts ship as separate segments, no geometry is synthesized"
-        }
-      ]
+      "allow_rename": {"from": "Nordbornholm", "reason": "reviewed 2026-11-01 (BATCH-3): Nordbornholm bag split. The area keeps its permanent id ro-plantage-dk and now holds only Rø Plantage Bornholm and Døndal; Hammeren and Jons Kapel become their own areas, so the name says what is left"}
     },
     {
       "id": "randbol-hede-frederikshab-dk",
@@ -1340,14 +1061,20 @@
       "name": "Tvorup Klitplantage",
       "state": "Denmark",
       "relation_id": 10031487,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.35, 56.9, 8.55, 57.05],
+      "center": [56.976, 8.418],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 11,
-      "est_mi": 12.0,
-      "notes": "Tier 2 state_forest_like, Jutland. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 6.1,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella (Naturstyrelsen waymarked routes of the plantation).",
+      "exclude_trails": [
+        {"id": "n*:rød sti", "name": "rød sti", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Gul rute", "name": "Gul rute", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rød rute", "name": "Rød rute", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"}
+      ],
+      "display_name": "Tvorup Klitplantage · Nationalpark Thy"
     },
     {
       "id": "teglstrup-hegn-dk",
@@ -1368,14 +1095,18 @@
       "name": "Fur",
       "state": "Denmark",
       "relation_id": 3058453,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.9, 56.75, 9.13, 56.9],
+      "center": [56.832, 9.015],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "island",
-      "est_trails": 6,
-      "est_mi": 10.8,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): Naturstyrelsen guide (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/himmerland-og-limfjorden/fur/praktisk) marks 5 walks (Gul 3.2 km, Rød 5.5, Blå 2.8, Grøn about 0.5, Hvid 5.8). OSM has Rød, Gul and Grøn Gammelhavn; Blå and Hvid are not in OSM. Grøn Gammelgård, Engelstør Odde and a brewery-campsite link are unverified extras. Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): stays held (island). Replay gives 6 trails / 10.9 mi (Rød Knudeklinterne 3.30, Grøn Gammelgård 2.65, Engelstør Odde 1.87, Gul Den Røde Sten 1.62, Fur Bryghus-Campingpladsen 1.00 = a brewery link, Grøn Gammelhavn 0.49), all inside. The Naturstyrelsen guide lists 5 walks (Gul, Rød, Blå, Grøn, Hvid); Blå and Hvid have no OSM relation, so a completionist would find 2 of 5 official walks missing. Unlock: Blå and Hvid mapped in OSM."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 9.4,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): the signed walks of Fur in OSM: Rød Rute Knudeklinterne, Grøn Rute Gammelgård and Gul Rute Den Røde Sten (waymarked dots) plus Skive Kommune's Engelstør Odde. The Naturstyrelsen guide marks 5 walks; Blå and Hvid have no OSM relation (known omission).",
+      "exclude_trails": [
+        {"id": "r17826727", "name": "Fur Bryghus-Campingpladsen", "reason": "link between the brewery and the campsite (1.0 mi), not a destination walk; reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "r9899933", "name": "Grøn Rute - Gammelhavn", "reason": "Skive Kommune lwn relation of 0.49 mi, under the 0.6 mi fragment rule; reviewed 2026-11-01 (BATCH-3)"}
+      ]
     },
     {
       "id": "klosterris-hegn-dk",
@@ -1424,14 +1155,18 @@
       "name": "Rømø",
       "state": "Denmark",
       "relation_id": 5178496,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.41, 55.01, 8.64, 55.26],
+      "center": [55.127, 8.532],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "duplicate-of-live",
-      "est_trails": 7,
-      "est_mi": 10.2,
-      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run. Hold (dk-quality): inside live Nationalpark Vadehavet; same trails."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 8.5,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Vadehavet umbrella. Naturstyrelsen walks of Rømø.",
+      "display_name": "Rømø · Nationalpark Vadehavet",
+      "exclude_trails": [
+        {"id": "n:Lakolkstien", "name": "Lakolkstien", "reason": "name-stitch of 4 gravel path/track ways (bicycle=yes) with no route relation and no waymarking tags; a local path name, not a signed walk; reviewed 2026-11-01 (BATCH-3)"}
+      ]
     },
     {
       "id": "ganlose-ore-dk",
@@ -1452,14 +1187,24 @@
       "name": "Vandet Klitplantage",
       "state": "Denmark",
       "relation_id": 1429408,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.49, 56.93, 8.67, 57.05],
+      "center": [56.99, 8.591],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 8,
-      "est_mi": 9.7,
-      "notes": "Tier 2 state_forest_like, Jutland. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.3,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella (Naturstyrelsen waymarked routes of the plantation).",
+      "exclude_trails": [
+        {"id": "n*:Rute 11 - Rød", "name": "Rute 11 - Rød", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute 10 - Gul", "name": "Rute 10 - Gul", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute 8 - Gul", "name": "Rute 8 - Gul", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute 9 - Gul", "name": "Rute 9 - Gul", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute 7 - Gul", "name": "Rute 7 - Gul", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Rute10 - Gul", "name": "Rute10 - Gul", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"},
+        {"id": "n*:Sundhedsspor", "name": "Sundhedsspor", "reason": "name-stitch of path pieces with no route relation (a forest ride or bare colour/number label, not one of the waymarked relations); reviewed 2026-11-01 (BATCH-3)"}
+      ],
+      "display_name": "Vandet Klitplantage · Nationalpark Thy"
     },
     {
       "id": "fano-dk",
@@ -1470,10 +1215,10 @@
       "center": null,
       "rules": "dk-v2",
       "tier": 2,
-      "hold": "np-nested",
+      "hold": "curated-do-not-ship",
       "est_trails": 23,
       "est_mi": 9.5,
-      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run."
+      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Fanø: the only named relation is Fanø Hjertesti (r7741221, 2.57 mi); the six waymarked loops r4215022/23, r4215703/04, r4209046/47 carry no name tag at all, so shipping them would mean inventing names. Known omission."
     },
     {
       "id": "tornby-klitplantage-dk",
@@ -1974,11 +1719,19 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 6,
-      "est_mi": 6.9,
+      "est_trails": 8,
+      "est_mi": 18.0,
       "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. Centre moved onto the trails (was outside the boundary bbox); stale dk-v2 Geheimeraadens Sti exclude dropped (route lies outside the area).",
       "trail_name_fixes": [
         {"osm_name": "Hjertestien, Hindemaj", "name": "Hjertestien, Hindemade", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/soenderjylland/pamhule-hindemade-og-haderslev-dyrehave/praktisk", "reason": "typo: the lake and Naturstyrelsen guide are Hindemade (Pamhule, Hindemade og Haderslev Dyrehave)"}
+      ],
+      "display_name": "Pamhule, Hindemade og Haderslev Dyrehave",
+      "allow_rename": {"from": "Pamhule Skov", "reason": "reviewed 2026-11-01 (BATCH-3): merge with the Haderslev Dyrehave og Sandkule Skov area. Naturstyrelsen runs ONE guide titled Pamhule, Hindemade og Haderslev Dyrehave; the area now carries that title (id pamhule-skov-dk stays)"},
+      "include_trails": [
+        {"id": "r2069072", "name": "Dyrehaven - gul rute", "reason": "Naturstyrelsen lwn hiking relation r2069072 (3.57 mi), whole route, waymarked yellow::yellow_dot; Dyrehaven gul rute, Haderslev Dyrehave, moved from sandkule-skov-dk"},
+        {"id": "r19543445", "name": "Dyrehaven - blå rute", "reason": "Naturstyrelsen lwn hiking relation r19543445 (1.34 mi), whole route, waymarked blue::blue_dot; Dyrehaven blå rute, Haderslev Dyrehave, moved from sandkule-skov-dk"},
+        {"id": "r2069076", "name": "Brunsbyttel og Christiansdal - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2069076 (2.4 mi), whole route, waymarked red::red_dot; Brunsbyttel og Christiansdal rød rute, moved from sandkule-skov-dk"},
+        {"id": "r2069077", "name": "Sandkule Skov - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2069077 (1.69 mi), whole route, waymarked red::red_dot; Sandkule Skov rød rute, moved from sandkule-skov-dk"}
       ]
     },
     {
@@ -2084,14 +1837,18 @@
       "name": "Boserup Skov",
       "state": "Denmark",
       "relation_id": 8121951,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [11.94, 55.6, 12.11, 55.74],
+      "center": [55.671, 12.021],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 7,
-      "est_mi": 6.5,
-      "notes": "Tier 2 state_forest_like, Zealand. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.7,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Skjoldungernes Land umbrella. Boserup Rundt 5 km plus Bognæs Storskov (whole 6.4 mi route), 1.9 mi apart.",
+      "display_name": "Boserup Skov og Bognæs · Nationalpark Skjoldungernes Land",
+      "include_trails": [
+        {"id": "r11761687", "name": "Bognæs Storskov", "reason": "OSM lwn hiking relation r11761687 (6.44 mi), whole route, waymarked blue:white:hiker; Bognæs Storskov walk on the Bognæs peninsula next to Boserup Skov, was in the umbrella"}
+      ]
     },
     {
       "id": "lild-klit-dk",
@@ -2217,14 +1974,15 @@
       "name": "Stenbjerg Klitplantage",
       "state": "Denmark",
       "relation_id": 1554396,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [8.29, 56.83, 8.51, 56.98],
+      "center": [56.907, 8.379],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "np-nested",
-      "est_trails": 6,
-      "est_mi": 6.3,
-      "notes": "Tier 2 state_forest_like, Jutland. Held: nested in national park. bbox/center computed by the qualify run."
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.3,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella (Naturstyrelsen waymarked routes of the plantation).",
+      "display_name": "Stenbjerg Klitplantage · Nationalpark Thy"
     },
     {
       "id": "fiskerup-skov-dk",
@@ -2400,14 +2158,14 @@
       "name": "Pedersker Plantage",
       "state": "Denmark",
       "relation_id": 21168941,
-      "bbox": null,
-      "center": null,
+      "bbox": [14.93, 55.03, 15.07, 55.15],
+      "center": [55.089, 14.996],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 3,
-      "est_mi": 5.4,
-      "notes": "Tier 2 state_forest_like, Bornholm. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: two municipal Pedersker Jagthus routes (Rød 3.7, Gul 2.2 mi) with no Naturstyrelsen guide; defer to the Bornholm split. Batch B (dk-v3 replay, 2026-10-31): Re-looked: 2 Bornholms Regionskommune routes (Jagthus Rød 3.7 mi, Gul 2.2 mi), no official page. Thin. Stays held; see bornholm-dk. Batch H (2026-10-31): HOLD after a 3-trail replay (Pedersker Jagthus Rød 3.68 mi and Gul 2.23, Bornholms Regionskommune, plus Paradisbakkerne Blå rute 3.81 as an include 4 km east, prefix Paradisbakkerne). Destination Bornholm lists three Paradisbakkerne routes (red, yellow, blue) and OSM maps only the blue, so two official walks of the destination are missing; the Pedersker Jagthus pair is municipal. A composite of two places with a known omission fails the completionist bar. Unlock: OSM relations for the Paradisbakkerne red and yellow routes."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.9,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): the two Bornholms Regionskommune lwn routes Pedersker Jagthus Rød and Gul (5.9 mi); the Paradisbakkerne Blå route 4 km east is a different place and stays out. Thin: no Naturstyrelsen guide page."
     },
     {
       "id": "mellemskov-dk",
@@ -2593,14 +2351,14 @@
       "name": "Lille Vildmose",
       "state": "Denmark",
       "way_id": 479741966,
-      "bbox": null,
-      "center": null,
+      "bbox": [10.1, 56.76, 10.32, 57.0],
+      "center": [56.9, 10.172],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 4,
-      "est_mi": 7.0,
-      "notes": "Way-backed (way 479741966, Lille Vildmose). Wayback curation (dk-v3): do not ship. Only 2 trails, 2.2 mi (Kællingbjerg Klint, Plankestien i Portlandsmosen) in a 75 km2 Natura 2000 area; the Hals Mose and Øster Hurup routes (about 30 mi) are outside the polygon and are different places. Too thin to call complete."
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.2,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Kællingbjerg Klint (lwn, Fonden Lille Vildmosecentret, waymarked) and Plankestien i Portlandsmosen (lwn): the two named signed walks inside the nature reserve in OSM. THIN (2.2 mi): the Aalborg Hals Mose and Øster Hurup routes are outside the reserve and other places."
     },
     {
       "id": "vestskoven-dk",
@@ -2831,18 +2589,21 @@
     },
     {
       "state": "Denmark",
-      "bbox": null,
-      "center": null,
+      "bbox": [12.14, 54.99, 12.33, 55.1],
+      "center": [55.045, 12.243],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "id": "ulvshale-nyord-dk",
       "name": "Ulvshaleskoven",
       "relation_id": 19847792,
       "display_name": "Ulvshale og Nyord",
       "est_trails": 2,
       "est_mi": 8.3,
-      "notes": "Batch B (dk-v3 replay, 2026-10-31): Do not ship (partial): the Naturstyrelsen guide Ulvshale og Nyord (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/oevrige-sjaelland-og-sydhavsoeerne/ulvshale-og-nyord/praktisk) marks 5 walks on Ulvshale plus a bi-vandresti on Nyord. OSM has one Ulvshale relation (5.4 mi) and Nyord (2.9 mi, via include_trails r13310558): 2 of about 6. A completionist could not claim Ulvshale. Revisit when OSM maps the five walks separately."
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): the Naturstyrelsen Ulvshale and Nyord relations in OSM (2 of about 6 walks of the guide). The other Ulvshale walks have no OSM relation: known omission.",
+      "include_trails": [
+        {"id": "r13310558", "name": "Nyord", "reason": "Naturstyrelsen lwn hiking relation r13310558 (4.15 mi), whole route; Nyord walk on the island of Nyord, Naturstyrelsen guide Ulvshale og Nyord, outside the Ulvshaleskoven polygon"}
+      ]
     },
     {
       "id": "froslev-plantage-dk",
@@ -2868,26 +2629,23 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 6.0,
+      "est_trails": 7,
+      "est_mi": 10.2,
       "notes": "Batch C (dk-v3 replay, 2026-10-31): 4 Naturstyrelsen routes (Rød 1.45, Lilla rute i Harde Skov 2.65, Blå 0.63, Gul 0.37 mi). Held: the area has about 7 NS routes (Ferup Sø, Ferup-Holmsmindesti) that need include_trails and a wider bbox; 4 of ~7 is not completionist. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Harte Skov (second review renamed it from Harte Skov og Ferup Sø because no Ferup trail ships). 5 Naturstyrelsen routes / 6.4 mi: Rød rute i Harte Skov 1.45, Lilla rute i Harde Skov 2.65, Blå rute 0.63, Gul rute 0.37 and Brændsmade 1.26 (include r3251112, at Ferup Sø). Known omissions: Ferup - Holmsmindesti (r3251114) is a 1.3 km OSM stub, mostly Koldingvej road, and is dropped by the relation-gap gate (include fails closed, so it is not listed); Ekstra Gul rute Ferup (r3251113) is a 0.14 mi connector spur and is left out. Hjerteforeningen exercise loops and Kolding Kommune Kløversti routes are not Naturstyrelsen walks and are not part of this area. BATCH-1 2026-11-01: Gul rute - Harteskov (0.37 mi) removed as a fragment. 4 trails. Klintenborg Plantage is merged into this area in BATCH-3.",
       "exclude_trails": [
-        {
-          "id": "r3249161",
-          "name": "Gul rute - Harteskov",
-          "reason": "reviewed 2026-11-01 (BATCH-1 curation, OSM tags + length): 0.37 mi Naturstyrelsen loop, under the 0.6 mi fragment rule; no official page found that lists it as a standalone walk"
-        }
+        {"id": "r3249161", "name": "Gul rute - Harteskov", "reason": "reviewed 2026-11-01 (BATCH-1 curation, OSM tags + length): 0.37 mi Naturstyrelsen loop, under the 0.6 mi fragment rule; no official page found that lists it as a standalone walk"}
       ],
       "include_trails": [
-        {
-          "id": "r3251112",
-          "name": "Brændsmade",
-          "reason": "Naturstyrelsen lwn relation (yellow) at Ferup Sø, outside the Harte Skov polygon"
-        }
+        {"id": "r3251112", "name": "Brændsmade", "reason": "Naturstyrelsen lwn relation (yellow) at Ferup Sø, outside the Harte Skov polygon"},
+        {"id": "r961913", "name": "blå rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961913 (2.03 mi), whole route, waymarked green:green:blue_pointer; blå rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"},
+        {"id": "r961916", "name": "Rød rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961916 (1.44 mi), whole route, waymarked green:green:red_pointer; Rød rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"},
+        {"id": "r961915", "name": "Gul rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961915 (0.88 mi), whole route, waymarked green:green:yellow_pointer; Gul rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"}
       ],
       "trail_name_fixes": [
         {"osm_name": "Lilla rute i Harde Skov", "name": "Lilla rute i Harte Skov", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/harte-skov-og-ferup-soe/praktisk", "reason": "typo: the forest is Harte Skov (Naturstyrelsen guide Harte Skov og Ferup Sø); the sibling OSM routes already say Harte Skov"}
-      ]
+      ],
+      "display_name": "Harte Skov og Klintenborg Plantage",
+      "allow_rename": {"from": "Harte Skov", "reason": "reviewed 2026-11-01 (BATCH-3): merge with the Klintenborg Plantage area (Kolding Kommune forest next to Harte Skov, same Trekantområdet walks). The area now carries both forest names (id harte-skov-dk stays)"}
     },
     {
       "id": "kelstrup-plantage-dk",
@@ -3157,26 +2915,14 @@
       "center": [55.234, 9.373],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 4,
       "est_mi": 8.7,
-      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Haderslev Dyrehave og Sandkule Skov, 4 Naturstyrelsen routes / 8.7 mi: Dyrehaven gul 3.30 and blå 1.34, Brunsbyttel og Christiansdal rød 2.35 (includes r2069072, r19543445, r2069076, outside the small Sandkule polygon) and Sandkule Skov rød 1.69. Known omission: Geheimeraadens Sti (Haderslev Kommune 3.5 mi) is a municipal walk and is left out. Neighbouring live Pamhule Skov shares no route (under 3 percent of points within 40 m). Naturstyrelsen guide page not opened.",
+      "notes": "Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. Haderslev Dyrehave og Sandkule Skov, 4 Naturstyrelsen routes / 8.7 mi: Dyrehaven gul 3.30 and blå 1.34, Brunsbyttel og Christiansdal rød 2.35 (includes r2069072, r19543445, r2069076, outside the small Sandkule polygon) and Sandkule Skov rød 1.69. Known omission: Geheimeraadens Sti (Haderslev Kommune 3.5 mi) is a municipal walk and is left out. Neighbouring live Pamhule Skov shares no route (under 3 percent of points within 40 m). Naturstyrelsen guide page not opened. SUPERSEDED merged into pamhule-skov-dk (BATCH-3 reviewed 2026-11-01 (BATCH-3)): one Naturstyrelsen guide, Pamhule, Hindemade og Haderslev Dyrehave.",
       "include_trails": [
-        {
-          "id": "r2069072",
-          "name": "Dyrehaven - gul rute",
-          "reason": "Naturstyrelsen yellow walk in Haderslev Dyrehave; whole route"
-        },
-        {
-          "id": "r19543445",
-          "name": "Dyrehaven - blå rute",
-          "reason": "Naturstyrelsen blue walk in Haderslev Dyrehave; whole route"
-        },
-        {
-          "id": "r2069076",
-          "name": "Brunsbyttel og Christiansdal - rød rute",
-          "reason": "Naturstyrelsen red walk at Brunsbyttel and Christiansdal; whole route"
-        }
+        {"id": "r2069072", "name": "Dyrehaven - gul rute", "reason": "Naturstyrelsen yellow walk in Haderslev Dyrehave; whole route"},
+        {"id": "r19543445", "name": "Dyrehaven - blå rute", "reason": "Naturstyrelsen blue walk in Haderslev Dyrehave; whole route"},
+        {"id": "r2069076", "name": "Brunsbyttel og Christiansdal - rød rute", "reason": "Naturstyrelsen red walk at Brunsbyttel and Christiansdal; whole route"}
       ]
     },
     {
@@ -3188,10 +2934,10 @@
       "center": [55.529, 9.406],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "superseded",
       "est_trails": 3,
       "est_mi": 4.3,
-      "notes": "Batch I (dk-v3 + boundary_by_id from PR 666, 2026-10-31): SHIP. Kolding Kommune forest, Jutland, next to (not part of) Harte Skov. OSM has two boundaries named Klintenborg Plantage (relation 1975683 and way 139218238, same forest); boundary_by_id picks the relation. The complete signed set of three colour walks, all lwn relations with the place in the name: blå rute 1.95 mi (4 parts, widest bridge 84 m, under the 100 m gate), Rød rute 1.44, Gul rute 0.87 = 3 trails / 4.3 mi. Names are the OSM names (blå starts lowercase in OSM). Blå is only about half inside the polygon and ships whole. Removed by rule: Hartesløjfen (route elsewhere), Ferup - Holmsmindesti (regional, relation gap), Troldhedestien (name stitch). No overlap with live Harte Skov beyond 8% of the blå with Brændsmade. No official page opened; OSM only.",
+      "notes": "Batch I (dk-v3 + boundary_by_id from PR 666, 2026-10-31): SHIP. Kolding Kommune forest, Jutland, next to (not part of) Harte Skov. OSM has two boundaries named Klintenborg Plantage (relation 1975683 and way 139218238, same forest); boundary_by_id picks the relation. The complete signed set of three colour walks, all lwn relations with the place in the name: blå rute 1.95 mi (4 parts, widest bridge 84 m, under the 100 m gate), Rød rute 1.44, Gul rute 0.87 = 3 trails / 4.3 mi. Names are the OSM names (blå starts lowercase in OSM). Blå is only about half inside the polygon and ships whole. Removed by rule: Hartesløjfen (route elsewhere), Ferup - Holmsmindesti (regional, relation gap), Troldhedestien (name stitch). No overlap with live Harte Skov beyond 8% of the blå with Brændsmade. No official page opened; OSM only. SUPERSEDED merged into harte-skov-dk (BATCH-3 reviewed 2026-11-01 (BATCH-3)): Kolding Kommune forest next to Harte Skov.",
       "boundary_by_id": true
     },
     {
@@ -3692,26 +3438,19 @@
       "name": "Fosdal Plantage",
       "state": "Denmark",
       "relation_id": 8067180,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.31, 57.05, 9.48, 57.18],
+      "center": [57.12, 9.398],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 4.5,
-      "notes": "Batch K (D-US polygon tier, 2026-10-31): HOLD. Fosdal Plantage (relation 8067180): the two Naturstyrelsen walks in OSM, Fosdalen Gul rute 3.26 mi and Grøn rute 1.23, come in whole via include_trails (0 percent inside the polygon, so the polygon only anchors the area). The Naturstyrelsen guide Fosdalen og Lien lists a third walk, Fosdalen Rød (2.5 km, the walk through the namesake gorge), that has no OSM relation, and the second review (2026-10-30) required it. Langdal Plantage ships separately. Unlock: Fosdalen Rød mapped in OSM.",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): the two Naturstyrelsen Fosdalen walks in OSM (Gul rute, Grøn rute). Fosdalen Rød (2.5 km) has no OSM relation: known omission, an OSM edit fixes it.",
       "include_trails": [
-        {
-          "id": "r12559613",
-          "name": "Fosdalen Gul rute",
-          "reason": "lwn Naturstyrelsen relation 3.26 mi, the 5.5 km Gul rute of the Fosdalen og Lien guide"
-        },
-        {
-          "id": "r12559639",
-          "name": "Fosdalen Grøn rute",
-          "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the Fosdalen og Lien guide"
-        }
-      ]
+        {"id": "r12559613", "name": "Fosdalen Gul rute", "reason": "lwn Naturstyrelsen relation 3.26 mi, the 5.5 km Gul rute of the Fosdalen og Lien guide"},
+        {"id": "r12559639", "name": "Fosdalen Grøn rute", "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the Fosdalen og Lien guide"}
+      ],
+      "display_name": "Fosdalen"
     },
     {
       "id": "bangsbo-skov-dk",
@@ -4597,6 +4336,240 @@
           "reason": "Randers Kommune lwn walk, whole route"
         }
       ]
+    },
+    {
+      "id": "frederiksvaerk-dk",
+      "name": "Frederiksværk",
+      "state": "Denmark",
+      "relation_id": 17350410,
+      "bbox": [11.97, 55.9, 12.12, 56.04],
+      "center": [55.97, 12.043],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Frederiksværk og Arresø · Nationalpark Kongernes Nordsjælland",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Five Halsnæs walks around Frederiksværk and Arresødal.",
+      "container_from_routes": {"reason": "No usable named OSM polygon for Frederiksværk/Arresødal; container derived from the 5 included signed Halsnæs walks"},
+      "include_trails": [
+        {"id": "r17350410", "name": "Rød historisk vandring", "reason": "OSM lwn hiking relation r17350410 (5.59 mi), whole route, waymarked red:red:green_dot; Rød historisk vandring 'Kongemagt og Vandets Kraft' (Frederiksværk/Arresødal)"},
+        {"id": "r17351831", "name": "Gul historisk vandring", "reason": "OSM lwn hiking relation r17351831 (3.68 mi), whole route, waymarked yellow:yellow:green_dot; Gul historisk vandring of the same heritage walk"},
+        {"id": "r17351830", "name": "Grøn historisk vandring", "reason": "Industrimusset og Halsnæs Kommune lwn hiking relation r17351830 (2.38 mi), whole route, waymarked green:green:green_dot; Grøn historisk vandring of the same heritage walk (Industrimuseet og Halsnæs Kommune)"},
+        {"id": "r13649318", "name": "Hjertesti ved Magleblik", "reason": "OSM lwn hiking relation r13649318 (2.67 mi), whole route, waymarked red:white:red_triangle_turned; Hjerteforeningen heart path at Magleblik, Frederiksværk (Halsnæs Kommune)"},
+        {"id": "r13592991", "name": "Bakkestien", "reason": "OSM lwn hiking relation r13592991 (1.16 mi), whole route; Bakkestien, Halsnæs Kommune walk in Frederiksværk"}
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Rød historisk vandring", "name": "Frederiksværk Rød historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"},
+        {"osm_name": "Gul historisk vandring", "name": "Frederiksværk Gul historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"},
+        {"osm_name": "Grøn historisk vandring", "name": "Frederiksværk Grøn historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"}
+      ],
+      "est_trails": 5,
+      "est_mi": 15.3
+    },
+    {
+      "id": "gurre-dk",
+      "name": "Gurre Vang",
+      "state": "Denmark",
+      "relation_id": 6604354,
+      "bbox": [12.38, 55.96, 12.63, 56.11],
+      "center": [56.034, 12.502],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Gurre og Havreholm · Nationalpark Kongernes Nordsjælland",
+      "include_trails": [
+        {"id": "r3566411", "name": "Havreholm-turen", "reason": "OSM lwn hiking relation r3566411 (8.14 mi), whole route; Havreholm-turen, loop 1.6 mi from Gurre Sø through Horserød and Teglstrup Hegn, outside the Gurre Vang polygon"}
+      ],
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Gurre Vang forest polygon r6604354 (Gurre Sø rundt) plus Havreholm-turen.",
+      "est_trails": 2,
+      "est_mi": 13.6
+    },
+    {
+      "id": "vilsbol-klitplantage-dk",
+      "name": "Vilsbøl Klitplantage",
+      "state": "Denmark",
+      "way_id": 109491307,
+      "bbox": [8.49, 56.97, 8.64, 57.1],
+      "center": [57.028, 8.577],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Vilsbøl Klitplantage · Nationalpark Thy",
+      "exclude_trails": [
+        {"id": "r12747017", "name": "Hulvejruten", "reason": "Naturstyrelsen lwn relation of 0.53 mi, under the 0.6 mi fragment rule; no official page lists it as a standalone walk; reviewed 2026-11-01 (BATCH-3)"}
+      ],
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella. Vilsbøl Klitplantage polygon w109491307 (Naturstyrelsen walks Vilsbølruten, Nebelruten, Årbjergruten).",
+      "est_trails": 3,
+      "est_mi": 7.2
+    },
+    {
+      "id": "flade-so-dk",
+      "name": "Flade Sø",
+      "state": "Denmark",
+      "relation_id": 12407152,
+      "bbox": [8.18, 56.73, 8.34, 56.88],
+      "center": [56.807, 8.259],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Flade Sø · Nationalpark Thy",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella.",
+      "container_from_routes": {"reason": "Flade Sø has no usable polygon for the pair; container derived from the 2 included signed routes"},
+      "include_trails": [
+        {"id": "r12407152", "name": "Flade Sø Rundtur", "reason": "Naturstyrelsen lwn hiking relation r12407152 (6.35 mi), whole route, waymarked blue:white:blue_hiker; Flade Sø Rundtur (Naturstyrelsen Flade Sø)"},
+        {"id": "r14635362", "name": "Sorte næse rute", "reason": "OSM lwn hiking relation r14635362 (3.83 mi), whole route, waymarked black::black_triangle; Sorte næse rute, 1 mi from Flade Sø"}
+      ],
+      "est_trails": 2,
+      "est_mi": 10.1
+    },
+    {
+      "id": "hanstholm-dk",
+      "name": "Hanstholm Vildtreservat",
+      "state": "Denmark",
+      "way_id": 1135412600,
+      "bbox": [8.45, 56.97, 8.78, 57.17],
+      "center": [57.072, 8.63],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Hanstholm Vildtreservat · Nationalpark Thy",
+      "container_by_id": {"reason": "Hanstholm Vildtreservat is a protected_area polygon (w1135412600); the three Naturstyrelsen walks come in whole as includes"},
+      "include_trails": [
+        {"id": "r2526364", "name": "Hanstholm Gul rute", "reason": "Naturstyrelsen lwn hiking relation r2526364 (10.57 mi), whole route, waymarked yellow:yellow:yellow_hiker; Hanstholm Gul rute, the Naturstyrelsen walk of the Hanstholm Vildtreservat (10.6 mi, source Hanstholmen_101213_Web.pdf)"},
+        {"id": "r2528917", "name": "Hanstholm - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2528917 (0.73 mi), whole route, waymarked red:red:red; Hanstholm rød rute (Naturstyrelsen)"},
+        {"id": "r12747075", "name": "Degnbjergruten", "reason": "Naturstyrelsen lwn hiking relation r12747075 (3.13 mi), whole route, waymarked blue:green::blue_triangle::; Degnbjergruten, Naturstyrelsen walk at the south edge of the Hanstholm Vildtreservat"}
+      ],
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella; Hanstholm Gul rute (NS, 10.6 mi) was never live.",
+      "est_trails": 3,
+      "est_mi": 14.2
+    },
+    {
+      "id": "tondermarsken-dk",
+      "name": "Tøndermarsken",
+      "state": "Denmark",
+      "relation_id": 10015736,
+      "bbox": [8.61, 54.84, 8.82, 55.04],
+      "center": [54.94, 8.716],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Tøndermarsken · Nationalpark Vadehavet",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Vadehavet umbrella. Six Tøndermarsk Initiativet loops (Papegøjestien, a Tønder town loop 0.07 deg east, does not fit the 0.12 deg cluster cap and is dropped).",
+      "container_from_routes": {"reason": "Tøndermarsken has no usable polygon; container derived from the 6 included signed Tøndermarsk Initiativet routes"},
+      "include_trails": [
+        {"id": "r10015736", "name": "Sort stisløjfe, Højer, Klæggravene, Vidå", "reason": "Tøndermarsk Initiativet lwn hiking relation r10015736 (7.33 mi), whole route, waymarked white:white::>:black; Tøndermarsk Initiativet stisløjfe (Sort, Højer/Klæggravene)"},
+        {"id": "r10022527", "name": "Rød stisløjfe, Gl. Frederikskog", "reason": "Tøndermarsk Initiativet lwn hiking relation r10022527 (6.82 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe (Rød, Gl. Frederikskog)"},
+        {"id": "r9953503", "name": "Rød stisløjfe, Højer, Emmerlev Klev, Vidåslusen", "reason": "Tøndermarsk Initiativet lwn hiking relation r9953503 (5.77 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe (Rød, Højer/Emmerlev Klev)"},
+        {"id": "r9962531", "name": "Grøn stisløjfe, Højer, Højer Sluse, Højer Havn", "reason": "Tøndermarsk Initiativet lwn hiking relation r9962531 (2.57 mi), whole route, waymarked white:white::>:green; Tøndermarsk Initiativet stisløjfe (Grøn, Højer Sluse)"},
+        {"id": "r10022431", "name": "Lyseblå stisløjfe, Vidå", "reason": "Tøndermarsk Initiativet lwn hiking relation r10022431 (2.39 mi), whole route, waymarked white:white::>:blue; Tøndermarsk Initiativet stisløjfe (Lyseblå, Vidå)"},
+        {"id": "r9962614", "name": "Grøn stisløjfe, Rudbøl Sø, Lyst", "reason": "Tøndermarsk Initiativet lwn hiking relation r9962614 (1.44 mi), whole route, waymarked white:white::>:green; Tøndermarsk Initiativet stisløjfe (Grøn, Rudbøl Sø)"}
+      ],
+      "est_trails": 6,
+      "est_mi": 25.5
+    },
+    {
+      "id": "tonder-dk",
+      "name": "Tønder Nørresø",
+      "state": "Denmark",
+      "relation_id": 7802913,
+      "bbox": [8.78, 54.85, 8.92, 54.99],
+      "center": [54.917, 8.852],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Tønder",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix.",
+      "container_from_routes": {"reason": "Tønder has no usable polygon for the pair; container derived from the 2 included signed routes"},
+      "include_trails": [
+        {"id": "r7802913", "name": "Tur på Papegøjestien", "reason": "Tønder Kommune lwn hiking relation r7802913 (4.97 mi), whole route; Tønder Kommune Papegøjestien, was in the Nationalpark Vadehavet umbrella (37% inside the park)"},
+        {"id": "r12996962", "name": "Rød stisløjfe, Tønder, Nørresø", "reason": "Tøndermarsk Initiativet lwn hiking relation r12996962 (6.04 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe at Tønder Nørresø, 1 mi north of the Papegøjestien"}
+      ],
+      "est_trails": 2,
+      "est_mi": 11.0
+    },
+    {
+      "id": "vester-vedsted-dk",
+      "name": "Vester Vedsted",
+      "state": "Denmark",
+      "relation_id": 11279229,
+      "bbox": [8.61, 55.22, 8.8, 55.38],
+      "center": [55.299, 8.701],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Vester Vedsted · Nationalpark Vadehavet",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Vadehavet umbrella.",
+      "container_from_routes": {"reason": "Vester Vedsted has no usable polygon for the pair; container derived from the 2 included signed routes"},
+      "include_trails": [
+        {"id": "r11279229", "name": "Grænsestien Rundtur Vester Vedsted", "reason": "Esbjerg Kommune lwn hiking relation r11279229 (6.58 mi), whole route, waymarked green::green_pointer; Esbjerg Kommune Grænsestien Rundtur Vester Vedsted"},
+        {"id": "r14654257", "name": "Landskabsgang", "reason": "OSM lwn hiking relation r14654257 (7.66 mi), whole route, waymarked blue:white:yellow_pointer; Landskabsgang 12.5 km waymarked walk (landskabsgang.dk)"}
+      ],
+      "est_trails": 2,
+      "est_mi": 14.1
+    },
+    {
+      "id": "hammeren-dk",
+      "name": "Slotslyngen",
+      "state": "Denmark",
+      "way_id": 100277948,
+      "bbox": [14.67, 55.18, 14.84, 55.35],
+      "center": [55.261, 14.751],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Hammeren, Hammershus og Jons Kapel",
+      "container_by_id": {"reason": "Slotslyngen is a protected_area heath polygon (w100277948) at Hammershus; the six Hammeren walks come in whole as includes (Finnens fodspor is route=walking, which a route cluster refuses)"},
+      "include_trails": [
+        {"id": "r12700494", "name": "Hammerknuden Rundt", "reason": "Naturstyrelsen lwn hiking relation r12700494 (4.36 mi), whole route, waymarked blue:white:blue_hiker; Hammerknuden Rundt, 7 km blue loop"},
+        {"id": "r14573577", "name": "Finnens fodspor", "reason": "OSM lwn hiking relation r14573577 (3.57 mi), whole route, waymarked purple:green:purple_pointer:::; Finnens fodspor from the Hammershus car park (route=walking)"},
+        {"id": "r12700350", "name": "Stenhuggerstien", "reason": "Naturstyrelsen lwn hiking relation r12700350 (3.02 mi), whole route, waymarked red:white:red_hiker; Stenhuggerstien, red path on Hammerknuden"},
+        {"id": "r14573576", "name": "Cirkelstien", "reason": "OSM lwn hiking relation r14573576 (1.72 mi), whole route, waymarked yellow:green:yellow_pointer:::; Cirkelstien Allinge-Sandvig"},
+        {"id": "r12492199", "name": "Jons Kapel rundtur", "reason": "OSM lwn hiking relation r12492199 (1.74 mi), whole route, waymarked blue:white:blue_hiker; Jons Kapel rundtur on Slotslyngen"},
+        {"id": "r9690060", "name": "Ringebakkerne", "reason": "OSM lwn hiking relation r9690060 (3.51 mi), whole route; Ringebakkerne, 0.7 mi from Jons Kapel"}
+      ],
+      "accept_gap": [
+        {"relation": "r14573576", "max_gap_m": 300, "reason": "Cirkelstien: the OSM relation has a 265.1 m gap between 2 pieces (two member ways stay excluded as service driveways); the two parts ship as separate segments, no geometry is synthesized"}
+      ],
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nordbornholm bag (ro-plantage-dk). The six walks of the Hammeren / Hammershus / Jons Kapel tip of Bornholm in one area.",
+      "est_trails": 6,
+      "est_mi": 17.6
+    },
+    {
+      "id": "engelsholm-skov-dk",
+      "name": "Engelsholm Skov",
+      "state": "Denmark",
+      "relation_id": 3240425,
+      "bbox": [9.24, 55.66, 9.37, 55.77],
+      "center": [55.714, 9.308],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): new area; Engelsholm - Vesterskov Rød sti left Gødding Skov in BATCH-1.",
+      "container_from_routes": {"reason": "Engelsholm Skov has no usable forest polygon (the named way is a dog park); container derived from the 2 included Naturstyrelsen routes"},
+      "include_trails": [
+        {"id": "r3240425", "name": "Gul tur - Engelsholm Skov", "reason": "Naturstyrelsen nwl hiking relation r3240425 (3.25 mi), whole route, waymarked green:green:yellow_pointer; Gul tur - Engelsholm Skov (Naturstyrelsen, network tag nwl)"},
+        {"id": "r3240427", "name": "Engelsholm - Vesterskov Rød sti", "reason": "Naturstyrelsen lwn hiking relation r3240427 (0.97 mi), whole route, waymarked green:green:red_pointer; Engelsholm - Vesterskov Rød sti, moved from godding-skov-dk (BATCH-1 exclusion)"}
+      ],
+      "est_trails": 2,
+      "est_mi": 3.8
+    },
+    {
+      "id": "ristinge-halvo-dk",
+      "name": "Ristinge Halvø",
+      "state": "Denmark",
+      "relation_id": 12671638,
+      "bbox": [10.55, 54.77, 10.7, 54.89],
+      "center": [54.827, 10.622],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): new area, the two signed walks of the Ristinge peninsula on Langeland.",
+      "container_from_routes": {"reason": "Ristinge Halvø has no usable polygon; container derived from the 2 included signed routes"},
+      "include_trails": [
+        {"id": "r12671638", "name": "Ristinge Halvø rundtur", "reason": "Naturstyrelsen lwn hiking relation r12671638 (5.31 mi), whole route, waymarked blue:white:blue_hiker; Ristinge Halvø rundtur, Naturstyrelsen"},
+        {"id": "r14507560", "name": "Ristinge Halvø", "reason": "Hjerteforeningen lwn hiking relation r14507560 (2.16 mi), whole route; Ristinge Halvø Hjertesti, Hjerteforeningen"}
+      ],
+      "est_trails": 2,
+      "est_mi": 6.6
     }
   ]
 }

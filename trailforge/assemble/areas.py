@@ -99,6 +99,133 @@ DK_CONTAINER_TAGS = {"landuse": {"forest"}, "natural": {"wood"},
                      "boundary": {"protected_area", "national_park"}}
 
 
+# Denmark registry `container_from_routes` (dk-v3 only): an area with NO usable OSM
+# polygon gets a container DERIVED from the union of its include_trails route
+# relations. The derivation is fixed and recorded in the sealed evidence
+# (evidence_type "route-cluster") so the container cannot drift:
+#   linework = every member way (nested route relations followed) of every include
+#   projection = local equirectangular at the linework's mean latitude,
+#                1 degree = 111,320 m (x scaled by cos(latitude))
+#   container = buffer(union of linework, ROUTE_CLUSTER_BUFFER_M, 8 segments/quarter)
+#   vertices rounded to 6 decimals; must be a valid polygon
+ROUTE_CLUSTER_VERSION = "route-cluster-v1"
+ROUTE_CLUSTER_BUFFER_M = 150
+ROUTE_CLUSTER_MIN_ROUTES = 2
+ROUTE_CLUSTER_ROUTE_KINDS = {"hiking", "foot"}     # route=* of an include relation
+ROUTE_CLUSTER_MAX_SPAN_DEG = 0.12                  # per axis (about 13 km N-S, 7 km E-W)
+ROUTE_CLUSTER_DK_LON, ROUTE_CLUSTER_DK_LAT = (6.0, 16.0), (54.0, 58.0)
+_M_PER_DEG = 111320.0
+
+
+def _route_cluster_linework(relations: dict, ways: dict, nodes: dict,
+                            rel_id: int, seen: set) -> tuple[list, str | None]:
+    """[(way id, [(lon, lat)...])] of one route relation, nested route relations
+    followed; (None, reason) when any member way has missing geometry."""
+    if rel_id in seen:
+        return [], None
+    seen.add(rel_id)
+    out = []
+    for kind, ref, _role in relations[rel_id]["members"]:
+        if kind == "w":
+            way = ways.get(ref)
+            if way is None:
+                return [], f"member way {ref} of route relation {rel_id} is not in the extract"
+            if any(n not in nodes for n in way["nodes"]):
+                return [], f"member way {ref} of route relation {rel_id} has missing nodes"
+            out.append((ref, [nodes[n] for n in way["nodes"]]))
+        elif kind == "r" and ref in relations:
+            sub, failure = _route_cluster_linework(relations, ways, nodes, ref, seen)
+            if failure:
+                return [], failure
+            out += sub
+    return out, None
+
+
+def route_cluster_container(relations: dict, ways: dict, nodes: dict,
+                            include_ids: list[int], anchor_id: int,
+                            name: str) -> tuple[dict | None, str | None]:
+    """Denmark opt-in (registry container_from_routes): derive the container of an
+    area that has no usable OSM polygon from the whole geometry of its include_trails
+    routes. Fail closed (None, reason) on: fewer than two distinct routes, an
+    anchor that is not one of them, a missing / non-hiking route, incomplete
+    geometry, a cluster wider than ROUTE_CLUSTER_MAX_SPAN_DEG, outside Denmark or
+    an invalid polygon. Returns an exact-area dict labelled with the registry name
+    (osm_type/osm_id = the anchor route relation, evidence in ``route_cluster``)."""
+    import hashlib
+    import json
+    import math
+    from shapely.geometry import LineString
+    from shapely.ops import transform, unary_union
+
+    ids = sorted(set(include_ids))
+    if len(ids) != len(include_ids) or len(ids) < ROUTE_CLUSTER_MIN_ROUTES:
+        return None, (f"route-cluster needs at least {ROUTE_CLUSTER_MIN_ROUTES} "
+                      "distinct include_trails routes")
+    if anchor_id not in ids:
+        return None, f"route-cluster anchor relation {anchor_id} is not an included route"
+    lines: list[tuple[int, int, list]] = []
+    for rid in ids:
+        rel = relations.get(rid)
+        if rel is None:
+            return None, f"route relation {rid} is not in the extract"
+        kind = (rel["tags"].get("route") or "").strip().lower()
+        if kind not in ROUTE_CLUSTER_ROUTE_KINDS:
+            return None, f"route relation {rid} is route={kind!r}, not a hiking/foot route"
+        part, failure = _route_cluster_linework(relations, ways, nodes, rid, set())
+        if failure:
+            return None, failure
+        if not part:
+            return None, f"route relation {rid} has no member ways"
+        lines += [(rid, way_id, coords) for way_id, coords in part]
+    lons = [c[0] for _r, _w, cs in lines for c in cs]
+    lats = [c[1] for _r, _w, cs in lines for c in cs]
+    box = [min(lons), min(lats), max(lons), max(lats)]
+    if (box[2] - box[0] > ROUTE_CLUSTER_MAX_SPAN_DEG
+            or box[3] - box[1] > ROUTE_CLUSTER_MAX_SPAN_DEG):
+        return None, (f"route-cluster is {box[2] - box[0]:.3f} x {box[3] - box[1]:.3f} "
+                      f"degrees, over the {ROUTE_CLUSTER_MAX_SPAN_DEG} cap per axis")
+    if not (ROUTE_CLUSTER_DK_LON[0] <= box[0] and box[2] <= ROUTE_CLUSTER_DK_LON[1]
+            and ROUTE_CLUSTER_DK_LAT[0] <= box[1] and box[3] <= ROUTE_CLUSTER_DK_LAT[1]):
+        return None, f"route-cluster bbox {box} is outside Denmark"
+    lon0, lat0 = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    kx = _M_PER_DEG * math.cos(math.radians(lat0))
+
+    def forward(xs, ys):
+        return ([(x - lon0) * kx for x in xs], [(y - lat0) * _M_PER_DEG for y in ys])
+
+    def inverse(xs, ys):
+        return ([round(lon0 + x / kx, 6) for x in xs],
+                [round(lat0 + y / _M_PER_DEG, 6) for y in ys])
+
+    union = unary_union([transform(forward, LineString(cs)) for _r, _w, cs in lines
+                         if len(cs) >= 2])
+    poly = transform(inverse, union.buffer(ROUTE_CLUSTER_BUFFER_M, 8))
+    if not poly.is_valid:
+        # Rounding to 6 decimals can pinch a narrow neck into a self-intersection
+        # (seen on a real cluster); buffer(0) is the deterministic repair. The result
+        # must then still hold every route (checked below), so it can never shrink
+        # onto the routes it was derived from.
+        poly = poly.buffer(0)
+    if poly.is_empty or not poly.is_valid or poly.geom_type not in ("Polygon", "MultiPolygon"):
+        return None, "route-cluster container is not a valid polygon"
+    route_lines = unary_union([LineString(cs) for _r, _w, cs in lines if len(cs) >= 2])
+    if not poly.covers(route_lines):
+        return None, "route-cluster container does not cover every included route"
+    # Input pin (independent of GEOS): the exact route linework the container came from.
+    linework = sorted([rid, way_id, [[round(x, 7), round(y, 7)] for x, y in cs]]
+                      for rid, way_id, cs in lines)
+    linework_sha = hashlib.sha256(json.dumps(
+        linework, separators=(",", ":")).encode("utf-8")).hexdigest()
+    evidence = {
+        "evidence_type": "route-cluster", "version": ROUTE_CLUSTER_VERSION,
+        "route_relation_ids": ids, "anchor_relation_id": anchor_id,
+        "buffer_m": ROUTE_CLUSTER_BUFFER_M, "route_way_count": len({w for _r, w, _c in lines}),
+        "route_linework_sha256": linework_sha,
+        "linework_bbox": [round(v, 6) for v in box]}
+    return {"name": name, "osm_type": "relation", "osm_id": anchor_id,
+            "tags": {}, "geom": poly, "route_cluster": evidence}, None
+
+
 def assemble_areas(pbf_path: str,
                    extra_tags: dict[str, set[str]] | None = None) -> list[dict[str, Any]]:
     """Assemble park-ish area polygons from an OSM PBF.

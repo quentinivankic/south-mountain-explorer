@@ -35,8 +35,10 @@ fi
 RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
   trailforge/golden/dk-areas.json)"
 [[ "$RULES" =~ ^(legacy|dk-v2|dk-v3)$ ]]
-# Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble).
-EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .exclude_trails // []' \
+# Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble). A
+# legacy-rules area reads only its explicit legacy_exclude_trails opt-in (absent = [] = no flag).
+EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id)
+  | if (.rules // "legacy") == "legacy" then (.legacy_exclude_trails // []) else (.exclude_trails // []) end' \
   trailforge/golden/dk-areas.json)"
 # Optional curated inclusions (registry include_trails; dk-v3 only, validated by dk_publish and assemble).
 INCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .include_trails // []' \
@@ -53,9 +55,18 @@ BOUNDARY_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .bo
   trailforge/golden/dk-areas.json)"
 CONTAINER_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_by_id // empty | .reason' \
   trailforge/golden/dk-areas.json)"
+# Optional route-cluster container (registry container_from_routes; dk-v3 only): the container is derived
+# from the include_trails routes for an area with no usable OSM polygon. Absent = no flag (byte-identical run).
+CONTAINER_FROM_ROUTES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_from_routes // empty | .reason' \
+  trailforge/golden/dk-areas.json)"
 # Optional display prefix for colour/number-only trail names (registry trail_name_prefix; dk-v3 only,
 # validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
 NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
+  trailforge/golden/dk-areas.json)"
+# Optional corrected trail display names (registry trail_name_fixes; dk-v2/dk-v3, validated by dk_publish and
+# dk_trail_name_fix.py): applied to the assembled trails after assemble, ids unchanged (osm_name keeps the
+# id derivation). Absent = no jq output, the script is not called (byte-identical run).
+NAME_FIXES="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_fixes // empty' \
   trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
@@ -80,6 +91,9 @@ if [ "$BOUNDARY_BY_ID" = "true" ]; then
 fi
 if [ -n "$CONTAINER_BY_ID" ]; then
   EXCLUDE_ARGS+=(--dk-container-by-id)
+fi
+if [ -n "$CONTAINER_FROM_ROUTES" ]; then
+  EXCLUDE_ARGS+=(--dk-container-from-routes)
 fi
 if [ -n "$NAME_PREFIX" ]; then
   EXCLUDE_ARGS+=(--dk-name-prefix "$NAME_PREFIX")
@@ -160,6 +174,11 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"} \
   --report-json "$A/assembly.json"
 
+if [ -n "$NAME_FIXES" ]; then
+  printf '%s\n' "$NAME_FIXES" > "$A/dk-trail-name-fixes.json"
+  python3 ../scripts/dk_trail_name_fix.py --trails "data/aoi/$AREA_ID.trails.geojson" \
+    --fixes "$A/dk-trail-name-fixes.json" --report "$A/trail-name-fixes.json"
+fi
 # Exact park polygon + exact assembly, no elevation, one --only-area per call.
 python3 serve/publish_areas.py \
   --trails "data/aoi/$AREA_ID.trails.geojson" \

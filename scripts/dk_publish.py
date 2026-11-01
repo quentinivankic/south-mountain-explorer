@@ -19,6 +19,9 @@ calls R2/AWS; the sync workflow does that with the files this script builds.
   derive-areas / build-candidates   splice N areas onto LIVE R2 bytes
   rollback-decide   per shared file restore/skip (refuse on third-party bytes)
                     plus the exact 2N keys to delete
+  remove-areas / derive-remove-areas / build-remove-candidates / rollback-decide-remove
+                    UNLIST superseded Danish areas (rows leave the 3 shared files; the
+                    2N per-area objects are kept, never deleted); Denmark-only opt-in
 """
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dk_trail_name_fix  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
 
@@ -49,10 +53,12 @@ RULE_SETS = {"legacy", "dk-v2", "dk-v3"}
 #   merge-pending                              should become one area with its sibling
 #   mtb-centre                                 mostly an MTB trail centre
 #   curated-do-not-ship                        reviewed by a local-expert curation pass: not a hiking destination
+#   superseded                                 live area being removed (remove-areas / sync-dk-to-r2 *-remove); required
 HOLD_REASONS = {
     "island", "np-nested", "name-collision", "merge-into-klosterhede",
     "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
     "curated-do-not-ship",
+    "superseded",
 }
 # Curated per-area exclusions (registry `exclude_trails`, dk-v2 only); same shape as
 # trailforge/assemble/quality.py validate_dk_exclude: {"id": "r<relation>" | "n:<name>", "name", "reason"}.
@@ -139,7 +145,7 @@ def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude
             raise DkError(f"{aid}: {field} entry has an empty field: {item.get('id')!r}")
         ident, name = item["id"], item["name"]
         multi = bool(EXCLUDE_ALL_ID.fullmatch(ident))
-        if multi and field != "exclude_trails":
+        if multi and field not in ("exclude_trails", "legacy_exclude_trails"):
             raise DkError(f"{aid}: {field} {ident!r}: the n*: selector is exclude_trails-only")
         if (ident != unicodedata.normalize("NFC", ident) or name != unicodedata.normalize("NFC", name)
                 or not (multi or EXCLUDE_ID.fullmatch(ident))):
@@ -190,9 +196,11 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
     boundaries, the one with the entry's relation_id/way_id. container_by_id: {"reason"}
     names an existing unnamed/other-named forest polygon as the container; the trails then
     come from include_trails only."""
-    for field in ("boundary_by_id", "container_by_id"):
+    for field in ("boundary_by_id", "container_by_id", "container_from_routes"):
         if field in entry and entry.get("rules") != "dk-v3":
             raise DkError(f"{aid}: {field} requires rules dk-v3")
+    if "container_from_routes" in entry:
+        _check_container_from_routes(aid, entry)
     if "boundary_by_id" in entry and entry["boundary_by_id"] is not True:
         raise DkError(f"{aid}: boundary_by_id must be true when present")
     if "container_by_id" in entry:
@@ -205,6 +213,50 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
                           "(the container yields no trails of its own)")
         if "boundary_by_id" in entry:
             raise DkError(f"{aid}: boundary_by_id and container_by_id are mutually exclusive")
+def _check_allow_rename(aid: str, entry: dict[str, Any], name: str) -> None:
+    """Opt-in for an update-mode display-name change: {"from": <exact live name>, "reason": text}.
+    The new name is the entry's display_name, so display_name is required."""
+    if "allow_rename" not in entry:
+        return
+    item = entry["allow_rename"]
+    if not isinstance(item, dict) or set(item) != {"from", "reason"}:
+        raise DkError(f"{aid}: allow_rename needs exactly from and reason")
+    for key in ("from", "reason"):
+        if not isinstance(item[key], str) or not item[key].strip():
+            raise DkError(f"{aid}: allow_rename.{key} must be non-empty text")
+    if item["from"] != unicodedata.normalize("NFC", item["from"]):
+        raise DkError(f"{aid}: allow_rename.from must be NFC text")
+    if entry.get("display_name") is None:
+        raise DkError(f"{aid}: allow_rename needs a display_name (the new name)")
+    if item["from"] == entry["display_name"]:
+        raise DkError(f"{aid}: allow_rename.from equals display_name; nothing to rename")
+def _check_container_from_routes(aid: str, entry: dict[str, Any]) -> None:
+    """dk-v3 container_from_routes: {"reason"}. For an area with NO usable OSM polygon; the
+    container is derived from the whole geometry of its include_trails routes (see
+    areas.route_cluster_container). Needs at least two distinct r<id> includes, the registry
+    relation_id is the anchor (the first include), the name is the explicit area name, and no
+    other container opt-in, way_id or exclude_trails (the trails are exactly the includes)."""
+    item = entry["container_from_routes"]
+    if (not isinstance(item, dict) or set(item) != {"reason"}
+            or not isinstance(item["reason"], str) or not item["reason"].strip()):
+        raise DkError(f"{aid}: container_from_routes must be exactly {{\"reason\": text}} when present")
+    if "boundary_by_id" in entry or "container_by_id" in entry:
+        raise DkError(f"{aid}: container_from_routes is exclusive with boundary_by_id/container_by_id")
+    if "way_id" in entry:
+        raise DkError(f"{aid}: container_from_routes needs relation_id (the anchor route), not way_id")
+    if entry.get("exclude_trails"):
+        raise DkError(f"{aid}: container_from_routes publishes exactly its include_trails; "
+                      "exclude_trails is not allowed")
+    selectors = [i["id"] for i in entry.get("include_trails") or []]
+    areas_mod = _dk_areas()
+    if (len(selectors) < areas_mod.ROUTE_CLUSTER_MIN_ROUTES
+            or not all(re.fullmatch(r"r[1-9][0-9]*", i) for i in selectors)
+            or len(set(selectors)) != len(selectors)):
+        raise DkError(f"{aid}: container_from_routes needs at least "
+                      f"{areas_mod.ROUTE_CLUSTER_MIN_ROUTES} distinct r<id> include_trails")
+    if entry.get("relation_id") != int(selectors[0][1:]):
+        raise DkError(f"{aid}: container_from_routes relation_id must be the first include_trails route "
+                      f"({selectors[0]})")
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Denmark area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -246,6 +298,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if shown is not None and (not isinstance(shown, str) or not shown.strip() or shown == name
                                   or shown != unicodedata.normalize("NFC", shown)):
             raise DkError(f"{aid}: display_name must be a non-empty NFC text different from name")
+        _check_allow_rename(aid, entry, name)
         bbox, center = entry.get("bbox"), entry.get("center")
         if (bbox is None) != (center is None):
             raise DkError(f"{aid}: bbox and center must both be set or both be null")
@@ -270,6 +323,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if hold is not None and hold not in HOLD_REASONS:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
+        # Explicit opt-in: a legacy-rules area (Mols) may exclude named trails; same entry shape.
+        _check_exclude_trails(aid, entry, "legacy_exclude_trails", ("legacy",))
         _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
         _check_gap_and_roles(aid, entry)
         _check_boundary_by_id(aid, entry)
@@ -280,6 +335,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
                 _dk_names().validate_prefix(entry["trail_name_prefix"])
             except ValueError as error:
                 raise DkError(f"{aid}: trail_name_prefix is invalid: {error}") from None
+        if "trail_name_fixes" in entry:
+            if entry.get("rules") not in ("dk-v2", "dk-v3"):
+                raise DkError(f"{aid}: trail_name_fixes requires rules dk-v2 or dk-v3")
+            try:
+                dk_trail_name_fix.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
+            except dk_trail_name_fix.FixError as error:
+                raise DkError(str(error)) from None
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -547,6 +609,10 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
     if info.get("count") != 1:
         problems.append(f"registry relation {entry['relation_id']} occurs {info.get('count')} times (not unique)")
     tags = info["tags"]
+    if "container_from_routes" in entry:
+        # The anchor is a hiking route, not a polygon: route checks and the cluster size
+        # are made on every include by cluster_problems.
+        return problems
     if tags.get("type") not in REL_TYPES:
         problems.append(f"relation {entry['relation_id']} has type={tags.get('type')!r}, expected boundary/multipolygon")
     container = "container_by_id" in entry
@@ -600,6 +666,35 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems
+def cluster_problems(entry: dict[str, Any], boundary: list[float] | None,
+                     infos: dict[int, dict[str, Any]]) -> list[str]:
+    """Fail-closed checks of a container_from_routes entry against the PBF: every include is
+    present once as a hiking/foot route relation with geometry, the union (``boundary``) is
+    inside Denmark and within the cluster size cap. Same limits as areas.route_cluster_container."""
+    rules = _dk_areas()
+    problems: list[str] = []
+    for rid, info in sorted(infos.items()):
+        tags = (info or {}).get("tags")
+        if tags is None:
+            problems.append(f"include route relation {rid} is not in the PBF")
+            continue
+        if info.get("count") != 1:
+            problems.append(f"include route relation {rid} occurs {info.get('count')} times (not unique)")
+        if tags.get("type") != "route" or (tags.get("route") or "").strip().lower() \
+                not in rules.ROUTE_CLUSTER_ROUTE_KINDS:
+            problems.append(f"include relation {rid} is type={tags.get('type')!r} route={tags.get('route')!r}, "
+                            "expected a hiking/foot route")
+        if info.get("bbox") is None:
+            problems.append(f"include route relation {rid} has no member way geometry")
+    if boundary is not None:
+        w, h = boundary[2] - boundary[0], boundary[3] - boundary[1]
+        if w > rules.ROUTE_CLUSTER_MAX_SPAN_DEG or h > rules.ROUTE_CLUSTER_MAX_SPAN_DEG:
+            problems.append(f"route cluster is {w:.3f} x {h:.3f} degrees, over the "
+                            f"{rules.ROUTE_CLUSTER_MAX_SPAN_DEG} cap per axis")
+        if not (DK_LON[0] <= boundary[0] and boundary[2] <= DK_LON[1]
+                and DK_LAT[0] <= boundary[1] and boundary[3] <= DK_LAT[1]):
+            problems.append(f"route cluster bbox {boundary} is outside Denmark")
+    return problems
 def include_relation_ids(entry: dict[str, Any]) -> list[int]:
     """Relation ids of a dk-v3 area's include_trails (r<id> selectors only); [] otherwise."""
     if entry.get("rules") != "dk-v3":
@@ -618,7 +713,8 @@ def center_of(box: list[float]) -> list[float]:
 
 def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, discovery_center: Any,
                         mode: str, relation_info: dict[str, Any] | None = None,
-                        include_boxes: list[list[float]] | None = None) -> dict[str, Any]:
+                        include_boxes: list[list[float]] | None = None,
+                        cluster_infos: dict[int, dict[str, Any]] | None = None) -> dict[str, Any]:
     """Derive/check one area's bbox + centre. Returns the per-area prepare record.
     include_boxes (dk-v3 include_trails relation bboxes found in the PBF) widen only the
     ceiling of the margin check and the proposed bbox: the window must be able to reach the
@@ -652,7 +748,7 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         # against its own PBF way (identity, closed ring, name, size).
         rec["cross_check"] = "registry-way"
         problems += way_problems(entry, relation_info)
-    elif isinstance(discovery_center, list) and len(discovery_center) == 2:
+    elif isinstance(discovery_center, list) and len(discovery_center) == 2 and cluster_infos is None:
         mid = [(boundary[1] + boundary[3]) / 2, (boundary[0] + boundary[2]) / 2]
         if abs(mid[0] - discovery_center[0]) > 0.05 or abs(mid[1] - discovery_center[1]) > 0.05:
             problems.append(f"boundary bbox midpoint {mid} disagrees with the discovery centre {discovery_center}")
@@ -662,6 +758,10 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
         # after the registry's own relation (id, type, name, size) checks out.
         rec["cross_check"] = "registry-relation"
         problems += relation_problems(entry, relation_info)
+        if cluster_infos is not None:
+            # container_from_routes: ``boundary`` is the union bbox of the include routes.
+            rec["container"] = "route-cluster"
+            problems += cluster_problems(entry, boundary, cluster_infos)
     if reg is None:
         if mode == "publish":
             problems.append("registry bbox/center missing: run qualify and commit the proposed values first")
@@ -676,8 +776,8 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
                             f"[{MARGIN_MIN}, {MARGIN_MAX}] of the boundary bbox {boundary}"
                             + (f" (max measured from the include_trails reach {rec['include_reach_bbox']})"
                                if reach != boundary else ""))
-        if entry.get("rules") == "dk-v3":
-            # dk-v3 only: the pin may sit on the trails instead of the rounded boundary midpoint,
+        if entry.get("rules") in ("dk-v2", "dk-v3"):
+            # dk-v2/dk-v3: the pin may sit on the trails instead of the rounded boundary midpoint,
             # but it must stay inside the boundary bbox (the trail-centroid check runs at publish).
             c = entry["center"]
             if not (boundary[1] <= c[0] <= boundary[3] and boundary[0] <= c[1] <= boundary[2]):
@@ -710,7 +810,12 @@ def prepare_areas(args: argparse.Namespace) -> int:
         info = way_infos[entry["way_id"]] if "way_id" in entry else infos[entry["relation_id"]]
         inc_boxes = [b for r in include_relation_ids(entry)
                      if (b := (infos.get(r) or {}).get("bbox")) is not None]
-        rec = check_area_geometry(entry, info["bbox"], disc_center, args.mode, info, inc_boxes)
+        boundary, cluster_infos = info["bbox"], None
+        if "container_from_routes" in entry:
+            cluster_infos = {r: infos.get(r) or {} for r in include_relation_ids(entry)}
+            boxes = [i.get("bbox") for i in cluster_infos.values()]
+            boundary = union_bbox(boxes) if boxes and all(b is not None for b in boxes) else None
+        rec = check_area_geometry(entry, boundary, disc_center, args.mode, info, inc_boxes, cluster_infos)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             rec["display_name"] = entry.get("display_name") or entry["name"]
@@ -1108,6 +1213,8 @@ def verify_cmd(args: argparse.Namespace) -> int:
         if len(ids) > MAX_UPDATE_AREAS:
             raise DkError(f"update is capped at {MAX_UPDATE_AREAS} areas")
         summary = _verify_update_delta(args.repo.resolve(), ids, staged=staged)
+    elif args.mode == "remove":
+        summary = _verify_remove_delta(args.repo.resolve(), ids, staged=staged)
     else:
         summary = _verify_delta(args.repo.resolve(), ids, staged=staged)
     summary["receipt_sha256"] = contract.canonical_sha256(summary)
@@ -1162,12 +1269,22 @@ def _split_records(live: bytes, as_dict: bool, context: str, sep: str = ",") -> 
     return out
 
 
-def _row_identity_kept(old: list[Any], new: list[Any], aid: str) -> None:
+def _row_identity_kept(old: list[Any], new: list[Any], aid: str, entry: dict[str, Any] | None = None) -> None:
+    """Update mode keeps the index row identity (id, name, state, relation/way). The one exception is
+    an explicit registry opt-in `allow_rename: {from, reason}`: the live name must equal `from` exactly
+    and the new name must be the entry's display_name; id, state and relation stay equal. A row that
+    already carries the new name passes (idempotent re-run); anything else is refused."""
     if (len(old) not in (7, 8) or len(old) != len(new)
-            or (old[0], old[1], old[2], *old[7:]) != (new[0], new[1], new[2], *new[7:])):
+            or (old[0], old[2], *old[7:]) != (new[0], new[2], *new[7:])):
         raise DkError(f"{aid}: update must keep the row identity (id, name, state, relation)")
-
-
+    if old[1] == new[1]:
+        return
+    rename = (entry or {}).get("allow_rename")
+    if rename is None:
+        raise DkError(f"{aid}: update must keep the row identity (id, name, state, relation)")
+    if old[1] != rename["from"] or new[1] != entry.get("display_name"):
+        raise DkError(f"{aid}: allow_rename needs the live name {rename['from']!r} and the registry "
+                      f"display_name as the new name (live {old[1]!r}, new {new[1]!r})")
 def replace_index(args: argparse.Namespace) -> int:
     """Replace ONLY the listed areas' rows in public/areas/index.json, in place."""
     registry = load_registry(args.registry)
@@ -1190,7 +1307,7 @@ def replace_index(args: argparse.Namespace) -> int:
         spots = [n for n, (row, _) in enumerate(pieces) if row[0] == aid]
         if len(spots) != 1:
             raise DkError(f"{aid} is not in the canonical master index; update never adds areas")
-        _row_identity_kept(pieces[spots[0]][0], src[0], aid)
+        _row_identity_kept(pieces[spots[0]][0], src[0], aid, registry["by_id"][aid])
         raws[spots[0]] = _dumps_default([src[0]])[1:-1].decode("utf-8")
     after = ("[" + ", ".join(raws) + "]").encode("utf-8")
     after_rows = _rows(after, "updated master index", compact=False)
@@ -1253,7 +1370,7 @@ def _verify_update_delta(repo: Path, ids: list[str], *, staged: bool) -> dict[st
         for (brow, braw), (arow, araw) in zip(bp, ap):
             if arow[0] in geoms:
                 check_new_row(arow, registry["by_id"][arow[0]], geoms[arow[0]], path)
-                _row_identity_kept(brow, arow, arow[0])
+                _row_identity_kept(brow, arow, arow[0], registry["by_id"][arow[0]])
                 if araw != dump([arow])[1:-1].decode("utf-8"):
                     raise DkError(f"{path}: {arow[0]} row framing differs from the producer")
                 replaced.append(arow[0])
@@ -1599,7 +1716,7 @@ def build_update_candidates(args: argparse.Namespace) -> int:
         if row[0] in geoms:
             new_row = by_id[row[0]]
             check_new_row(new_row, registry["by_id"][row[0]], json.loads(geoms[row[0]]), "repo bundle index")
-            _row_identity_kept(row, new_row, row[0])
+            _row_identity_kept(row, new_row, row[0], registry["by_id"][row[0]])
             raws.append(_dumps_compact([new_row])[1:-1].decode("utf-8"))
         else:
             raws.append(raw)
@@ -1672,6 +1789,230 @@ def rollback_decide_update(args: argparse.Namespace) -> int:
     return 0
 
 
+# ------------------------------------------------------------ REMOVE mode ----
+# UNLIST existing Danish areas (Denmark-only, opt-in). A removed area's rows leave
+# index.json, trail-search.json and trail-shapes.json; the area's own 2N per-area
+# objects (<id>.json, silhouettes/<id>.json) are NEVER deleted (archive, not delete):
+# nothing lists them, removed ids are never re-used, and rollback is only "restore the
+# three shared files". Every id must be a registry area marked hold=superseded, so a
+# non-Danish area can never be removed. Append/update modes above are untouched.
+
+REMOVE_SCHEMA = "trekdex-dk-r2-remove-plan-v1"
+MAX_REMOVE_AREAS = HARD_MAX_CHUNK
+SUPERSEDED = "superseded"
+REMOVE_WRITE_ORDER = ("index.json", "trail-search.json", "trail-shapes.json")   # index first: app stops listing
+
+
+def _check_removable(registry: dict[str, Any], ids: list[str]) -> None:
+    if not 1 <= len(ids) <= MAX_REMOVE_AREAS or len(set(ids)) != len(ids):
+        raise DkError(f"removal needs 1..{MAX_REMOVE_AREAS} unique areas")
+    for aid in ids:
+        entry = registry["by_id"].get(aid)
+        if entry is None:
+            raise DkError(f"{aid}: not a Danish registry area; removal is Denmark-only")
+        if entry.get("hold") != SUPERSEDED:
+            raise DkError(f"{aid}: registry hold must be {SUPERSEDED!r} before removal (got {entry.get('hold')!r})")
+
+
+def drop_index_rows(live: bytes, ids: list[str], sep: str, context: str) -> bytes:
+    """`live` index bytes without the listed rows; every other row keeps its exact bytes."""
+    pieces = _split_records(live, False, context, sep)
+    gone = set(ids)
+    found = [row[0] for row, _ in pieces if isinstance(row, list) and row and row[0] in gone]
+    if sorted(found) != sorted(ids):
+        raise DkError(f"{context} must list each removed area exactly once")
+    return ("[" + sep.join(raw for row, raw in pieces if row[0] not in gone) + "]").encode("utf-8")
+
+
+def drop_area_records(live: bytes, key: str, ids: list[str]) -> bytes:
+    """`live` trail-search/trail-shapes bytes without the listed areas' contiguous record
+    blocks; every other record keeps its exact live bytes and position."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    pieces = _split_records(live, as_dict, f"live {key}")
+    gone = set(ids)
+    for aid in ids:
+        idx = [n for n, (rec, _) in enumerate(pieces) if owner(rec) == aid]
+        if not idx or idx != list(range(idx[0], idx[-1] + 1)):
+            raise DkError(f"live {key} has no single contiguous block for {aid}; refusing to remove it")
+    opener, closer = ("{", "}") if as_dict else ("[", "]")
+    return (opener + ",".join(raw for rec, raw in pieces if owner(rec) not in gone) + closer).encode("utf-8")
+
+
+def prove_remove_delta(key: str, before: bytes, after: bytes, ids: list[str]) -> dict[str, Any]:
+    """Only the listed areas' records are gone; every other record is byte-identical and in place."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    strict = contract._strict_trail_shape_records if as_dict else contract._strict_trail_search_records
+    gone = set(ids)
+    base, cand = strict(before, f"baseline {key}"), strict(after, f"candidate {key}")
+    bp = _split_records(before, as_dict, f"baseline {key}")
+    ap = _split_records(after, as_dict, f"candidate {key}")
+    if any(owner(rec) in gone for rec, _ in ap):
+        raise DkError(f"candidate {key} still has a record of a removed area")
+    if [raw for rec, raw in bp if owner(rec) not in gone] != [raw for _, raw in ap]:
+        raise DkError(f"candidate {key} changed a record outside the removed areas")
+    if cand != [r for r in base if owner(r) not in gone]:
+        raise DkError(f"candidate {key} is not the live records minus the removed areas")
+    removed = len(base) - len(cand)
+    if removed < len(ids):
+        raise DkError(f"live {key} had fewer records than removed areas")
+    return {"key": key, "baseline_records": len(base), "candidate_records": len(cand), "removed_records": removed,
+            "other_records_byte_identical": len(cand), "baseline_sha256": _sha(before),
+            "candidate_sha256": _sha(after)}
+
+
+def _removal_paths(aid: str) -> list[str]:
+    return [f"public/areas/geom/{aid}.json", f"public/areas/silhouettes/{aid}.json"]
+
+
+def remove_areas(args: argparse.Namespace) -> int:
+    """Repo edit for the removal commit: drop the rows from both index files and delete the
+    repo copies of the geom/silhouette. Nothing is written until every input is validated."""
+    repo = args.repo.resolve()
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    ids = [i for i in args.ids.split(",") if i]
+    _check_removable(registry, ids)
+    files = [repo / p for aid in ids for p in _removal_paths(aid)]
+    for path in files:
+        if path.is_symlink() or not path.is_file():
+            raise DkError(f"{path.relative_to(repo)} is missing or unsafe")
+    new_index: dict[str, bytes] = {}
+    for rel, compact in ((INDEX_REPO, False), (BUNDLE_REPO, True)):
+        target = repo / rel
+        if target.is_symlink() or not target.is_file():
+            raise DkError(f"{rel} is missing or unsafe")
+        data = target.read_bytes()
+        _rows(data, rel, compact)
+        new_index[rel] = drop_index_rows(data, ids, "," if compact else ", ", rel)
+        _rows(new_index[rel], f"{rel} after removal", compact)
+    for rel, data in new_index.items():
+        (repo / rel).write_bytes(data)
+    for path in files:
+        path.unlink()
+    print(f"removed {len(ids)} area(s) from both index files and deleted {len(files)} repo file(s): {','.join(ids)}")
+    return 0
+
+
+def _verify_remove_delta(repo: Path, ids: list[str], *, staged: bool) -> dict[str, Any]:
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    _check_removable(registry, ids)
+    names_cmd = ["diff", "--cached"] if staged else ["diff"]
+    span = [] if staged else ["HEAD^", "HEAD"]
+
+    def names(flt: str) -> list[str]:
+        return [n for n in _git(repo, *names_cmd, "--name-only", f"--diff-filter={flt}", "-z", *span)
+                .decode("utf-8").split("\0") if n]
+
+    if names("A") or names("R") or names("C") or names("T"):
+        raise DkError("removal diff contains an added, renamed, copied or type-changed path")
+    want_deleted = sorted(p for aid in ids for p in _removal_paths(aid))
+    if sorted(names("D")) != want_deleted:
+        raise DkError(f"removal must delete exactly the 2N area files: {sorted(names('D'))}")
+    if sorted(names("M")) != sorted([INDEX_REPO, BUNDLE_REPO]):
+        raise DkError(f"removal must modify exactly the two index files: {names('M')}")
+
+    def show(path: str, new: bool) -> bytes:
+        return _git(repo, "show", (f":{path}" if staged else f"HEAD:{path}") if new else
+                    (f"HEAD:{path}" if staged else f"HEAD^:{path}"))
+
+    transitions = []
+    for path, compact in ((INDEX_REPO, False), (BUNDLE_REPO, True)):
+        before, after = show(path, False), show(path, True)
+        _rows(before, f"baseline {path}", compact)
+        _rows(after, f"candidate {path}", compact)
+        if after != drop_index_rows(before, ids, "," if compact else ", ", path):
+            raise DkError(f"{path}: candidate is not the baseline minus the removed rows (others byte-identical)")
+        transitions.append({"path": path, "baseline_sha256": _sha(before), "candidate_sha256": _sha(after),
+                            "removed_ids": sorted(ids)})
+    return {"schema": "trekdex-dk-remove-delta-v1", "area_ids": ids, "deleted_paths": want_deleted,
+            "allowed_paths": sorted(set(want_deleted) | {INDEX_REPO, BUNDLE_REPO}), "index_transitions": transitions}
+
+
+def derive_remove_ids(repo: Path, live_index: bytes) -> list[str]:
+    """The removal set = live Danish rows absent from the repo bundle. The bundle must be EXACTLY the
+    live rows minus that set (same rows, same order), and every removed id must be a registry area
+    marked hold=superseded whose repo geom/silhouette are already gone."""
+    registry = load_registry(repo / "trailforge/golden/dk-areas.json")
+    live_rows = json.loads(live_index)
+    bundle_rows = _rows((repo / BUNDLE_REPO).read_bytes(), "repo bundle index", compact=True)
+    keep = {r[0] for r in bundle_rows}
+    removed = [r[0] for r in live_rows if r[0] not in keep]
+    if not removed:
+        raise DkError("nothing to remove: the repo bundle lists every live area")
+    _check_removable(registry, removed)
+    if [r for r in live_rows if r[0] not in set(removed)] != bundle_rows:
+        raise DkError("repo bundle index is not the live index minus the removed areas "
+                      "(same rows, same order); remove-areas only removes")
+    for aid in removed:
+        for rel in _removal_paths(aid):
+            if (repo / rel).exists():
+                raise DkError(f"{rel} still exists in the repo for a removed area")
+    return removed
+
+
+def derive_remove_areas_cmd(args: argparse.Namespace) -> int:
+    ids = derive_remove_ids(args.repo, args.live_index.read_bytes())
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("\n".join(ids) + "\n", encoding="utf-8")
+    print(f"{len(ids)} area(s) to remove from the repo vs live R2: {','.join(ids)}")
+    return 0
+
+
+def build_remove_candidates(args: argparse.Namespace) -> int:
+    repo = args.repo
+    live = {k: Path(v).read_bytes() for k, v in (("index.json", args.live_index),
+            ("trail-search.json", args.live_search), ("trail-shapes.json", args.live_shapes))}
+    ids = derive_remove_ids(repo, live["index.json"])
+    if args.areas_file:
+        listed = [i for i in args.areas_file.read_text(encoding="utf-8").split() if i]
+        if listed != ids:
+            raise DkError("areas file differs from the repo-vs-live derivation")
+    bundle_rows = _rows((repo / BUNDLE_REPO).read_bytes(), "repo bundle index", compact=True)
+    index_after = drop_index_rows(live["index.json"], ids, ",", "live index.json")
+    if json.loads(index_after) != bundle_rows:
+        raise DkError("candidate index.json rows differ from the repo bundle index")
+    candidates = {"index.json": index_after}
+    proofs = [{"key": "index.json", "baseline_sha256": _sha(live["index.json"]),
+               "candidate_sha256": _sha(index_after), "removed_ids": ids,
+               "other_rows_byte_identical": len(bundle_rows)}]
+    for key in ("trail-search.json", "trail-shapes.json"):
+        after = drop_area_records(live[key], key, ids)
+        proofs.append(prove_remove_delta(key, live[key], after, ids))
+        candidates[key] = after
+    out = args.out_dir
+    plan: dict[str, Any] = {"schema": REMOVE_SCHEMA, "mode": "remove", "areas": ids, "writes": [], "baseline": {},
+                            "kept_objects": [k for a in ids for k in (f"{a}.json", f"silhouettes/{a}.json")],
+                            "proofs": proofs}
+    if len(plan["kept_objects"]) != 2 * len(ids):
+        raise DkError("kept object set is not exactly 2N keys")
+    for key in REMOVE_WRITE_ORDER:
+        (out / key).parent.mkdir(parents=True, exist_ok=True)
+        (out / key).write_bytes(candidates[key])
+        plan["writes"].append({"key": key, "file": key, "bytes": len(candidates[key]), "sha256": _sha(candidates[key])})
+    for key, data in live.items():
+        plan["baseline"][key] = {"bytes": len(data), "sha256": _sha(data)}
+    _write_json(out / "plan.json", plan)
+    print(json.dumps({"areas": ids, "writes": len(plan["writes"]), "kept_objects": len(plan["kept_objects"])}, indent=2))
+    return 0
+
+
+def rollback_remove_actions(plan: dict[str, Any], live_dir: Path) -> list[tuple[str, str]]:
+    """Per shared file: 'restore' when live is the applied candidate, 'skip' when it is already the
+    baseline, REFUSE for anything else. A removal never deleted an object, so there is no delete."""
+    if plan.get("schema") != REMOVE_SCHEMA:
+        raise DkError("plan is not a removal plan")
+    shared = smp.rollback_actions(plan, live_dir)
+    return [(key, shared[key]) for key in SHARED_KEYS]
+
+
+def rollback_decide_remove(args: argparse.Namespace) -> int:
+    plan = json.loads(args.plan.read_text(encoding="utf-8"))
+    for key, action in rollback_remove_actions(plan, args.live_dir):
+        print(f"{key}\t{action}")
+    return 0
+
+
 # ----------------------------------------------------------------------- CLI --
 
 def main(argv: list[str] | None = None) -> int:
@@ -1729,7 +2070,7 @@ def main(argv: list[str] | None = None) -> int:
         v = sub.add_parser(name)
         v.add_argument("--repo", type=Path, default=Path("."))
         v.add_argument("--areas", required=True)
-        v.add_argument("--mode", choices=["publish", "update"], default="publish")
+        v.add_argument("--mode", choices=["publish", "update", "remove"], default="publish")
         v.add_argument("--output", type=Path)
 
     d = sub.add_parser("derive-areas")
@@ -1777,8 +2118,31 @@ def main(argv: list[str] | None = None) -> int:
     ru.add_argument("--plan", required=True, type=Path)
     ru.add_argument("--live-dir", required=True, type=Path)
 
+    ra = sub.add_parser("remove-areas")
+    ra.add_argument("--repo", type=Path, default=Path("."))
+    ra.add_argument("--ids", required=True)
+
+    dr = sub.add_parser("derive-remove-areas")
+    dr.add_argument("--repo", type=Path, default=Path("."))
+    dr.add_argument("--live-index", required=True, type=Path)
+    dr.add_argument("--out", required=True, type=Path)
+
+    br = sub.add_parser("build-remove-candidates")
+    br.add_argument("--repo", type=Path, default=Path("."))
+    for name in ("live-index", "live-search", "live-shapes"):
+        br.add_argument(f"--{name}", required=True, type=Path)
+    br.add_argument("--areas-file", type=Path)
+    br.add_argument("--out-dir", required=True, type=Path)
+
+    rr = sub.add_parser("rollback-decide-remove")
+    rr.add_argument("--plan", required=True, type=Path)
+    rr.add_argument("--live-dir", required=True, type=Path)
+
     args = p.parse_args(argv)
-    handlers = {"replace-index": replace_index, "live-dk-ids": live_dk_ids_cmd,
+    handlers = {"remove-areas": remove_areas, "derive-remove-areas": derive_remove_areas_cmd,
+                "build-remove-candidates": build_remove_candidates,
+                "rollback-decide-remove": rollback_decide_remove,
+                "replace-index": replace_index, "live-dk-ids": live_dk_ids_cmd,
                 "derive-update-areas": derive_update_areas_cmd,
                 "build-update-candidates": build_update_candidates,
                 "rollback-decide-update": rollback_decide_update,

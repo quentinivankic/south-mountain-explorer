@@ -387,6 +387,28 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   `dk_publish` swaps the name check for the tag check and lowers the minimum
   polygon size from 0.01 to 0.005 degrees per axis (`CONTAINER_SPAN_MIN`); a
   missing, duplicated, non-forest or wrong-kind polygon fails closed.
+- **Container from routes** (registry `container_from_routes: {"reason": "..."}`,
+  `--dk-container-from-routes`, dk-v3 exact Denmark only): for an area with NO
+  usable OSM polygon (a kommune / fond route cluster). The container is DERIVED,
+  not drawn: the whole geometry of every `include_trails` route (nested route
+  relations followed) is projected locally (equirectangular at the cluster's mean
+  latitude, 1 degree = 111,320 m), unioned and buffered by 150 m, vertices rounded
+  to 6 decimals (`areas.route_cluster_container`, version `route-cluster-v1`).
+  Fail closed: fewer than two distinct `r<id>` includes, the registry
+  `relation_id` (the anchor, = the first include) not among them, an include that
+  is missing, not a hiking/foot route or has incomplete geometry, a cluster wider
+  than 0.12 degrees per axis, outside Denmark, an invalid polygon, or a real
+  polygon that already carries the registry name (use the polygon path then).
+  Sealed in `*.exact-area.geojson` as `evidence_type: "route-cluster"` with the
+  exact `route_relation_ids`, buffer, `route_linework_sha256` (hash of the input
+  linework, independent of GEOS) and the usual `geometry_sha256`; the same block
+  is in the assembly report's `boundary_selection`. `osm_type`/`osm_id` of the
+  seal are the anchor route relation. Trails come ONLY from `include_trails`
+  (whole routes, exactly one match each); everything else inside is removed as
+  `dk-container-only`. Nothing is synthesized and the silhouette is trail-derived
+  as always. The registry `name` is the explicit area name. `dk_publish` checks
+  every include (present once, hiking/foot route, geometry) and the cluster size
+  in prepare-areas. Off by default: every other area is untouched.
 - **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
   dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
   and validation as `exclude_trails`. A listed trail is published whole whatever
@@ -400,6 +422,19 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   split into several same-named stitches, e.g. Aaro x2, Langeland "Ohavsstien" x9).
   It is an explicit opt-in: `n:<name>` still demands exactly one match. `n*:` still
   fails closed on 0 matches and is rejected in `include_trails`.
+- **Legacy exclusion** (registry `legacy_exclude_trails`, same entries as
+  `exclude_trails`, `n*:` allowed; only for `rules: "legacy"`, i.e. Mols): the dk-run script
+  passes it as `--dk-curated-exclude`, which `assemble.py` accepts with `--dk-rules legacy`
+  only for exact Denmark assembly (any other region or non-exact run exits 2). Legacy has no
+  automatic Danish rules, so the entries run on everything legacy kept, with the same fail-closed
+  matching (0 matches, >1 match for `n:`/`r`, or a different trail name fails the area). Every
+  other trail is byte-identical to a run without the key, and without it the report has no
+  `dk_curated_*` keys. `exclude_trails` is still refused on a legacy entry.
+- **Update-mode rename** (registry `allow_rename: {"from": "<exact live name>", "reason": ...}`
+  plus `display_name` = the new name; `scripts/dk_publish.py`, not assemble): an update normally
+  refuses any change of the index row identity. With the opt-in the live row name must equal
+  `from` and the new name must be `display_name`; id, state and relation/way id must stay
+  equal. A row already carrying the new name passes (re-run).
 - **Include-aware window** (qualify/publish, `scripts/dk_publish.py`): for dk-v3
   areas with `include_trails` relation selectors, the registry bbox ceiling
   (`MARGIN_MAX` 0.10) is measured from the union of the boundary bbox and the

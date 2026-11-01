@@ -20,6 +20,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -49,7 +50,12 @@ def _poi_kind(tags, *, exact_denmark: bool = False) -> bool:
     return any(signature in values for signature in signatures)
 
 
-def read_pbf(path: str, *, exact_denmark: bool = False):
+def read_pbf(path: str, *, exact_denmark: bool = False,
+             denmark: bool = False):
+    """`denmark` (--region dk) keeps the Denmark-era loading: type compared
+    normalized, and every direct way member of a route relation is loaded for
+    audit even without highway/trail tags. Every other region keeps the
+    pre-Denmark (72c6c7d22) loading byte-for-byte."""
     import osmium
 
     nodes: dict[int, tuple[float, float]] = {}
@@ -62,7 +68,9 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
     class RelationPass(osmium.SimpleHandler):
         def relation(self, relation):
             tags = {tag.k: tag.v for tag in relation.tags}
-            if model.member_safety.normalize(tags.get("type")) != "route":
+            route_type = (model.member_safety.normalize(tags.get("type"))
+                          if denmark else tags.get("type"))
+            if route_type != "route":
                 return
             members = [(member.type, member.ref, member.role)
                        for member in relation.members]
@@ -77,7 +85,7 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
         def way(self, way):
             tags = {tag.k: tag.v for tag in way.tags}
             if not (model._is_trailish(tags) or "highway" in tags
-                    or way.id in direct_relation_way_ids):
+                    or (denmark and way.id in direct_relation_way_ids)):
                 return
             node_ids = [node.ref for node in way.nodes]
             if len(node_ids) < 2:
@@ -176,12 +184,37 @@ def _select_container_by_id(area_objs: list[dict], kind: str, ident: int,
                     f"reserve or protected-area polygon")
     return [{**chosen[0], "name": name, "osm_name": chosen[0].get("name"),
              "container_by_id": True}], None
+_RELATION_INCLUDE_ID = re.compile(r"^r[1-9][0-9]*$")
+
+
+def _select_container_from_routes(args, relations, ways, nodes,
+                                  same_name: list[dict]) -> tuple[list[dict], str | None]:
+    """Denmark opt-in (registry container_from_routes): the container of an area
+    with no usable OSM polygon, derived from the whole geometry of its include
+    routes (areas.route_cluster_container). A real polygon that already carries
+    the registry name fails closed: that area belongs on the polygon path."""
+    if same_name:
+        return [], (f"container_from_routes is not needed: {len(same_name)} "
+                    f"polygon(s) named {args.only_area!r} exist; use the polygon")
+    import areas as areamod
+    area, failure = areamod.route_cluster_container(
+        relations, ways, nodes,
+        [int(entry["id"][1:]) for entry in args.dk_include],
+        args.expected_area_relation_id, args.only_area)
+    return ([area] if area else []), failure
+
+
 def _boundary_selection_fields(args, exact_area) -> dict:
     """Report key that exists only when a Denmark boundary-id opt-in was used."""
     if exact_area is None or not (args.dk_boundary_by_id
-                                  or args.dk_container_by_id):
+                                  or args.dk_container_by_id
+                                  or args.dk_container_from_routes):
         return {}
     kind, ident = _expected_boundary(args)
+    if args.dk_container_from_routes:
+        return {"boundary_selection": {
+            "mode": "container-from-routes", "osm_type": kind, "osm_id": ident,
+            **exact_area["route_cluster"]}}
     return {"boundary_selection": {
         "mode": ("container-by-id" if args.dk_container_by_id
                  else "boundary-by-id"),
@@ -1035,6 +1068,15 @@ def main(argv=None) -> int:
                          "whatever its name; trails come only from "
                          "--dk-curated-include (registry container_by_id); "
                          "dk-v3 exact Denmark only")
+    ap.add_argument("--dk-container-from-routes", dest="dk_container_from_routes",
+                    action="store_true",
+                    help="derive the container of an area with no usable OSM "
+                         "polygon from the union of its --dk-curated-include "
+                         "routes (fixed buffer, sealed as route-cluster "
+                         "evidence); the expected relation id must be one of "
+                         "them; trails come only from --dk-curated-include "
+                         "(registry container_from_routes); dk-v3 exact "
+                         "Denmark only")
     ap.add_argument("--dk-curated-exclude", dest="dk_curated_exclude",
                     help="JSON list of {id, name, reason} curated exclusions "
                          "(registry exclude_trails); dk-v2 only, fail-closed "
@@ -1062,15 +1104,18 @@ def main(argv=None) -> int:
         ap.error("--dk-accept-directional-roles requires --dk-rules dk-v3 "
                  "and exact Denmark assembly")
     for flag, enabled in (("--dk-boundary-by-id", args.dk_boundary_by_id),
-                          ("--dk-container-by-id", args.dk_container_by_id)):
+                          ("--dk-container-by-id", args.dk_container_by_id),
+                          ("--dk-container-from-routes",
+                           args.dk_container_from_routes)):
         if enabled and (
                 args.dk_rules != "dk-v3" or not args.require_exact_area
                 or model.member_safety.normalize(args.region) != "dk"):
             ap.error(f"{flag} requires --dk-rules dk-v3 and exact Denmark "
                      f"assembly")
-    if args.dk_boundary_by_id and args.dk_container_by_id:
-        ap.error("--dk-boundary-by-id and --dk-container-by-id are mutually "
-                 "exclusive")
+    if sum(map(bool, (args.dk_boundary_by_id, args.dk_container_by_id,
+                      args.dk_container_from_routes))) > 1:
+        ap.error("--dk-boundary-by-id, --dk-container-by-id and "
+                 "--dk-container-from-routes are mutually exclusive")
     args.dk_gap = []
     if args.dk_accept_gap:
         if args.dk_rules != "dk-v3":
@@ -1087,8 +1132,16 @@ def main(argv=None) -> int:
             ap.error(f"--dk-accept-gap is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
-        if args.dk_rules not in ("dk-v2", "dk-v3"):
+        if args.dk_rules not in ("dk-v2", "dk-v3", "legacy"):
             ap.error("--dk-curated-exclude requires --dk-rules dk-v2")
+        if args.dk_rules == "legacy" and (
+                not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            # legacy rules take exclusions only for exact Denmark assembly
+            # (registry legacy_exclude_trails); anywhere else they would be
+            # silently ignored, so refuse.
+            ap.error("--dk-curated-exclude with --dk-rules legacy is "
+                     "limited to exact Denmark assembly")
         try:
             import quality as quality_args
             args.dk_exclude = quality_args.validate_dk_exclude(
@@ -1112,6 +1165,17 @@ def main(argv=None) -> int:
     if args.dk_container_by_id and not args.dk_include:
         ap.error("--dk-container-by-id requires --dk-curated-include (the "
                  "container yields no trails of its own)")
+    if args.dk_container_from_routes:
+        if not args.dk_include:
+            ap.error("--dk-container-from-routes requires --dk-curated-include "
+                     "(the container is derived from, and yields, those routes)")
+        if args.expected_area_relation_id is None:
+            ap.error("--dk-container-from-routes requires "
+                     "--expected-area-relation-id (the anchor route relation)")
+        if any(not _RELATION_INCLUDE_ID.fullmatch(entry["id"])
+               for entry in args.dk_include):
+            ap.error("--dk-container-from-routes accepts only r<id> routes "
+                     "in --dk-curated-include")
     authority_paths = (
         args.relation_authority,
         args.prefilter_authority,
@@ -1156,7 +1220,8 @@ def main(argv=None) -> int:
         args.require_exact_area
         and model.member_safety.normalize(args.region) == "dk")
     nodes, ways, relations, pois = read_pbf(
-        args.inp, exact_denmark=exact_denmark)
+        args.inp, exact_denmark=exact_denmark,
+        denmark=model.member_safety.normalize(args.region) == "dk")
     # Raw authority may add out-of-AOI relation members below. Preserve the
     # rendered AOI way universe before augmentation so no standalone trail,
     # removal, or spur can be invented from country-scope evidence.
@@ -1202,6 +1267,9 @@ def main(argv=None) -> int:
         elif args.dk_container_by_id:
             exact_matches, failure = _select_container_by_id(
                 area_objs, *_expected_boundary(args), args.only_area)
+        elif args.dk_container_from_routes:
+            exact_matches, failure = _select_container_from_routes(
+                args, relations, ways, nodes, exact_matches)
         if failure:
             pass    # the opt-in selection already failed closed (reported below)
         elif len(exact_matches) != 1:
@@ -1352,7 +1420,8 @@ def main(argv=None) -> int:
                     dk_exclude=args.dk_exclude,
                     dk_include=args.dk_include,
                     dk_accept_gap=args.dk_gap,
-                    dk_include_only=bool(args.dk_container_by_id))
+                    dk_include_only=bool(args.dk_container_by_id
+                                         or args.dk_container_from_routes))
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")
@@ -1557,6 +1626,9 @@ def main(argv=None) -> int:
                 **({"container_by_id": True,
                     "osm_name": exact_area.get("osm_name")}
                    if exact_area.get("container_by_id") else {}),
+                **({"evidence_type": "route-cluster",
+                    "route_cluster": exact_area["route_cluster"]}
+                   if exact_area.get("route_cluster") else {}),
                 "geometry_sha256": _geometry_sha256(exact_area_geometry),
             },
             "geometry": exact_area_geometry,
@@ -1610,7 +1682,9 @@ def main(argv=None) -> int:
           file=sys.stderr)
     print(
         f"removed {len(curation_removed_features) + len(clip_removed) + len(quality_removed):,} "
-        f"trails (curation/exact clip) -> {removed_path}",
+        # Non-Denmark runs keep the pre-Denmark (72c6c7d22) log wording.
+        f"trails ({'curation/exact clip' if model.member_safety.normalize(args.region) == 'dk' else 'curation'})"
+        f" -> {removed_path}",
         file=sys.stderr)
     return 2 if terminal_absorption_failure else 0
 

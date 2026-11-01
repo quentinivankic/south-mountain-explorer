@@ -183,7 +183,7 @@ BATCH_B_WAY = ("hov-vig-dk",)   # batch B: the Hov Vig bird reserve (way 4569829
 # Haderslev Dyrehave, and the held Livø island way
 BATCH_E_WAY = ("kollund-skov-dk", "vestre-stigtehave-dk", "sandkule-skov-dk", "livo-dk")
 # batch I: container_by_id areas whose registry id is the container polygon (an OSM way)
-BATCH_I_WAY = ("hald-so-dk", "farrestierne-dk", "slivso-dk")
+BATCH_I_WAY = ("hald-so-dk", "farrestierne-dk")  # slivso-dk moved to a route-cluster container in batch L
 WAYBACK_BLESSED = ("haunstrup-brunkulslejer-dk", "nekselo-dk", "fovslet-skov-dk")
 BATCH_B_BLESSED = ("staksrode-skov-dk", "helnaes-dk", "elmelund-skov-dk", "hov-vig-dk", "falster-dk",
                    "aero-dk", "svanninge-bjerge-dk", "staurby-skov-dk", "kongenshus-dk")
@@ -229,6 +229,14 @@ BATCH_K_HELD_NEW = ("grene-sande-dk", "kaergard-klitplantage-dk", "kollemorten-k
                     "klim-bjerg-dk", "storring-praestegards-skov-dk", "anebjerg-skov-dk", "alstrup-krat-dk",
                     "fosdal-plantage-dk")
 BATCH_K_WAY = ("osteradalen-dk", "stoubaek-krat-dk", "storring-praestegards-skov-dk")
+# batch L (container_from_routes from PR 677): nineteen shipping route-cluster areas (slivso-dk was the batch I hold,
+# now relation-anchored) and eight new held entries (Hindsgavl held after the Actions qualify); registry bbox/centre of the shipping areas set in the curation PR
+BATCH_L_SHIP = ("bangsbo-skov-dk", "hellevad-dk", "grenen-dk", "asted-adal-dk", "slivso-dk",
+                "ammitsbol-baek-dk", "tinglev-dk", "skaelskor-dk", "hingelbjerge-dk", "nybol-nor-dk",
+                "skamlingsbanken-dk", "kas-hoved-dk", "nysted-dk", "bovbjerg-fyr-dk", "orslevkloster-so-dk",
+                "troldhede-brunkulsleje-dk", "bogense-dk", "sindal-dk", "jensen-og-sorensens-plantage-dk")
+BATCH_L_HELD_NEW = ("hindsgavl-dk", "gesten-dk", "faarup-so-dk", "borum-dk", "store-dannesbo-dk", "kaerby-molle-dk",
+                    "lystrupminde-dk", "klim-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
                 "norreskoven-pa-als-dk", "harrild-hede-dk")
@@ -261,23 +269,39 @@ def test_batch_g_registry_prefixes_includes_excludes_and_centres():
         assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
     for aid, ids in BATCH_G_INCLUDE.items():
         assert by_id[aid]["rules"] == "dk-v3" and ids <= {t["id"] for t in by_id[aid]["include_trails"]}
-    # display renames deferred: update mode keeps index row names (live names unchanged)
-    assert "display_name" not in by_id["fovslet-skov-dk"] and by_id["fovslet-skov-dk"]["name"] == "Fovslet Skov"
+    # display renames apply through allow_rename (update mode keeps the registry name as the live `from`)
+    fov = by_id["fovslet-skov-dk"]
+    assert fov["name"] == "Fovslet Skov" and fov["display_name"] == "Fovslet, Hoppeshuse og Svanemosen"
+    assert fov["allow_rename"]["from"] == "Fovslet Skov"
     assert "r15655202" not in {t["id"] for t in by_id["fovslet-skov-dk"]["include_trails"]}
-    assert "display_name" not in by_id["staksrode-skov-dk"] and by_id["staksrode-skov-dk"]["name"] == "Staksrode Skov"
+    stak = by_id["staksrode-skov-dk"]
+    assert stak["name"] == "Staksrode Skov" and stak["display_name"] == "Staksrode Skov og Lindfald"
+    assert stak["allow_rename"]["from"] == "Staksrode Skov"
     kong = {t["id"] for t in by_id["nationalpark-kongernes-nordsjaelland-dk"]["exclude_trails"]}
     assert {"r12585237", "r13649311"} <= kong
     for aid, centre in BATCH_G_CENTRES.items():
         assert by_id[aid]["center"] == centre and by_id[aid]["rules"] == "dk-v3"
+def test_mols_registry_excludes_exactly_the_nine_reviewed_trails_and_keeps_naturruten():
+    mols = {a["id"]: a for a in _reg()["areas"]}[MOLS]
+    assert mols["rules"] == "legacy" and mols["allow_update"] is True
+    assert [i["name"] for i in mols["legacy_exclude_trails"]] == [
+        "Kløverstier-Landsbyruten", "Kløverstier-Motionsruten", "Smølfesporet", "Dråby Sporet. Blå rute",
+        "Skovbjerg", "Kristoffervejen", "Dalby kærvej", "Jomfrustien", "Tyvelhøjvej",
+        # BATCH-1 (2026-11-01): long-distance legs and fragments; Mols stays one whole area
+        "Molsruten", "Mols Bjerge-stien Bjergetapen", "Mols Bjerge-stien Kaløetapen", "Midtervej", "Kaløstien"]
+    assert all(i["id"] == "n*:" + i["name"] for i in mols["legacy_exclude_trails"][:9])
+    assert [i["id"] for i in mols["legacy_exclude_trails"][9:]] == [
+        "r178382", "r8350111", "r10523727", "n:Midtervej", "r4603299"]
+    assert "exclude_trails" not in mols and not any("Naturruten" in i["name"] for i in mols["legacy_exclude_trails"])
 def test_harte_skov_display_name_does_not_claim_ferup():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     a = by_id["harte-skov-dk"]
     assert a["name"] == "Harte Skov" and "display_name" not in a and a["hold"] is None
-    assert (a["est_trails"], a["est_mi"]) == (5, 6.4)
+    assert (a["est_trails"], a["est_mi"]) == (4, 6.0)
     assert [t["id"] for t in a["include_trails"]] == ["r3251112"]
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 168
+    assert len(areas) == 194
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
@@ -294,7 +318,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -304,8 +328,8 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "ro-plantage-dk": {"r14573576": 300},
                     "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300},
                     "hald-so-dk": {"r10876676": 300, "r19703948": 200},
-                    # batch H: Orø Tur 4, Samsø Grøn, Kegnæs Langs sydkysten (all under the 1000 m cap)
-                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
+                    # batch H: Orø Tur 4, Samsø Grøn (under the 1000 m cap); Kegnæs Langs sydkysten was withdrawn in BATCH-1
+                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}}
     assert "r14573576" in {t["id"] for t in by_id["ro-plantage-dk"]["include_trails"]}
     assert by_id["vestre-stigtehave-dk"]["hold"] is None and by_id["varde-sondre-plantage-dk"]["hold"] is None
     # Urhoje: the 829 m "gap" is between two unrelated same-name relations; no accept_gap, stays held
@@ -319,7 +343,9 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
                         "kegnaes-dk": None, "svinklov-klitplantage-dk": "Svinkløv"}
     # accept_gap stays at or under the 1000 m cap and just above the measured gaps (Orø 142, Samsø 216.4, Kegnæs 922.8)
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in BATCH_H_SHIP if "accept_gap" in by_id[i]}
-    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
+    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}}
+    # BATCH-1: Langs sydkysten has a real 923 m hole; the accept_gap is withdrawn and the relation-gap gate drops it
+    assert "accept_gap" not in by_id["kegnaes-dk"] and "exclude_trails" not in by_id["kegnaes-dk"]
     assert {i: [e["id"] for e in by_id[i]["exclude_trails"]] for i in ("oro-dk", "samso-dk")} == {
         "oro-dk": ["n:Trampesti", "n:Tur 5"], "samso-dk": ["n:Alstrup", "n:Besser Rev"]}
     assert [t["id"] for t in by_id["hastrup-plantage-dk"]["include_trails"]] == ["r6395876"]
@@ -329,7 +355,7 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
     assert (by_id["hastrup-plantage-dk"]["est_trails"], by_id["hastrup-plantage-dk"]["est_mi"]) == (4, 7.1)
     assert (by_id["oro-dk"]["est_trails"], by_id["oro-dk"]["est_mi"]) == (4, 12.4)
     assert (by_id["samso-dk"]["est_trails"], by_id["samso-dk"]["est_mi"]) == (4, 13.2)
-    assert (by_id["kegnaes-dk"]["est_trails"], by_id["kegnaes-dk"]["est_mi"]) == (3, 12.8)
+    assert (by_id["kegnaes-dk"]["est_trails"], by_id["kegnaes-dk"]["est_mi"]) == (2, 8.6)
     assert (by_id["svinklov-klitplantage-dk"]["est_trails"], by_id["svinklov-klitplantage-dk"]["est_mi"]) == (6, 14.2)
     # held after the replay: Læsø (one real route + an overlapping heart loop), Horslund Krat (Rød is 84 percent on Gul),
     # the Sydbornholm composite (two Paradisbakkerne walks unmapped), Rude Skov, Skjern, Fiskerup
@@ -344,23 +370,23 @@ def test_batch_i_boundary_and_container_opt_ins_and_the_slivso_hold():
     # container_by_id: weak-but-real forest polygons; the area name describes the walk set
     # (batch K adds it to two held entries, Klim Bjerg and Storring; those are pinned in the batch K test)
     cont = {i for i, a in by_id.items() if "container_by_id" in a} - set(BATCH_K_HELD_NEW)
-    assert cont == {"hald-so-dk", "farrestierne-dk", "slivso-dk", "soheden-plantage-dk"}
+    assert cont == {"hald-so-dk", "farrestierne-dk", "soheden-plantage-dk"}
     assert all(by_id[i]["include_trails"] and by_id[i]["rules"] == "dk-v3" for i in cont)
     assert (by_id["hald-so-dk"]["way_id"], by_id["farrestierne-dk"]["way_id"]) == (171922872, 409105301)
     assert by_id["soheden-plantage-dk"]["relation_id"] == 12484791
     assert {i: len(by_id[i]["include_trails"]) for i in cont} == {
-        "hald-so-dk": 5, "farrestierne-dk": 3, "slivso-dk": 2, "soheden-plantage-dk": 2}
+        "hald-so-dk": 6, "farrestierne-dk": 3, "soheden-plantage-dk": 2}
     assert {g["relation"]: g["max_gap_m"] for g in by_id["hald-so-dk"]["accept_gap"]} == {"r10876676": 300, "r19703948": 200}
     assert by_id["hald-so-dk"]["trail_name_prefix"] == "Hald Sø"
     shipped = {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_I_SHIP}
-    assert shipped == {"klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
+    assert shipped == {"klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (6, 22.0),
                        "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8)}
     assert all(by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] for i in BATCH_I_SHIP)
     # Sønderskov: renamed before any publish; Høgdal and Hummelsø fold in through include_trails
     assert "sonderskov-17950902-dk" not in by_id
     assert {t["id"] for t in by_id["sonderskov-slaaenso-dk"]["include_trails"]} == {"r18536165", "r18536361", "r14910479"}
-    # Slivsø: the only eligible polygon holds 1% of the walks and is not in the pipeline slice
-    assert by_id["slivso-dk"]["hold"] == "curated-do-not-ship" and by_id["slivso-dk"]["bbox"] is None
+    # Slivsø: the only eligible polygon held 1% of the walks; batch L ships it with a route-cluster container instead
+    assert "container_by_id" not in by_id["slivso-dk"] and "container_from_routes" in by_id["slivso-dk"]
 def test_batch_k_ships_holds_and_opt_ins():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     assert all(by_id[i]["hold"] is None and by_id[i]["rules"] == "dk-v3" and by_id[i]["bbox"] and by_id[i]["center"]
@@ -368,7 +394,7 @@ def test_batch_k_ships_holds_and_opt_ins():
     # est counts = the replay (trails, miles) on main 99c788eda; centre inside the boundary, bbox covers the trails
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_K_SHIP} == {
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (2, 6.2)}
     assert by_id["vester-aslund-plantage-dk"]["trail_name_prefix"] == "Vester Aslund"
     assert by_id["hjelm-hede-dk"]["display_name"] == "Flyndersø og Hjelm Hede"
     assert by_id["stoubaek-krat-dk"]["display_name"] == "Stoubæk Krat"
@@ -388,15 +414,92 @@ def test_batch_k_ships_holds_and_opt_ins():
     assert by_id["allerup-bakker-dk"]["hold"] == "curated-do-not-ship" and by_id["allerup-bakker-dk"]["rules"] == "dk-v2"
     assert by_id["fur-dk"]["hold"] == "island" and by_id["fur-dk"]["rules"] == "dk-v2"
     assert "Batch K" in by_id["allerup-bakker-dk"]["notes"] and "Batch K" in by_id["fur-dk"]["notes"]
+def test_batch_l_route_cluster_ships_and_holds():
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    # every batch L entry is dk-v3, relation-anchored on its first include, and derives its container from the routes
+    for i in (*BATCH_L_SHIP, *BATCH_L_HELD_NEW):
+        a = by_id[i]
+        assert a["rules"] == "dk-v3" and "way_id" not in a and a["container_from_routes"]["reason"]
+        assert "container_by_id" not in a and "boundary_by_id" not in a and "exclude_trails" not in a
+        assert a["relation_id"] == int(a["include_trails"][0]["id"][1:])
+        assert len(a["include_trails"]) >= 2 and all(t["id"].startswith("r") and t["reason"] for t in a["include_trails"])
+        assert "Batch L" in a["notes"]
+    assert all(by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] for i in BATCH_L_SHIP)
+    for i in BATCH_L_HELD_NEW:
+        assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None
+    # the opt-in is used by exactly the batch L entries
+    assert {i for i, a in by_id.items() if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW}
+    # est counts = the replay (trails, miles) on main f6f819949; centre inside the bbox
+    assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_L_SHIP} == {
+        "bangsbo-skov-dk": (3, 5.6),
+        "hellevad-dk": (4, 13.5),
+        "grenen-dk": (4, 12.7),
+        "asted-adal-dk": (3, 6.7),
+        "slivso-dk": (2, 4.1),
+        "ammitsbol-baek-dk": (3, 4.0),
+        "tinglev-dk": (6, 18.4),
+        "skaelskor-dk": (6, 16.7),
+        "hingelbjerge-dk": (2, 3.3),
+        "nybol-nor-dk": (2, 11.4),
+        "skamlingsbanken-dk": (3, 5.0),
+        "kas-hoved-dk": (2, 6.7),
+        "nysted-dk": (2, 7.4),
+        "bovbjerg-fyr-dk": (2, 12.5),
+        "orslevkloster-so-dk": (2, 6.3),
+        "troldhede-brunkulsleje-dk": (2, 3.3),
+        "bogense-dk": (2, 8.8),
+        "sindal-dk": (3, 11.8),
+        "jensen-og-sorensens-plantage-dk": (2, 2.6)}
+    assert {i: len(by_id[i]["include_trails"]) for i in (*BATCH_L_SHIP, *BATCH_L_HELD_NEW)} == {
+        "bangsbo-skov-dk": 3,
+        "hindsgavl-dk": 2,
+        "hellevad-dk": 4,
+        "grenen-dk": 4,
+        "asted-adal-dk": 3,
+        "slivso-dk": 2,
+        "ammitsbol-baek-dk": 3,
+        "tinglev-dk": 6,
+        "skaelskor-dk": 6,
+        "hingelbjerge-dk": 2,
+        "nybol-nor-dk": 2,
+        "skamlingsbanken-dk": 3,
+        "kas-hoved-dk": 2,
+        "nysted-dk": 2,
+        "bovbjerg-fyr-dk": 2,
+        "orslevkloster-so-dk": 2,
+        "troldhede-brunkulsleje-dk": 2,
+        "bogense-dk": 2,
+        "sindal-dk": 3,
+        "jensen-og-sorensens-plantage-dk": 2,
+        "gesten-dk": 2,
+        "faarup-so-dk": 3,
+        "borum-dk": 3,
+        "store-dannesbo-dk": 3,
+        "kaerby-molle-dk": 3,
+        "lystrupminde-dk": 2,
+        "klim-dk": 6}
+    for i in BATCH_L_SHIP:
+        b, c = by_id[i]["bbox"], by_id[i]["center"]
+        assert b[0] < c[1] < b[2] and b[1] < c[0] < b[3]
+    # Skælskør carries the Dansk Vandrelaug Kobæk Kvalitetssti; Hingelbjerge leaves Søbakkeruten to Svinkløv
+    assert "r12696633" in {t["id"] for t in by_id["skaelskor-dk"]["include_trails"]}
+    assert "r13482006" not in {t["id"] for t in by_id["hingelbjerge-dk"]["include_trails"]}
+    assert "r13482006" in {t["id"] for t in by_id["svinklov-klitplantage-dk"]["include_trails"]}
+    # Slivsø is the former batch I hold, now shipped on a derived container
+    assert [t["id"] for t in by_id["slivso-dk"]["include_trails"]] == ["r2906480", "r2906481"]
+    assert by_id["slivso-dk"]["relation_id"] == 2906480
+    # the spor.dk landowner walks stay held (second-review exercise rule), as does Klim (bare English names)
+    assert "spor.dk" in by_id["borum-dk"]["notes"] and "spor.dk" in by_id["store-dannesbo-dk"]["notes"]
+    assert "triangle" in by_id["klim-dk"]["notes"] and "klim-bjerg-dk" in by_id["klim-dk"]["notes"]
 def test_hold_counts_match_the_discovery_candidates():
     areas = _reg()["areas"]
     holds = {}
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 74, "name-collision": 2, "np-nested": 16, "island": 5, "duplicate-of-live": 5,
+        None: 93, "name-collision": 2, "np-nested": 16, "island": 5, "duplicate-of-live": 5,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 56}
+        "curated-do-not-ship": 63}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk"]
@@ -414,38 +517,44 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     table = dk.load_expected(EXPECTED)
     assert set(table) == {MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                           *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
-                          *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED}
+                          *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
-        MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
+        MOLS: (12, 34.7), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
         "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
-        "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (7, 20.4),
+        "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
         "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
-        "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (4, 6.4),
+        "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (3, 5.4),
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
-        "rold-skov-dk": (10, 39.4), "mons-klint-dk": (6, 17.1),
+        "rold-skov-dk": (9, 38.9), "mons-klint-dk": (5, 16.9),
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 15.9), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
         "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (7, 10.5),
         "staksrode-skov-dk": (4, 8.8), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
-        "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
+        "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (3, 12.5),
         "svanninge-bjerge-dk": (8, 30.9), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),
         "fejo-dk": (4, 9.4), "froslev-plantage-dk": (2, 4.9),
-        "ro-plantage-dk": (8, 27.5), "aro-dk": (4, 10.0), "harte-skov-dk": (5, 6.4),
-        "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (4, 10.6), "kiskelund-plantage-dk": (2, 3.6),
+        "ro-plantage-dk": (8, 27.5), "aro-dk": (4, 10.0), "harte-skov-dk": (4, 6.0),
+        "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (3, 10.1), "kiskelund-plantage-dk": (2, 3.6),
         "kollund-skov-dk": (4, 5.7), "sogard-skov-dk": (3, 6.2), "toftlund-skov-dk": (2, 2.8),
         "draved-skov-dk": (2, 3.9), "barsbol-skov-dk": (3, 5.9), "lindet-skov-dk": (2, 5.1),
         "osterskoven-dk": (4, 9.7), "sandkule-skov-dk": (4, 8.7), "kompedal-plantage-dk": (2, 6.6),
         "palsgard-skov-dk": (3, 7.5),
         "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (3, 5.2), "vestre-stigtehave-dk": (3, 5.1),
-        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.2), "kegnaes-dk": (3, 12.8),
+        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.2), "kegnaes-dk": (2, 8.6),
         "svinklov-klitplantage-dk": (6, 14.2),
-        "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
+        "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (6, 22.0),
         "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8),
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (2, 6.2),
+        "slivso-dk": (2, 4.1), "bangsbo-skov-dk": (3, 5.6), "hellevad-dk": (4, 13.5), "grenen-dk": (4, 12.7),
+        "asted-adal-dk": (3, 6.7), "ammitsbol-baek-dk": (3, 4.0), "tinglev-dk": (6, 18.4),
+        "skaelskor-dk": (6, 16.6), "hingelbjerge-dk": (2, 3.3), "nybol-nor-dk": (2, 11.4),
+        "skamlingsbanken-dk": (3, 5.0), "kas-hoved-dk": (2, 6.7), "nysted-dk": (2, 7.4),
+        "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
+        "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -469,26 +578,36 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert "Mørkholm Skov Rundtur" in table["vestre-stigtehave-dk"]["required_names"]
     # batch H: required names per area; the six holds are not blessed
     for aid, name in (("hastrup-plantage-dk", "Hastrup Gul vandrerute"), ("oro-dk", "Orø Tur 4"),
-                      ("samso-dk", "Samsø Grøn"), ("kegnaes-dk", "Langs sydkysten, Kegnæs"),
+                      ("samso-dk", "Samsø Grøn"), ("kegnaes-dk", "Omkring Kegnæs Ende"),
                       ("svinklov-klitplantage-dk", "Svinkløv Hjertesti, Rød rute"),
                       ("svinklov-klitplantage-dk", "Søbakkeruten"), ("svinklov-klitplantage-dk", "Svinkløv Rød rute")):
         assert name in table[aid]["required_names"]
+    assert "Langs sydkysten, Kegnæs" in table["kegnaes-dk"]["forbidden_names"]
     assert "Trampesti" in table["oro-dk"]["forbidden_names"] and "Hærvejen" in table["svinklov-klitplantage-dk"]["forbidden_names"]
     assert not set(table) & {"laeso-klitplantage-dk", "horslund-krat-dk", "pedersker-plantage-dk", "rude-skov-dk",
                              "skjern-enge-dk", "fiskerup-skov-dk"}
-    # batch I: required names per area; Slivsø is held and not blessed
+    # batch I: required names per area; Slivsø was held then, and is blessed with batch L
     for aid, name in (("klintenborg-plantage-dk", "Rød rute i Klintenborg Plantage"),
                       ("sonderskov-slaaenso-dk", "Slåensøen Rundt"), ("sonderskov-slaaenso-dk", "Høgdal rød rute"),
                       ("hald-so-dk", "Hald Sø gul sti"), ("hald-so-dk", "Gletsjerruten"),
                       ("farrestierne-dk", "Farrestierne Rød vandrerute"), ("soheden-plantage-dk", "Rød Rute Søheden Skov")):
         assert name in table[aid]["required_names"]
-    assert "Hærvejen" in table["hald-so-dk"]["forbidden_names"] and "slivso-dk" not in table
+    assert "Hærvejen" in table["hald-so-dk"]["forbidden_names"]
     # batch K: every shipped trail is a required name; the nine held entries and the old Stoubæk id are not blessed
     for aid, name in (("osteradalen-dk", "Østerådalen rundt"), ("vrogum-klitplantage-dk", "Vrøgum Klitplantage - Gul rute"),
                       ("stoubaek-krat-dk", "Stoubæk Krat, gul rute"), ("langdal-plantage-dk", "Langdal Plantage Rød rute"),
-                      ("hjelm-hede-dk", "Flyndersø - Mågesøen"), ("vester-aslund-plantage-dk", "Vester Aslund Rød rute")):
+                      ("hjelm-hede-dk", "Flyndersø - Mågesøen"), ("vester-aslund-plantage-dk", "Vester Aslund Gul rute")):
         assert name in table[aid]["required_names"]
+    # BATCH-1 (2026-11-01): the two Vester Aslund fragments are removed and forbidden
+    assert {"Vester Aslund Blå rute", "Vester Aslund Rød rute"} <= set(table["vester-aslund-plantage-dk"]["forbidden_names"])
     assert not set(table) & {*BATCH_K_HELD_NEW, "naturreservatet-stoubaek-krat-dk"}
+    # batch L (second-review-l, qualify on main 41274401263): every shipped trail is a required name, Skælskør is
+    # blessed at the Actions 16.6, and the eight held entries are not blessed
+    for aid, name in (("bangsbo-skov-dk", "Bangsbo Skov blå rute"), ("tinglev-dk", "Tinglev Mose"),
+                      ("skaelskor-dk", "Kobæk Kvalitetssti"), ("slivso-dk", "Slivsø, nord"),
+                      ("sindal-dk", "Ulstedbostien"), ("bogense-dk", "Engruten")):
+        assert name in table[aid]["required_names"], (aid, name)
+    assert not set(table) & set(BATCH_L_HELD_NEW)
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)
@@ -510,7 +629,7 @@ def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     assert [len(b) for b in batches] == [12, 12]
     with pytest.raises(dk.DkError):
-        dk.select_areas(reg, {MOLS}, "batch=8", 12, "qualify")  # 73 unheld non-Mols ids: 7 batches
+        dk.select_areas(reg, {MOLS}, "batch=9", 12, "qualify")  # 92 unheld non-Mols ids: 8 batches
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
     assert len(set(flat)) == 24 and MOLS not in flat
@@ -593,6 +712,7 @@ DK_V3_BATCH_H = ("hastrup-plantage-dk", "oro-dk", "samso-dk", "kegnaes-dk", "lae
 DK_V3_BATCH_I = ("hald-so-dk", "farrestierne-dk", "slivso-dk", "soheden-plantage-dk")
 # batch K: the six shipping areas and the nine new held entries are all dk-v3
 DK_V3_BATCH_K = (*BATCH_K_SHIP, *BATCH_K_HELD_NEW)
+DK_V3_BATCH_L = (*BATCH_L_SHIP, *BATCH_L_HELD_NEW)
 DK_V3_UPDATE_3 = ("nationalpark-thy-dk", "nationalpark-vadehavet-dk", "nationalpark-skjoldungernes-land-dk",
                  "nationalpark-kongernes-nordsjaelland-dk")
 def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_flagships():
@@ -603,7 +723,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
         i: "dk-v3" for i in (
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
-            *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K)}
+            *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K, *DK_V3_BATCH_L)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -816,7 +936,7 @@ def test_forest_without_discovery_entry_passes_on_its_own_relation(tmp_path):
     assert area["cross_check"] == "registry-relation" and area["bbox_source"] == "computed"
     assert area["bbox_arg"] == dk.bbox_arg(dk.pad_bbox(list(FOREST_BOX)))
     row = json.loads((out / FOREST / "index.json").read_text())
-    assert row[0][:3] == [FOREST, "Nordskoven", "Denmark"] and row[0][7] == area["relation_id"]
+    assert row[0][:3] == [FOREST, "Nordskoven (Silkeborg)", "Denmark"] and row[0][7] == area["relation_id"]
 
 
 def test_discovery_entry_still_uses_the_discovery_centre_cross_check(tmp_path):
@@ -1230,17 +1350,18 @@ def test_merge_index_appends_sorted_rows_and_keeps_existing_bytes(tmp_path):
     assert dk.main(argv) == 1                                   # already present -> refuse
 
 
-def test_dk_v3_centre_may_sit_on_the_trails_but_legacy_and_v2_keep_the_rounded_midpoint():
+def test_dk_v2_and_v3_centre_may_sit_on_the_trails_but_legacy_keeps_the_rounded_midpoint():
+    # BATCH-2: dk-v2 areas (Godding, Nordskoven, Skelhoj) get the same trail-extent pin as dk-v3.
     boundary = [10.4513, 56.1298, 10.8473, 56.3204]                     # rounded midpoint [56.2, 10.6]
-    v3 = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
-    v3["rules"], v3["center"] = "dk-v3", [56.25, 10.55]
-    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "ok"
-    v3["center"] = [57.5, 10.55]                                        # outside the boundary bbox
-    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
-    for rules in ("legacy", "dk-v2"):
-        old = copy.deepcopy(v3)
-        old["rules"], old["center"] = rules, [56.25, 10.55]
-        assert dk.check_area_geometry(old, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+    for rules in ("dk-v2", "dk-v3"):
+        entry = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+        entry["rules"], entry["center"] = rules, [56.25, 10.55]
+        assert dk.check_area_geometry(entry, boundary, [56.2251, 10.6493], "publish")["status"] == "ok"
+        entry["center"] = [57.5, 10.55]                                 # outside the boundary bbox
+        assert dk.check_area_geometry(entry, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+    old = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+    old["rules"], old["center"] = "legacy", [56.25, 10.55]
+    assert dk.check_area_geometry(old, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
 def test_merge_index_cli_dk_v3_centre_must_be_within_0_1_deg_of_the_trails(tmp_path):
     repo, ids, rows, new = _baseline_repo(tmp_path, 1)
     aid, row = ids[0], copy.deepcopy(rows[1])
@@ -1438,7 +1559,7 @@ def test_sync_dk_workflow_contract():
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"mode", "rollback_run_id"}              # the area list is never an input
     assert inputs["mode"]["options"] == ["plan", "apply", "rollback", "plan-update", "apply-update",
-                                         "rollback-update"]
+                                         "rollback-update", "plan-remove", "apply-remove", "rollback-remove"]
     assert doc["permissions"] == {"contents": "read", "actions": "read"}
     assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
         "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
@@ -1450,7 +1571,7 @@ def test_sync_dk_workflow_contract():
     assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in SYNC_DK
     assert "trap - EXIT" in SYNC_DK and "rollback-decide" in SYNC_DK and "derive-areas" in SYNC_DK
     assert 'test "$(cur "$key")" = "$(base "$key")"' in SYNC_DK       # ETag race guard
-    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 2   # apply + apply-update
+    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 3   # apply + apply-update + apply-remove
     assert "parking_after" in SYNC_DK                                  # rollback checks parking too
 
 
@@ -1507,7 +1628,7 @@ def test_every_hold_reason_is_from_the_documented_set():
     assert dk.HOLD_REASONS == {
         "island", "np-nested", "name-collision", "merge-into-klosterhede",
         "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
-        "curated-do-not-ship"}
+        "curated-do-not-ship", "superseded"}
 
 
 def test_registry_rejects_an_undocumented_hold_reason(tmp_path):
@@ -2120,15 +2241,17 @@ def test_update_refuses_mols_and_legacy_unless_the_registry_flag_allows_it(tmp_p
     assert MOLS in dk._index_ids(real_index)                          # Mols is live, so only the legacy rule can stop it
     out = tmp_path / "sel.txt"
     base = ["select", "--index", str(real_index), "--areas", MOLS, "--mode", "update", "--out", str(out)]
-    assert dk.main(base) == 1 and not out.exists()                    # default: refused
+    unflagged = tmp_path / "unflagged.json"                           # the committed registry now opts Mols in, so strip it
+    _write_registry(unflagged, lambda d: next(a for a in d["areas"] if a["id"] == MOLS).pop("allow_update", None))
+    assert dk.main([*base, "--registry", str(unflagged)]) == 1 and not out.exists()   # default: refused
     flagged = tmp_path / "reg.json"
     _write_registry(flagged, lambda d: d["areas"][0].update(allow_update=True))
     assert dk.main([*base, "--registry", str(flagged)]) == 0 and out.read_text().split() == [MOLS]
     # bool only
     bad = _write_registry(tmp_path / "bad.json", lambda d: d["areas"][0].update(allow_update="yes"))
     assert dk.main([*base, "--registry", str(bad)]) == 1
-    # a dk-v2 live park is selectable, the committed registry carries no allow_update flag
-    assert all("allow_update" not in a for a in json.loads(REGISTRY.read_text())["areas"])
+    # a dk-v2 live park is selectable; Mols is the only committed registry entry carrying allow_update
+    assert [a["id"] for a in json.loads(REGISTRY.read_text())["areas"] if "allow_update" in a] == [MOLS]
     assert dk.main(["select", "--index", str(real_index), "--areas", "nationalpark-thy-dk", "--mode", "update",
                     "--out", str(out)]) == 0
 
@@ -2581,3 +2704,646 @@ def test_run_area_script_passes_the_boundary_opt_ins_only_when_set():
     assert "--dk-boundary-by-id" in script
     assert ".container_by_id // empty | .reason" in script and '[ -n "$CONTAINER_BY_ID" ]' in script
     assert "--dk-container-by-id" in script
+# ------------------------------------------- allow_rename (update-mode display-name change) --
+ROW = ["a-dk", "Fovslet Skov", "Denmark", 55.1, 10.2, 3, 4.5, 123]
+RENAME_OK = {"from": "Fovslet Skov", "reason": "reviewed: the Naturstyrelsen destination name"}
+RENAMED = "Fovslet, Hoppeshuse og Svanemosen"
+def _renamed_entry(**changes):
+    return {"id": "a-dk", "name": "Fovslet Skov", "display_name": RENAMED, "allow_rename": dict(RENAME_OK), **changes}
+def test_row_identity_kept_refuses_a_name_change_without_the_opt_in():
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(ROW, [*ROW[:1], RENAMED, *ROW[2:]], "a-dk")                       # no entry at all
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(ROW, [*ROW[:1], RENAMED, *ROW[2:]], "a-dk",
+                              {"id": "a-dk", "display_name": RENAMED})                          # entry without allow_rename
+    dk._row_identity_kept(ROW, list(ROW), "a-dk")                                              # control: unchanged passes
+    dk._row_identity_kept(ROW, [*ROW[:3], 55.2, 10.3, 7, 9.9, 123], "a-dk")                    # control: counts/centre move
+def test_row_identity_kept_allows_exactly_the_opted_in_rename():
+    new = [*ROW[:1], RENAMED, *ROW[2:]]
+    dk._row_identity_kept(ROW, new, "a-dk", _renamed_entry())
+    dk._row_identity_kept(new, new, "a-dk", _renamed_entry())                                  # idempotent re-run after the rename
+@pytest.mark.parametrize("old_name,new_name", [
+    ("Andet Navn", RENAMED),                  # live name is not `from`
+    ("Fovslet Skov", "Et helt andet navn"),   # new name is not the registry display_name
+])
+def test_row_identity_kept_refuses_a_rename_that_does_not_match_the_opt_in(old_name, new_name):
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept([ROW[0], old_name, *ROW[2:]], [ROW[0], new_name, *ROW[2:]], "a-dk", _renamed_entry())
+@pytest.mark.parametrize("old,new", [
+    (ROW, ["a-dk", RENAMED, "Sweden", *ROW[3:]]),                 # state changed
+    (ROW, ["a-dk", RENAMED, *ROW[2:7], 124]),                     # relation id changed
+    (ROW, ["b-dk", RENAMED, *ROW[2:]]),                           # id changed
+    (ROW, ["a-dk", RENAMED, *ROW[2:7]]),                          # way-shaped (7) vs relation row (8)
+])
+def test_row_identity_kept_keeps_id_state_and_relation_even_with_the_opt_in(old, new):
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(old, new, "a-dk", _renamed_entry())
+def test_registry_validates_allow_rename(tmp_path):
+    def shown(d, **extra):
+        d["areas"][1].update(display_name="Nyt visningsnavn", **extra)
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: shown(d, allow_rename={"from": "Gammelt navn", "reason": "reviewed"})))
+    assert reg["areas"][1]["allow_rename"] == {"from": "Gammelt navn", "reason": "reviewed"}
+    for bad in ("Gammelt navn", {}, {"from": "A"}, {"from": "A", "reason": " "}, {"from": "", "reason": "x"},
+                {"from": "A", "reason": "x", "extra": 1}, {"from": "Nyt visningsnavn", "reason": "x"},
+                {"from": "A\u0301", "reason": "x"}, {"from": 3, "reason": "x"}):
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "b.json", lambda d, b=bad: shown(d, allow_rename=b)))
+    with pytest.raises(dk.DkError):   # a rename needs a display_name (the new name)
+        dk.load_registry(_write_registry(
+            tmp_path / "c.json", lambda d: d["areas"][1].update(allow_rename={"from": "A", "reason": "x"})))
+def _rename_fixture(tmp_path, *, opt_in=True, from_name=None):
+    fx = _update_fixture(tmp_path, 3, [1])
+    path = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(path.read_text())
+    pos = fx["ids"].index(fx["upd"][0])
+    entry = next(a for a in doc["areas"] if a["id"] == fx["upd"][0])
+    old_name = fx["new_rows"][pos][1]
+    entry["display_name"] = RENAMED
+    if opt_in:
+        entry["allow_rename"] = {"from": from_name or old_name, "reason": "reviewed rename"}
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    fx["new_rows"][pos][1] = RENAMED
+    fx["pos"] = pos
+    return fx
+def test_update_with_the_opt_in_renames_the_row_in_place_and_nothing_else(tmp_path):
+    fx = _rename_fixture(tmp_path)
+    before = (fx["repo"] / "public/areas/index.json").read_bytes()
+    assert _finish(fx) == 0
+    assert _verify_update(fx) == 0                                               # staged-diff gate accepts it
+    old_p = _pieces_default(before)
+    new_p = _pieces_default((fx["repo"] / "public/areas/index.json").read_bytes())
+    for (orow, oraw), (nrow, nraw) in zip(old_p, new_p):
+        if orow[0] == fx["upd"][0]:
+            assert nrow[1] == RENAMED and orow[1] != RENAMED and nrow[0] == orow[0] and nrow[7] == orow[7]
+        else:
+            assert nraw == oraw                                                  # every other row byte-identical
+    _git(fx["repo"], "commit", "-q", "-m", "update")
+    assert _verify_update(fx, "verify-commit") == 0
+    out = tmp_path / "out"
+    rc, _ = _derive(fx)
+    assert rc == 0 and _build_update(fx, out) == 0                               # candidate builder accepts it too
+    idx = json.loads((out / "index.json").read_bytes())
+    assert [r[1] for r in idx if r[0] == fx["upd"][0]] == [RENAMED]
+def test_update_without_the_opt_in_still_refuses_a_row_rename(tmp_path):
+    fx = _rename_fixture(tmp_path, opt_in=False)
+    before = (fx["repo"] / "public/areas/index.json").read_bytes()
+    assert _finish(fx) == 1
+    assert (fx["repo"] / "public/areas/index.json").read_bytes() == before      # nothing written
+def test_update_with_a_wrong_from_name_refuses_the_rename(tmp_path):
+    fx = _rename_fixture(tmp_path, from_name="Not the live name")
+    assert _finish(fx) == 1
+def test_update_staged_diff_refuses_a_rename_when_the_registry_has_no_opt_in(tmp_path):
+    fx = _rename_fixture(tmp_path)
+    assert _finish(fx) == 0 and _verify_update(fx) == 0
+    path = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(path.read_text())
+    for entry in doc["areas"]:
+        entry.pop("allow_rename", None)
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    assert _verify_update(fx) == 1                                               # the gate re-checks against the registry
+# ------------------------------ legacy_exclude_trails (legacy-rules area, explicit opt-in) --
+def test_registry_accepts_legacy_exclude_trails_only_on_legacy_entries(tmp_path):
+    star = {"id": "n*:Smølfesporet", "name": "Smølfesporet", "reason": "children's trail"}
+    items = [GOOD_EXCLUDE, {"id": "n:Foo Sti", "name": "Foo Sti", "reason": "x"}, star]
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][0].update(legacy_exclude_trails=items)))
+    assert reg["areas"][0]["legacy_exclude_trails"] == items and reg["areas"][0]["rules"] == "legacy"
+    for idx in (1, 2):                                     # dk-v2 / dk-v3 entries: exclude_trails is their field
+        for rules in ("dk-v2", "dk-v3"):
+            with pytest.raises(dk.DkError):
+                dk.load_registry(_write_registry(
+                    tmp_path / "x.json", lambda d, i=idx, r=rules: d["areas"][i].update(
+                        rules=r, legacy_exclude_trails=[GOOD_EXCLUDE])))
+    with pytest.raises(dk.DkError):                        # control: exclude_trails is still refused on legacy
+        dk.load_registry(_write_registry(
+            tmp_path / "y.json", lambda d: d["areas"][0].update(exclude_trails=[GOOD_EXCLUDE])))
+@pytest.mark.parametrize("value", [
+    [], "r123", [{"id": "123", "name": "A", "reason": "x"}], [{**GOOD_EXCLUDE, "reason": " "}],
+    [{**GOOD_EXCLUDE, "extra": 1}], [GOOD_EXCLUDE, GOOD_EXCLUDE], [{"id": "n:A", "name": "B", "reason": "x"}],
+    [{"id": "n*:A", "name": "B", "reason": "x"}],
+])
+def test_registry_rejects_bad_legacy_exclude_trails(tmp_path, value):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: d["areas"][0].update(legacy_exclude_trails=value)))
+def test_run_area_script_reads_legacy_excludes_only_for_legacy_entries(tmp_path):
+    """Run the real argument-building part of dk-run-area.sh (everything before ROOT=)."""
+    head = (ROOT / "scripts/dk-run-area.sh").read_text(encoding="utf-8").split('\nROOT="$(pwd)"\n')[0]
+    (tmp_path / "trailforge/golden").mkdir(parents=True)
+    probe = tmp_path / "probe.sh"
+    probe.write_text(head + '\necho "n=${#EXCLUDE_ARGS[@]}"\nprintf "%s|" ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"}\n',
+                     encoding="utf-8")
+    item = [{"id": "n:Foo Sti", "name": "Foo Sti", "reason": "x"}]
+    def run(**entry):
+        (tmp_path / "trailforge/golden/dk-areas.json").write_text(
+            json.dumps({"areas": [{"id": FOREST, **entry}]}), encoding="utf-8")
+        proc = subprocess.run(["/bin/bash", str(probe)], cwd=tmp_path, capture_output=True, text=True, env={
+            **os.environ, "AREA_ID": FOREST, "AREA_NAME": "x", "BBOX": "1,2,3,4", "RELATION_ID": "7",
+            "WAY_ID": "", "W": str(tmp_path / "w")})
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+    got = run(legacy_exclude_trails=item)                                  # legacy + opt-in: one flag, file written
+    assert got.startswith("n=2\n--dk-curated-exclude|") and got.endswith("dk-curated-exclude.json|")
+    assert json.loads((tmp_path / "w" / FOREST / "dk-curated-exclude.json").read_text()) == item
+    assert run() == "n=0\n|"                                               # control: legacy without the opt-in
+    assert run(rules="dk-v2", exclude_trails=item).startswith("n=2\n--dk-curated-exclude|")   # control: v2 unchanged
+    assert run(rules="dk-v2", legacy_exclude_trails=item) == "n=0\n|"      # the legacy key means nothing off legacy
+    assert run(exclude_trails=item) == "n=0\n|"                            # nor does exclude_trails on legacy
+# ------------------------------------------------------ container_from_routes --
+GOOD_CLUSTER = {"reason": "no OSM polygon: a kommune route cluster"}
+def _route(rid, name="Rute"):
+    return {"id": f"r{rid}", "name": name, "reason": "reviewed official walk"}
+def _cluster_entry(d, **fields):
+    includes = fields.pop("include_trails", [_route(424241, "A"), _route(424242, "B")])
+    _plain(d, rules="dk-v3", container_from_routes=GOOD_CLUSTER, include_trails=includes,
+           relation_id=int(includes[0]["id"][1:]) if includes else 1, **fields)
+def test_registry_accepts_container_from_routes_with_two_includes_and_the_first_as_anchor(tmp_path):
+    reg = dk.load_registry(_write_registry(tmp_path / "r.json", lambda d: _cluster_entry(d)))
+    assert reg["areas"][1]["container_from_routes"] == GOOD_CLUSTER
+    assert reg["areas"][1]["relation_id"] == 424241
+@pytest.mark.parametrize("value", [True, "reason", {}, {"reason": " "}, {"reason": 5},
+                                   {**GOOD_CLUSTER, "extra": 1}, [GOOD_CLUSTER], None])
+def test_registry_rejects_bad_container_from_routes(tmp_path, value):
+    def mutate(d):
+        _cluster_entry(d)
+        d["areas"][1]["container_from_routes"] = value
+    with pytest.raises(dk.DkError, match="container_from_routes must be exactly"):
+        dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+def test_container_from_routes_fail_closed_registry_rules(tmp_path):
+    def bad(mutate, match):
+        with pytest.raises(dk.DkError, match=match):
+            dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241)]), "at least 2 distinct")
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241), _route(424241)]), "include_trails repeats")
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241), {"id": "n:Navn", "name": "Navn", "reason": "x"}]),
+        "distinct r<id>")
+    bad(lambda d: (_cluster_entry(d), d["areas"][1].update(relation_id=424242)), "must be the first include_trails route")
+    bad(lambda d: _cluster_entry(d, boundary_by_id=True), "exclusive with")
+    bad(lambda d: _cluster_entry(d, container_by_id=GOOD_CONTAINER), "exclusive with")
+    bad(lambda d: _cluster_entry(d, exclude_trails=[GOOD_EXCLUDE]), "exclude_trails is not allowed")
+    def way_backed(d):
+        _cluster_entry(d)
+        d["areas"][1].pop("relation_id")
+        d["areas"][1]["way_id"] = 424241
+    bad(way_backed, "needs relation_id")
+    for rules in ("dk-v2", "legacy"):
+        def other_rules(d, rules=rules):
+            _cluster_entry(d)
+            d["areas"][1]["rules"] = rules
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "r2.json", other_rules))
+def test_cluster_problems_check_every_include_the_size_cap_and_denmark():
+    route = {"bbox": [9.0, 56.0, 9.02, 56.01], "count": 1,
+             "tags": {"type": "route", "route": "hiking", "name": "X"}}
+    infos = {1: route, 2: {**route, "bbox": [9.01, 56.0, 9.03, 56.02]}}
+    box = [9.0, 56.0, 9.03, 56.02]
+    assert dk.cluster_problems({}, box, infos) == []
+    assert any("not in the PBF" in p for p in dk.cluster_problems({}, box, {**infos, 3: {}}))
+    assert any("not unique" in p for p in dk.cluster_problems({}, box, {**infos, 3: {**route, "count": 2}}))
+    assert any("expected a hiking/foot route" in p for p in dk.cluster_problems(
+        {}, box, {**infos, 3: {**route, "tags": {"type": "route", "route": "bicycle"}}}))
+    assert any("expected a hiking/foot route" in p for p in dk.cluster_problems(
+        {}, box, {**infos, 3: {**route, "tags": {"type": "multipolygon", "route": "hiking"}}}))
+    assert any("no member way geometry" in p for p in dk.cluster_problems({}, box, {**infos, 3: {**route, "bbox": None}}))
+    assert any("cap per axis" in p for p in dk.cluster_problems({}, [9.0, 56.0, 9.2, 56.02], infos))
+    assert any("outside Denmark" in p for p in dk.cluster_problems({}, [9.0, 50.0, 9.03, 50.02], infos))
+def test_cluster_geometry_uses_the_union_of_the_includes_and_skips_the_polygon_checks():
+    entry = _v3_entry(container_from_routes=GOOD_CLUSTER, relation_id=1,
+                      include_trails=[_route(1), _route(2)], bbox=None, center=None)
+    entry.pop("exclude_trails", None)
+    anchor = {"bbox": [9.0, 56.0, 9.02, 56.01], "count": 1, "tags": {"type": "route", "route": "hiking"}}
+    other = {"bbox": [9.01, 56.0, 9.03, 56.02], "count": 1, "tags": {"type": "route", "route": "foot"}}
+    union = dk.union_bbox([anchor["bbox"], other["bbox"]])
+    rec = dk.check_area_geometry(entry, union, None, "qualify", anchor, [anchor["bbox"], other["bbox"]],
+                                 {1: anchor, 2: other})
+    assert rec["status"] == "ok", rec["problems"]
+    assert rec["cross_check"] == "registry-relation" and rec["container"] == "route-cluster"
+    assert rec["boundary_bbox"] == union
+    assert rec["proposed_bbox"] == dk.pad_bbox(union)
+    # A cluster over the cap fails closed in prepare.
+    wide = {**other, "bbox": [9.3, 56.0, 9.32, 56.02]}
+    rec = dk.check_area_geometry(entry, dk.union_bbox([anchor["bbox"], wide["bbox"]]), None, "qualify", anchor,
+                                 [anchor["bbox"], wide["bbox"]], {1: anchor, 2: wide})
+    assert rec["status"] == "failed" and any("cap per axis" in p for p in rec["problems"])
+    # Control: the same anchor on a plain (non-cluster) entry still needs a polygon relation.
+    plain = dk.check_area_geometry(_v3_entry(relation_id=1), anchor["bbox"], None, "qualify", anchor)
+    assert any("expected boundary/multipolygon" in p for p in plain["problems"])
+def test_run_area_script_passes_container_from_routes_only_when_set():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    assert ".container_from_routes // empty | .reason" in script and '[ -n "$CONTAINER_FROM_ROUTES" ]' in script
+    assert "--dk-container-from-routes" in script
+def test_only_batch_l_registry_entries_use_container_from_routes():
+    assert {a["id"] for a in json.loads(REGISTRY.read_text(encoding="utf-8"))["areas"]
+            if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW}
+
+
+# ------------------------------------------------------------ REMOVE mode ----
+# Denmark-only, opt-in (registry hold=superseded). Unlists areas from the three shared files;
+# the 2N per-area objects are never written or deleted.
+
+def _remove_fixture(tmp_path, total, rm, *, mark=True, commit=True):
+    """Repo committed with `total` live areas; live R2 = the same areas. `rm` = positions to remove.
+    Registry marks the removed ids hold=superseded when `mark`."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    repo, live, ids = _make_repo(tmp_path, total)
+    rows = json.loads((repo / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())
+    (repo / "public/areas/index.json").write_bytes(_default(rows))
+    rm_ids = [ids[i] for i in rm]
+    reg_path = repo / "trailforge/golden/dk-areas.json"
+    doc = json.loads(reg_path.read_text())
+    for entry in doc["areas"]:
+        if mark and entry["id"] in rm_ids:
+            entry["hold"] = "superseded"
+    reg_path.write_text(json.dumps(doc), encoding="utf-8")
+    search = [["Old Trail", "old-area-co", "a", 1.0, "Easy"]]
+    shapes = {"old-area-co/a": [0, 0, 255, 255]}
+    for aid in ids:
+        geom = (repo / f"public/areas/geom/{aid}.json").read_bytes()
+        search += dk.expected_records("trail-search.json", aid, geom)
+        shapes.update({r[0]: r[1] for r in dk.expected_records("trail-shapes.json", aid, geom)})
+    (live / "index.json").write_bytes(_compact(rows))
+    (live / "trail-search.json").write_bytes(_compact(search))
+    (live / "trail-shapes.json").write_bytes(_compact(shapes))
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "live published state")
+    return {"repo": repo, "live": live, "ids": ids, "rm": rm_ids, "tmp": tmp_path}
+
+
+def _do_remove(fx, ids=None, *, stage=True):
+    rc = dk.main(["remove-areas", "--repo", str(fx["repo"]), "--ids", ",".join(fx["rm"] if ids is None else ids)])
+    if stage and rc == 0:
+        _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    return rc
+
+
+def _derive_remove(fx, out=None):
+    out = out or fx["tmp"] / "rm-areas.txt"
+    rc = dk.main(["derive-remove-areas", "--repo", str(fx["repo"]), "--live-index", str(fx["live"] / "index.json"),
+                  "--out", str(out)])
+    return rc, out
+
+
+def _build_remove(fx, out, extra=()):
+    return dk.main(["build-remove-candidates", "--repo", str(fx["repo"]),
+                    "--live-index", str(fx["live"] / "index.json"),
+                    "--live-search", str(fx["live"] / "trail-search.json"),
+                    "--live-shapes", str(fx["live"] / "trail-shapes.json"), "--out-dir", str(out), *extra])
+
+
+REMOVE_CASES = [(3, [0]), (3, [1]), (3, [2]), (6, [0, 3, 5]), (45, list(range(1, 41)))]
+
+
+@pytest.mark.parametrize("total,rm", REMOVE_CASES, ids=["first", "middle", "last", "N3", "N40"])
+def test_remove_unlists_exactly_the_superseded_areas_and_keeps_everything_else_byte_identical(tmp_path, total, rm):
+    fx = _remove_fixture(tmp_path, total, rm)
+    parking = (fx["live"] / "parking.json").read_bytes()
+    assert _do_remove(fx) == 0
+    rc, areas_file = _derive_remove(fx)
+    assert rc == 0 and areas_file.read_text().split() == fx["rm"]
+    out = tmp_path / "out"
+    assert _build_remove(fx, out, ["--areas-file", str(areas_file)]) == 0
+    plan = json.loads((out / "plan.json").read_text())
+    n = len(fx["rm"])
+    assert plan["schema"] == dk.REMOVE_SCHEMA and plan["areas"] == fx["rm"]
+    assert [w["key"] for w in plan["writes"]] == ["index.json", "trail-search.json", "trail-shapes.json"]
+    assert len(plan["kept_objects"]) == 2 * n and not any("parking" in k for k in plan["kept_objects"])
+    assert plan["kept_objects"] == [k for a in fx["rm"] for k in (f"{a}.json", f"silhouettes/{a}.json")]
+    assert (fx["live"] / "parking.json").read_bytes() == parking
+    for w in plan["writes"]:
+        assert dk._sha((out / w["file"]).read_bytes()) == w["sha256"]
+    gone = set(fx["rm"])
+    for key, as_dict, owner in (("index.json", False, lambda r: r[0]),
+                                ("trail-search.json", False, lambda r: r[1]),
+                                ("trail-shapes.json", True, lambda r: r[0].split("/")[0])):
+        before = dk._split_records((fx["live"] / key).read_bytes(), as_dict, "b")
+        after = dk._split_records((out / key).read_bytes(), as_dict, "a")
+        assert [raw for rec, raw in before if owner(rec) not in gone] == [raw for _, raw in after]
+        assert not any(owner(rec) in gone for rec, _ in after) and len(before) > len(after)
+    # the non-Danish row is untouched and the new index is exactly the repo bundle
+    new_index = json.loads((out / "index.json").read_bytes())
+    assert new_index[0] == OLD_ROW
+    assert new_index == json.loads((fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())
+    # repo edit: both index files lost exactly those rows; removed files are gone, the rest remain
+    for aid in fx["ids"]:
+        present = (fx["repo"] / f"public/areas/geom/{aid}.json").exists()
+        assert present == (aid not in gone)
+    assert [r[0] for r in json.loads((fx["repo"] / "public/areas/index.json").read_bytes())] == \
+        [r[0] for r in new_index]
+
+
+def test_remove_verify_staged_and_commit_accept_exactly_the_removal_diff(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1, 2])
+    assert _do_remove(fx) == 0
+    ids = ",".join(fx["rm"])
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", ids, "--mode", "remove"]) == 0
+    _git(fx["repo"], "commit", "-q", "-m", "remove")
+    assert dk.main(["verify-commit", "--repo", str(fx["repo"]), "--areas", ids, "--mode", "remove"]) == 0
+    # a different id set is not the diff
+    assert dk.main(["verify-commit", "--repo", str(fx["repo"]), "--areas", fx["ids"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_verify_refuses_extra_changes(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1])
+    assert _do_remove(fx, stage=False) == 0
+    other = fx["repo"] / f"public/areas/geom/{fx['ids'][3]}.json"
+    other.write_bytes(other.read_bytes() + b" ")                                # an unrelated area changes too
+    _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", fx["rm"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_verify_refuses_a_tampered_other_row(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1])
+    assert _do_remove(fx, stage=False) == 0
+    path = fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(path.read_bytes())
+    rows[1][1] = "Renamed"
+    path.write_bytes(_compact(rows))
+    _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", fx["rm"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_areas_refuses_non_danish_unmarked_missing_and_over_cap(tmp_path, capsys):
+    fx = _remove_fixture(tmp_path, 3, [0])
+    before = {p: p.read_bytes() for p in fx["repo"].rglob("*.json") if ".git" not in p.parts}
+    for ids in (["old-area-co"],                                 # not a Danish registry area
+                [fx["ids"][1]],                                  # registry area but not superseded
+                [fx["rm"][0], fx["rm"][0]],                      # duplicate
+                ["ghost-dk"], []):
+        assert _do_remove(fx, ids) == 1
+    (fx["repo"] / f"public/areas/silhouettes/{fx['rm'][0]}.json").unlink()   # missing file
+    assert _do_remove(fx) == 1
+    capsys.readouterr()
+    after = {p: p.read_bytes() for p in fx["repo"].rglob("*.json") if ".git" not in p.parts}
+    assert {p: b for p, b in before.items() if p.name != f"{fx['rm'][0]}.json" or "silhouettes" not in p.parts} == \
+        {p: b for p, b in after.items() if p in before}            # refusals wrote nothing
+    big = _remove_fixture(tmp_path / "big", 45, list(range(41)))
+    assert _do_remove(big) == 1                                   # 41 > cap
+
+
+def test_remove_areas_refuses_when_a_row_is_missing_or_listed_twice(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    path = fx["repo"] / "public/areas/index.json"
+    rows = json.loads(path.read_bytes())
+    path.write_bytes(_default([r for r in rows if r[0] != fx["rm"][0]]))
+    assert _do_remove(fx) == 1
+    path.write_bytes(_default(rows + [rows[2]]))
+    assert _do_remove(fx) == 1
+
+
+def test_remove_derivation_refusals(tmp_path):
+    # registry not marked superseded
+    fx = _remove_fixture(tmp_path / "a", 3, [1], mark=False)
+    assert _do_remove(fx) == 1
+    # bundle dropped a row but the registry is not marked: derive refuses
+    fx = _remove_fixture(tmp_path / "b", 3, [1])
+    assert _do_remove(fx) == 0
+    reg = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(reg.read_text())
+    for e in doc["areas"]:
+        e.pop("hold", None)
+    reg.write_text(json.dumps(doc), encoding="utf-8")
+    assert _derive_remove(fx)[0] == 1
+    assert _build_remove(fx, tmp_path / "b-out") == 1
+    # nothing to remove
+    fx = _remove_fixture(tmp_path / "c", 3, [1])
+    assert _derive_remove(fx)[0] == 1
+    # a repo geom is still present for a removed area
+    fx = _remove_fixture(tmp_path / "d", 3, [1])
+    assert _do_remove(fx) == 0
+    (fx["repo"] / f"public/areas/geom/{fx['rm'][0]}.json").write_bytes(b"{}")
+    assert _derive_remove(fx)[0] == 1
+    # bundle also changed another live row, or added a row: not live-minus-removed
+    fx = _remove_fixture(tmp_path / "e", 4, [1])
+    assert _do_remove(fx) == 0
+    bundle = fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(bundle.read_bytes())
+    changed = copy.deepcopy(rows)
+    changed[1][1] = "Renamed"
+    bundle.write_bytes(_compact(changed))
+    assert _derive_remove(fx)[0] == 1
+    bundle.write_bytes(_compact(rows[::-1]))                     # order changed
+    assert _derive_remove(fx)[0] == 1
+    bundle.write_bytes(_compact(rows + [["new-dk", "New", "Denmark", 56.0, 9.0, 2, 3.0, 7]]))   # an add
+    assert _derive_remove(fx)[0] == 1
+    # the areas file must equal the derivation
+    bundle.write_bytes(_compact(rows))
+    wrong = tmp_path / "wrong.txt"
+    wrong.write_text(fx["ids"][0] + "\n", encoding="utf-8")
+    assert _build_remove(fx, tmp_path / "e-out", ["--areas-file", str(wrong)]) == 1
+    assert _build_remove(fx, tmp_path / "e-ok") == 0
+
+
+def test_remove_build_refuses_non_contiguous_or_missing_live_blocks(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    assert _do_remove(fx) == 0
+    search_path = fx["live"] / "trail-search.json"
+    search = json.loads(search_path.read_bytes())
+    gone = fx["rm"][0]
+    hit = [i for i, r in enumerate(search) if r[1] == gone]
+    shuffled = search[:hit[0]] + [search[hit[0]]] + [search[0]] + search[hit[0] + 1:]   # splits the block
+    shuffled = [search[i] for i in range(len(search)) if i not in hit]
+    shuffled.insert(1, search[hit[0]])
+    shuffled.insert(len(shuffled) - 1, search[hit[1]])
+    search_path.write_bytes(_compact(shuffled))
+    assert _build_remove(fx, tmp_path / "a") == 1
+    search_path.write_bytes(_compact([r for r in search if r[1] != gone]))              # no records at all
+    assert _build_remove(fx, tmp_path / "b") == 1
+    search_path.write_bytes(_compact(search))
+    shapes_path = fx["live"] / "trail-shapes.json"
+    shapes = json.loads(shapes_path.read_bytes())
+    shapes_path.write_bytes(_compact({k: v for k, v in shapes.items() if not k.startswith(gone + "/")}))
+    assert _build_remove(fx, tmp_path / "c") == 1
+    shapes_path.write_bytes(_compact(shapes))
+    assert _build_remove(fx, tmp_path / "ok") == 0
+
+
+def test_remove_prove_delta_refuses_a_candidate_that_touches_another_record(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    ids = fx["rm"]
+    before = (fx["live"] / "trail-search.json").read_bytes()
+    good = dk.drop_area_records(before, "trail-search.json", ids)
+    assert dk.prove_remove_delta("trail-search.json", before, good, ids)["removed_records"] == 2
+    rows = json.loads(good)
+    rows[0][3] = 9.9                                             # another record's bytes changed
+    with pytest.raises(dk.DkError):
+        dk.prove_remove_delta("trail-search.json", before, _compact(rows), ids)
+    with pytest.raises((dk.DkError, contract.ManifestError)):                              # same values, different bytes (1.0 -> 1.00)
+        dk.prove_remove_delta("trail-search.json", before, good.replace(b"1.0,", b"1.00,", 1), ids)
+    with pytest.raises(dk.DkError):                              # nothing removed
+        dk.prove_remove_delta("trail-search.json", before, before, ids)
+
+
+def _remove_plan(tmp_path, capsys):
+    fx = _remove_fixture(tmp_path, 4, [1, 2])
+    assert _do_remove(fx) == 0
+    out = tmp_path / "out"
+    assert _build_remove(fx, out) == 0
+    capsys.readouterr()
+    return fx, out
+
+
+def _decide_remove(fx, out, tmp_path, capsys, spec):
+    plan = json.loads((out / "plan.json").read_text())
+    cur = tmp_path / "cur"
+    cur.mkdir(exist_ok=True)
+    for w in plan["writes"]:
+        data = {"cand": (out / w["file"]).read_bytes(), "old": (fx["live"] / w["key"]).read_bytes(),
+                "other": b'{"third":"party"}'}[spec.get(w["key"], spec["*"])]
+        (cur / w["key"]).write_bytes(data)
+    code = dk.main(["rollback-decide-remove", "--plan", str(out / "plan.json"), "--live-dir", str(cur)])
+    cap = capsys.readouterr()
+    return code, [line.split("\t") for line in cap.out.splitlines() if "\t" in line], cap.err
+
+
+def test_remove_rollback_restores_candidates_skips_baseline_and_never_deletes(tmp_path, capsys):
+    fx, out = _remove_plan(tmp_path, capsys)
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "cand"})
+    assert code == 0 and lines == [["index.json", "restore"], ["trail-search.json", "restore"],
+                                   ["trail-shapes.json", "restore"]]
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "old"})
+    assert code == 0 and {a for _, a in lines} == {"skip"}
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "old", "trail-shapes.json": "cand"})
+    assert code == 0 and dict(lines) == {"index.json": "skip", "trail-search.json": "skip",
+                                         "trail-shapes.json": "restore"}
+
+
+@pytest.mark.parametrize("bad", ["index.json", "trail-search.json", "trail-shapes.json"])
+def test_remove_rollback_refuses_third_party_bytes(tmp_path, capsys, bad):
+    fx, out = _remove_plan(tmp_path, capsys)
+    code, lines, err = _decide_remove(fx, out, tmp_path, capsys, {"*": "cand", bad: "other"})
+    assert code == 1 and lines == [] and "refusing" in err
+
+
+def test_remove_rollback_refuses_a_non_remove_plan(tmp_path, capsys):
+    fx, out = _remove_plan(tmp_path, capsys)
+    plan = json.loads((out / "plan.json").read_text())
+    plan["schema"] = "trekdex-dk-r2-update-plan-v1"
+    (out / "plan2.json").write_text(json.dumps(plan))
+    assert dk.main(["rollback-decide-remove", "--plan", str(out / "plan2.json"), "--live-dir", str(fx["live"])]) == 1
+
+
+def test_sync_dk_remove_modes_contract():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(SYNC_DK)
+    steps = {s["name"]: s for s in next(iter(doc["jobs"].values()))["steps"] if "name" in s}
+    cond = {n: s.get("if", "") for n, s in steps.items()}
+    guards = SYNC_DK.split("- name: Guards", 1)[1].split("- name: Snapshot", 1)[0]
+    assert "plan-remove|apply-remove|rollback-remove" in guards and '"$MODE" = "rollback-remove"' in guards
+    plan = SYNC_DK.split("- name: Remove plan", 1)[1].split("\n      - name:", 1)[0]
+    apply_ = SYNC_DK.split("- name: Apply remove", 1)[1].split("\n      - name:", 1)[0]
+    rollback = SYNC_DK.split("- name: Rollback remove", 1)[1]
+    assert cond[next(n for n in steps if n.startswith("Remove plan"))] == \
+        "${{ inputs.mode == 'plan-remove' || inputs.mode == 'apply-remove' }}"
+    assert cond[next(n for n in steps if n.startswith("Apply remove"))] == "${{ inputs.mode == 'apply-remove' }}"
+    assert cond[next(n for n in steps if n.startswith("Rollback remove"))] == "${{ inputs.mode == 'rollback-remove' }}"
+    # the removal set is derived, never an input; the kept objects must exist
+    assert "derive-remove-areas" in plan and "build-remove-candidates" in plan and "head-object" in plan
+    assert (SYNC_DK.index("- name: Remove plan") < SYNC_DK.index("dk-r2-remove-snapshot-${{ github.run_id }}")
+            < SYNC_DK.index("- name: Apply remove"))
+    # archive, never delete: no object is deleted or written except the three shared files
+    for block in (plan, apply_, rollback):
+        assert "delete-object" not in block and "aws s3 rm" not in block
+        assert not re.search(r"--key\s+parking\.json[^\n]*--body|put[^\n]*parking", block)
+    assert "--if-match" in apply_ and "--if-match" in rollback and "put-object" in apply_
+    assert apply_.index("changed since snapshot") < apply_.index('put "cand/$file"')
+    assert "PARTIAL APPLY: dispatch mode=rollback-remove with rollback_run_id=$GITHUB_RUN_ID" in apply_
+    assert "READBACK MISMATCH" in apply_ and "KEPT OBJECT CHANGED" in apply_ and "trap - EXIT" in apply_
+    assert 'test "$(cur parking.json)" = "$(base parking.json)"' in apply_
+    assert "rollback-decide-remove" in rollback and "ROLLBACK READBACK MISMATCH" in rollback
+    assert "KEPT OBJECT CHANGED" in rollback and "parking_after" in rollback
+    # pre-existing steps are untouched: same names and same `if:` conditions as before this change
+    assert cond["Plan (area list from the committed index diff; build + prove candidates)"] == \
+        "${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}"
+    assert cond["Apply (write 2N+3 keys in order, read each back)"] == "${{ inputs.mode == 'apply' }}"
+    assert cond["Apply update (conditional overwrite of 2N+3 keys, read each back)"] == \
+        "${{ inputs.mode == 'apply-update' }}"
+    assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
+        "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
+def test_batch1_curation_decisions_are_recorded_in_the_registry():
+    # BATCH-1 (2026-11-01): completeness + gap/fragment/long-distance cleanup on kept areas, registry only.
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    def excl(i):
+        return {e["id"] for e in by_id[i].get("exclude_trails", [])}
+    def incl(i):
+        return {e["id"] for e in by_id[i].get("include_trails", [])}
+    assert {"r14644083"} <= excl("aero-dk")                       # Kyststien, island perimeter leg
+    assert {"r16886559", "r16886562"} <= excl("vester-aslund-plantage-dk")  # 0.43 and 0.34 mi fragments
+    assert "n:Kærlighedsstien" in excl("rold-skov-dk") and "r3249161" in excl("harte-skov-dk")
+    assert "r3240427" in excl("godding-skov-dk")                  # moves to Engelsholm in BATCH-3
+    assert "n:Maglevandstrappen" not in incl("mons-klint-dk") and "n:Gråryg Fald" in incl("mons-klint-dk")
+    assert "r1855757" not in incl("kelstrup-plantage-dk")
+    assert "r17589026" in incl("almindingen-dk")                  # Ekkodalsstien, signed walk
+    assert "r12737247" in incl("hald-so-dk") and by_id["hald-so-dk"]["bbox"][2] == 9.49
+    assert "accept_gap" not in by_id["kegnaes-dk"]               # real 923 m hole, nothing synthesized
+    # Mols stays ONE whole area: only the cleanup list grew, no split, no include
+    mols = by_id[MOLS]
+    assert mols["hold"] is None and "include_trails" not in mols and len(mols["legacy_exclude_trails"]) == 14
+    # kept short routes with a recorded official source stay
+    assert "r12627643" in incl("soheden-plantage-dk") and "r14688103" in incl("soheden-plantage-dk")
+    assert "r2900915" in incl("randbol-hede-frederikshab-dk")
+
+
+def test_batch2_names_and_pins_are_recorded_in_the_registry():
+    # BATCH-2 (2026-11-01): spelling fixes with a recorded official source, bare-name renames, centre pins.
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    def fixes(i):
+        return {f["osm_name"]: f for f in by_id[i].get("trail_name_fixes", [])}
+    assert fixes("randbol-hede-frederikshab-dk")["Ranbøl rute"]["name"] == "Randbøl rute"
+    assert fixes("randbol-hede-frederikshab-dk")["Ranbøl rute 2"]["name"] == "Randbøl rute 2"
+    assert fixes("randbol-hede-frederikshab-dk")["Grøn vandrerute i Fredrikshåb Plantage"]["name"].endswith(
+        "i Frederikshåb Plantage")
+    assert fixes("klosterhede-plantage-dk")["Kronheden Ellebækturen"]["name"] == "Kronhede Ellebækturen"
+    assert fixes("pamhule-skov-dk")["Hjertestien, Hindemaj"]["name"] == "Hjertestien, Hindemade"
+    assert fixes("harte-skov-dk")["Lilla rute i Harde Skov"]["name"] == "Lilla rute i Harte Skov"
+    assert fixes("skelhoj-plantage-dk")["Gul Rute, Skelhøj Plantage2"]["name"] == "Gul Rute, Skelhøj Plantage"
+    assert fixes("nordskoven-416103-dk")["Gul Rute"]["name"] == "Nordskov Gul"
+    assert fixes("sindal-dk")["Skovstien"]["name"] == "Sindal Skovstien"
+    assert fixes("nysted-dk")["En kultur- og natursti rundt om Nysted"]["name"] == "Nysted rundt"
+    # every fix carries an https source and a reason
+    for entry in by_id.values():
+        for fix in entry.get("trail_name_fixes", []):
+            assert fix["source"].startswith("https://") and fix["reason"].strip()
+    # not applied on purpose: no official source for the other spelling (or the official source uses both)
+    for aid, old in (("aro-dk", "Aarø"), ("barsbol-skov-dk", "Klaskeroj"), ("kelstrup-plantage-dk", "Rode Mose")):
+        assert not any(old in f["osm_name"] for f in by_id[aid].get("trail_name_fixes", []))
+    # area renames use the existing display_name + allow_rename mechanism
+    rye, nord = by_id["rye-norreskov-dk"], by_id["nordskoven-416103-dk"]
+    assert rye["display_name"] == "Himmelbjerget og Rye Nørreskov" and rye["allow_rename"]["from"] == "Rye Nørreskov"
+    assert nord["display_name"] == "Nordskoven (Silkeborg)" and nord["allow_rename"]["from"] == "Nordskoven"
+    # six centre pins now sit on the trails
+    assert by_id["almindingen-dk"]["center"] == [55.115, 14.913]
+    assert by_id["godding-skov-dk"]["center"] == [55.717, 9.271]
+    assert by_id["klosterhede-plantage-dk"]["center"] == [56.479, 8.405]
+    assert by_id["nordskoven-416103-dk"]["center"] == [56.156, 9.588]
+    assert by_id["skelhoj-plantage-dk"]["center"] == [56.115, 9.196]
+    assert by_id["froslev-plantage-dk"]["center"] == [54.835, 9.32]
+    # BATCH-3 splits are untouched here
+    for aid in ("kongernes-nordsjaelland-dk", "nationalpark-thy-dk", "nationalpark-vadehavet-dk"):
+        assert "trail_name_fixes" not in by_id.get(aid, {})
+
+
+def test_trail_name_fixes_registry_validation(tmp_path):
+    reg = _reg()
+    good = {"osm_name": "A", "name": "B", "source": "https://example.dk/x", "reason": "typo"}
+    def check(**override):
+        doc = copy.deepcopy(json.loads(REGISTRY.read_text(encoding="utf-8")))
+        entry = next(a for a in doc["areas"] if a["id"] == "sindal-dk")
+        entry["trail_name_fixes"] = [{**good, **override}]
+        path = tmp_path / "reg.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        return dk.load_registry(path)
+    assert reg["by_id"]["sindal-dk"]["trail_name_fixes"]
+    check()
+    for bad in ({"source": "http://example.dk/x"}, {"name": "A"}, {"name": "B\u0000"}, {"osm_name": " A"},
+                {"reason": ""}, {"name": "x" * 121}):
+        with pytest.raises(dk.DkError):
+            check(**bad)
+    doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    mols = next(a for a in doc["areas"] if a["id"] == MOLS)
+    mols["trail_name_fixes"] = [good]
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(dk.DkError):
+        dk.load_registry(path)                                           # legacy rules: refused

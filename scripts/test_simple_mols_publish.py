@@ -177,19 +177,19 @@ def _assert_exact(tmp_path, row):
 
 
 def _good_names():
-    return ["Molsruten", "Kaløstien"] + [f"Trail {i}" for i in range(24)]
+    return ["Kløverstier-Naturruten", "Tinghulestien"] + [f"Trail {i}" for i in range(10)]
 
 
 def test_assert_exact_accepts_only_the_reviewed_result(tmp_path):
-    assert _assert_exact(tmp_path, _geom(_good_names(), 85.4)) == 0
-    assert _assert_exact(tmp_path, _geom(_good_names(), 85.44)) == 0
-    assert _assert_exact(tmp_path, _geom(_good_names(), 85.5)) == 1
-    assert _assert_exact(tmp_path, _geom(_good_names()[:-1], 85.4)) == 1
-    assert _assert_exact(tmp_path, _geom(_good_names() + ["Extra"], 85.4)) == 1
-    missing = [n for n in _good_names() if n != "Kaløstien"] + ["Other"]
-    assert _assert_exact(tmp_path, _geom(missing, 85.4)) == 1
+    assert _assert_exact(tmp_path, _geom(_good_names(), 34.7)) == 0
+    assert _assert_exact(tmp_path, _geom(_good_names(), 34.74)) == 0
+    assert _assert_exact(tmp_path, _geom(_good_names(), 34.8)) == 1
+    assert _assert_exact(tmp_path, _geom(_good_names()[:-1], 34.7)) == 1
+    assert _assert_exact(tmp_path, _geom(_good_names() + ["Extra"], 34.7)) == 1
+    missing = [n for n in _good_names() if n != "Tinghulestien"] + ["Other"]
+    assert _assert_exact(tmp_path, _geom(missing, 34.7)) == 1
     bad = _good_names()[:-1] + ["Gravlevstien"]
-    assert _assert_exact(tmp_path, _geom(bad, 85.4)) == 1
+    assert _assert_exact(tmp_path, _geom(bad, 34.7)) == 1
 
 
 def test_assert_exact_rejects_the_66_trail_statewide_result(tmp_path):

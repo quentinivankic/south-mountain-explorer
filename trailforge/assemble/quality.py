@@ -1485,8 +1485,9 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     if dk_rules not in DK_RULES:
         raise ValueError(f"unknown Denmark rules {dk_rules!r}")
     dk_exclude = validate_dk_exclude(dk_exclude or [])
-    if dk_exclude and dk_rules not in DK_V2_FAMILY:
-        raise ValueError("curated exclusions require the dk-v2 rule set")
+    # dk-v2/dk-v3 take registry exclude_trails; legacy takes only the explicit
+    # legacy_exclude_trails opt-in (same entries, same fail-closed matching).
+    # Default (empty list) is a no-op for every rule set.
     dk_include = validate_dk_exclude(dk_include or [], "include")
     if dk_include and dk_rules != "dk-v3":
         raise ValueError("curated inclusions require the dk-v3 rule set")
@@ -1887,36 +1888,38 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     dk_removed_evidence.append({
                         "name": properties.get("name"), "category": category,
                         "rule": rule, "miles": properties.get("length_mi")})
-        # Curated exclusions run last, on what the automatic rules kept. Every
-        # entry must match exactly one such trail: a missing or ambiguous match
-        # (stale list) is a failure, never silently skipped.
-        for entry in dk_exclude:
-            matches = [
-                state for state in states
-                if state["removed_category"] is None
-                and _dk_exclude_matches(entry, state["feature"]["properties"])]
-            multi = entry["id"].startswith(DK_EXCLUDE_ALL_PREFIX)
-            if (len(matches) < 1) if multi else (len(matches) != 1):
+    # Curated exclusions run last, on what the automatic rules kept (for legacy
+    # rules: on everything legacy kept; only reachable via the registry's
+    # legacy_exclude_trails opt-in). Every
+    # entry must match exactly one such trail: a missing or ambiguous match
+    # (stale list) is a failure, never silently skipped.
+    for entry in dk_exclude:
+        matches = [
+            state for state in states
+            if state["removed_category"] is None
+            and _dk_exclude_matches(entry, state["feature"]["properties"])]
+        multi = entry["id"].startswith(DK_EXCLUDE_ALL_PREFIX)
+        if (len(matches) < 1) if multi else (len(matches) != 1):
+            curated_exclude_failures.append(
+                f"{entry['id']} ({entry['name']!r}): "
+                f"{len(matches)} matching kept trails, expected "
+                f"{'at least 1' if multi else 'exactly 1'}")
+            continue
+        for state in matches:
+            properties = state["feature"]["properties"]
+            if unicodedata.normalize(
+                    "NFC", str(properties.get("name") or "")) != entry["name"]:
                 curated_exclude_failures.append(
-                    f"{entry['id']} ({entry['name']!r}): "
-                    f"{len(matches)} matching kept trails, expected "
-                    f"{'at least 1' if multi else 'exactly 1'}")
+                    f"{entry['id']}: trail is named "
+                    f"{properties.get('name')!r}, not {entry['name']!r}")
                 continue
-            for state in matches:
-                properties = state["feature"]["properties"]
-                if unicodedata.normalize(
-                        "NFC", str(properties.get("name") or "")) != entry["name"]:
-                    curated_exclude_failures.append(
-                        f"{entry['id']}: trail is named "
-                        f"{properties.get('name')!r}, not {entry['name']!r}")
-                    continue
-                state["removed_category"] = "dk-curated-exclude"
-                properties["curated_exclude_id"] = entry["id"]
-                properties["curated_exclude_reason"] = entry["reason"]
-                curated_excluded.append({
-                    "id": entry["id"], "name": properties.get("name"),
-                    "miles": properties.get("length_mi"),
-                    "reason": entry["reason"]})
+            state["removed_category"] = "dk-curated-exclude"
+            properties["curated_exclude_id"] = entry["id"]
+            properties["curated_exclude_reason"] = entry["reason"]
+            curated_excluded.append({
+                "id": entry["id"], "name": properties.get("name"),
+                "miles": properties.get("length_mi"),
+                "reason": entry["reason"]})
 
     states, dropped_root_contamination = \
         _exclude_dropped_root_contamination(states)
@@ -2132,6 +2135,15 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
         "promotion_decisions": promotion_ledger,
         "validation_failures": list(dict.fromkeys(validation_failures)),
     }
+    if dk_rules == "legacy" and dk_exclude:
+        # Only present when the registry opts in, so every other legacy run's
+        # report is unchanged.
+        report["dk_curated_excluded"] = curated_excluded
+        report["dk_curated_exclude_failures"] = curated_exclude_failures
+        report["validation_failures"] = list(dict.fromkeys(
+            [*report["validation_failures"],
+             *(f"dk-curated-exclude {item}"
+               for item in curated_exclude_failures)]))
     if dk_rules != "legacy":
         report["dk_rules"] = dk_rules
         report["dk_road_name_removed"] = road_name_evidence

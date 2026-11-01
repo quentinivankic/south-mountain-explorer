@@ -139,7 +139,7 @@ def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude
             raise DkError(f"{aid}: {field} entry has an empty field: {item.get('id')!r}")
         ident, name = item["id"], item["name"]
         multi = bool(EXCLUDE_ALL_ID.fullmatch(ident))
-        if multi and field != "exclude_trails":
+        if multi and field not in ("exclude_trails", "legacy_exclude_trails"):
             raise DkError(f"{aid}: {field} {ident!r}: the n*: selector is exclude_trails-only")
         if (ident != unicodedata.normalize("NFC", ident) or name != unicodedata.normalize("NFC", name)
                 or not (multi or EXCLUDE_ID.fullmatch(ident))):
@@ -207,6 +207,23 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
                           "(the container yields no trails of its own)")
         if "boundary_by_id" in entry:
             raise DkError(f"{aid}: boundary_by_id and container_by_id are mutually exclusive")
+def _check_allow_rename(aid: str, entry: dict[str, Any], name: str) -> None:
+    """Opt-in for an update-mode display-name change: {"from": <exact live name>, "reason": text}.
+    The new name is the entry's display_name, so display_name is required."""
+    if "allow_rename" not in entry:
+        return
+    item = entry["allow_rename"]
+    if not isinstance(item, dict) or set(item) != {"from", "reason"}:
+        raise DkError(f"{aid}: allow_rename needs exactly from and reason")
+    for key in ("from", "reason"):
+        if not isinstance(item[key], str) or not item[key].strip():
+            raise DkError(f"{aid}: allow_rename.{key} must be non-empty text")
+    if item["from"] != unicodedata.normalize("NFC", item["from"]):
+        raise DkError(f"{aid}: allow_rename.from must be NFC text")
+    if entry.get("display_name") is None:
+        raise DkError(f"{aid}: allow_rename needs a display_name (the new name)")
+    if item["from"] == entry["display_name"]:
+        raise DkError(f"{aid}: allow_rename.from equals display_name; nothing to rename")
 def _check_container_from_routes(aid: str, entry: dict[str, Any]) -> None:
     """dk-v3 container_from_routes: {"reason"}. For an area with NO usable OSM polygon; the
     container is derived from the whole geometry of its include_trails routes (see
@@ -275,6 +292,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if shown is not None and (not isinstance(shown, str) or not shown.strip() or shown == name
                                   or shown != unicodedata.normalize("NFC", shown)):
             raise DkError(f"{aid}: display_name must be a non-empty NFC text different from name")
+        _check_allow_rename(aid, entry, name)
         bbox, center = entry.get("bbox"), entry.get("center")
         if (bbox is None) != (center is None):
             raise DkError(f"{aid}: bbox and center must both be set or both be null")
@@ -299,6 +317,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if hold is not None and hold not in HOLD_REASONS:
             raise DkError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
+        # Explicit opt-in: a legacy-rules area (Mols) may exclude named trails; same entry shape.
+        _check_exclude_trails(aid, entry, "legacy_exclude_trails", ("legacy",))
         _check_exclude_trails(aid, entry, "include_trails", ("dk-v3",))
         _check_gap_and_roles(aid, entry)
         _check_boundary_by_id(aid, entry)
@@ -1234,12 +1254,22 @@ def _split_records(live: bytes, as_dict: bool, context: str, sep: str = ",") -> 
     return out
 
 
-def _row_identity_kept(old: list[Any], new: list[Any], aid: str) -> None:
+def _row_identity_kept(old: list[Any], new: list[Any], aid: str, entry: dict[str, Any] | None = None) -> None:
+    """Update mode keeps the index row identity (id, name, state, relation/way). The one exception is
+    an explicit registry opt-in `allow_rename: {from, reason}`: the live name must equal `from` exactly
+    and the new name must be the entry's display_name; id, state and relation stay equal. A row that
+    already carries the new name passes (idempotent re-run); anything else is refused."""
     if (len(old) not in (7, 8) or len(old) != len(new)
-            or (old[0], old[1], old[2], *old[7:]) != (new[0], new[1], new[2], *new[7:])):
+            or (old[0], old[2], *old[7:]) != (new[0], new[2], *new[7:])):
         raise DkError(f"{aid}: update must keep the row identity (id, name, state, relation)")
-
-
+    if old[1] == new[1]:
+        return
+    rename = (entry or {}).get("allow_rename")
+    if rename is None:
+        raise DkError(f"{aid}: update must keep the row identity (id, name, state, relation)")
+    if old[1] != rename["from"] or new[1] != entry.get("display_name"):
+        raise DkError(f"{aid}: allow_rename needs the live name {rename['from']!r} and the registry "
+                      f"display_name as the new name (live {old[1]!r}, new {new[1]!r})")
 def replace_index(args: argparse.Namespace) -> int:
     """Replace ONLY the listed areas' rows in public/areas/index.json, in place."""
     registry = load_registry(args.registry)
@@ -1262,7 +1292,7 @@ def replace_index(args: argparse.Namespace) -> int:
         spots = [n for n, (row, _) in enumerate(pieces) if row[0] == aid]
         if len(spots) != 1:
             raise DkError(f"{aid} is not in the canonical master index; update never adds areas")
-        _row_identity_kept(pieces[spots[0]][0], src[0], aid)
+        _row_identity_kept(pieces[spots[0]][0], src[0], aid, registry["by_id"][aid])
         raws[spots[0]] = _dumps_default([src[0]])[1:-1].decode("utf-8")
     after = ("[" + ", ".join(raws) + "]").encode("utf-8")
     after_rows = _rows(after, "updated master index", compact=False)
@@ -1325,7 +1355,7 @@ def _verify_update_delta(repo: Path, ids: list[str], *, staged: bool) -> dict[st
         for (brow, braw), (arow, araw) in zip(bp, ap):
             if arow[0] in geoms:
                 check_new_row(arow, registry["by_id"][arow[0]], geoms[arow[0]], path)
-                _row_identity_kept(brow, arow, arow[0])
+                _row_identity_kept(brow, arow, arow[0], registry["by_id"][arow[0]])
                 if araw != dump([arow])[1:-1].decode("utf-8"):
                     raise DkError(f"{path}: {arow[0]} row framing differs from the producer")
                 replaced.append(arow[0])
@@ -1671,7 +1701,7 @@ def build_update_candidates(args: argparse.Namespace) -> int:
         if row[0] in geoms:
             new_row = by_id[row[0]]
             check_new_row(new_row, registry["by_id"][row[0]], json.loads(geoms[row[0]]), "repo bundle index")
-            _row_identity_kept(row, new_row, row[0])
+            _row_identity_kept(row, new_row, row[0], registry["by_id"][row[0]])
             raws.append(_dumps_compact([new_row])[1:-1].decode("utf-8"))
         else:
             raws.append(raw)

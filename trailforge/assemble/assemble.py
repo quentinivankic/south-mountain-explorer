@@ -1132,8 +1132,16 @@ def main(argv=None) -> int:
             ap.error(f"--dk-accept-gap is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
-        if args.dk_rules not in ("dk-v2", "dk-v3"):
+        if args.dk_rules not in ("dk-v2", "dk-v3", "legacy"):
             ap.error("--dk-curated-exclude requires --dk-rules dk-v2")
+        if args.dk_rules == "legacy" and (
+                not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            # legacy rules take exclusions only for exact Denmark assembly
+            # (registry legacy_exclude_trails); anywhere else they would be
+            # silently ignored, so refuse.
+            ap.error("--dk-curated-exclude with --dk-rules legacy is "
+                     "limited to exact Denmark assembly")
         try:
             import quality as quality_args
             args.dk_exclude = quality_args.validate_dk_exclude(

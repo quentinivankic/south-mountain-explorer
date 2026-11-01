@@ -414,6 +414,42 @@ class PublishReport(unittest.TestCase):
         self.assertTrue(result["report"]["preview"]["finalization"][
             "prior_parking_present"])
 
+    def test_prior_parking_key_follows_elevation_keys_in_written_json(self):
+        # US byte-identity: pre-Denmark order wrote `parking` after the keys
+        # elevation.process_area adds. Seeded out-dir must not reorder keys.
+        def fake_elevation(row, _sampler):
+            row["total_gain_ft"] = 123
+            return 0, {}
+        parking = [{"id": "existing"}]
+        with TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            (work / "index.json").write_text(json.dumps(_index()))
+            (work / "t.geojson").write_text(json.dumps(_trails()))
+            out = work / "published"
+            out.mkdir()
+            (out / f"{_AREA_ID}.json").write_text(json.dumps(
+                {"parking": parking}))
+            with (
+                patch.object(publish.areamod, "merge_areas",
+                             return_value=_boundary()),
+                patch.object(publish.elevation, "build_sampler",
+                             return_value=object()),
+                patch.object(publish.elevation, "process_area",
+                             side_effect=fake_elevation),
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()),
+            ):
+                rc = publish.main([
+                    "--trails", str(work / "t.geojson"),
+                    "--hiking", str(work / "h.osm.pbf"),
+                    "--index", str(work / "index.json"),
+                    "--out-dir", str(out), "--state", "Denmark",
+                    "--no-boundary-fetch"])
+            self.assertEqual(rc, 0)
+            written = json.loads((out / f"{_AREA_ID}.json").read_text())
+        keys = list(written)
+        self.assertEqual(written["parking"], parking)
+        self.assertIn("total_gain_ft", keys)
+        self.assertGreater(keys.index("parking"), keys.index("total_gain_ft"))
     def _assert_preview_path_rejected(self, root, target, *, index=None,
                                       trails=None, hiking=None, output=None,
                                       report=None, preview_root=None):

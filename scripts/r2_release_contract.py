@@ -96,7 +96,7 @@ GLOBAL_OBJECTS = (
 CI_PRODUCER_GRAPH: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "trailforge/serve/publish_areas.py",
-        "0e47a162dc54dab455e2e6f7233cf13c07e020604b0e70fb25339bdb766eb8bd",
+        "971b7173d1c310e568223d997d88c02bcaa8a77461a64f150bdca27a974f5ed6",
         ("AREA_GEOM", "AREA_INDEX_INPUT"),
     ),
     (

@@ -1,6 +1,39 @@
 import SwiftUI
 import MapKit
 
+enum RecenterLocationState: Equatable {
+    case idle
+    case locating
+    case available
+    case fallback
+    case denied
+    case unavailable
+}
+
+enum RecenterCameraOwner: CaseIterable {
+    case openingFraming
+    case selection
+    case switchedTrail
+    case fitSelectedTrail
+    case follow
+    case gesture
+    case recording
+    case viewDisappearance
+}
+
+enum RecenterRequestGate {
+    static func mayApply(request: Int, current: Int) -> Bool {
+        request == current
+    }
+
+    static func invalidatedGeneration(
+        current: Int,
+        owner _: RecenterCameraOwner
+    ) -> Int {
+        current &+ 1
+    }
+}
+
 /// Three-state camera tracking cycle for the map. Mirrors Apple Maps'
 /// own location button — outline (free), filled (follow), filled-with-
 /// heading (follow + rotate). Owned by `AreaView` so the rotation
@@ -47,6 +80,20 @@ enum MapTrackingMode: Int, CaseIterable {
         case .followHeading: return "Following your direction"
         }
     }
+}
+
+/// Screen-space obstructions around a selected route. Values are physical
+/// points measured from the map's edges, not model or content identifiers.
+/// Keeping this as a value lets AreaView report layout without granting it
+/// camera ownership; TrailMapView still authorizes every move through its
+/// existing camera target/tick pair.
+struct MapViewportInsets: Equatable, Sendable {
+    var top: CGFloat = 0
+    var leading: CGFloat = 0
+    var bottom: CGFloat = 0
+    var trailing: CGFloat = 0
+
+    static let zero = MapViewportInsets()
 }
 
 /// SwiftUI shell that owns the map's state (camera target, tracking
@@ -97,6 +144,14 @@ struct TrailMapView: View {
     /// shift the camera south so the user dot lands in the geometric
     /// middle of the *visible* map instead of the full screen.
     let bottomInset: CGFloat
+    /// Measured control/sheet obstructions used only when framing a selected
+    /// route (and the explicit user + retarget action). Changes to this value
+    /// never move the camera by themselves.
+    let selectedViewportInsets: MapViewportInsets
+    /// Physical control-to-sheet viewport used to audit rendered near-marker
+    /// bounds after a selected-route camera move. Unlike the framing insets,
+    /// this carries no aesthetic horizontal margin.
+    let selectedVisibleInsets: MapViewportInsets
     /// Three-state camera tracking cycle. AreaView owns the state via
     /// `@State`; the rotation button there reads it for the icon and
     /// flips it on tap. TrailMapView reacts via `.onChange` to apply
@@ -113,6 +168,7 @@ struct TrailMapView: View {
     /// completed trails changes. Passed straight through to
     /// `MapKitMapView`, which renders each run as an `MKPolyline`.
     @State private var cachedHaloSegments: [[[CLLocationCoordinate2D]]] = []
+    @State private var locationConsumer = LocationConsumerID()
     /// On-trail-filtered segments of the **live** recording's GPS
     /// path. Recomputed at most once per second from
     /// Trail-polyline-snapped runs covered by the in-progress
@@ -143,6 +199,14 @@ struct TrailMapView: View {
     /// view-state updates from accidentally re-framing the map.
     @State private var cameraTarget: MapTarget
     @State private var cameraTick: Int = 0
+    @State private var recenterState: RecenterLocationState = .idle
+    @State private var recenterGeneration = 0
+    /// Extra edge room accumulated only when MapKit reports that a rendered
+    /// near-marker crosses the real control-to-sheet viewport. It is reset on
+    /// every selection and never reacts to far fallback annotations.
+    @State private var selectedMarkerCorrection: MapViewportInsets = .zero
+    @State private var selectedMarkerAuditGeneration = 0
+    @State private var allowsSelectedMarkerCorrection = false
 
     /// Does the camera still show the framing this view chose on open — the
     /// whole-area overview, or the trail the area was opened on — rather
@@ -169,6 +233,14 @@ struct TrailMapView: View {
     /// old one-shot was really there to keep: a map the user has framed is
     /// never yanked back to the overview.
     @State private var holdsOpeningFraming = true
+    /// This map's own measured size. Region/fit math must use the map's
+    /// viewport, not the window: in the wide side-panel layout the map is only
+    /// part of the window. Compact layouts are full-bleed, so it equals the
+    /// window size there.
+    @State private var measuredViewportSize: CGSize = .zero
+    private var viewportSize: CGSize {
+        MapViewportSizing.resolve(measured: measuredViewportSize, fallback: WindowMetrics.size)
+    }
     /// The refit waiting for `bottomInset` to stop moving. Each change
     /// cancels and replaces it, so a burst lands ONE refit, at the end.
     ///
@@ -195,6 +267,8 @@ struct TrailMapView: View {
         selectedTrailId: Binding<String?>,
         visibleTrailIds: Set<String>? = nil,
         bottomInset: CGFloat = 0,
+        selectedViewportInsets: MapViewportInsets = .zero,
+        selectedVisibleInsets: MapViewportInsets = .zero,
         trackingMode: Binding<MapTrackingMode>
     ) {
         self.area = area
@@ -206,6 +280,8 @@ struct TrailMapView: View {
         self._selectedTrailId = selectedTrailId
         self.visibleTrailIds = visibleTrailIds
         self.bottomInset = bottomInset
+        self.selectedViewportInsets = selectedViewportInsets
+        self.selectedVisibleInsets = selectedVisibleInsets
         self._trackingMode = trackingMode
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
@@ -258,6 +334,9 @@ struct TrailMapView: View {
                 userTrackingMode: .none,
                 userHeading: location.liveHeading,
                 demoUserDot: demoUserDot,
+                selectedMarkerVisibleInsets: selectedVisibleInsets,
+                selectedMarkerAuditGeneration: selectedMarkerAuditGeneration,
+                onSelectedNearMarkerOcclusion: applySelectedMarkerCorrection,
                 onUserGestureRegionChange: {
                     // User gesture-driven region change (pinch / pan).
                     // In follow modes, snap the camera back to the
@@ -275,8 +354,12 @@ struct TrailMapView: View {
                 onUserCameraGestureBegan: {
                     // A finger moved on the map: the camera is the user's now.
                     // Whatever the sheet does from here, the opening framing
-                    // is never re-applied over where they put it.
+                    // is never re-applied over where they put it. It also
+                    // invalidates a pending one-shot recenter so a late fix
+                    // cannot take the camera back.
+                    allowsSelectedMarkerCorrection = false
                     releaseOpeningFraming()
+                    cancelPendingRecenter(for: .gesture)
                 }
             )
 
@@ -289,6 +372,11 @@ struct TrailMapView: View {
                     .padding(.top, 56)
                     .padding(.leading, 60)
             }
+        }
+        .overlay(alignment: .top) {
+            recenterStatusOverlay
+                .padding(.top, 12)
+                .padding(.horizontal, 64)
         }
         .onChange(of: showDebugHUD, initial: true) { _, on in
             // The FPS counter runs a CADisplayLink — pause it when
@@ -304,7 +392,10 @@ struct TrailMapView: View {
             // Compass on as soon as the map is up, so the dot's facing cone is
             // right from the first frame rather than only after the user cycles
             // into a follow mode.
-            location.startHeadingUpdates()
+            location.acquireHeading(for: locationConsumer)
+            if trackingMode != .free {
+                location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            }
             // Snap every past hike's GPS onto the trail network so the
             // cyan "walked here" overlay follows the trail polylines
             // exactly and overlapping passes collapse into one line
@@ -325,6 +416,9 @@ struct TrailMapView: View {
             // ~1500 m as the recenter button — rather than the whole-park
             // overview. Uses the recording's own last GPS sample, so it
             // works even before a fresh live fix lands.
+            // Any opening target must remain authoritative over a one-shot
+            // recenter result that was requested before this appearance.
+            cancelPendingRecenter(for: .openingFraming)
             if (activeRecording?.path.count ?? 0) >= 2 {
                 centerOnActiveRecording()
             } else if let id = selectedTrailId,
@@ -361,6 +455,10 @@ struct TrailMapView: View {
             cachedHaloSegments = [trailSnappedHaloRuns()]
         }
         .onChange(of: selectedTrailId) { _, newId in
+            // A new selection gets a fresh measured-marker correction after
+            // the native sheet settles; a deselection discards the old one.
+            selectedMarkerCorrection = .zero
+            allowsSelectedMarkerCorrection = false
             // Any change of selection — a tap on the map or in the list, or a
             // banner clearing it — ends the opening framing. A selected trail
             // has its own framing (below, plus `fitSelectedTrailTick` as the
@@ -368,6 +466,7 @@ struct TrailMapView: View {
             // looking, and a later sheet move must not pull it back to the
             // overview.
             releaseOpeningFraming()
+            cancelPendingRecenter(for: .selection)
             // Recompute the orange walked-since-completion overlay
             // for the newly-selected trail. Cheap — one trail at a
             // time. Clears to empty when nothing's selected.
@@ -385,6 +484,21 @@ struct TrailMapView: View {
             }
             centerOn(trail: trail)
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+            guard size.width.isFinite, size.height.isFinite,
+                  abs(measuredViewportSize.width - size.width) >= 1
+                    || abs(measuredViewportSize.height - size.height) >= 1 else { return }
+            let first = measuredViewportSize == .zero
+            measuredViewportSize = size
+            // The map pane resized (divider drag, fold/unfold). Keep the
+            // opening framing fit to it; a no-op once another owner has the
+            // camera. The first measurement only matters when the map is not
+            // window-sized (side panel), since the initial fit used the window.
+            let window = WindowMetrics.size
+            let differsFromWindow = abs(size.width - window.width) >= 1
+                || abs(size.height - window.height) >= 1
+            if !first || differsFromWindow { scheduleOpeningRefit() }
+        }
         .onChange(of: bottomInset) { _, _ in
             // The visible map just changed size. While the camera still holds
             // the opening framing, keep that framing fit to the new visible
@@ -401,7 +515,9 @@ struct TrailMapView: View {
             // active trail PLUS the user's current location so they
             // can see both. Falls back to centerOn(trail:) if we
             // don't have a fresh location fix yet.
+            allowsSelectedMarkerCorrection = false
             releaseOpeningFraming()
+            cancelPendingRecenter(for: .switchedTrail)
             guard let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
@@ -418,27 +534,29 @@ struct TrailMapView: View {
             // the one the area was opened on, and the inset refit is already
             // keeping it framed for every sheet move — a second animated
             // camera move to the same region would only cut the first short.
+            cancelPendingRecenter(for: .fitSelectedTrail)
             guard !holdsOpeningFraming,
                   let id = selectedTrailId,
                   let trail = area.trails.first(where: { $0.id == id }) else {
                 return
             }
+            allowsSelectedMarkerCorrection = true
+            selectedMarkerAuditGeneration &+= 1
             centerOn(trail: trail)
         }
         .onChange(of: recenterTick) { _, _ in
-            // Manual recenter — always a one-shot center on user with
-            // no rotation. If the user is currently in a tracking
-            // mode, drop back to .free so the camera doesn't
-            // immediately re-engage tracking and override the
-            // recenter.
-            releaseOpeningFraming()
-            trackingMode = .free
-            centerOnUser()
+            allowsSelectedMarkerCorrection = false
+            performRecenter()
         }
         .onChange(of: trackingMode, initial: false) { _, newMode in
             // Engaging a follow mode hands the camera to the user's position;
-            // the overview must not come back when the sheet moves.
-            if newMode != .free { releaseOpeningFraming() }
+            // the overview and selected-marker correction must not come back
+            // when the sheet moves.
+            if newMode != .free {
+                allowsSelectedMarkerCorrection = false
+                cancelPendingRecenter(for: .follow)
+                releaseOpeningFraming()
+            }
             applyTrackingMode(newMode)
         }
         // While in a tracking mode, push every new GPS sample (and
@@ -469,7 +587,9 @@ struct TrailMapView: View {
                 lastLiveHaloRecomputeAt = 0
             } else {
                 // A hike just started: the camera follows the hike from
-                // here, never the overview.
+                // here, never the overview or a pending marker correction.
+                allowsSelectedMarkerCorrection = false
+                cancelPendingRecenter(for: .recording)
                 releaseOpeningFraming()
             }
         }
@@ -483,6 +603,107 @@ struct TrailMapView: View {
             // even when the HUD was never enabled.
             FPSCounter.shared.stop()
             openingRefit.task?.cancel()
+            cancelPendingRecenter(for: .viewDisappearance)
+            location.releaseLocation(for: locationConsumer)
+            location.releaseHeading(for: locationConsumer)
+        }
+    }
+
+    @ViewBuilder
+    private var recenterStatusOverlay: some View {
+        switch recenterState {
+        case .locating:
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Finding your location…")
+            }
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(.regularMaterial, in: Capsule())
+            .accessibilityIdentifier("area-recenter-locating")
+        case .fallback, .denied, .unavailable:
+            HStack(spacing: 8) {
+                Image(systemName: "location.slash")
+                    .foregroundStyle(.orange)
+                Text(recenterStatusMessage)
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(recenterState == .denied ? "Settings" : "Retry") {
+                    if recenterState == .denied {
+                        location.requestPermission()
+                    } else {
+                        performRecenter()
+                    }
+                }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+            }
+            .padding(10)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("area-recenter-status")
+        case .idle, .available:
+            EmptyView()
+        }
+    }
+
+    private var recenterStatusMessage: String {
+        switch recenterState {
+        case .fallback:
+            return "Fresh location unavailable; showing your last fix."
+        case .denied:
+            return "Location access is off."
+        case .unavailable:
+            return "Location is unavailable."
+        case .idle, .locating, .available:
+            return ""
+        }
+    }
+
+    private func performRecenter() {
+        // Manual recenter immediately releases opening framing and follow
+        // ownership. A stale location may be shown while the authorized fresh
+        // one-shot runs, but only this generation may apply its late result.
+        releaseOpeningFraming()
+        trackingMode = .free
+        recenterGeneration += 1
+        let request = recenterGeneration
+        recenterState = .locating
+        if location.userLocation != nil {
+            centerOnUser()
+        }
+
+        Task { @MainActor in
+            let result = await location.requestOneShotFix(
+                for: locationConsumer,
+                accuracy: .precise
+            )
+            guard RecenterRequestGate.mayApply(
+                request: request,
+                current: recenterGeneration
+            ) else { return }
+
+            switch result {
+            case .success:
+                recenterState = .available
+                centerOnUser()
+            case .denied:
+                recenterState = .denied
+            case .unavailable:
+                recenterState = location.userLocation == nil ? .unavailable : .fallback
+            }
+        }
+    }
+
+    private func cancelPendingRecenter(for owner: RecenterCameraOwner) {
+        recenterGeneration = RecenterRequestGate.invalidatedGeneration(
+            current: recenterGeneration,
+            owner: owner
+        )
+        if recenterState == .locating {
+            recenterState = .idle
         }
     }
 
@@ -522,6 +743,7 @@ struct TrailMapView: View {
     /// move.
     private func reapplyOpeningFraming() {
         guard holdsOpeningFraming, activeRecording == nil, trackingMode == .free else { return }
+        cancelPendingRecenter(for: .openingFraming)
         if let id = selectedTrailId,
            let trail = area.trails.first(where: { $0.id == id }) {
             centerOn(trail: trail)
@@ -566,17 +788,18 @@ struct TrailMapView: View {
     private func applyTrackingMode(_ mode: MapTrackingMode) {
         switch mode {
         case .free:
-            location.startHeadingUpdates()
+            location.releaseLocation(for: locationConsumer)
+            location.acquireHeading(for: locationConsumer)
             centerOnUser()
         case .follow:
             // Ensure live location is pumping (idempotent — no-op if
             // already running, e.g. during a recording).
-            location.startLiveTracking()
-            location.startHeadingUpdates()
+            location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            location.acquireHeading(for: locationConsumer)
             updateTrackedPosition(resetZoom: true)
         case .followHeading:
-            location.startLiveTracking()
-            location.startHeadingUpdates()
+            location.acquireLocation(for: locationConsumer, accuracy: .precise)
+            location.acquireHeading(for: locationConsumer)
             updateTrackedPosition(resetZoom: true)
         }
     }
@@ -602,7 +825,7 @@ struct TrailMapView: View {
             : 0
 
         let latMeters = 1500.0
-        let b = CGRect(origin: .zero, size: WindowMetrics.size)
+        let b = CGRect(origin: .zero, size: viewportSize)
         let shortDim = min(b.width, b.height)
         let metersPerPoint = latMeters / max(shortDim, 1)
         let shiftMeters = (bottomInset / 2) * metersPerPoint
@@ -677,8 +900,8 @@ struct TrailMapView: View {
             latDelta: latDelta,
             lonDelta: lonDelta,
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
@@ -691,8 +914,8 @@ struct TrailMapView: View {
             setCameraTarget(Self.fittedRegion(
                 centerLat: r.0, centerLon: r.1, latDelta: r.2, lonDelta: r.3,
                 bottomInset: bottomInset,
-                screenHeight: WindowMetrics.size.height,
-                screenWidth: WindowMetrics.size.width
+                screenHeight: viewportSize.height,
+                screenWidth: viewportSize.width
             ))
             return
         }
@@ -700,8 +923,8 @@ struct TrailMapView: View {
         setCameraTarget(Self.regionCoveringArea(
             area: area,
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
@@ -739,42 +962,95 @@ struct TrailMapView: View {
             latDelta: 1500.0 / 111_000.0,
             lonDelta: 1500.0 / (111_000.0 * cosLat),
             bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
         ))
     }
 
-    private func centerOn(trail: Trail) {
-        var pts = trail.segments.flatMap { $0 }.compactMap { p -> (Double, Double)? in
-            guard p.count >= 2 else { return nil }
-            return (p[0], p[1])
-        }
-        guard !pts.isEmpty else { return }
-        // Frame the trail's ≤3 nearest lots too, so tapping a trail shows both
-        // the route and where to park for it in one view (matches the pins the
-        // map now draws for the selection).
-        // Pooled too, so the camera frames the same lots the map pins — a pooled
-        // trailhead 400 m off would otherwise land just outside the view.
-        // NEAR-only on purpose: framing a far fallback lot miles away would zoom
-        // the trail itself down to nothing.
-        for lot in Area.nearestParking(
+    /// Trail geometry plus the same near-only parking set rendered for a
+    /// selected trail. Reject the entire payload if any coordinate is malformed:
+    /// silently dropping one endpoint could make an unsafe frame look valid.
+    private func selectedFramingPoints(for trail: Trail) -> [(lat: Double, lon: Double)]? {
+        // Pooled too, so the camera frames the same nearby lots the map pins.
+        // Far fallback lots remain excluded: including one miles away would
+        // shrink the selected route into an unreadable speck.
+        let parking = Area.nearestParking(
             lots: ParkingPoolService.shared.merged(with: area.parking, for: trail),
-            for: trail) {
-            pts.append((lot.lat, lot.lon))
+            for: trail
+        ).map { (lat: $0.lat, lon: $0.lon) }
+        return Self.selectedRoutePoints(
+            segments: trail.segments,
+            additionalPoints: parking
+        )
+    }
+
+    private func centerOn(
+        trail: Trail,
+        markerCorrection: MapViewportInsets? = nil
+    ) {
+        let correction = markerCorrection ?? selectedMarkerCorrection
+        let insets = MapViewportInsets(
+            top: selectedViewportInsets.top + correction.top,
+            leading: selectedViewportInsets.leading + correction.leading,
+            bottom: selectedViewportInsets.bottom + correction.bottom,
+            trailing: selectedViewportInsets.trailing + correction.trailing
+        )
+        guard let points = selectedFramingPoints(for: trail),
+              let target = Self.selectedRouteRegion(
+                points: points,
+                viewportInsets: insets,
+                screenHeight: viewportSize.height,
+                screenWidth: viewportSize.width
+              ) else { return }
+        setCameraTarget(target)
+    }
+
+    /// A rendered-marker correction may move the camera only while the
+    /// selected-route fit still owns it, and only for a finite nonzero inset.
+    nonisolated static func authorizesSelectedMarkerCorrection(
+        isArmed: Bool,
+        correction: MapViewportInsets
+    ) -> Bool {
+        let values = [
+            correction.top,
+            correction.leading,
+            correction.bottom,
+            correction.trailing,
+        ]
+        return isArmed
+            && correction != .zero
+            && values.allSatisfy(\.isFinite)
+    }
+
+    /// Apply only the additional room proven necessary by rendered near-marker
+    /// bounds. Each correction is re-audited after its camera move; far fallback
+    /// annotations never enter this path, and a user-owned camera disables it.
+    private func applySelectedMarkerCorrection(_ correction: MapViewportInsets) {
+        guard Self.authorizesSelectedMarkerCorrection(
+            isArmed: allowsSelectedMarkerCorrection,
+            correction: correction
+        ),
+              let id = selectedTrailId,
+              let trail = area.trails.first(where: { $0.id == id }) else { return }
+        func accumulated(_ current: CGFloat, _ extra: CGFloat) -> CGFloat {
+            // A marker view is smaller than this bound. If 64 additional points
+            // still cannot clear the viewport, stop moving the camera and let
+            // the explicit UI assertion fail rather than creating a refit loop.
+            min(current + extra, 64)
         }
-        let lats = pts.map { $0.0 }
-        let lons = pts.map { $0.1 }
-        let minLat = lats.min()!, maxLat = lats.max()!
-        let minLon = lons.min()!, maxLon = lons.max()!
-        setCameraTarget(Self.fittedRegion(
-            centerLat: (minLat + maxLat) / 2,
-            centerLon: (minLon + maxLon) / 2,
-            latDelta: max((maxLat - minLat) * 1.4, 0.005),
-            lonDelta: max((maxLon - minLon) * 1.4, 0.005),
-            bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
-        ))
+        let updated = MapViewportInsets(
+            top: accumulated(selectedMarkerCorrection.top, correction.top),
+            leading: accumulated(selectedMarkerCorrection.leading, correction.leading),
+            bottom: accumulated(selectedMarkerCorrection.bottom, correction.bottom),
+            trailing: accumulated(selectedMarkerCorrection.trailing, correction.trailing)
+        )
+        guard updated != selectedMarkerCorrection else {
+            allowsSelectedMarkerCorrection = false
+            return
+        }
+        selectedMarkerCorrection = updated
+        selectedMarkerAuditGeneration &+= 1
+        centerOn(trail: trail, markerCorrection: updated)
     }
 
     /// Like `centerOn(trail:)` but expands the bbox to also include
@@ -788,31 +1064,15 @@ struct TrailMapView: View {
             centerOn(trail: trail)
             return
         }
-        var lats: [Double] = []
-        var lons: [Double] = []
-        for seg in trail.segments {
-            for p in seg where p.count >= 2 {
-                lats.append(p[0])
-                lons.append(p[1])
-            }
-        }
-        lats.append(userLoc.latitude)
-        lons.append(userLoc.longitude)
-        guard !lats.isEmpty else {
-            centerOn(trail: trail)
-            return
-        }
-        let minLat = lats.min()!, maxLat = lats.max()!
-        let minLon = lons.min()!, maxLon = lons.max()!
-        setCameraTarget(Self.fittedRegion(
-            centerLat: (minLat + maxLat) / 2,
-            centerLon: (minLon + maxLon) / 2,
-            latDelta: max((maxLat - minLat) * 1.4, 0.005),
-            lonDelta: max((maxLon - minLon) * 1.4, 0.005),
-            bottomInset: bottomInset,
-            screenHeight: WindowMetrics.size.height,
-            screenWidth: WindowMetrics.size.width
-        ))
+        guard var points = selectedFramingPoints(for: trail) else { return }
+        points.append((lat: userLoc.latitude, lon: userLoc.longitude))
+        guard let target = Self.selectedRouteRegion(
+            points: points,
+            viewportInsets: selectedViewportInsets,
+            screenHeight: viewportSize.height,
+            screenWidth: viewportSize.width
+        ) else { return }
+        setCameraTarget(target)
     }
 
     private func setCameraTarget(_ target: MapTarget) {
@@ -1124,6 +1384,164 @@ struct TrailMapView: View {
             centerLon: centerLon,
             latDelta: regionLatDelta,
             lonDelta: regionLonDelta
+        )
+    }
+
+    /// Directional selected-route fit. The existing bottom-only overload above
+    /// remains the authority for all opening, area, recording, recenter, and
+    /// follow framing. A bottom-only directional request delegates to it so its
+    /// behavior remains identical.
+    nonisolated static func fittedRegion(
+        centerLat: Double, centerLon: Double,
+        latDelta: Double, lonDelta: Double,
+        viewportInsets: MapViewportInsets,
+        screenHeight: CGFloat,
+        screenWidth: CGFloat,
+        maximumVerticalObstructionFraction: Double = 0.70
+    ) -> MapTarget {
+        if viewportInsets.top == 0,
+           viewportInsets.leading == 0,
+           viewportInsets.trailing == 0 {
+            return fittedRegion(
+                centerLat: centerLat,
+                centerLon: centerLon,
+                latDelta: latDelta,
+                lonDelta: lonDelta,
+                bottomInset: viewportInsets.bottom,
+                screenHeight: screenHeight,
+                screenWidth: screenWidth
+            )
+        }
+
+        let height = max(Double(screenHeight), 1)
+        let width = max(Double(screenWidth), 1)
+        let verticalObstructionLimit = maximumVerticalObstructionFraction.isFinite
+            && (0..<1).contains(maximumVerticalObstructionFraction)
+            ? maximumVerticalObstructionFraction
+            : 0.70
+
+        func obstructionFractions(
+            first: CGFloat,
+            second: CGFloat,
+            dimension: Double,
+            maximumTotal: Double
+        ) -> (first: Double, second: Double) {
+            let rawFirst = max(0, Double(first)) / dimension
+            let rawSecond = max(0, Double(second)) / dimension
+            let rawTotal = rawFirst + rawSecond
+            guard rawTotal > maximumTotal else { return (rawFirst, rawSecond) }
+            let scale = maximumTotal / rawTotal
+            return (rawFirst * scale, rawSecond * scale)
+        }
+
+        let vertical = obstructionFractions(
+            first: viewportInsets.top,
+            second: viewportInsets.bottom,
+            dimension: height,
+            maximumTotal: verticalObstructionLimit
+        )
+        let horizontal = obstructionFractions(
+            first: viewportInsets.leading,
+            second: viewportInsets.trailing,
+            dimension: width,
+            maximumTotal: 0.70
+        )
+        let visibleHeight = max(
+            1 - verticalObstructionLimit,
+            1 - vertical.first - vertical.second
+        )
+        let visibleWidth = max(0.3, 1 - horizontal.first - horizontal.second)
+
+        let regionLatDelta = min(max(latDelta / visibleHeight, 0.005), 180)
+        let regionLonDelta = min(max(lonDelta / visibleWidth, 0.005), 360)
+        let mercatorLatPerLon = max(0.05, cos(centerLat * .pi / 180))
+        let displayedLatDelta = min(180, max(
+            regionLatDelta,
+            regionLonDelta * height / width * mercatorLatPerLon
+        ))
+        let displayedLonDelta = min(360, max(
+            regionLonDelta,
+            regionLatDelta * width / height / mercatorLatPerLon
+        ))
+
+        // A top obstruction moves the unobstructed center down the screen, so
+        // move the map center north; bottom does the inverse. Leading/trailing
+        // follow the same screen-space rule in longitude.
+        let shiftedLat = min(max(
+            centerLat + displayedLatDelta * (vertical.first - vertical.second) / 2,
+            -90
+        ), 90)
+        var shiftedLon = centerLon
+            + displayedLonDelta * (horizontal.second - horizontal.first) / 2
+        while shiftedLon > 180 { shiftedLon -= 360 }
+        while shiftedLon < -180 { shiftedLon += 360 }
+
+        return .region(
+            centerLat: shiftedLat,
+            centerLon: shiftedLon,
+            latDelta: regionLatDelta,
+            lonDelta: regionLonDelta
+        )
+    }
+
+    /// Convert raw route geometry plus nearby parking/user coordinates into a
+    /// single fail-closed input. A short point rejects the entire route rather
+    /// than silently omitting an endpoint from the safety calculation.
+    nonisolated static func selectedRoutePoints(
+        segments: [[[Double]]],
+        additionalPoints: [(lat: Double, lon: Double)] = []
+    ) -> [(lat: Double, lon: Double)]? {
+        var points: [(lat: Double, lon: Double)] = []
+        for segment in segments {
+            for point in segment {
+                guard point.count >= 2 else { return nil }
+                points.append((lat: point[0], lon: point[1]))
+            }
+        }
+        guard !points.isEmpty else { return nil }
+        points.append(contentsOf: additionalPoints)
+        return points
+    }
+
+    /// Build the selected-route camera payload from route, nearby parking, and
+    /// optional user points. Any malformed coordinate rejects the whole payload
+    /// so an incomplete route can never be presented as safely framed.
+    nonisolated static func selectedRouteRegion(
+        points: [(lat: Double, lon: Double)],
+        viewportInsets: MapViewportInsets,
+        screenHeight: CGFloat,
+        screenWidth: CGFloat
+    ) -> MapTarget? {
+        let insetValues = [
+            viewportInsets.top,
+            viewportInsets.leading,
+            viewportInsets.bottom,
+            viewportInsets.trailing,
+        ]
+        guard !points.isEmpty,
+              screenHeight.isFinite, screenHeight > 0,
+              screenWidth.isFinite, screenWidth > 0,
+              insetValues.allSatisfy({ $0.isFinite }),
+              points.allSatisfy({ point in
+                  point.lat.isFinite && point.lon.isFinite
+                      && (-90...90).contains(point.lat)
+                      && (-180...180).contains(point.lon)
+              }) else { return nil }
+
+        let lats = points.map(\.lat)
+        let lons = points.map(\.lon)
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLon = lons.min(), let maxLon = lons.max() else { return nil }
+        let longitude = lonCenterAndSpan(minLon: minLon, maxLon: maxLon)
+        return fittedRegion(
+            centerLat: (minLat + maxLat) / 2,
+            centerLon: longitude.center,
+            latDelta: max((maxLat - minLat) * 1.4, 0.005),
+            lonDelta: max(longitude.span * 1.4, 0.005),
+            viewportInsets: viewportInsets,
+            screenHeight: screenHeight,
+            screenWidth: screenWidth,
+            maximumVerticalObstructionFraction: 0.85
         )
     }
 

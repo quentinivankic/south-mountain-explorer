@@ -1134,6 +1134,9 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 elevation.process_area(row, sampler)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
+        if prior_parking is not None:
+            row.pop("parking", None)
+            row["parking"] = prior_parking   # pre-Denmark key order: parking after elevation keys
         problems = validate(row)
         if problems:
             failed.append((slug, problems)); continue

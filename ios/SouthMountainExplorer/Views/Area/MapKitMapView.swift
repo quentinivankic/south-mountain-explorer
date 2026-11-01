@@ -69,6 +69,12 @@ enum MapTarget: Equatable {
 /// the real MKUserLocation).
 final class DemoUserDotAnnotation: MKPointAnnotation {}
 
+/// Marker subtype for raw recording runs. MKMapView asks its delegate for a
+/// renderer synchronously from `addOverlay`; identifying the run by type avoids
+/// re-entering the coordinator's `recordingOverlayIds` while reconciliation
+/// holds that set as an `inout` value.
+final class RecordingPolyline: MKPolyline {}
+
 /// A trailhead parking / access pin (see `Area.parking`). A distinct class lets
 /// the Coordinator's `viewFor` render it without touching other annotations
 /// MapKit manages. `isTrailhead` (a federal BLM/USFS trailhead POINT, not a
@@ -76,6 +82,13 @@ final class DemoUserDotAnnotation: MKPointAnnotation {}
 /// trailhead marker so we never mislabel a trail start as a parking lot.
 final class ParkingAnnotation: MKPointAnnotation {
     var isTrailhead = false
+    /// True only for a lot inside the selected trail's near threshold. Area-wide
+    /// "show all" markers have neither selected-trail role.
+    var isNearSelectedTrail = false
+    /// True only for an intentional closest-known fallback outside the near
+    /// trailhead threshold. Camera containment applies to near access markers;
+    /// fallback markers instead carry an explicit distance in their semantics.
+    var isFarFallback = false
 }
 
 struct MapKitMapView: UIViewRepresentable {
@@ -156,6 +169,16 @@ struct MapKitMapView: UIViewRepresentable {
     /// `--uitest-recording`; every production path leaves it nil.
     var demoUserDot: CLLocationCoordinate2D? = nil
 
+    /// Real rendered viewport boundaries for selected-marker auditing. These
+    /// are measured from the map's top edge and physical sheet extent and do
+    /// not include optional aesthetic margins used by route framing.
+    var selectedMarkerVisibleInsets: MapViewportInsets = .zero
+    /// Changes only when TrailMapView requests a post-settle selected-marker
+    /// audit. A correction camera move advances it again for one bounded
+    /// recheck after animation.
+    var selectedMarkerAuditGeneration: Int = 0
+    var onSelectedNearMarkerOcclusion: ((MapViewportInsets) -> Void)? = nil
+
     /// Fires when a user gesture (pinch / pan / double-tap) changes
     /// the visible region. TrailMapView uses this to re-snap the
     /// camera to the user in follow modes — without this hook, a
@@ -233,8 +256,11 @@ struct MapKitMapView: UIViewRepresentable {
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
         context.coordinator.rebuildSelectedTrailWalkedOverlays(on: mv, segments: selectedTrailWalkedSegments)
         context.coordinator.rebuildLiveTrailSnappedOverlays(on: mv, segments: liveHaloSegments)
-        if let rec = activeRecording, rec.path.count > 1 {
-            context.coordinator.updateRecordingOverlay(on: mv, path: rec.path)
+        if let rec = activeRecording {
+            context.coordinator.updateRecordingOverlays(on: mv, path: rec.path)
+            context.coordinator.lastRecordingPathCount = rec.path.count
+            context.coordinator.lastRecordingIdentity = rec.recordingId
+                ?? "\(rec.areaId)|\(rec.startedAt.timeIntervalSinceReferenceDate)"
         }
         context.coordinator.lastAreaId = area.id
         context.coordinator.lastCameraTick = cameraTick
@@ -365,21 +391,25 @@ struct MapKitMapView: UIViewRepresentable {
             coord.lastSelectedTrailWalkedHash = newSelectedWalkedHash
         }
 
-        // 4) Recording overlay — live updates whenever the path grows.
-        // Rebuild ONLY when the path actually grew (or the recording changed).
-        // Every other overlay here is diffed by a change hash; this one wasn't,
-        // so each updateUIView — which fires for ANY parent state change, e.g. a
-        // sheet detent or toast, not just new GPS — walked the whole path,
-        // allocated a fresh MKPolyline, and forced a full layer redraw. Cost
-        // grew with hike length, so long hikes got progressively choppier.
-        if let rec = activeRecording, rec.path.count > 1 {
+        // 4) Recording overlays — one polyline per continuous GPS run.
+        // A normal append replaces only the growing final run. Finalized runs
+        // and every unrelated map layer keep their object identity.
+        if let rec = activeRecording {
+            let identity = rec.recordingId
+                ?? "\(rec.areaId)|\(rec.startedAt.timeIntervalSinceReferenceDate)"
+            if coord.lastRecordingIdentity != identity {
+                coord.removeRecordingOverlays(from: mapView)
+                coord.lastRecordingPathCount = 0
+                coord.lastRecordingIdentity = identity
+            }
             if coord.lastRecordingPathCount != rec.path.count {
-                coord.updateRecordingOverlay(on: mapView, path: rec.path)
+                coord.updateRecordingOverlays(on: mapView, path: rec.path)
                 coord.lastRecordingPathCount = rec.path.count
             }
-        } else if coord.recordingOverlay != nil {
-            coord.removeRecordingOverlay(from: mapView)
+        } else if !coord.recordingOverlays.isEmpty {
+            coord.removeRecordingOverlays(from: mapView)
             coord.lastRecordingPathCount = 0
+            coord.lastRecordingIdentity = nil
         }
 
         // 4) Re-style trail renderers when selection / recording /
@@ -447,6 +477,102 @@ struct MapKitMapView: UIViewRepresentable {
         // Keep the facing cone pointed the right way on every heading update.
         coord.pendingHeading = userHeading
         coord.applyHeadingRotation(on: mapView)
+    }
+
+    /// A selected-marker audit is complete only when every expected annotation
+    /// produced one finite, positive-sized rendered frame.
+    nonisolated static func markerFramesAreComplete(
+        _ frames: [CGRect],
+        expectedCount: Int
+    ) -> Bool {
+        guard expectedCount >= 0, frames.count == expectedCount else { return false }
+        return frames.allSatisfy { frame in
+            [frame.minX, frame.minY, frame.maxX, frame.maxY].allSatisfy(\.isFinite)
+                && frame.width > 0
+                && frame.height > 0
+        }
+    }
+
+    /// Extra route-fit insets needed to place complete rendered marker frames
+    /// inside the real control-to-sheet viewport. Fully visible frames return
+    /// zero even when they cross an optional aesthetic edge margin.
+    nonisolated static func markerOcclusionCorrection(
+        markerFrames: [CGRect],
+        mapBounds: CGRect,
+        visibleInsets: MapViewportInsets,
+        padding: CGFloat = 8
+    ) -> MapViewportInsets {
+        let values = [
+            mapBounds.minX, mapBounds.minY, mapBounds.maxX, mapBounds.maxY,
+            visibleInsets.top, visibleInsets.leading,
+            visibleInsets.bottom, visibleInsets.trailing, padding,
+        ]
+        guard values.allSatisfy({ $0.isFinite }),
+              mapBounds.width > 0,
+              mapBounds.height > 0,
+              padding >= 0 else { return .zero }
+
+        let visible = CGRect(
+            x: mapBounds.minX + max(0, visibleInsets.leading),
+            y: mapBounds.minY + max(0, visibleInsets.top),
+            width: max(
+                0,
+                mapBounds.width - max(0, visibleInsets.leading)
+                    - max(0, visibleInsets.trailing)
+            ),
+            height: max(
+                0,
+                mapBounds.height - max(0, visibleInsets.top)
+                    - max(0, visibleInsets.bottom)
+            )
+        )
+        guard visible.width > 0, visible.height > 0 else { return .zero }
+
+        var correction = MapViewportInsets.zero
+        for frame in markerFrames {
+            let frameValues = [frame.minX, frame.minY, frame.maxX, frame.maxY]
+            guard frameValues.allSatisfy({ $0.isFinite }),
+                  frame.width > 0,
+                  frame.height > 0 else { continue }
+            if frame.minY < visible.minY {
+                correction.top = max(correction.top, visible.minY - frame.minY + padding)
+            }
+            if frame.minX < visible.minX {
+                correction.leading = max(
+                    correction.leading,
+                    visible.minX - frame.minX + padding
+                )
+            }
+            if frame.maxY > visible.maxY {
+                correction.bottom = max(
+                    correction.bottom,
+                    frame.maxY - visible.maxY + padding
+                )
+            }
+            if frame.maxX > visible.maxX {
+                correction.trailing = max(
+                    correction.trailing,
+                    frame.maxX - visible.maxX + padding
+                )
+            }
+        }
+        return correction
+    }
+
+    /// Consume one selected-marker audit generation only for a correction that
+    /// will actually be emitted. A complete zero-correction observation leaves
+    /// the generation open so a later callback for the same camera generation
+    /// can report newly occluded rendered frames.
+    nonisolated static func consumeMarkerAuditGenerationIfNeeded(
+        generation: Int,
+        correction: MapViewportInsets,
+        lastConsumedGeneration: inout Int
+    ) -> Bool {
+        guard generation > 0,
+              generation != lastConsumedGeneration,
+              correction != .zero else { return false }
+        lastConsumedGeneration = generation
+        return true
     }
 
     // MARK: - Camera helpers
@@ -646,7 +772,10 @@ struct MapKitMapView: UIViewRepresentable {
         /// (per-overlay closure doesn't carry context).
         var selectedTrailWalkedOverlays: [MKPolyline] = []
         var selectedTrailWalkedIds: Set<ObjectIdentifier> = []
-        var recordingOverlay: MKPolyline?
+        /// Raw recording runs in path order. Completed runs retain their
+        /// overlays while only the growing final run is replaced.
+        var recordingOverlays: [MKPolyline] = []
+        var recordingOverlayIds: Set<ObjectIdentifier> = []
 
         // Diff snapshots — set in makeUIView and updated in
         // updateUIView so we know what changed since last pass.
@@ -686,15 +815,29 @@ struct MapKitMapView: UIViewRepresentable {
 
         /// Latest heading handed down from the SwiftUI layer.
         var pendingHeading: Double?
-        /// Point count of the recording path last rendered, so the recording
-        /// overlay is only rebuilt when the path actually grew.
+        /// Point count of the recording path last rendered, so recording
+        /// overlays are reconciled only when the path actually changes.
         var lastRecordingPathCount: Int = 0
+        /// Stable session identity prevents a replacement recording with the
+        /// same point count from inheriting the prior session's overlays.
+        var lastRecordingIdentity: String?
         /// Signature of the parking set last drawn. Parking arrives with the
         /// area but can also land in a later in-place update (same area.id), so
         /// gating the pin rebuild only on area.id change would miss it. -1 =
         /// never drawn.
         var lastParkingSig: Int = -2
         var lastSelectedTrailWalkedHash: Int = 0
+        /// Last post-settle request whose rendered near markers were measured.
+        /// One report per generation prevents duplicate delegate callbacks from
+        /// accumulating the same correction before the camera moves.
+        var lastSelectedMarkerAuditGeneration: Int = 0
+        /// One incomplete generation may wait for MapKit's remaining annotation
+        /// views. The first complete `didAdd` callback consumes this one-shot.
+        var pendingSelectedMarkerAuditGeneration: Int?
+        /// The latest generation granted a complete-zero next-run-loop recheck.
+        /// It stays generation-sticky so later callbacks cannot schedule a
+        /// second pass for the same camera result.
+        var lastScheduledSelectedMarkerAuditGeneration: Int = 0
 
         init(parent: MapKitMapView) {
             self.parent = parent
@@ -908,32 +1051,100 @@ struct MapKitMapView: UIViewRepresentable {
             }
         }
 
-        // MARK: Recording overlay
+        // MARK: Recording overlays
 
-        func updateRecordingOverlay(on mapView: MKMapView, path: [GpsPoint]) {
-            let coords: [CLLocationCoordinate2D] = path.compactMap { p in
-                guard p.count >= 2 else { return nil }
-                return CLLocationCoordinate2D(latitude: p[0], longitude: p[1])
-            }
-            guard coords.count >= 2 else { return }
-            if let existing = recordingOverlay {
-                mapView.removeOverlay(existing)
-            }
-            let pl = MKPolyline(coordinates: coords, count: coords.count)
-            recordingOverlay = pl
-            // .aboveRoads so the (slim, semi-transparent) raw-GPS
-            // stroke sits BELOW the snapped purple live-halo at
-            // .aboveLabels — on-trail portions read as a single
-            // bold snapped stroke; off-trail portions show only
-            // the slimmer raw GPS line.
-            mapView.addOverlay(pl, level: .aboveRoads)
+        func updateRecordingOverlays(on mapView: MKMapView, path: [GpsPoint]) {
+            Self.reconcileRecordingOverlays(
+                on: mapView,
+                path: path,
+                overlays: &recordingOverlays,
+                overlayIds: &recordingOverlayIds
+            )
         }
 
-        func removeRecordingOverlay(from mapView: MKMapView) {
-            if let existing = recordingOverlay {
-                mapView.removeOverlay(existing)
-                recordingOverlay = nil
+        /// Incrementally reconcile drawable continuous runs. Existing overlays
+        /// before the active run are finalized and retained by identity; only
+        /// the prior active overlay is removed and replaced.
+        static func reconcileRecordingOverlays(
+            on mapView: MKMapView,
+            path: [GpsPoint],
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            let coordinateRuns = GpsIngest.continuousRuns(path).map { run in
+                run.compactMap { point -> CLLocationCoordinate2D? in
+                    guard point.count >= 2,
+                          point[0].isFinite, point[1].isFinite else { return nil }
+                    return CLLocationCoordinate2D(latitude: point[0], longitude: point[1])
+                }
             }
+            let finalizedRuns = coordinateRuns.dropLast().filter { $0.count >= 2 }
+
+            // Anything after the finalized prefix was the old growing run (or
+            // belongs to a path that was replaced/shrunk). No unrelated overlay
+            // is ever considered for removal.
+            if overlays.count > finalizedRuns.count {
+                let removed = overlays[finalizedRuns.count...]
+                mapView.removeOverlays(Array(removed) as [MKOverlay])
+                for overlay in removed {
+                    overlayIds.remove(ObjectIdentifier(overlay))
+                }
+                overlays.removeLast(overlays.count - finalizedRuns.count)
+            }
+
+            // Initial rendering can arrive with several completed runs. Build
+            // only the missing finalized suffix; an incrementally finalized run
+            // already occupies the matching slot and keeps its identity.
+            if overlays.count < finalizedRuns.count {
+                for coordinates in finalizedRuns.dropFirst(overlays.count) {
+                    addRecordingOverlay(
+                        coordinates: coordinates,
+                        to: mapView,
+                        overlays: &overlays,
+                        overlayIds: &overlayIds
+                    )
+                }
+            }
+
+            if let activeRun = coordinateRuns.last, activeRun.count >= 2 {
+                addRecordingOverlay(
+                    coordinates: activeRun,
+                    to: mapView,
+                    overlays: &overlays,
+                    overlayIds: &overlayIds
+                )
+            }
+        }
+
+        static func removeRecordingOverlays(
+            from mapView: MKMapView,
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            mapView.removeOverlays(overlays as [MKOverlay])
+            overlays.removeAll(keepingCapacity: true)
+            overlayIds.removeAll(keepingCapacity: true)
+        }
+
+        func removeRecordingOverlays(from mapView: MKMapView) {
+            Self.removeRecordingOverlays(
+                from: mapView,
+                overlays: &recordingOverlays,
+                overlayIds: &recordingOverlayIds
+            )
+        }
+
+        private static func addRecordingOverlay(
+            coordinates: [CLLocationCoordinate2D],
+            to mapView: MKMapView,
+            overlays: inout [MKPolyline],
+            overlayIds: inout Set<ObjectIdentifier>
+        ) {
+            let overlay = RecordingPolyline(coordinates: coordinates, count: coordinates.count)
+            overlays.append(overlay)
+            overlayIds.insert(ObjectIdentifier(overlay))
+            // .aboveRoads keeps raw GPS below the snapped live coverage layer.
+            mapView.addOverlay(overlay, level: .aboveRoads)
         }
 
         /// Counter for in-flight programmatic region changes initiated
@@ -960,9 +1171,122 @@ struct MapKitMapView: UIViewRepresentable {
             applyHeadingRotation(on: mapView)
             if pendingProgrammaticRegionChanges > 0 {
                 pendingProgrammaticRegionChanges -= 1
+                reportSelectedNearMarkerOcclusionIfNeeded(on: mapView)
                 return
             }
             parent.onUserGestureRegionChange?()
+        }
+
+        func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+            guard let generation = pendingSelectedMarkerAuditGeneration,
+                  generation == parent.selectedMarkerAuditGeneration,
+                  generation != lastSelectedMarkerAuditGeneration,
+                  views.contains(where: {
+                      ($0.annotation as? ParkingAnnotation)?.isNearSelectedTrail == true
+                  }) else { return }
+
+            mapView.layoutIfNeeded()
+            let nearAnnotations = mapView.annotations.compactMap { annotation -> ParkingAnnotation? in
+                guard let parking = annotation as? ParkingAnnotation,
+                      parking.isNearSelectedTrail else { return nil }
+                return parking
+            }
+            let frames = renderedNearMarkerFrames(
+                on: mapView,
+                annotations: nearAnnotations
+            )
+            guard MapKitMapView.markerFramesAreComplete(
+                frames,
+                expectedCount: nearAnnotations.count
+            ) else { return }
+
+            pendingSelectedMarkerAuditGeneration = nil
+            reportSelectedNearMarkerOcclusionIfNeeded(
+                on: mapView,
+                allowRescheduling: false
+            )
+        }
+
+        private func reportSelectedNearMarkerOcclusionIfNeeded(
+            on mapView: MKMapView,
+            allowRescheduling: Bool = true
+        ) {
+            let generation = parent.selectedMarkerAuditGeneration
+            guard generation > 0,
+                  generation != lastSelectedMarkerAuditGeneration else { return }
+
+            // A programmatic region has finished and the native sheet was
+            // already allowed to settle before this generation was requested.
+            // Force the annotation container's pending layout, then measure
+            // every expected near marker in full-screen map coordinates.
+            mapView.layoutIfNeeded()
+            let nearAnnotations = mapView.annotations.compactMap { annotation -> ParkingAnnotation? in
+                guard let parking = annotation as? ParkingAnnotation,
+                      parking.isNearSelectedTrail else { return nil }
+                return parking
+            }
+            let frames = renderedNearMarkerFrames(
+                on: mapView,
+                annotations: nearAnnotations
+            )
+            guard MapKitMapView.markerFramesAreComplete(
+                frames,
+                expectedCount: nearAnnotations.count
+            ) else {
+                if allowRescheduling,
+                   pendingSelectedMarkerAuditGeneration != generation {
+                    pendingSelectedMarkerAuditGeneration = generation
+                }
+                return
+            }
+
+            pendingSelectedMarkerAuditGeneration = nil
+            guard !frames.isEmpty else { return }
+            let correction = MapKitMapView.markerOcclusionCorrection(
+                markerFrames: frames,
+                mapBounds: mapView.bounds,
+                visibleInsets: parent.selectedMarkerVisibleInsets
+            )
+            if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+                generation: generation,
+                correction: correction,
+                lastConsumedGeneration: &lastSelectedMarkerAuditGeneration
+            ) {
+                parent.onSelectedNearMarkerOcclusion?(correction)
+                return
+            }
+
+            // Annotation frames can settle one run-loop after the camera's
+            // completion callback. A complete zero result gets exactly one
+            // generation-current recheck; that final pass cannot reschedule.
+            guard allowRescheduling,
+                  correction == .zero,
+                  lastScheduledSelectedMarkerAuditGeneration != generation else { return }
+            lastScheduledSelectedMarkerAuditGeneration = generation
+            DispatchQueue.main.async { [weak self, weak mapView] in
+                guard let self,
+                      self.lastScheduledSelectedMarkerAuditGeneration == generation,
+                      let mapView,
+                      self.parent.selectedMarkerAuditGeneration == generation,
+                      self.lastSelectedMarkerAuditGeneration != generation else { return }
+                self.reportSelectedNearMarkerOcclusionIfNeeded(
+                    on: mapView,
+                    allowRescheduling: false
+                )
+            }
+        }
+
+        private func renderedNearMarkerFrames(
+            on mapView: MKMapView,
+            annotations: [ParkingAnnotation]
+        ) -> [CGRect] {
+            annotations.compactMap { parking in
+                guard let view = mapView.view(for: parking),
+                      !view.isHidden,
+                      view.alpha > 0 else { return nil }
+                view.layoutIfNeeded()
+                return view.convert(view.bounds, to: mapView)
+            }
         }
 
         /// Renders the screenshot-only synthetic user dot (see
@@ -988,10 +1312,31 @@ struct MapKitMapView: UIViewRepresentable {
             // only 16% of trails have one within the 805 m endpoint radius, so
             // browsing trail by trail reads as "no parking here".
             let lots: [ParkingLot]
+            var nearLots: Set<String> = []
             var farLots: Set<String> = []
             var farMeters: [String: Double] = [:]
             if showAll {
                 lots = candidates
+                // Keep selected-trail roles even while every area marker is
+                // visible. Unrelated show-all pins remain area markers and do
+                // not participate in selected-camera correction.
+                if let selectedTrailId,
+                   let trail = area.trails.first(where: { $0.id == selectedTrailId }) {
+                    let ranked = Area.nearestParkingWithFallback(
+                        lots: candidates,
+                        for: trail
+                    )
+                    nearLots = Set(ranked.filter { $0.isNear }.map {
+                        "\($0.lot.lat),\($0.lot.lon)"
+                    })
+                    farLots = Set(ranked.filter { !$0.isNear }.map {
+                        "\($0.lot.lat),\($0.lot.lon)"
+                    })
+                    farMeters = Dictionary(
+                        ranked.map { ("\($0.lot.lat),\($0.lot.lon)", $0.meters) },
+                        uniquingKeysWith: min
+                    )
+                }
                 mapLog.notice("parkingPins area=\(area.id, privacy: .public) ALL shown=\(lots.count)")
             } else {
                 // No selection → no parking (browsing stays uncluttered). With a
@@ -1011,6 +1356,7 @@ struct MapKitMapView: UIViewRepresentable {
                 // banner names a lot with no pin under it.
                 let ranked = Area.nearestParkingWithFallback(lots: candidates, for: trail)
                 lots = ranked.map(\.lot)
+                nearLots = Set(ranked.filter { $0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
                 farLots = Set(ranked.filter { !$0.isNear }.map { "\($0.lot.lat),\($0.lot.lon)" })
                 // `uniquingKeysWith`, not `uniqueKeysWithValues`: that initialiser
                 // TRAPS on a duplicate key, and two lots at identical coordinates
@@ -1025,8 +1371,10 @@ struct MapKitMapView: UIViewRepresentable {
                 ann.coordinate = CLLocationCoordinate2D(latitude: lot.lat, longitude: lot.lon)
                 // A federal BLM/USFS point is a trailhead, not a parking lot.
                 ann.isTrailhead = Self.isTrailheadSource(lot.source)
-                ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
                 let key = "\(lot.lat),\(lot.lon)"
+                ann.isNearSelectedTrail = nearLots.contains(key)
+                ann.isFarFallback = farLots.contains(key)
+                ann.title = lot.name ?? (ann.isTrailhead ? "Trailhead" : "Parking")
                 var sub = Self.parkingSubtitle(for: lot, isTrailhead: ann.isTrailhead)
                 // State the distance when this is NOT at the trail. Saying it is
                 // what makes offering a far lot honest rather than a trailhead
@@ -1119,6 +1467,17 @@ struct MapKitMapView: UIViewRepresentable {
                 }
                 view.canShowCallout = true
                 view.displayPriority = .required        // a few per area — always show
+                view.isAccessibilityElement = true
+                view.accessibilityIdentifier = parking.isFarFallback
+                    ? "map-far-access-marker"
+                    : parking.isNearSelectedTrail
+                        ? "map-near-access-marker"
+                        : "map-area-access-marker"
+                let semanticParts = [parking.title, parking.subtitle]
+                    .compactMap { $0 }
+                    .filter { !$0.isEmpty }
+                view.accessibilityLabel = semanticParts.joined(separator: ", ")
+                view.accessibilityHint = "Shows access details"
                 return view
             }
             return nil
@@ -1222,7 +1581,7 @@ struct MapKitMapView: UIViewRepresentable {
                 let r = MKPolylineRenderer(polyline: pl)
                 r.lineCap = .round
                 r.lineJoin = .round
-                if pl === recordingOverlay {
+                if pl is RecordingPolyline {
                     // Raw GPS path during recording. Purple at
                     // reduced alpha + slimmer than the on-trail
                     // snapped overlay below so it shows through

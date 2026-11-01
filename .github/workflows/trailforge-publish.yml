@@ -190,6 +190,9 @@ jobs:
       - name: Download + prefilter extract
         env:
           PUBLISH_EXTRACT: ${{ steps.input_shape.outputs.extract }}
+          # Denmark (Mols) only: keep the exact-Denmark POI selectors; every other extract
+          # runs the legacy prefilter command.
+          PREFILTER_DK_POIS: ${{ steps.input_shape.outputs.region_code == 'dk' && '1' || '' }}
         run: |
           set -e
           cd trailforge
@@ -607,6 +610,7 @@ jobs:
             --speed-limit 2000 --speed-time 30 \
             -o data/raw/denmark.osm.pbf \
             "https://download.geofabrik.de/europe/denmark-latest.osm.pbf"
+          PREFILTER_DK_POIS=1 \
           RECEIPT_PARENT_LABEL=data/raw/denmark.osm.pbf \
           RECEIPT_OUTPUT_LABEL=data/hiking.osm.pbf \
           RECEIPT_GITHUB_OUTPUT="$GITHUB_OUTPUT" \

@@ -72,6 +72,159 @@ struct GpsIngestTests {
         #expect(runs[1].count == 2)
     }
 
+    @Test func exactGapBoundaryRemainsContinuous() {
+        let path = [pt(0, 0), pt(10, GpsIngest.gapMs)]
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+    }
+
+    @Test func materialGapSummaryCountsDurationsAndLastRecovery() throws {
+        let path = [
+            pt(0, 0), pt(10, 2_000),
+            pt(100, 122_000), pt(110, 124_000),
+            pt(200, 184_000), pt(210, 186_000),
+        ]
+        let summary = try #require(GpsIngest.materialGapSummary(path))
+        #expect(GpsIngest.continuousRuns(path).count == 3)
+        #expect(summary.gapCount == 2)
+        #expect(summary.totalMissingSeconds == 180)
+        #expect(summary.longestMissingSeconds == 120)
+        let recoveryTimeMatches = summary.lastRecoveryAt == Date(timeIntervalSince1970: 184)
+        #expect(recoveryTimeMatches, "The material-gap recovery time is incorrect")
+        let explanationMatches =
+            summary.explanation == "GPS paused 2 times for 3m total (longest 2m). No straight-line distance was counted."
+        #expect(explanationMatches, "The material-gap explanation is incorrect")
+    }
+
+    @Test func malformedMissingAndBackwardTimestampsDoNotInventGaps() {
+        let path: [GpsPoint] = [
+            pt(0, 100_000),
+            [33.3, -112.0],
+            pt(10, 500_000),
+            pt(20, 400_000),
+            [33.3, -112.0, .infinity],
+            pt(30, 900_000),
+        ]
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+    }
+
+    @Test func oversizedFiniteTimestampDifferencesDoNotInventGaps() {
+        let oversizedElapsed = [pt(0, 0), pt(10, 1e308)]
+        let subtractionOverflow = [
+            pt(0, -Double.greatestFiniteMagnitude),
+            pt(10, Double.greatestFiniteMagnitude),
+        ]
+        let malformedIntervalsWereIgnored =
+            GpsIngest.materialGapSummary(oversizedElapsed) == nil
+            && GpsIngest.continuousRuns(oversizedElapsed).count == 1
+            && GpsIngest.materialGapSummary(subtractionOverflow) == nil
+            && GpsIngest.continuousRuns(subtractionOverflow).count == 1
+        #expect(
+            malformedIntervalsWereIgnored,
+            "Oversized finite timestamp intervals must be omitted"
+        )
+    }
+
+    @Test func materialGapSummaryOmitsAccumulatorOverflow() {
+        let singleGapSeconds = 6e18
+        let singleGapMs = singleGapSeconds * 1000
+        let path = [pt(0, 0), pt(10, singleGapMs), pt(20, singleGapMs * 2)]
+        let candidate = GpsIngest.materialGapSummary(path)
+        let summaryExists = candidate != nil
+        #expect(summaryExists, "A representable material gap must produce a summary")
+        guard let summary = candidate else { return }
+
+        let onlyRepresentableGapWasSummarized =
+            summary.gapCount == 1
+            && summary.totalMissingSeconds == singleGapSeconds
+            && summary.longestMissingSeconds == singleGapSeconds
+            && summary.lastRecoveryAt == Date(timeIntervalSince1970: singleGapSeconds)
+        #expect(
+            onlyRepresentableGapWasSummarized,
+            "A gap that overflows the accumulated duration must be omitted"
+        )
+        let representableExplanationWasFormatted =
+            summary.explanation.hasSuffix("No straight-line distance was counted.")
+        #expect(
+            representableExplanationWasFormatted,
+            "A representable large duration must format without trapping"
+        )
+    }
+
+    @Test func malformedGapSummaryFormattingFailsClosed() {
+        let malformed = GpsIngest.MaterialGapSummary(
+            gapCount: 1,
+            totalMissingSeconds: Double.greatestFiniteMagnitude,
+            longestMissingSeconds: Double.greatestFiniteMagnitude,
+            lastRecoveryAt: Date(timeIntervalSince1970: 0)
+        )
+        let usedSafeFallback =
+            malformed.explanation == "GPS paused. No straight-line distance was counted."
+        #expect(usedSafeFallback, "Malformed gap duration formatting must fail closed")
+    }
+
+    @Test func activeStatusDistinguishesWaitingPausedRecoveredAndGoodAtBoundaries() {
+        let now = Date(timeIntervalSince1970: 200)
+        let continuous = [pt(0, 190_000), pt(10, 192_000)]
+        #expect(GpsIngest.activeStatus(path: [], lastFixAt: nil, now: now) == .waiting)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 100),
+            now: now
+        ) == .paused)
+
+        let recovered = [pt(0, 50_000), pt(100, 190_000), pt(110, 192_000)]
+        #expect(GpsIngest.activeStatus(
+            path: recovered,
+            lastFixAt: Date(timeIntervalSince1970: 205),
+            now: Date(timeIntervalSince1970: 205)
+        ) == .recovered)
+        #expect(GpsIngest.activeStatus(
+            path: recovered,
+            lastFixAt: Date(timeIntervalSince1970: 205.001),
+            now: Date(timeIntervalSince1970: 205.001)
+        ) == .good)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: Date(timeIntervalSince1970: 245)
+        ) == .good)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: Date(timeIntervalSince1970: 245.001)
+        ) == .paused)
+        #expect(GpsIngest.activeStatus(
+            path: continuous,
+            lastFixAt: Date(timeIntervalSince1970: 200),
+            now: now
+        ) == .good)
+    }
+
+    #if DEBUG
+    @Test func ordinaryDebugLaunchDoesNotOverrideRecordingStatusClock() {
+        let startedAt = Date(timeIntervalSince1970: 100)
+        let active = ActiveRecording(
+            areaId: "gps-status-test-area",
+            mode: .trail,
+            trailId: "gps-status-test-trail",
+            startedAt: startedAt,
+            path: [pt(0, 100_000), pt(10, 102_000)],
+            distanceMi: 0.01,
+            priorCompleteTrailIds: []
+        )
+        #expect(UITestSupport.recordingStatusNow(for: active) == nil)
+    }
+    #endif
+
+    @Test func oneGapExplanationUsesSingularCopy() throws {
+        let summary = try #require(GpsIngest.materialGapSummary([pt(0, 0), pt(10, 21_000)]))
+        let explanationMatches =
+            summary.explanation == "GPS paused for 21s. No straight-line distance was counted."
+        #expect(explanationMatches, "The singular material-gap explanation is incorrect")
+    }
+
     /// Elevation profile must not inflate distance or count climb across a gap.
     @Test func elevationStatsIgnoresGapJump() throws {
         // run 1: gentle 4 m climb over ~40 m; then a 2-minute gap to a point

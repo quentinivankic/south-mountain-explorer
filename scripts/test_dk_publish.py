@@ -523,7 +523,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
         "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
-        "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
+        "skelhoj-plantage-dk": (4, 10.5), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
         "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (3, 5.4),
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
@@ -936,7 +936,7 @@ def test_forest_without_discovery_entry_passes_on_its_own_relation(tmp_path):
     assert area["cross_check"] == "registry-relation" and area["bbox_source"] == "computed"
     assert area["bbox_arg"] == dk.bbox_arg(dk.pad_bbox(list(FOREST_BOX)))
     row = json.loads((out / FOREST / "index.json").read_text())
-    assert row[0][:3] == [FOREST, "Nordskoven", "Denmark"] and row[0][7] == area["relation_id"]
+    assert row[0][:3] == [FOREST, "Nordskoven (Silkeborg)", "Denmark"] and row[0][7] == area["relation_id"]
 
 
 def test_discovery_entry_still_uses_the_discovery_centre_cross_check(tmp_path):
@@ -1350,17 +1350,18 @@ def test_merge_index_appends_sorted_rows_and_keeps_existing_bytes(tmp_path):
     assert dk.main(argv) == 1                                   # already present -> refuse
 
 
-def test_dk_v3_centre_may_sit_on_the_trails_but_legacy_and_v2_keep_the_rounded_midpoint():
+def test_dk_v2_and_v3_centre_may_sit_on_the_trails_but_legacy_keeps_the_rounded_midpoint():
+    # BATCH-2: dk-v2 areas (Godding, Nordskoven, Skelhoj) get the same trail-extent pin as dk-v3.
     boundary = [10.4513, 56.1298, 10.8473, 56.3204]                     # rounded midpoint [56.2, 10.6]
-    v3 = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
-    v3["rules"], v3["center"] = "dk-v3", [56.25, 10.55]
-    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "ok"
-    v3["center"] = [57.5, 10.55]                                        # outside the boundary bbox
-    assert dk.check_area_geometry(v3, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
-    for rules in ("legacy", "dk-v2"):
-        old = copy.deepcopy(v3)
-        old["rules"], old["center"] = rules, [56.25, 10.55]
-        assert dk.check_area_geometry(old, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+    for rules in ("dk-v2", "dk-v3"):
+        entry = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+        entry["rules"], entry["center"] = rules, [56.25, 10.55]
+        assert dk.check_area_geometry(entry, boundary, [56.2251, 10.6493], "publish")["status"] == "ok"
+        entry["center"] = [57.5, 10.55]                                 # outside the boundary bbox
+        assert dk.check_area_geometry(entry, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
+    old = copy.deepcopy(dk.load_registry(REGISTRY)["by_id"][MOLS])
+    old["rules"], old["center"] = "legacy", [56.25, 10.55]
+    assert dk.check_area_geometry(old, boundary, [56.2251, 10.6493], "publish")["status"] == "failed"
 def test_merge_index_cli_dk_v3_centre_must_be_within_0_1_deg_of_the_trails(tmp_path):
     repo, ids, rows, new = _baseline_repo(tmp_path, 1)
     aid, row = ids[0], copy.deepcopy(rows[1])
@@ -3282,3 +3283,67 @@ def test_batch1_curation_decisions_are_recorded_in_the_registry():
     # kept short routes with a recorded official source stay
     assert "r12627643" in incl("soheden-plantage-dk") and "r14688103" in incl("soheden-plantage-dk")
     assert "r2900915" in incl("randbol-hede-frederikshab-dk")
+
+
+def test_batch2_names_and_pins_are_recorded_in_the_registry():
+    # BATCH-2 (2026-11-01): spelling fixes with a recorded official source, bare-name renames, centre pins.
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    def fixes(i):
+        return {f["osm_name"]: f for f in by_id[i].get("trail_name_fixes", [])}
+    assert fixes("randbol-hede-frederikshab-dk")["Ranbøl rute"]["name"] == "Randbøl rute"
+    assert fixes("randbol-hede-frederikshab-dk")["Ranbøl rute 2"]["name"] == "Randbøl rute 2"
+    assert fixes("randbol-hede-frederikshab-dk")["Grøn vandrerute i Fredrikshåb Plantage"]["name"].endswith(
+        "i Frederikshåb Plantage")
+    assert fixes("klosterhede-plantage-dk")["Kronheden Ellebækturen"]["name"] == "Kronhede Ellebækturen"
+    assert fixes("pamhule-skov-dk")["Hjertestien, Hindemaj"]["name"] == "Hjertestien, Hindemade"
+    assert fixes("harte-skov-dk")["Lilla rute i Harde Skov"]["name"] == "Lilla rute i Harte Skov"
+    assert fixes("skelhoj-plantage-dk")["Gul Rute, Skelhøj Plantage2"]["name"] == "Gul Rute, Skelhøj Plantage"
+    assert fixes("nordskoven-416103-dk")["Gul Rute"]["name"] == "Nordskov Gul"
+    assert fixes("sindal-dk")["Skovstien"]["name"] == "Sindal Skovstien"
+    assert fixes("nysted-dk")["En kultur- og natursti rundt om Nysted"]["name"] == "Nysted rundt"
+    # every fix carries an https source and a reason
+    for entry in by_id.values():
+        for fix in entry.get("trail_name_fixes", []):
+            assert fix["source"].startswith("https://") and fix["reason"].strip()
+    # not applied on purpose: no official source for the other spelling (or the official source uses both)
+    for aid, old in (("aro-dk", "Aarø"), ("barsbol-skov-dk", "Klaskeroj"), ("kelstrup-plantage-dk", "Rode Mose")):
+        assert not any(old in f["osm_name"] for f in by_id[aid].get("trail_name_fixes", []))
+    # area renames use the existing display_name + allow_rename mechanism
+    rye, nord = by_id["rye-norreskov-dk"], by_id["nordskoven-416103-dk"]
+    assert rye["display_name"] == "Himmelbjerget og Rye Nørreskov" and rye["allow_rename"]["from"] == "Rye Nørreskov"
+    assert nord["display_name"] == "Nordskoven (Silkeborg)" and nord["allow_rename"]["from"] == "Nordskoven"
+    # six centre pins now sit on the trails
+    assert by_id["almindingen-dk"]["center"] == [55.115, 14.913]
+    assert by_id["godding-skov-dk"]["center"] == [55.717, 9.271]
+    assert by_id["klosterhede-plantage-dk"]["center"] == [56.479, 8.405]
+    assert by_id["nordskoven-416103-dk"]["center"] == [56.156, 9.588]
+    assert by_id["skelhoj-plantage-dk"]["center"] == [56.115, 9.196]
+    assert by_id["froslev-plantage-dk"]["center"] == [54.835, 9.32]
+    # BATCH-3 splits are untouched here
+    for aid in ("kongernes-nordsjaelland-dk", "nationalpark-thy-dk", "nationalpark-vadehavet-dk"):
+        assert "trail_name_fixes" not in by_id.get(aid, {})
+
+
+def test_trail_name_fixes_registry_validation(tmp_path):
+    reg = _reg()
+    good = {"osm_name": "A", "name": "B", "source": "https://example.dk/x", "reason": "typo"}
+    def check(**override):
+        doc = copy.deepcopy(json.loads(REGISTRY.read_text(encoding="utf-8")))
+        entry = next(a for a in doc["areas"] if a["id"] == "sindal-dk")
+        entry["trail_name_fixes"] = [{**good, **override}]
+        path = tmp_path / "reg.json"
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        return dk.load_registry(path)
+    assert reg["by_id"]["sindal-dk"]["trail_name_fixes"]
+    check()
+    for bad in ({"source": "http://example.dk/x"}, {"name": "A"}, {"name": "B\u0000"}, {"osm_name": " A"},
+                {"reason": ""}, {"name": "x" * 121}):
+        with pytest.raises(dk.DkError):
+            check(**bad)
+    doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    mols = next(a for a in doc["areas"] if a["id"] == MOLS)
+    mols["trail_name_fixes"] = [good]
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(dk.DkError):
+        dk.load_registry(path)                                           # legacy rules: refused

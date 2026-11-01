@@ -63,6 +63,11 @@ CONTAINER_FROM_ROUTES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id
 # validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
 NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
   trailforge/golden/dk-areas.json)"
+# Optional corrected trail display names (registry trail_name_fixes; dk-v2/dk-v3, validated by dk_publish and
+# dk_trail_name_fix.py): applied to the assembled trails after assemble, ids unchanged (osm_name keeps the
+# id derivation). Absent = no jq output, the script is not called (byte-identical run).
+NAME_FIXES="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_fixes // empty' \
+  trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
 EXCLUDE_ARGS=()
@@ -169,6 +174,11 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"} \
   --report-json "$A/assembly.json"
 
+if [ -n "$NAME_FIXES" ]; then
+  printf '%s\n' "$NAME_FIXES" > "$A/dk-trail-name-fixes.json"
+  python3 ../scripts/dk_trail_name_fix.py --trails "data/aoi/$AREA_ID.trails.geojson" \
+    --fixes "$A/dk-trail-name-fixes.json" --report "$A/trail-name-fixes.json"
+fi
 # Exact park polygon + exact assembly, no elevation, one --only-area per call.
 python3 serve/publish_areas.py \
   --trails "data/aoi/$AREA_ID.trails.geojson" \

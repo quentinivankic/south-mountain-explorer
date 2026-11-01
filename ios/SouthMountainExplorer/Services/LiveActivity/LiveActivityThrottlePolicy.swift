@@ -10,7 +10,7 @@ enum LiveActivityThrottlePolicy {
         var distanceMeters: Double = 50
         var distanceSpacing: TimeInterval = 15
         var heartbeat: TimeInterval = 60
-        var estimateShiftSeconds: TimeInterval = 5 * 60
+        var estimateShiftSeconds: TimeInterval = 2 * 60
     }
 
     struct SentRecord: Equatable, Sendable {
@@ -20,7 +20,7 @@ enum LiveActivityThrottlePolicy {
     }
 
     enum Reason: Equatable, Sendable {
-        case initial, finished, stateChange, distance, estimateShift, heartbeat
+        case initial, finished, stateChange, distance, estimateShift, heartbeat, cueChange, cueDistance
     }
 
     enum Decision: Equatable, Sendable {
@@ -48,7 +48,20 @@ enum LiveActivityThrottlePolicy {
             return .send(.stateChange)
         }
 
+        // Next-turn row is event-driven: a new cue (arrow, target trail,
+        // appearing or clearing) sends promptly; a coarse distance step
+        // ("300 ft" -> "200 ft") is rate-limited like distance updates.
+        if candidate.nextTurnArrow != old.nextTurnArrow
+            || candidate.nextTurnTrail != old.nextTurnTrail
+            || (candidate.nextTurnText == nil) != (old.nextTurnText == nil)
+            || (candidate.nextTurnDistanceText == "Now") != (old.nextTurnDistanceText == "Now") {
+            return .send(.cueChange)
+        }
+
         if elapsed >= config.distanceSpacing {
+            if candidate.nextTurnText != old.nextTurnText {
+                return .send(.cueDistance)
+            }
             if candidateDistanceMeters - last.distanceMetersAtSend >= config.distanceMeters {
                 return .send(.distance)
             }
@@ -64,6 +77,6 @@ enum LiveActivityThrottlePolicy {
 
     private static func shifted(_ a: Date?, _ b: Date?, _ threshold: TimeInterval) -> Bool {
         guard let a, let b else { return false }
-        return abs(a.timeIntervalSince(b)) > threshold
+        return abs(a.timeIntervalSince(b)) >= threshold
     }
 }

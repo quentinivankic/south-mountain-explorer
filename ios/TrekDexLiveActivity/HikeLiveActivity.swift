@@ -35,16 +35,26 @@ struct HikeLiveActivity: Widget {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(state.distanceText).font(.headline)
                         HikeProgressRow(state: state)
-                        if !context.isStale { HikeEstimatesRow(state: state) }
+                        if !context.isStale {
+                            HikeNextTurnRow(state: state)
+                            HikeEstimatesRow(state: state)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(HikeActivityAccessibility.label(for: state))
                 }
             } compactLeading: {
-                Image(systemName: "figure.hiking")
-                    .foregroundStyle(state.status.tint)
-                    .accessibilityLabel(HikeActivityAccessibility.compactLabel(for: state.status))
+                if !context.isStale, let arrow = state.nextTurnArrow {
+                    // Arrow only: the elapsed timer keeps the trailing slot.
+                    Image(systemName: arrow.symbolName)
+                        .foregroundStyle(arrow.tint)
+                        .accessibilityLabel(state.nextTurnSpoken.map { "Next: \($0)" } ?? "Next turn")
+                } else {
+                    Image(systemName: "figure.hiking")
+                        .foregroundStyle(state.status.tint)
+                        .accessibilityLabel(HikeActivityAccessibility.compactLabel(for: state.status))
+                }
             } compactTrailing: {
                 if state.status.isDegraded {
                     Image(systemName: "location.slash")
@@ -57,9 +67,15 @@ struct HikeLiveActivity: Widget {
                         .frame(maxWidth: 52)
                 }
             } minimal: {
-                Image(systemName: "figure.hiking")
-                    .foregroundStyle(state.status.tint)
-                    .accessibilityLabel(HikeActivityAccessibility.compactLabel(for: state.status))
+                if !context.isStale, let arrow = state.nextTurnArrow {
+                    Image(systemName: arrow.symbolName)
+                        .foregroundStyle(arrow.tint)
+                        .accessibilityLabel(state.nextTurnSpoken.map { "Next: \($0)" } ?? "Next turn")
+                } else {
+                    Image(systemName: "figure.hiking")
+                        .foregroundStyle(state.status.tint)
+                        .accessibilityLabel(HikeActivityAccessibility.compactLabel(for: state.status))
+                }
             }
             .keylineTint(state.status.tint)
             .widgetURL(LiveActivityDeepLink.activeHikeURL)

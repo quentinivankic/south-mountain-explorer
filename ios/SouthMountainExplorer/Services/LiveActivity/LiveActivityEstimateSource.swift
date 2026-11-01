@@ -14,7 +14,9 @@ enum LiveActivityEstimateSource {
               let est = recording.estimates else { return .none }
         return LiveActivityEstimates(
             trailEndSeconds: rec.mode == .trail ? seconds(est.remaining, now: now) : nil,
-            backSeconds: seconds(est.back, now: now))
+            backSeconds: seconds(est.back, now: now),
+            trailEndApproximate: rec.mode == .trail && est.remaining?.status == .approximate,
+            backApproximate: est.back?.status == .approximate)
     }
     static func seconds(_ e: HikeEstimate?, now: Date) -> TimeInterval? {
         guard let e, e.hasValue, e.status == .ok || e.status == .approximate,

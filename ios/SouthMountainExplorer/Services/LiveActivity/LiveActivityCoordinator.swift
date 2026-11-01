@@ -86,6 +86,7 @@ final class LiveActivityCoordinator {
             _ = rec.isStopping
             _ = rec.recoveryIssue
             _ = LocationService.shared.lastFixDate
+            _ = TurnCueCoordinator.shared.bannerCue
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -131,7 +132,8 @@ final class LiveActivityCoordinator {
             subtitle: subtitle,
             trailLengthMeters: (rec.mode == .trail) ? trail.map { $0.distanceMi * 1609.344 } : nil,
             estimates: LiveActivityEstimateSource.estimates(for: rec, recording: recording),
-            usesMetric: units == UnitsPreference.metric.rawValue
+            usesMetric: units == UnitsPreference.metric.rawValue,
+            nextTurn: (rec.mode == .trail) ? TurnCueCoordinator.shared.liveCue() : nil
         )
         return LiveActivityObservedState(snapshot: snapshot, isStopping: recording.isStopping,
                                          isRecoveryBlocked: blocked)

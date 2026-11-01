@@ -29,10 +29,10 @@ struct LiveActivityDeepLinkTests {
             trailLengthText: nil, progress: nil, estimatedTrailEndAt: nil, estimatedBackAt: nil, endedAt: nil)
         let label = HikeActivityAccessibility.label(for: s)
         #expect(label.contains("Hidden Valley") && label.contains("3.40 mi") && label.contains("GPS paused"))
-        #expect(!label.contains("trail end") && !label.contains("back by"))
+        #expect(!label.contains("Finish") && !label.contains("Back by"))
         s.status = .recording
         s.estimatedBackAt = Date().addingTimeInterval(600)
         let withEst = HikeActivityAccessibility.label(for: s)
-        #expect(withEst.contains("back by about") && withEst.hasPrefix("Recording"))
+        #expect(withEst.contains("Back by around") && withEst.hasPrefix("Recording"))
     }
 }

@@ -13,6 +13,17 @@ private func previewState(_ status: HikeState.Status) -> HikeState {
               endedAt: status == .finished ? Date() : nil)
 }
 
+private func previewTurnState() -> HikeState {
+    var s = previewState(.recording)
+    s.nextTurnArrow = .turnLeft
+    s.nextTurnText = "Turn left in 300 ft"
+    s.nextTurnDistanceText = "300 ft"
+    s.nextTurnTrail = "Crosscut Trail"
+    s.nextTurnSpoken = "turn left in 300 feet onto Crosscut Trail"
+    s.estimatedTrailEndApprox = true
+    return s
+}
+
 #Preview("Lock Screen", as: .content, using: previewAttributes) {
     HikeLiveActivity()
 } contentStates: {
@@ -20,6 +31,7 @@ private func previewState(_ status: HikeState.Status) -> HikeState {
     previewState(.gpsPaused)
     previewState(.gpsRecovered)
     previewState(.finished)
+    previewTurnState()
 }
 
 #Preview("Island expanded", as: .dynamicIsland(.expanded), using: previewAttributes) {
@@ -27,6 +39,7 @@ private func previewState(_ status: HikeState.Status) -> HikeState {
 } contentStates: {
     previewState(.recording)
     previewState(.gpsPaused)
+    previewTurnState()
 }
 
 #Preview("Island compact", as: .dynamicIsland(.compact), using: previewAttributes) {
@@ -34,6 +47,7 @@ private func previewState(_ status: HikeState.Status) -> HikeState {
 } contentStates: {
     previewState(.recording)
     previewState(.gpsPaused)
+    previewTurnState()
 }
 
 #Preview("Island minimal", as: .dynamicIsland(.minimal), using: previewAttributes) {

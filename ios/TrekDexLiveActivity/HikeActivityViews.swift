@@ -43,10 +43,61 @@ struct HikeEstimatesRow: View {
 
     @ViewBuilder private var items: some View {
         if let end = state.estimatedTrailEndAt {
-            Text("Trail end ~\(end.formatted(date: .omitted, time: .shortened))")
+            Text(HikeActivityClock.label("Finish", end, approximate: state.estimatedTrailEndApprox))
+                .lineLimit(1)
         }
         if let back = state.estimatedBackAt {
-            Text("Back by ~\(back.formatted(date: .omitted, time: .shortened))")
+            Text(HikeActivityClock.label("Back by", back, approximate: state.estimatedBackApprox))
+                .lineLimit(1)
+        }
+    }
+}
+
+extension HikeActivityAttributes.NextTurnArrow {
+    var symbolName: String {
+        switch self {
+        case .keepLeft: return "arrow.up.left"
+        case .keepRight: return "arrow.up.right"
+        case .turnLeft, .sharpLeft: return "arrow.turn.up.left"
+        case .turnRight, .sharpRight: return "arrow.turn.up.right"
+        case .offTrail: return "exclamationmark.triangle.fill"
+        case .backOnTrail: return "checkmark.circle.fill"
+        }
+    }
+    var tint: Color {
+        switch self {
+        case .offTrail: return .orange
+        case .backOnTrail: return .green
+        default: return .cyan
+        }
+    }
+}
+
+/// Next-turn row: arrow, short text, target trail. Hidden when nil.
+struct HikeNextTurnRow: View {
+    let state: HikeState
+    var body: some View {
+        if let arrow = state.nextTurnArrow, let text = state.nextTurnText {
+            HStack(spacing: 8) {
+                Image(systemName: arrow.symbolName)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(arrow.tint)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(text)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                    if let trail = state.nextTurnTrail {
+                        Text(trail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
         }
     }
 }
@@ -103,6 +154,7 @@ struct HikeLockScreenView: View {
             }
             if state.status != .finished {
                 HikeProgressRow(state: state)
+                if !isStale { HikeNextTurnRow(state: state) }
                 if isStale {
                     Text("Updating paused. Open TrekDex to refresh.")
                         .font(.footnote).foregroundStyle(.secondary)

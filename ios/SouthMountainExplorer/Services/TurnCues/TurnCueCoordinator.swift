@@ -154,6 +154,16 @@ final class TurnCueCoordinator {
         return route
     }
 
+    /// Read-only snapshot of the cue the in-app banner is showing, for the
+    /// Live Activity. Nil when turn cues are inactive or nothing is shown.
+    func liveCue() -> LiveActivityNextTurn? {
+        guard let cue = bannerCue, let engine else { return nil }
+        let adv = engine.advisory
+        let distance = (adv != nil && adv?.junctionId == cue.junctionId) ? adv?.distanceMeters : nil
+        return LiveActivityNextTurn(kind: cue.kind, symbol: cue.symbol,
+                                    trailName: engine.route.trailName, distanceMeters: distance)
+    }
+
     // MARK: - Poll
 
     private func poll(_ e: inout TurnCueEngine) {

@@ -35,6 +35,27 @@ struct HikeActivityAttributes: ActivityAttributes {
         var estimatedBackAt: Date?
         /// Set only for `.finished`; freezes the timer.
         var endedAt: Date?
+        // New in the extras update. All OPTIONAL so an activity started by an
+        // older build still decodes (missing keys become nil).
+        /// True when the Finish clock time comes from an approximate estimate.
+        var estimatedTrailEndApprox: Bool?
+        /// True when the Back clock time comes from an approximate estimate.
+        var estimatedBackApprox: Bool?
+        /// Next-turn row. Nil hides it.
+        var nextTurnArrow: NextTurnArrow?
+        /// Preformatted, e.g. "Turn left in 300 ft", "Off Crosscut Trail".
+        var nextTurnText: String?
+        /// Short distance for compact UI, e.g. "300 ft" or "Now".
+        var nextTurnDistanceText: String?
+        /// Target trail name for a turn cue.
+        var nextTurnTrail: String?
+        /// VoiceOver sentence, e.g. "turn left in 300 feet onto Crosscut Trail".
+        var nextTurnSpoken: String?
+    }
+    /// Arrow glyph choice for the next-turn row.
+    enum NextTurnArrow: String, Codable, Hashable {
+        case keepLeft, keepRight, turnLeft, turnRight, sharpLeft, sharpRight
+        case offTrail, backOnTrail
     }
 
     /// Identity used to adopt or end stale activities.

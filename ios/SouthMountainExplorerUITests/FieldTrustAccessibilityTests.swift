@@ -1145,6 +1145,23 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         return false
     }
 
+    /// Re-taps the selected row's Select button when a stray gesture deselected
+    /// it (label back to "Select Trail,"). Returns true when a tap was made.
+    private func restoreLostSelection(
+        _ app: XCUIApplication,
+        anchorIdentifier: String
+    ) -> Bool {
+        guard anchorIdentifier.hasPrefix("trail-secondary-") else { return false }
+        let suffix = String(anchorIdentifier.dropFirst("trail-secondary-".count))
+        let matches = trailActionMatches(app, identifier: "trail-select-\(suffix)")
+        guard matches.count == 1,
+              let select = uniqueExistingElement(matches),
+              select.label.hasPrefix("Select Trail,"),
+              select.isHittable else { return false }
+        select.tap()
+        return true
+    }
+
     private func materializeSelectedRowElement(
         identifier: String,
         anchorIdentifier: String,
@@ -1159,6 +1176,13 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             }
             if let element = uniqueExistingElement(matches) { return element }
             guard attempt < 20 else { break }
+            // A scroll correction on a short list viewport can land on a row's
+            // Select button and drop the selection. Restore it so the profile
+            // card exists again instead of searching for a row that is gone.
+            if restoreLostSelection(app, anchorIdentifier: anchorIdentifier) {
+                sleep(1)
+                continue
+            }
 
             let anchorMatches = trailActionMatches(app, identifier: anchorIdentifier)
             guard anchorMatches.count <= 1 else {
@@ -1420,7 +1444,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
                 let end = headerScroll.coordinate(
                     withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.60 : 0.40)
                 )
-                start.press(forDuration: 0.05, thenDragTo: end)
+                start.listDrag(to: end)
                 sleep(1)
             }
         }
@@ -2052,7 +2076,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             let end = app.coordinate(withNormalizedOffset: .zero).withOffset(
                 CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.end)
             )
-            start.press(forDuration: 0.05, thenDragTo: end)
+            start.listDrag(to: end)
             sleep(1)
             let after = materializedTrailActionFrames(app)
             if actionSnapshotsShowProgress(before: before, after: after) { return true }
@@ -2078,12 +2102,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let end = app.coordinate(withNormalizedOffset: .zero).withOffset(
             CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.end)
         )
-        start.press(
-            forDuration: 0.15,
-            thenDragTo: end,
-            withVelocity: .slow,
-            thenHoldForDuration: 0.10
-        )
+        start.listDrag(to: end)
     }
 
     private func performMeasuredMicroCorrection(
@@ -2428,7 +2447,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
             let end = scrollView.coordinate(
                 withNormalizedOffset: CGVector(dx: 0.5, dy: offsets.end)
             )
-            start.press(forDuration: 0.05, thenDragTo: end)
+            start.listDrag(to: end)
             sleep(1)
         }
         XCTFail("Exact reachability target did not become visible")
@@ -2443,14 +2462,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         for attempt in 0...20 {
             if isOnScreenAndHittable(element, app: app) { return true }
             if attempt < 20 {
-                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
-                let start = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
-                )
-                let end = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
-                )
-                start.press(forDuration: 0.05, thenDragTo: end)
+                stepTowardVisible(element, in: scrollView, app: app)
+                sleep(1)
             }
         }
         return false
@@ -2531,7 +2544,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         let end = surface.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: towardTop ? 0.55 : 0.45)
         )
-        start.press(forDuration: 0.05, thenDragTo: end)
+        start.listDrag(to: end)
     }
 
     private func assertCompleteAreaTitle(_ title: XCUIElement, app: XCUIApplication) {

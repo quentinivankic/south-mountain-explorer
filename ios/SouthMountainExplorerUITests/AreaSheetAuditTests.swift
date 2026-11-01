@@ -810,6 +810,23 @@ final class AreaSheetAuditTests: XCTestCase {
         return nil
     }
 
+    /// Re-taps the selected row's Select button when a stray gesture deselected
+    /// it (label back to "Select Trail,"). Returns true when a tap was made.
+    private func restoreLostSelection(
+        _ app: XCUIApplication,
+        anchorIdentifier: String
+    ) -> Bool {
+        guard anchorIdentifier.hasPrefix("trail-secondary-") else { return false }
+        let suffix = String(anchorIdentifier.dropFirst("trail-secondary-".count))
+        let matches = trailActionMatches(app, identifier: "trail-select-\(suffix)")
+        guard matches.count == 1,
+              let select = uniqueExistingElement(matches),
+              select.label.hasPrefix("Select Trail,"),
+              select.isHittable else { return false }
+        select.tap()
+        return true
+    }
+
     private func materializeSelectedRowElement(
         identifier: String,
         anchorIdentifier: String,
@@ -824,6 +841,13 @@ final class AreaSheetAuditTests: XCTestCase {
             }
             if let element = uniqueExistingElement(matches) { return element }
             guard attempt < 20 else { break }
+            // A scroll correction on a short list viewport can land on a row's
+            // Select button and drop the selection. Restore it so the profile
+            // card exists again instead of searching for a row that is gone.
+            if restoreLostSelection(app, anchorIdentifier: anchorIdentifier) {
+                settle(1)
+                continue
+            }
 
             let anchorMatches = trailActionMatches(app, identifier: anchorIdentifier)
             guard anchorMatches.count <= 1 else {
@@ -998,7 +1022,7 @@ final class AreaSheetAuditTests: XCTestCase {
                     let end = headerScroll.coordinate(
                         withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.60 : 0.40)
                     )
-                    start.press(forDuration: 0.05, thenDragTo: end)
+                    start.listDrag(to: end)
                     settle(1)
                 }
             }
@@ -1784,7 +1808,7 @@ final class AreaSheetAuditTests: XCTestCase {
             let end = app.coordinate(withNormalizedOffset: .zero).withOffset(
                 CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.end)
             )
-            start.press(forDuration: 0.05, thenDragTo: end)
+            start.listDrag(to: end)
             settle(1)
             let after = materializedTrailActionFrames(app)
             if actionSnapshotsShowProgress(before: before, after: after) { return true }
@@ -1810,12 +1834,7 @@ final class AreaSheetAuditTests: XCTestCase {
         let end = app.coordinate(withNormalizedOffset: .zero).withOffset(
             CGVector(dx: visible.midX, dy: visible.minY + visible.height * offsets.end)
         )
-        start.press(
-            forDuration: 0.15,
-            thenDragTo: end,
-            withVelocity: .slow,
-            thenHoldForDuration: 0.10
-        )
+        start.listDrag(to: end)
     }
 
     private func performMeasuredMicroCorrection(
@@ -1882,6 +1901,11 @@ final class AreaSheetAuditTests: XCTestCase {
                     frame: frame,
                     viewport: viewport,
                     isHittable: isHittable
+                )
+                print(
+                    "AUDIT[reach] id=\(identifier) attempt=\(attempt) frameY=\(Int(frame.minY))"
+                    + "...\(Int(frame.maxY)) viewportY=\(Int(viewport.minY))...\(Int(viewport.maxY))"
+                    + " hittable=\(isHittable) label=\(action.label.prefix(16))"
                 )
                 if independentlyReachable,
                    actionIsReturnable(
@@ -2150,14 +2174,7 @@ final class AreaSheetAuditTests: XCTestCase {
         for attempt in 0...20 {
             if isOnScreenAndHittable(element, app: app) { return true }
             if attempt < 20 {
-                let moveContentDown = element.exists && element.frame.midY < app.frame.midY
-                let start = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.35 : 0.65)
-                )
-                let end = scrollView.coordinate(
-                    withNormalizedOffset: CGVector(dx: 0.5, dy: moveContentDown ? 0.55 : 0.45)
-                )
-                start.press(forDuration: 0.05, thenDragTo: end)
+                stepTowardVisible(element, in: scrollView, app: app)
                 settle(1)
             }
         }
@@ -2723,8 +2740,8 @@ final class AreaSheetAuditTests: XCTestCase {
             .withOffset(CGVector(dx: visible.midX, dy: visible.minY))
         let low = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: visible.midX, dy: visible.maxY))
-        if up { low.press(forDuration: 0.05, thenDragTo: high) }
-        else { high.press(forDuration: 0.05, thenDragTo: low) }
+        if up { low.listDrag(to: high) }
+        else { high.listDrag(to: low) }
     }
 
     /// Open the area Collection via its explicit toolbar button — the

@@ -286,14 +286,18 @@ def test_mols_registry_excludes_exactly_the_nine_reviewed_trails_and_keeps_natur
     assert mols["rules"] == "legacy" and mols["allow_update"] is True
     assert [i["name"] for i in mols["legacy_exclude_trails"]] == [
         "Kløverstier-Landsbyruten", "Kløverstier-Motionsruten", "Smølfesporet", "Dråby Sporet. Blå rute",
-        "Skovbjerg", "Kristoffervejen", "Dalby kærvej", "Jomfrustien", "Tyvelhøjvej"]
-    assert all(i["id"] == "n*:" + i["name"] for i in mols["legacy_exclude_trails"])
+        "Skovbjerg", "Kristoffervejen", "Dalby kærvej", "Jomfrustien", "Tyvelhøjvej",
+        # BATCH-1 (2026-11-01): long-distance legs and fragments; Mols stays one whole area
+        "Molsruten", "Mols Bjerge-stien Bjergetapen", "Mols Bjerge-stien Kaløetapen", "Midtervej", "Kaløstien"]
+    assert all(i["id"] == "n*:" + i["name"] for i in mols["legacy_exclude_trails"][:9])
+    assert [i["id"] for i in mols["legacy_exclude_trails"][9:]] == [
+        "r178382", "r8350111", "r10523727", "n:Midtervej", "r4603299"]
     assert "exclude_trails" not in mols and not any("Naturruten" in i["name"] for i in mols["legacy_exclude_trails"])
 def test_harte_skov_display_name_does_not_claim_ferup():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     a = by_id["harte-skov-dk"]
     assert a["name"] == "Harte Skov" and "display_name" not in a and a["hold"] is None
-    assert (a["est_trails"], a["est_mi"]) == (5, 6.4)
+    assert (a["est_trails"], a["est_mi"]) == (4, 6.0)
     assert [t["id"] for t in a["include_trails"]] == ["r3251112"]
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
@@ -324,8 +328,8 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "ro-plantage-dk": {"r14573576": 300},
                     "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300},
                     "hald-so-dk": {"r10876676": 300, "r19703948": 200},
-                    # batch H: Orø Tur 4, Samsø Grøn, Kegnæs Langs sydkysten (all under the 1000 m cap)
-                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
+                    # batch H: Orø Tur 4, Samsø Grøn (under the 1000 m cap); Kegnæs Langs sydkysten was withdrawn in BATCH-1
+                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}}
     assert "r14573576" in {t["id"] for t in by_id["ro-plantage-dk"]["include_trails"]}
     assert by_id["vestre-stigtehave-dk"]["hold"] is None and by_id["varde-sondre-plantage-dk"]["hold"] is None
     # Urhoje: the 829 m "gap" is between two unrelated same-name relations; no accept_gap, stays held
@@ -339,7 +343,9 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
                         "kegnaes-dk": None, "svinklov-klitplantage-dk": "Svinkløv"}
     # accept_gap stays at or under the 1000 m cap and just above the measured gaps (Orø 142, Samsø 216.4, Kegnæs 922.8)
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in BATCH_H_SHIP if "accept_gap" in by_id[i]}
-    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}, "kegnaes-dk": {"r2678605": 950}}
+    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}}
+    # BATCH-1: Langs sydkysten has a real 923 m hole; the accept_gap is withdrawn and the relation-gap gate drops it
+    assert "accept_gap" not in by_id["kegnaes-dk"] and "exclude_trails" not in by_id["kegnaes-dk"]
     assert {i: [e["id"] for e in by_id[i]["exclude_trails"]] for i in ("oro-dk", "samso-dk")} == {
         "oro-dk": ["n:Trampesti", "n:Tur 5"], "samso-dk": ["n:Alstrup", "n:Besser Rev"]}
     assert [t["id"] for t in by_id["hastrup-plantage-dk"]["include_trails"]] == ["r6395876"]
@@ -349,7 +355,7 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
     assert (by_id["hastrup-plantage-dk"]["est_trails"], by_id["hastrup-plantage-dk"]["est_mi"]) == (4, 7.1)
     assert (by_id["oro-dk"]["est_trails"], by_id["oro-dk"]["est_mi"]) == (4, 12.4)
     assert (by_id["samso-dk"]["est_trails"], by_id["samso-dk"]["est_mi"]) == (4, 13.2)
-    assert (by_id["kegnaes-dk"]["est_trails"], by_id["kegnaes-dk"]["est_mi"]) == (3, 12.8)
+    assert (by_id["kegnaes-dk"]["est_trails"], by_id["kegnaes-dk"]["est_mi"]) == (2, 8.6)
     assert (by_id["svinklov-klitplantage-dk"]["est_trails"], by_id["svinklov-klitplantage-dk"]["est_mi"]) == (6, 14.2)
     # held after the replay: Læsø (one real route + an overlapping heart loop), Horslund Krat (Rød is 84 percent on Gul),
     # the Sydbornholm composite (two Paradisbakkerne walks unmapped), Rude Skov, Skjern, Fiskerup
@@ -369,11 +375,11 @@ def test_batch_i_boundary_and_container_opt_ins_and_the_slivso_hold():
     assert (by_id["hald-so-dk"]["way_id"], by_id["farrestierne-dk"]["way_id"]) == (171922872, 409105301)
     assert by_id["soheden-plantage-dk"]["relation_id"] == 12484791
     assert {i: len(by_id[i]["include_trails"]) for i in cont} == {
-        "hald-so-dk": 5, "farrestierne-dk": 3, "soheden-plantage-dk": 2}
+        "hald-so-dk": 6, "farrestierne-dk": 3, "soheden-plantage-dk": 2}
     assert {g["relation"]: g["max_gap_m"] for g in by_id["hald-so-dk"]["accept_gap"]} == {"r10876676": 300, "r19703948": 200}
     assert by_id["hald-so-dk"]["trail_name_prefix"] == "Hald Sø"
     shipped = {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_I_SHIP}
-    assert shipped == {"klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
+    assert shipped == {"klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (6, 22.0),
                        "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8)}
     assert all(by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] for i in BATCH_I_SHIP)
     # Sønderskov: renamed before any publish; Høgdal and Hummelsø fold in through include_trails
@@ -388,7 +394,7 @@ def test_batch_k_ships_holds_and_opt_ins():
     # est counts = the replay (trails, miles) on main 99c788eda; centre inside the boundary, bbox covers the trails
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_K_SHIP} == {
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0)}
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (2, 6.2)}
     assert by_id["vester-aslund-plantage-dk"]["trail_name_prefix"] == "Vester Aslund"
     assert by_id["hjelm-hede-dk"]["display_name"] == "Flyndersø og Hjelm Hede"
     assert by_id["stoubaek-krat-dk"]["display_name"] == "Stoubæk Krat"
@@ -513,36 +519,36 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
                           *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                           *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
-        MOLS: (17, 79.8), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
+        MOLS: (12, 34.7), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
         "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
-        "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (7, 20.4),
+        "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
         "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
-        "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (4, 6.4),
+        "pamhule-skov-dk": (4, 9.3), "godding-skov-dk": (3, 5.4),
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
-        "rold-skov-dk": (10, 39.4), "mons-klint-dk": (6, 17.1),
+        "rold-skov-dk": (9, 38.9), "mons-klint-dk": (5, 16.9),
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 15.9), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
         "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (7, 10.5),
         "staksrode-skov-dk": (4, 8.8), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
-        "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (4, 30.7),
+        "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (3, 12.5),
         "svanninge-bjerge-dk": (8, 30.9), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),
         "fejo-dk": (4, 9.4), "froslev-plantage-dk": (2, 4.9),
-        "ro-plantage-dk": (8, 27.5), "aro-dk": (4, 10.0), "harte-skov-dk": (5, 6.4),
-        "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (4, 10.6), "kiskelund-plantage-dk": (2, 3.6),
+        "ro-plantage-dk": (8, 27.5), "aro-dk": (4, 10.0), "harte-skov-dk": (4, 6.0),
+        "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (3, 10.1), "kiskelund-plantage-dk": (2, 3.6),
         "kollund-skov-dk": (4, 5.7), "sogard-skov-dk": (3, 6.2), "toftlund-skov-dk": (2, 2.8),
         "draved-skov-dk": (2, 3.9), "barsbol-skov-dk": (3, 5.9), "lindet-skov-dk": (2, 5.1),
         "osterskoven-dk": (4, 9.7), "sandkule-skov-dk": (4, 8.7), "kompedal-plantage-dk": (2, 6.6),
         "palsgard-skov-dk": (3, 7.5),
         "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (3, 5.2), "vestre-stigtehave-dk": (3, 5.1),
-        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.2), "kegnaes-dk": (3, 12.8),
+        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.2), "kegnaes-dk": (2, 8.6),
         "svinklov-klitplantage-dk": (6, 14.2),
-        "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (5, 17.4),
+        "klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (6, 22.0),
         "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8),
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
-        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (4, 7.0),
+        "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (2, 6.2),
         "slivso-dk": (2, 4.1), "bangsbo-skov-dk": (3, 5.6), "hellevad-dk": (4, 13.5), "grenen-dk": (4, 12.7),
         "asted-adal-dk": (3, 6.7), "ammitsbol-baek-dk": (3, 4.0), "tinglev-dk": (6, 18.4),
         "skaelskor-dk": (6, 16.6), "hingelbjerge-dk": (2, 3.3), "nybol-nor-dk": (2, 11.4),
@@ -572,10 +578,11 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert "Mørkholm Skov Rundtur" in table["vestre-stigtehave-dk"]["required_names"]
     # batch H: required names per area; the six holds are not blessed
     for aid, name in (("hastrup-plantage-dk", "Hastrup Gul vandrerute"), ("oro-dk", "Orø Tur 4"),
-                      ("samso-dk", "Samsø Grøn"), ("kegnaes-dk", "Langs sydkysten, Kegnæs"),
+                      ("samso-dk", "Samsø Grøn"), ("kegnaes-dk", "Omkring Kegnæs Ende"),
                       ("svinklov-klitplantage-dk", "Svinkløv Hjertesti, Rød rute"),
                       ("svinklov-klitplantage-dk", "Søbakkeruten"), ("svinklov-klitplantage-dk", "Svinkløv Rød rute")):
         assert name in table[aid]["required_names"]
+    assert "Langs sydkysten, Kegnæs" in table["kegnaes-dk"]["forbidden_names"]
     assert "Trampesti" in table["oro-dk"]["forbidden_names"] and "Hærvejen" in table["svinklov-klitplantage-dk"]["forbidden_names"]
     assert not set(table) & {"laeso-klitplantage-dk", "horslund-krat-dk", "pedersker-plantage-dk", "rude-skov-dk",
                              "skjern-enge-dk", "fiskerup-skov-dk"}
@@ -589,8 +596,10 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     # batch K: every shipped trail is a required name; the nine held entries and the old Stoubæk id are not blessed
     for aid, name in (("osteradalen-dk", "Østerådalen rundt"), ("vrogum-klitplantage-dk", "Vrøgum Klitplantage - Gul rute"),
                       ("stoubaek-krat-dk", "Stoubæk Krat, gul rute"), ("langdal-plantage-dk", "Langdal Plantage Rød rute"),
-                      ("hjelm-hede-dk", "Flyndersø - Mågesøen"), ("vester-aslund-plantage-dk", "Vester Aslund Rød rute")):
+                      ("hjelm-hede-dk", "Flyndersø - Mågesøen"), ("vester-aslund-plantage-dk", "Vester Aslund Gul rute")):
         assert name in table[aid]["required_names"]
+    # BATCH-1 (2026-11-01): the two Vester Aslund fragments are removed and forbidden
+    assert {"Vester Aslund Blå rute", "Vester Aslund Rød rute"} <= set(table["vester-aslund-plantage-dk"]["forbidden_names"])
     assert not set(table) & {*BATCH_K_HELD_NEW, "naturreservatet-stoubaek-krat-dk"}
     # batch L (second-review-l, qualify on main 41274401263): every shipped trail is a required name, Skælskør is
     # blessed at the Actions 16.6, and the eight held entries are not blessed
@@ -3251,3 +3260,25 @@ def test_sync_dk_remove_modes_contract():
         "${{ inputs.mode == 'apply-update' }}"
     assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
         "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
+def test_batch1_curation_decisions_are_recorded_in_the_registry():
+    # BATCH-1 (2026-11-01): completeness + gap/fragment/long-distance cleanup on kept areas, registry only.
+    by_id = {a["id"]: a for a in _reg()["areas"]}
+    def excl(i):
+        return {e["id"] for e in by_id[i].get("exclude_trails", [])}
+    def incl(i):
+        return {e["id"] for e in by_id[i].get("include_trails", [])}
+    assert {"r14644083"} <= excl("aero-dk")                       # Kyststien, island perimeter leg
+    assert {"r16886559", "r16886562"} <= excl("vester-aslund-plantage-dk")  # 0.43 and 0.34 mi fragments
+    assert "n:Kærlighedsstien" in excl("rold-skov-dk") and "r3249161" in excl("harte-skov-dk")
+    assert "r3240427" in excl("godding-skov-dk")                  # moves to Engelsholm in BATCH-3
+    assert "n:Maglevandstrappen" not in incl("mons-klint-dk") and "n:Gråryg Fald" in incl("mons-klint-dk")
+    assert "r1855757" not in incl("kelstrup-plantage-dk")
+    assert "r17589026" in incl("almindingen-dk")                  # Ekkodalsstien, signed walk
+    assert "r12737247" in incl("hald-so-dk") and by_id["hald-so-dk"]["bbox"][2] == 9.49
+    assert "accept_gap" not in by_id["kegnaes-dk"]               # real 923 m hole, nothing synthesized
+    # Mols stays ONE whole area: only the cleanup list grew, no split, no include
+    mols = by_id[MOLS]
+    assert mols["hold"] is None and "include_trails" not in mols and len(mols["legacy_exclude_trails"]) == 14
+    # kept short routes with a recorded official source stay
+    assert "r12627643" in incl("soheden-plantage-dk") and "r14688103" in incl("soheden-plantage-dk")
+    assert "r2900915" in incl("randbol-hede-frederikshab-dk")

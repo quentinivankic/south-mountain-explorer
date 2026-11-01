@@ -81,8 +81,16 @@ private func trailEndpointDistances(
 protocol RecordingLocationControlling: AnyObject {
     var liveLocation: CLLocationCoordinate2D? { get }
     var liveAltitude: Double? { get }
+    /// Timestamp of the latest live fix; used to refuse recording a stale
+    /// coordinate during a zero-fix gap.
+    var lastFixDate: Date? { get }
     func acquireRecordingLocation()
     func releaseRecordingLocation()
+}
+
+extension RecordingLocationControlling {
+    /// Conformers without fix timestamps (test doubles) count as always fresh.
+    var lastFixDate: Date? { Date() }
 }
 
 enum RecordingStartResult: Equatable, Sendable {

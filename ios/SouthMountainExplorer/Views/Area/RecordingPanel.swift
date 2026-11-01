@@ -406,6 +406,7 @@ struct RecordingPanel: View {
     }
 
     private func startTimer() {
+        timer?.invalidate()   // one timer only
         if let rec {
             elapsed = Date().timeIntervalSince(rec.startedAt)
         }

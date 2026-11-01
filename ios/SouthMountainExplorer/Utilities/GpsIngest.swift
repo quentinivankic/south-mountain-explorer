@@ -40,6 +40,20 @@ enum GpsIngest {
     /// with it — enough to clear the de-dupe threshold, not real distance.
     static let runSeparatorMeters = 5.0
 
+    /// While standing still, keep one zero-distance heartbeat point at least
+    /// this often so a stop never looks like a >`gapMs` hole in the path (a
+    /// path gap then means "no fresh fix for over 20 s", never "stood still").
+    static let keepAliveSeconds = 10.0
+    /// The recorder only samples a fix whose own timestamp is at most this old,
+    /// so a stale coordinate is never stamped with `Date()` as if it were live.
+    static let maxFixAgeSeconds: TimeInterval = 10
+
+    /// True when the latest location fix is fresh enough to record.
+    static func isFreshFix(lastFixAt: Date?, now: Date) -> Bool {
+        guard let lastFixAt else { return false }
+        return now.timeIntervalSince(lastFixAt) <= maxFixAgeSeconds
+    }
+
     struct Decision: Equatable {
         /// Append this fix to the path.
         let keep: Bool
@@ -79,7 +93,14 @@ enum GpsIngest {
         case good
     }
 
-    static let staleFixSeconds: TimeInterval = 45
+    /// No fix for longer than this flips the status to paused (and freezes
+    /// Remaining/Back as stale). 20 s equals `gapMs`: the point where the path
+    /// already breaks into a new run and turn cues are already suppressed
+    /// (`TurnCueEngine.gapSeconds`), so the banner never says "good" while the
+    /// rest of the product treats the fix stream as discontinuous. Re-evaluated
+    /// by the recording panel's single 1 s timer and the Live Activity's single
+    /// 15 s tick (worst-case Live Activity latency 20 s + 15 s).
+    static let staleFixSeconds: TimeInterval = 20
     static let recoveredDisplaySeconds: TimeInterval = 15
 
     /// Decide how to ingest a fix given the previous kept point.
@@ -104,7 +125,9 @@ enum GpsIngest {
             return Decision(keep: false, addMeters: 0, startsNewRun: false)
         }
         if priorCount > 5, d < jitterMeters {
-            return Decision(keep: false, addMeters: 0, startsNewRun: false)
+            // Standing still: drop jitter, but emit a zero-distance heartbeat
+            // every `keepAliveSeconds` so the path has no false pause.
+            return Decision(keep: dt >= keepAliveSeconds, addMeters: 0, startsNewRun: false)
         }
         return Decision(keep: true, addMeters: d, startsNewRun: false)
     }

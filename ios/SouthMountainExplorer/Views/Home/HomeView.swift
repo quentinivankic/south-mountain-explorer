@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 
 private enum LengthFilter: String, CaseIterable, Identifiable {
@@ -82,6 +83,15 @@ struct HomeView: View {
     // main reason Explore felt sticky. They are now plain state, recomputed
     // only when a real input changes (see `refreshSections`).
 
+    /// The location Explore lays its sections out from. DEBUG UI audits pass
+    /// `--uitest-no-location` to photograph the no-location card even though
+    /// the simulator delivers a fix; Release builds read the live location.
+    private var exploreLocation: CLLocationCoordinate2D? {
+        #if DEBUG
+        if UITestSupport.isNoLocationRequested { return nil }
+        #endif
+        return location.userLocation
+    }
     @State private var continueArea: AreaSummary? = nil
     @State private var nearbyAreas: [AreaSummary] = []
     @State private var unvisitedAreas: [AreaSummary] = []
@@ -92,7 +102,7 @@ struct HomeView: View {
     /// this changes. The location is rounded to ~1 km so ordinary GPS jitter
     /// doesn't retrigger the work.
     private var sectionsKey: String {
-        let locKey = location.userLocation
+        let locKey = exploreLocation
             .map { String(format: "%.2f,%.2f", $0.latitude, $0.longitude) } ?? "-"
         return [
             locKey,
@@ -104,7 +114,7 @@ struct HomeView: View {
     }
 
     private func refreshSections() {
-        let loc = location.userLocation
+        let loc = exploreLocation
 
         continueArea = history.first.flatMap { areas.summary(id: $0.areaId) }
 
@@ -164,7 +174,7 @@ struct HomeView: View {
                     // sorted by state, i.e. ten Alabama parks headlining the
                     // app for every first-run user who declines the location
                     // prompt. Show the location CTA instead of a meaningless list.
-                    if location.userLocation != nil {
+                    if exploreLocation != nil {
                         if !unvisitedAreas.isEmpty {
                             areaSection(title: "Try Something New", items: unvisitedAreas)
                         }
@@ -174,7 +184,7 @@ struct HomeView: View {
                     if !favorites.favoriteAreas.isEmpty {
                         areaSection(title: "Saved Areas", items: favorites.favoriteAreas)
                     }
-                    if location.userLocation != nil {
+                    if exploreLocation != nil {
                         nearYouSection
                     }
                 }
@@ -440,7 +450,7 @@ struct HomeView: View {
     }
 
     private var showsLocationStatusBanner: Bool {
-        guard location.userLocation != nil else { return false }
+        guard exploreLocation != nil else { return false }
         return locationState == .locating
             || locationState == .fallback
             || locationState == .denied
@@ -553,7 +563,7 @@ struct HomeView: View {
         guard !Task.isCancelled, generation == locationRefreshGeneration else { return }
         locationState = ExploreLocationState.resolved(
             result: result,
-            hasFallback: location.userLocation != nil
+            hasFallback: exploreLocation != nil
         )
     }
 

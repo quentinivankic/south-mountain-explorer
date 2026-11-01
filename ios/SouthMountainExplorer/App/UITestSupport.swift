@@ -14,6 +14,7 @@ import Foundation
 ///   `--uitest-recording`      additionally inject a live active recording
 ///   `--uitest-recording-gap`  inject that recording with a material GPS gap
 ///   `--uitest-recording-paused` inject it with a stale final GPS fix
+///   `--uitest-no-location`    Explore ignores the location fix (audits)
 ///
 /// All seeding writes the same UserDefaults keys and `hike-history.json`
 /// path used by normal app persistence, then re-hydrates the `@Observable`
@@ -32,6 +33,9 @@ enum UITestSupport {
     /// passed alone (run 33512537301) and failed in the full suite
     /// (run 34065141359).
     static var isFreshRequested: Bool { args.contains("--uitest-fresh") }
+    /// `--uitest-no-location`: Explore lays out as if no location fix exists,
+    /// so the audits can photograph the no-location card. Explore only.
+    static var isNoLocationRequested: Bool { args.contains("--uitest-no-location") }
     static var isRecordingGapRequested: Bool { args.contains("--uitest-recording-gap") }
     static var isRecordingPausedRequested: Bool { args.contains("--uitest-recording-paused") }
     static var isRecordingRequested: Bool {

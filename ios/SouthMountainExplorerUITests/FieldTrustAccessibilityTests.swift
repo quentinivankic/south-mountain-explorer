@@ -55,7 +55,8 @@ final class FieldTrustAccessibilityTests: XCTestCase {
     }
 
     func testAreaCardOpenAndSaveAreIndependentButtons() {
-        guard let app = launchSeededApp() else { return }
+        // Explore ignores the simulator's fix so the no-location card renders.
+        guard let app = launchSeededApp(arguments: ["--uitest-no-location"]) else { return }
         let visibleFrame = exploreVisibleContentFrame(app)
 
         let continueButton = app.buttons["continue-card"].firstMatch
@@ -125,7 +126,7 @@ final class FieldTrustAccessibilityTests: XCTestCase {
         )
 
         app.terminate()
-        app.launchArguments = ["--uitest-seed"]
+        app.launchArguments = ["--uitest-seed", "--uitest-no-location"]
         app.launch()
         guard assertAuditedAppEnvironment(app) else { return }
         _ = app.tabBars.buttons["Explore"].waitForExistence(timeout: 30)

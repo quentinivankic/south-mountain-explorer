@@ -83,7 +83,9 @@ final class AreaSheetAuditTests: XCTestCase {
     func testAuditAreaSheetStates() {
         assertNavigationRegressionControls()
         let app = XCUIApplication()
-        app.launchArguments = ["--uitest-seed"]
+        // Explore ignores the simulator's fix so the no-location card renders;
+        // the area sheet still uses the live location.
+        app.launchArguments = ["--uitest-seed", "--uitest-no-location"]
         app.launch()
         guard assertAuditedAppEnvironment(app) else { return }
 

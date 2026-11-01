@@ -2727,3 +2727,89 @@ def test_run_area_script_reads_legacy_excludes_only_for_legacy_entries(tmp_path)
     assert run(rules="dk-v2", exclude_trails=item).startswith("n=2\n--dk-curated-exclude|")   # control: v2 unchanged
     assert run(rules="dk-v2", legacy_exclude_trails=item) == "n=0\n|"      # the legacy key means nothing off legacy
     assert run(exclude_trails=item) == "n=0\n|"                            # nor does exclude_trails on legacy
+# ------------------------------------------------------ container_from_routes --
+GOOD_CLUSTER = {"reason": "no OSM polygon: a kommune route cluster"}
+def _route(rid, name="Rute"):
+    return {"id": f"r{rid}", "name": name, "reason": "reviewed official walk"}
+def _cluster_entry(d, **fields):
+    includes = fields.pop("include_trails", [_route(424241, "A"), _route(424242, "B")])
+    _plain(d, rules="dk-v3", container_from_routes=GOOD_CLUSTER, include_trails=includes,
+           relation_id=int(includes[0]["id"][1:]) if includes else 1, **fields)
+def test_registry_accepts_container_from_routes_with_two_includes_and_the_first_as_anchor(tmp_path):
+    reg = dk.load_registry(_write_registry(tmp_path / "r.json", lambda d: _cluster_entry(d)))
+    assert reg["areas"][1]["container_from_routes"] == GOOD_CLUSTER
+    assert reg["areas"][1]["relation_id"] == 424241
+@pytest.mark.parametrize("value", [True, "reason", {}, {"reason": " "}, {"reason": 5},
+                                   {**GOOD_CLUSTER, "extra": 1}, [GOOD_CLUSTER], None])
+def test_registry_rejects_bad_container_from_routes(tmp_path, value):
+    def mutate(d):
+        _cluster_entry(d)
+        d["areas"][1]["container_from_routes"] = value
+    with pytest.raises(dk.DkError, match="container_from_routes must be exactly"):
+        dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+def test_container_from_routes_fail_closed_registry_rules(tmp_path):
+    def bad(mutate, match):
+        with pytest.raises(dk.DkError, match=match):
+            dk.load_registry(_write_registry(tmp_path / "r.json", mutate))
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241)]), "at least 2 distinct")
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241), _route(424241)]), "include_trails repeats")
+    bad(lambda d: _cluster_entry(d, include_trails=[_route(424241), {"id": "n:Navn", "name": "Navn", "reason": "x"}]),
+        "distinct r<id>")
+    bad(lambda d: (_cluster_entry(d), d["areas"][1].update(relation_id=424242)), "must be the first include_trails route")
+    bad(lambda d: _cluster_entry(d, boundary_by_id=True), "exclusive with")
+    bad(lambda d: _cluster_entry(d, container_by_id=GOOD_CONTAINER), "exclusive with")
+    bad(lambda d: _cluster_entry(d, exclude_trails=[GOOD_EXCLUDE]), "exclude_trails is not allowed")
+    def way_backed(d):
+        _cluster_entry(d)
+        d["areas"][1].pop("relation_id")
+        d["areas"][1]["way_id"] = 424241
+    bad(way_backed, "needs relation_id")
+    for rules in ("dk-v2", "legacy"):
+        def other_rules(d, rules=rules):
+            _cluster_entry(d)
+            d["areas"][1]["rules"] = rules
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "r2.json", other_rules))
+def test_cluster_problems_check_every_include_the_size_cap_and_denmark():
+    route = {"bbox": [9.0, 56.0, 9.02, 56.01], "count": 1,
+             "tags": {"type": "route", "route": "hiking", "name": "X"}}
+    infos = {1: route, 2: {**route, "bbox": [9.01, 56.0, 9.03, 56.02]}}
+    box = [9.0, 56.0, 9.03, 56.02]
+    assert dk.cluster_problems({}, box, infos) == []
+    assert any("not in the PBF" in p for p in dk.cluster_problems({}, box, {**infos, 3: {}}))
+    assert any("not unique" in p for p in dk.cluster_problems({}, box, {**infos, 3: {**route, "count": 2}}))
+    assert any("expected a hiking/foot route" in p for p in dk.cluster_problems(
+        {}, box, {**infos, 3: {**route, "tags": {"type": "route", "route": "bicycle"}}}))
+    assert any("expected a hiking/foot route" in p for p in dk.cluster_problems(
+        {}, box, {**infos, 3: {**route, "tags": {"type": "multipolygon", "route": "hiking"}}}))
+    assert any("no member way geometry" in p for p in dk.cluster_problems({}, box, {**infos, 3: {**route, "bbox": None}}))
+    assert any("cap per axis" in p for p in dk.cluster_problems({}, [9.0, 56.0, 9.2, 56.02], infos))
+    assert any("outside Denmark" in p for p in dk.cluster_problems({}, [9.0, 50.0, 9.03, 50.02], infos))
+def test_cluster_geometry_uses_the_union_of_the_includes_and_skips_the_polygon_checks():
+    entry = _v3_entry(container_from_routes=GOOD_CLUSTER, relation_id=1,
+                      include_trails=[_route(1), _route(2)], bbox=None, center=None)
+    entry.pop("exclude_trails", None)
+    anchor = {"bbox": [9.0, 56.0, 9.02, 56.01], "count": 1, "tags": {"type": "route", "route": "hiking"}}
+    other = {"bbox": [9.01, 56.0, 9.03, 56.02], "count": 1, "tags": {"type": "route", "route": "foot"}}
+    union = dk.union_bbox([anchor["bbox"], other["bbox"]])
+    rec = dk.check_area_geometry(entry, union, None, "qualify", anchor, [anchor["bbox"], other["bbox"]],
+                                 {1: anchor, 2: other})
+    assert rec["status"] == "ok", rec["problems"]
+    assert rec["cross_check"] == "registry-relation" and rec["container"] == "route-cluster"
+    assert rec["boundary_bbox"] == union
+    assert rec["proposed_bbox"] == dk.pad_bbox(union)
+    # A cluster over the cap fails closed in prepare.
+    wide = {**other, "bbox": [9.3, 56.0, 9.32, 56.02]}
+    rec = dk.check_area_geometry(entry, dk.union_bbox([anchor["bbox"], wide["bbox"]]), None, "qualify", anchor,
+                                 [anchor["bbox"], wide["bbox"]], {1: anchor, 2: wide})
+    assert rec["status"] == "failed" and any("cap per axis" in p for p in rec["problems"])
+    # Control: the same anchor on a plain (non-cluster) entry still needs a polygon relation.
+    plain = dk.check_area_geometry(_v3_entry(relation_id=1), anchor["bbox"], None, "qualify", anchor)
+    assert any("expected boundary/multipolygon" in p for p in plain["problems"])
+def test_run_area_script_passes_container_from_routes_only_when_set():
+    script = (ROOT / "scripts/dk-run-area.sh").read_text()
+    assert ".container_from_routes // empty | .reason" in script and '[ -n "$CONTAINER_FROM_ROUTES" ]' in script
+    assert "--dk-container-from-routes" in script
+def test_no_live_registry_entry_uses_container_from_routes():
+    assert not [a["id"] for a in json.loads(REGISTRY.read_text(encoding="utf-8"))["areas"]
+                if "container_from_routes" in a]

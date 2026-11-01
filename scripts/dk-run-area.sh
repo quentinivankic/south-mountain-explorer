@@ -55,6 +55,10 @@ BOUNDARY_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .bo
   trailforge/golden/dk-areas.json)"
 CONTAINER_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_by_id // empty | .reason' \
   trailforge/golden/dk-areas.json)"
+# Optional route-cluster container (registry container_from_routes; dk-v3 only): the container is derived
+# from the include_trails routes for an area with no usable OSM polygon. Absent = no flag (byte-identical run).
+CONTAINER_FROM_ROUTES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_from_routes // empty | .reason' \
+  trailforge/golden/dk-areas.json)"
 # Optional display prefix for colour/number-only trail names (registry trail_name_prefix; dk-v3 only,
 # validated by dk_publish and assemble). Empty/absent = no prefix and no flag (byte-identical run).
 NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_prefix // empty' \
@@ -82,6 +86,9 @@ if [ "$BOUNDARY_BY_ID" = "true" ]; then
 fi
 if [ -n "$CONTAINER_BY_ID" ]; then
   EXCLUDE_ARGS+=(--dk-container-by-id)
+fi
+if [ -n "$CONTAINER_FROM_ROUTES" ]; then
+  EXCLUDE_ARGS+=(--dk-container-from-routes)
 fi
 if [ -n "$NAME_PREFIX" ]; then
   EXCLUDE_ARGS+=(--dk-name-prefix "$NAME_PREFIX")

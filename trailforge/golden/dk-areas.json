@@ -3317,30 +3317,30 @@
       "id": "slivso-dk",
       "name": "Slivsø",
       "state": "Denmark",
-      "way_id": 614565529,
-      "bbox": null,
-      "center": null,
+      "relation_id": 2906480,
+      "bbox": [9.41, 55.11, 9.54, 55.23],
+      "center": [55.17, 9.474],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 4.1,
-      "notes": "Batch I (dk-v3 + container_by_id from PR 666, 2026-10-31): HOLD, not shipped. Naturstyrelsen Slivsø nord (r2906480, 2.3 mi) and Slivsø syd (r2906481, 1.8 mi), 2 trails / 4.1 mi, the complete NS set at the lake, between live Pamhule and Sandkule. No honest container: the only eligible polygon touching the walks is a natural=wood way (614565529) with 1% of the linework, and the pipeline slice does not even carry it (replay: container way not found in the extract); the one landuse=forest piece is 0.002 x 0.003 deg, under the size floor. A weak polygon is allowed, a polygon that is not on the walks is not. Unlock: an OSM forest or reserve polygon around the lake, or natural=wood in the prefilter, then replay; include ids are already listed.",
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Slivsø near Haderslev: the complete Naturstyrelsen set, Slivsø nord 2.29 mi and syd 1.82 mi, 4.1 mi. This is the entry batch I held for lack of an honest container (the only touching polygon was natural=wood with 1 percent of the linework); route-cluster unlocks it, container derived from the two routes. Thin but complete.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Slivsø; container derived from the 2 included signed routes"
+      },
       "include_trails": [
         {
           "id": "r2906480",
           "name": "Slivsø, nord",
-          "reason": "r"
+          "reason": "Naturstyrelsen lwn walk, whole route"
         },
         {
           "id": "r2906481",
           "name": "Slivsø, syd",
-          "reason": "r"
+          "reason": "Naturstyrelsen lwn walk, whole route"
         }
-      ],
-      "container_by_id": {
-        "reason": "unlock candidate only: natural=wood way 614565529 (1% of the linework), not usable today"
-      }
+      ]
     },
     {
       "id": "soheden-plantage-dk",
@@ -3636,6 +3636,885 @@
           "id": "r12559639",
           "name": "Fosdalen Grøn rute",
           "reason": "lwn Naturstyrelsen relation 1.23 mi, the 2 km Grøn rute of the Fosdalen og Lien guide"
+        }
+      ]
+    },
+    {
+      "id": "bangsbo-skov-dk",
+      "name": "Bangsbo Skov",
+      "state": "Denmark",
+      "relation_id": 2232889,
+      "bbox": [10.45, 57.36, 10.56, 57.47],
+      "center": [57.418, 10.505],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.6,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Bangsbo Skov by Frederikshavn: the three colour-coded walks (blå, rød, gul) all named for the forest. No OSM forest or reserve polygon carries the name, so the container is derived from the three routes. Nested loops share 69 to 81 percent of the ground (like batch K). Kongestien (long-distance) and Hærvejen stay out.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bangsbo Skov; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r2232889",
+          "name": "Bangsbo Skov gul rute",
+          "reason": "lwn route with yellow waymarks, whole route"
+        },
+        {
+          "id": "r2232890",
+          "name": "Bangsbo Skov rød rute",
+          "reason": "lwn route with red waymarks, whole route"
+        },
+        {
+          "id": "r2232891",
+          "name": "Bangsbo Skov blå rute",
+          "reason": "lwn route with blue waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "hindsgavl-dk",
+      "name": "Hindsgavl",
+      "state": "Denmark",
+      "relation_id": 19349071,
+      "bbox": [9.63, 55.44, 9.77, 55.57],
+      "center": [55.506, 9.7],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.8,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Hindsgavl peninsula near Middelfart: Hindsgavl-ruten 5.93 mi and Hindsgavl-halvøen 3.88 mi, both named for the place; no polygon carries the name. 49 percent shared ground. The Middelfart town routes (Keramikruten, Marsvinruten, Klimaruten, Kløversti) are not Hindsgavl and stay out; Lillebæltsstien is long-distance.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Hindsgavl; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r19349071",
+          "name": "Hindsgavl-ruten",
+          "reason": "hiking route with blue hiker waymarks, whole route"
+        },
+        {
+          "id": "r19349036",
+          "name": "Hindsgavl-halvøen",
+          "reason": "hiking route with red hiker waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "hellevad-dk",
+      "name": "Hellevad",
+      "state": "Denmark",
+      "relation_id": 1877612,
+      "bbox": [9.13, 55.01, 9.26, 55.14],
+      "center": [55.075, 9.195],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 13.5,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Hellevad village (Aabenraa Kommune): the four colour-coded walks Rundt om Hellevad, 13.5 mi in total, the complete set. The spor.dk exercise track Sporet rundt om Hellevad is removed as dk-container-only by rule.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Hellevad; container derived from the 4 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r1877612",
+          "name": "Rundt om Hellevad, rød rute",
+          "reason": "Aabenraa Kommune lwn walk, red dot waymarks, whole route"
+        },
+        {
+          "id": "r1877613",
+          "name": "Rundt om Hellevad, blå rute",
+          "reason": "Aabenraa Kommune lwn walk, blue dot waymarks, whole route"
+        },
+        {
+          "id": "r1877614",
+          "name": "Rundt om Hellevad, gul rute",
+          "reason": "Aabenraa Kommune lwn walk, yellow dot waymarks, whole route"
+        },
+        {
+          "id": "r1877615",
+          "name": "Rundt om Hellevad, grøn rute",
+          "reason": "Aabenraa Kommune lwn walk, green dot waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "grenen-dk",
+      "name": "Grenen",
+      "state": "Denmark",
+      "relation_id": 12554700,
+      "bbox": [10.54, 57.68, 10.7, 57.8],
+      "center": [57.738, 10.624],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 12.7,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Grenen, the northern tip at Skagen: the four Grenensporet walks (Frederikshavn Kommune), 12.7 mi. The area name is the destination (the routes say Grenensporet). Grøn is 89 percent on Blå (short cut loop). No polygon carries the name Grenen.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Grenen; container derived from the 4 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12554700",
+          "name": "Grenensporet Rød rute",
+          "reason": "Frederikshavn Kommune lwn walk, red hiker waymarks, whole route"
+        },
+        {
+          "id": "r12554729",
+          "name": "Grenensporet Gul rute",
+          "reason": "Frederikshavn Kommune lwn walk, yellow hiker waymarks, whole route"
+        },
+        {
+          "id": "r12554749",
+          "name": "Grenensporet Grøn rute",
+          "reason": "Frederikshavn Kommune lwn walk, green hiker waymarks, whole route"
+        },
+        {
+          "id": "r12554769",
+          "name": "Grenensporet Blå rute",
+          "reason": "Frederikshavn Kommune lwn walk, blue hiker waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "asted-adal-dk",
+      "name": "Åsted Ådal",
+      "state": "Denmark",
+      "relation_id": 6910589,
+      "bbox": [10.36, 57.38, 10.49, 57.49],
+      "center": [57.435, 10.424],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 6.7,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Åsted Ådal (Frederikshavn Kommune area): the gul, rød and blå Åsted Ådal walks, 6.7 mi, named for the valley. OSM only (no operator tag), no polygon carries the name.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Åsted Ådal; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r6910589",
+          "name": "Åsted Ådal - gul rute",
+          "reason": "lwn route with yellow waymarks, whole route"
+        },
+        {
+          "id": "r6910590",
+          "name": "Åsted Ådal - rød rute",
+          "reason": "lwn route with red waymarks, whole route"
+        },
+        {
+          "id": "r6913025",
+          "name": "Åsted Ådal - blå rute",
+          "reason": "lwn route with blue waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "ammitsbol-baek-dk",
+      "name": "Ammitsbøl Bæk",
+      "state": "Denmark",
+      "relation_id": 12593922,
+      "bbox": [9.34, 55.59, 9.45, 55.71],
+      "center": [55.649, 9.394],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 4.0,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Ammitsbøl Bæk near Ødsted: three Ødsted-Jerlev Lokalråd walks (rød 2.03 mi, gul 1.49, blå 0.51), the lokalråd's complete signed set. THIN: blå is a 0.8 km stub; reviewer may drop it (area stays 2 trails, 3.5 mi).",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Ammitsbøl Bæk; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12593922",
+          "name": "Ammitsbøl Bæk Rød Rute",
+          "reason": "Ødsted-Jerlev Lokalråd lwn walk, red hiker waymarks, whole route"
+        },
+        {
+          "id": "r12594008",
+          "name": "Ammitsbøl Bæk Gul Rute",
+          "reason": "Ødsted-Jerlev Lokalråd lwn walk, yellow hiker waymarks, whole route"
+        },
+        {
+          "id": "r12594074",
+          "name": "Ammitsbøl Bæk Blå rute",
+          "reason": "Ødsted-Jerlev Lokalråd lwn walk, blue hiker waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "tinglev-dk",
+      "name": "Tinglev",
+      "state": "Denmark",
+      "relation_id": 11232065,
+      "bbox": [9.17, 54.87, 9.35, 55.0],
+      "center": [54.934, 9.263],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 18.4,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Tinglev (Aabenraa Kommune): the five Tinglev Forum walks (Olger, Amalienborg, Mosevang, Tinglev Vest, Kælkebakke) plus Tinglev Mose, 18.5 mi, named for the town. Local walking routes of the forum, not an exercise network. Nesting is light (2 to 49 percent). Bolderslev, Hærvejen and pilgrim routes are removed as outside.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Tinglev; container derived from the 6 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r11232065",
+          "name": "Olger-Ruten",
+          "reason": "Tinglev Forum lwn walk, blue pointer waymarks, whole route"
+        },
+        {
+          "id": "r11248779",
+          "name": "Amalienborg-Ruten",
+          "reason": "Tinglev Forum lwn walk, red dot waymarks, whole route"
+        },
+        {
+          "id": "r11246433",
+          "name": "Mosevang-Ruten",
+          "reason": "Tinglev Forum lwn walk, yellow pointer waymarks, whole route"
+        },
+        {
+          "id": "r11243744",
+          "name": "Tinglev Vest-Ruten",
+          "reason": "Tinglev Forum lwn walk, green pointer waymarks, whole route"
+        },
+        {
+          "id": "r11250367",
+          "name": "Kælkebakke-Ruten",
+          "reason": "Tinglev Forum lwn walk, red pointer waymarks, whole route"
+        },
+        {
+          "id": "r1876931",
+          "name": "Tinglev Mose",
+          "reason": "lwn walk with ref tm, Tinglev, whole route"
+        }
+      ]
+    },
+    {
+      "id": "skaelskor-dk",
+      "name": "Skælskør",
+      "state": "Denmark",
+      "relation_id": 16238833,
+      "bbox": [11.2, 55.18, 11.36, 55.33],
+      "center": [55.256, 11.276],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 16.7,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Skælskør (Slagelse Kommune): Noret Rundt, Lystskov, Lodshusstien, Inderfjord, Borreby Mose (Slagelse Kommune and Danmarks Naturfredningsforening folder routes) plus the Dansk Vandrelaug Kobæk Kvalitetssti at Kobæk Strand, which sits inside the same container and is a certified quality path. Lagunestien is a Sjællandsleden regional leg (rwn) and stays out.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Skælskør; container derived from the 6 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r16238833",
+          "name": "Noret Rundt",
+          "reason": "Danmarks Naturfredningsforening Slagelse folder route, whole route"
+        },
+        {
+          "id": "r16239311",
+          "name": "Skælskør Lystskov",
+          "reason": "Slagelse Kommune walk (folder), whole route"
+        },
+        {
+          "id": "r16239950",
+          "name": "Lodshusstien",
+          "reason": "lwn walk, Danmarks Naturfredningsforening Slagelse folder, whole route"
+        },
+        {
+          "id": "r16240035",
+          "name": "Skælskør Inderfjord",
+          "reason": "Slagelse Kommune walk (folder), whole route"
+        },
+        {
+          "id": "r16240110",
+          "name": "Stien ved Borreby Mose",
+          "reason": "Slagelse Kommune walk (folder), whole route"
+        },
+        {
+          "id": "r12696633",
+          "name": "Kobæk Kvalitetssti",
+          "reason": "Dansk Vandrelaug Kvalitetssti at Kobæk Strand, lwn, whole route"
+        }
+      ]
+    },
+    {
+      "id": "hingelbjerge-dk",
+      "name": "Hingelbjerge",
+      "state": "Denmark",
+      "relation_id": 14013344,
+      "bbox": [9.27, 57.06, 9.38, 57.17],
+      "center": [57.116, 9.323],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Hingelbjerge (Jammerbugt coast): the Rød and Gul Hingelbjerge routes, 3.3 mi, named for the hills. Søbakkeruten (Naturstyrelsen) is already an include of live Svinkløv og Kollerup Plantager and stays there. Thin, no operator tag.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Hingelbjerge; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r14013344",
+          "name": "Hingelbjerge - Rød Rute",
+          "reason": "lwn route with red-on-green dot waymarks, whole route"
+        },
+        {
+          "id": "r14013345",
+          "name": "Hingelbjerge - Gul Rute",
+          "reason": "lwn route with yellow-on-green dot waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "nybol-nor-dk",
+      "name": "Nybøl Nor",
+      "state": "Denmark",
+      "relation_id": 3304092,
+      "bbox": [9.55, 54.86, 9.73, 54.99],
+      "center": [54.923, 9.64],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 11.4,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Nybøl Nor (Sønderborg Kommune): Nybøl Nor Stien 8.43 mi and Nybølstien 2.94 mi, 11.4 mi, both kommune walks around the cove. 39 percent shared. Æblestien (3.5 mi route mostly outside) and the alternative-route variant stay out; no polygon carries the name.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Nybøl Nor; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r3304092",
+          "name": "Nybøl Nor Stien",
+          "reason": "Sønderborg Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r1853173",
+          "name": "Nybølstien",
+          "reason": "Sønderborg Kommune walk (ref nyb), whole route"
+        }
+      ]
+    },
+    {
+      "id": "skamlingsbanken-dk",
+      "name": "Skamlingsbanken",
+      "state": "Denmark",
+      "relation_id": 19517706,
+      "bbox": [9.52, 55.36, 9.64, 55.48],
+      "center": [55.42, 9.579],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 5.0,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Skamlingsbanken (Kolding), the hill and national meeting place: Skamlingsbankestien 2.65 mi, Højskamling 0.90, Udsigtsruten 1.40, colour-coded dot waymarks, 4.9 mi. OSM only (no operator), no polygon carries the name.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Skamlingsbanken; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r19517706",
+          "name": "Skamlingsbankestien",
+          "reason": "hiking route with white dot waymarks, whole route"
+        },
+        {
+          "id": "r19517707",
+          "name": "Højskamling",
+          "reason": "hiking route with orange dot waymarks, whole route"
+        },
+        {
+          "id": "r19517708",
+          "name": "Udsigtsruten",
+          "reason": "hiking route with red dot waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "kas-hoved-dk",
+      "name": "Kås Hoved",
+      "state": "Denmark",
+      "relation_id": 12449638,
+      "bbox": [8.63, 56.55, 8.77, 56.68],
+      "center": [56.616, 8.699],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.7,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Kås Hoved on the Limfjord (Skive Kommune): Ålbæk Kås Rundtur 5.87 mi and Sønderhøje - Kås 0.86 mi, 6.7 mi. THIN: one real loop plus a short link walk; reviewer may drop the short one.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Kås Hoved; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12449638",
+          "name": "Ålbæk Kås Rundtur",
+          "reason": "Skive Kommune lwn walk (udinaturen.dk), blue hiker waymarks, whole route"
+        },
+        {
+          "id": "r20605600",
+          "name": "Sønderhøje - Kås",
+          "reason": "Skive Kommune lwn walk (udinaturen.dk), whole route"
+        }
+      ]
+    },
+    {
+      "id": "nysted-dk",
+      "name": "Nysted",
+      "state": "Denmark",
+      "relation_id": 12478874,
+      "bbox": [11.66, 54.6, 11.79, 54.72],
+      "center": [54.662, 11.725],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.4,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Nysted (Lolland): Aalholm Slot rundtur 3.24 mi and the Naturlandet Lolland-Falster culture and nature path around Nysted 4.16 mi, 7.4 mi. Sjællandsleden, Paradisruten and Klosterruten are long-distance legs and stay out.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Nysted; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12478874",
+          "name": "Aalholm Slot rundtur",
+          "reason": "lwn walk with blue hiker waymarks, whole route"
+        },
+        {
+          "id": "r14775897",
+          "name": "En kultur- og natursti rundt om Nysted",
+          "reason": "Naturlandet Lolland-Falster lwn walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "bovbjerg-fyr-dk",
+      "name": "Bovbjerg Fyr",
+      "state": "Denmark",
+      "relation_id": 12759358,
+      "bbox": [8.07, 56.42, 8.22, 56.58],
+      "center": [56.5, 8.144],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 12.5,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Bovbjerg Fyr (Lemvig coast): the Trans loop 2.41 mi and the four-churches loop 10.06 mi (Friluftguiden), 12.5 mi, both named for the lighthouse. Tipvognsstien has no route relation and stays out. Not inside a Danish national park (Thy ends further north).",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bovbjerg Fyr; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12759358",
+          "name": "Bovbjerg Fyr - Trans rundtur",
+          "reason": "lwn walk with blue hiker waymarks, whole route"
+        },
+        {
+          "id": "r12759414",
+          "name": "Bovbjerg Fyr - fire kirker",
+          "reason": "Friluftguiden lwn walk, red hiker waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "orslevkloster-so-dk",
+      "name": "Ørslevkloster Sø og Virksund",
+      "state": "Denmark",
+      "relation_id": 20582353,
+      "bbox": [9.21, 56.55, 9.34, 56.67],
+      "center": [56.61, 9.275],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Ørslevkloster Sø and Virksund (Skive Kommune): Ørslevkloster Sø 1.90 mi and Virksund - Blå rute 4.44 mi, 6.3 mi, one Limfjord area 3 km across. Display name carries both places, nearest place node is Virksund.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Ørslevkloster Sø og Virksund; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r20582353",
+          "name": "Ørslevkloster Sø",
+          "reason": "Skive Kommune lwn walk (udinaturen.dk), red pointer waymarks, whole route"
+        },
+        {
+          "id": "r20609445",
+          "name": "Virksund - Blå rute",
+          "reason": "Skive Kommune lwn walk (udinaturen.dk), whole route"
+        }
+      ]
+    },
+    {
+      "id": "troldhede-brunkulsleje-dk",
+      "name": "Troldhede Brunkulsleje",
+      "state": "Denmark",
+      "relation_id": 13436007,
+      "bbox": [8.67, 55.95, 8.78, 56.06],
+      "center": [56.005, 8.728],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Troldhede Brunkulsleje (Herning): the two signed walks through the old lignite pits, rute 1 1.76 mi and rute 2 1.50 mi, 3.3 mi, 0.8 km across. Sister of live Haunstrup Brunkulslejer. Thin but the complete set.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Troldhede Brunkulsleje; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r13436007",
+          "name": "Troldhede Brunkulsleje, rute 1",
+          "reason": "lwn walk with red-on-green pointer waymarks, whole route"
+        },
+        {
+          "id": "r13436006",
+          "name": "Troldhede Brunkulsleje, rute 2",
+          "reason": "lwn walk with red-on-green pointer waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "bogense-dk",
+      "name": "Bogense",
+      "state": "Denmark",
+      "relation_id": 12344948,
+      "bbox": [9.99, 55.5, 10.17, 55.62],
+      "center": [55.562, 10.085],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 8.8,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Bogense (Nordfyns Kommune): Engruten 4.79 mi and Digerouten 3.97 mi, the two kommune clover-symbol walks at the town and fjord, 8.8 mi. Kulturhistorisk byroute (town culture route) is removed as dk-container-only by rule.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bogense; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12344948",
+          "name": "Engruten",
+          "reason": "Nordfyns Kommune lwn walk, red four-leaf clover symbol, whole route"
+        },
+        {
+          "id": "r14695384",
+          "name": "Digerouten",
+          "reason": "Nordfyns Kommune lwn walk, blue four-leaf clover symbol, whole route"
+        }
+      ]
+    },
+    {
+      "id": "lystrupminde-dk",
+      "name": "Lystrupminde",
+      "state": "Denmark",
+      "relation_id": 12865072,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 3.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Lystrupminde HOLD (batch L route-cluster): Vrads Sande til Lystrupminde 2.23 mi and Lystrupminde rundtur 1.03 mi (Danmarks Naturfredningsforening), 3.3 mi. The first carries an OSM note that no waymarks were seen between Vrads and the Naturskole, and Lystrupminde rundtur is also an include of the held Velling Skov entry. Unlock: settle with the Velling Skov review.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Lystrupminde; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12865072",
+          "name": "Vrads Sande til Lystrupminde",
+          "reason": "Danmarks Naturfredningsforening lwn walk, whole route"
+        },
+        {
+          "id": "r12865080",
+          "name": "Lystrupminde rundtur",
+          "reason": "Danmarks Naturfredningsforening lwn walk, yellow dot waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "gesten-dk",
+      "name": "Gesten",
+      "state": "Denmark",
+      "relation_id": 3334575,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 7.4,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Gesten HOLD (batch L route-cluster): Blå rute Gesten rundt 5.29 mi and Rød rute Langebjerg Plantage 2.07 mi, 7.4 mi. Two differently named places 4.5 km apart sharing one route number, operator tag only Local, nothing confirms they are one walk system. Unlock: a kommune or fond source naming one place.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Gesten; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r3334575",
+          "name": "Blå rute – Gesten rundt",
+          "reason": "Local operator tag, whole route"
+        },
+        {
+          "id": "r3334576",
+          "name": "Rød rute – Langebjerg Plantage",
+          "reason": "lwn route, whole route"
+        }
+      ]
+    },
+    {
+      "id": "faarup-so-dk",
+      "name": "Fårup Sø",
+      "state": "Denmark",
+      "relation_id": 3238879,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 6.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Fårup Sø HOLD (batch L route-cluster): Rundt om Fårup Sø 3.35 mi, Rugballe Mose 1.86, Sti fra Jelling 1.09 (Vejle Kommune). The fourth Vejle route Fårupgår - Fårup Sø fails the relation-gap gate, so the set is incomplete, and Sti fra Jelling is a town link. Unlock: reviewed accept_gap for Fårupgår or an OSM fix.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Fårup Sø; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r3238879",
+          "name": "Rundt om Fårup Sø",
+          "reason": "Vejle Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r3238898",
+          "name": "Rugballe Mose",
+          "reason": "Vejle Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r3238900",
+          "name": "Sti fra Jelling",
+          "reason": "Vejle Kommune lwn walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "klim-dk",
+      "name": "Klim",
+      "state": "Denmark",
+      "relation_id": 13329885,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 6,
+      "est_mi": 6.3,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Klim HOLD (batch L route-cluster): Klim Bjerg blå 0.62 mi and grøn 1.56, Parabelstien 1.49 and three routes OSM names only red/green/blue triangle (1.13, 0.57, 0.93), 6.3 mi in a 3.3 x 2.8 km area at Klim Kalkbrud. The English bare names cannot be prefixed (triangle is not a filler word) and a Klim Bjerg polygon exists (see klim-bjerg-dk, 0.01 deg), so the clean Danish set is only 3.7 mi. Unlock: OSM rename of the triangle routes, then ship.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Klim; container derived from the 6 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r13329885",
+          "name": "Klim Bjerg blå rute",
+          "reason": "lwn route with blue dot waymarks, whole route"
+        },
+        {
+          "id": "r13329886",
+          "name": "Klim Bjerg grøn rute",
+          "reason": "lwn route with green dot waymarks, whole route"
+        },
+        {
+          "id": "r19290499",
+          "name": "Parabelstien",
+          "reason": "lwn route, whole route"
+        },
+        {
+          "id": "r20741919",
+          "name": "red triangle",
+          "reason": "lwn route, red pointer waymarks, whole route"
+        },
+        {
+          "id": "r20741920",
+          "name": "green triangle",
+          "reason": "lwn route, green pointer waymarks, whole route"
+        },
+        {
+          "id": "r20741921",
+          "name": "blue triangle",
+          "reason": "lwn route, blue pointer waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "sindal-dk",
+      "name": "Sindal",
+      "state": "Denmark",
+      "relation_id": 14371913,
+      "bbox": [10.11, 57.42, 10.26, 57.53],
+      "center": [57.476, 10.188],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 11.8,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Sindal (Hjørring Kommune): Soldalstien 5.77 mi, Skovstien 4.08 and Ulstedbostien 1.98, the three pointer-marked walks of the Naturvejleder Hjørring Vandrestier i Sindal brochure, 11.8 mi, 1.7 x 3.2 km. The relations carry no network or operator tag so they come in via include_trails.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Sindal; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r14371913",
+          "name": "Soldalstien",
+          "reason": "hiking route, red pointer waymarks, Sindal walks brochure and udinaturen.dk"
+        },
+        {
+          "id": "r14374316",
+          "name": "Ulstedbostien",
+          "reason": "hiking route, black pointer waymarks, Naturvejleder Hjørring Sindal walks brochure"
+        },
+        {
+          "id": "r14374323",
+          "name": "Skovstien",
+          "reason": "hiking route, blue pointer waymarks, Naturvejleder Hjørring Sindal walks brochure"
+        }
+      ]
+    },
+    {
+      "id": "jensen-og-sorensens-plantage-dk",
+      "name": "Jensen og Sørensens Plantage",
+      "state": "Denmark",
+      "relation_id": 20510531,
+      "bbox": [8.8, 56.48, 8.92, 56.59],
+      "center": [56.533, 8.862],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.6,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Jensen og Sørensens Plantage: the Blå (1.20 mi) and Gul (1.41 mi) walks listed on udinaturen.dk, 2.6 mi, 0.8 x 1.0 km. THIN: the complete signed set of a small plantation; reviewer may drop it.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Jensen og Sørensens Plantage; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r20510531",
+          "name": "Jensen og Sørensens Plantage - Blå rute",
+          "reason": "lwn walk (udinaturen.dk), blue pointer waymarks, whole route"
+        },
+        {
+          "id": "r20510532",
+          "name": "Jensen og Sørensens Plantage - Gul rute",
+          "reason": "lwn walk (udinaturen.dk), yellow pointer waymarks, whole route"
+        }
+      ]
+    },
+    {
+      "id": "borum-dk",
+      "name": "Borum",
+      "state": "Denmark",
+      "relation_id": 16662575,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 6.6,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Borum HOLD (batch L route-cluster): Gul 1.53 mi, Rød 2.04, Blå 3.07, bare colour names (trail_name_prefix would be Borum) on a spor.dk landowner trail (spor.dk says Velkommen til sporet ved Borum, three stier of 2.5, 3 and 6 km). The second-review rule excludes spor.dk Sporet ved X; unlock only on a ruling that landowner spor.dk walks count.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Borum; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r16662575",
+          "name": "Gul Rute",
+          "reason": "spor.dk Sporet ved Borum, whole route"
+        },
+        {
+          "id": "r16662576",
+          "name": "Rød Rute",
+          "reason": "spor.dk Sporet ved Borum, whole route"
+        },
+        {
+          "id": "r16662577",
+          "name": "Blå Rute",
+          "reason": "spor.dk Sporet ved Borum, whole route"
+        }
+      ]
+    },
+    {
+      "id": "store-dannesbo-dk",
+      "name": "Store Dannesbo",
+      "state": "Denmark",
+      "relation_id": 12737859,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 2.2,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Store Dannesbo HOLD (batch L route-cluster): three spor.dk walks near Brylle on Funen (not Avernak island), 0.70, 0.57 and 0.90 mi = 2.2 mi, under the 2.5 mi line and a spor.dk landowner trail (same ruling as Borum). Name would be Store Dannesbo, not Avernakø.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Store Dannesbo; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12737859",
+          "name": "Store Dannesbo og Avernakgaard - Gul rute",
+          "reason": "spor.dk Store Dannesbo og Avernakgaard, whole route"
+        },
+        {
+          "id": "r12737857",
+          "name": "Store Dannesbo og Avernakgaard - Blå rute",
+          "reason": "spor.dk Store Dannesbo og Avernakgaard, whole route"
+        },
+        {
+          "id": "r12737858",
+          "name": "Store Dannesbo og Avernakgaard - Rød rute",
+          "reason": "spor.dk Store Dannesbo og Avernakgaard, whole route"
+        }
+      ]
+    },
+    {
+      "id": "kaerby-molle-dk",
+      "name": "Kærby Mølle",
+      "state": "Denmark",
+      "relation_id": 12824994,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 4.0,
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Kærby Mølle HOLD (batch L route-cluster): Mølleruten 0.95 mi, Ulvholmruten 1.93, Kvottrupruten 1.09 (Randers Kommune), 4.0 mi, 1 x 2.4 km. Mølleruten and Ulvholmruten start at Kærby Mølle, but AllTrails places Ulvholmruten at Dyrby Krat and Kvottrupruten has no description, so the honest place name is not settled. Unlock: a Randers Kommune page naming the walks' shared place.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Kærby Mølle; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12824994",
+          "name": "Mølleruten",
+          "reason": "Randers Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r12825009",
+          "name": "Ulvholmruten",
+          "reason": "Randers Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r12825035",
+          "name": "Kvottrupruten",
+          "reason": "Randers Kommune lwn walk, whole route"
         }
       ]
     }

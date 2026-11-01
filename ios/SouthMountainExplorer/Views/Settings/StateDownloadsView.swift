@@ -193,7 +193,7 @@ struct StateDownloadRow: View {
         let failed = manager.failedCount(scope.id)
         VStack(alignment: .leading, spacing: 4) {
             Text(scope.displayName).font(.headline)
-            Text("\(scope.areaIDs.count) areas, about \(StateDownloadFormat.bytes(estimate.wireBytes)) download, \(StateDownloadFormat.bytes(estimate.onDeviceBytes)) on device")
+            Text("\(scope.areaIDs.count) areas, about \(StateDownloadFormat.bytes(estimate.wireBytes)) download, \(StateDownloadFormat.bytes(estimate.onDeviceBytes)) on device\(manager.isRoughEstimate(scope) ? " (rough estimate)" : "")")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(StateDownloadFormat.statusText(status))

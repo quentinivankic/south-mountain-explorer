@@ -48,7 +48,15 @@ struct StateCatalogTests {
         #expect(!StateCatalog.isSafeAreaID("a/b"))
     }
 
-    @Test func bundledIndexGroupsIntoFiftyOneUSScopesAndDenmark() throws {
+    @Test func anyNonUSRegionBecomesACountry() {
+        let scopes = StateCatalog.build(
+            summaries: [summary("c1", "Canada"), summary("d1", "Denmark"), summary("u1", "Utah")],
+            isHiddenAlias: { _ in false }
+        )
+        #expect(scopes.filter { $0.kind == .country }.map(\.id) == ["Canada", "Denmark"])
+        #expect(scopes.filter { $0.kind == .usState }.map(\.id) == ["Utah"])
+    }
+    @Test func bundledIndexGroupsEveryNonUSValueAsACountry() throws {
         let url = try #require(Bundle.main.url(forResource: "areas-index", withExtension: "json"))
         let rows = try JSONDecoder().decode([[JSONValue]].self, from: Data(contentsOf: url))
         let summaries = rows.compactMap { row -> AreaSummary? in
@@ -58,7 +66,9 @@ struct StateCatalogTests {
         }
         let scopes = StateCatalog.build(summaries: summaries, isHiddenAlias: { _ in false })
         #expect(scopes.filter { $0.kind == .usState }.count == 51)
-        #expect(scopes.filter { $0.kind == .country }.map(\.id) == ["Denmark"])
+        let nonUS = Set(summaries.map(\.subtitle)).subtracting(StateCatalog.usStateNames)
+        #expect(Set(scopes.filter { $0.kind == .country }.map(\.id)) == nonUS)
+        #expect(scopes.filter { $0.kind == .usState }.allSatisfy { StateCatalog.usStateNames.contains($0.id) })
         #expect(scopes.reduce(0) { $0 + $1.areaIDs.count } == summaries.count)
     }
 }

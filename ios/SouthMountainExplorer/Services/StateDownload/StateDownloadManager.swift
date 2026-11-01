@@ -161,6 +161,12 @@ final class StateDownloadManager {
         sizeTable?.estimate(for: scope) ?? .zero
     }
 
+    /// True when the size table has no measured row for this scope (e.g. a
+    /// newly added country), so the figure is a global-rate guess.
+    func isRoughEstimate(_ scope: StateScope) -> Bool {
+        sizeTable?.row(for: scope.id) == nil
+    }
+
     func remainingEstimate(_ scope: StateScope) -> SizeEstimate {
         sizeTable?.estimate(for: scope, missingIDs: missingIDs(scope)) ?? .zero
     }

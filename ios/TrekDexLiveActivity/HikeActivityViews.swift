@@ -88,7 +88,7 @@ struct HikeNextTurnRow: View {
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
-                    if let trail = state.nextTurnTrail {
+                    if let trail = state.nextTurnSubtitle {
                         Text(trail)
                             .font(.caption)
                             .foregroundStyle(.secondary)

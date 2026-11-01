@@ -65,6 +65,17 @@ struct HikeActivityAttributes: ActivityAttributes {
     var isWalk: Bool
 }
 
+extension HikeActivityAttributes.ContentState {
+    /// Second line of the next-turn row. Nil when it would repeat a name the
+    /// first line already shows ("Off Hidden Valley Trail" + "Hidden Valley Trail").
+    var nextTurnSubtitle: String? {
+        guard let trail = nextTurnTrail?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trail.isEmpty else { return nil }
+        if let text = nextTurnText, text.localizedCaseInsensitiveContains(trail) { return nil }
+        return trail
+    }
+}
+
 extension HikeActivityAttributes.ContentState.Status {
     /// Short label for the status pill; nil when nothing needs saying.
     var pillText: String? {

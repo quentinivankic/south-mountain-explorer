@@ -148,6 +148,11 @@ enum HikeActivityStateMapper {
             }
         }
 
+        // The turn engine and the estimator judge "off trail" separately, so
+        // the cue can say off trail a moment before the estimate does. Finish
+        // is meaningless off trail; hide it. Back (retrace) stays.
+        if snapshot.nextTurn?.kind == .offTrail { trailEnd = nil }
+
         var turnRow: LiveActivityNextTurnFormatter.Row?
         if finishedAt == nil, !status.isDegraded, let turn = snapshot.nextTurn {
             turnRow = LiveActivityNextTurnFormatter.row(for: turn, units: units)

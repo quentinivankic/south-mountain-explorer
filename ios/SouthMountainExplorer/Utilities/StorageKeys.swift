@@ -37,6 +37,9 @@ enum StorageKeys {
     /// so Reset All Progress leaves them alone.
     static let turnCueVoice = "summit:turn-cue-voice"
     static let turnCueHaptics = "summit:turn-cue-haptics"
+    /// Turn cues as local notifications while the app is not active. Default OFF
+    /// (unlike voice/haptics): read with `defaults.bool(forKey:)`.
+    static let turnCueNotifyLocked = "summit:turn-cue-notify-locked"
 
     // MARK: - User progress (cleared by Reset All Progress)
 

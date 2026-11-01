@@ -82,6 +82,8 @@ struct SettingsView: View {
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
     @AppStorage(StorageKeys.turnCueVoice) private var turnCueVoice = true
     @AppStorage(StorageKeys.turnCueHaptics) private var turnCueHaptics = true
+    @AppStorage(StorageKeys.turnCueNotifyLocked) private var turnCueNotifyLocked = false
+    @State private var notifyDenied = false
 
     /// URL of the most recent diagnostics bundle. Non-nil while
     /// the share sheet is presented; cleared when it dismisses
@@ -224,10 +226,30 @@ struct SettingsView: View {
                                 context: ["value": String(newValue)]
                             )
                         }
+                    Toggle("Notify when locked", isOn: $turnCueNotifyLocked)
+                        .onChange(of: turnCueNotifyLocked) { _, newValue in
+                            ActivityLogService.shared.log(
+                                category: "settings", action: "turnCueNotifyLocked",
+                                context: ["value": String(newValue)]
+                            )
+                            if newValue {
+                                notifyDenied = false
+                                requestTurnCueNotifications()
+                            }
+                        }
+                        .task { await refreshTurnCueNotificationState() }
+                    if notifyDenied {
+                        Text("Notifications are off for TrekDex in iOS Settings, so turn cue notifications can't be sent.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            Link("Open iOS Settings", destination: url)
+                        }
+                    }
                 } header: {
                     Text("Turn Cues")
                 } footer: {
-                    Text("While recording a trail, TrekDex warns you before forks and turns. Voice cues play even when the silent switch is on. Haptics only work while the screen is on.")
+                    Text("While recording a trail, TrekDex warns you before forks and turns. Voice cues play even when the silent switch is on. Haptics only work while the screen is on. Notify when locked vibrates and shows each cue on the Lock Screen while the phone is locked. It needs notification permission.")
                 }
                 Section("Offline Trails") {
                     Text("Downloaded trail and catalog geometry stays available without a signal. Apple base-map tiles may not.")
@@ -543,6 +565,31 @@ struct SettingsView: View {
         case .networkUnavailable: return "Background download waits for an unmetered connection."
         case .expensiveNetwork: return "Background download skipped cellular data."
         case .movementCooldown: return "Nearby Offline Trails are already verified for this location."
+        }
+    }
+
+    /// Asks for notification permission when the user turns the toggle on
+    /// (never at launch). Denied: the toggle goes back off with an explanation.
+    private func requestTurnCueNotifications() {
+        Task { @MainActor in
+            let center = UNTurnCueNotificationCenter()
+            var status = await center.authorizationStatus()
+            if status == .notDetermined {
+                _ = await center.requestAuthorization()
+                status = await center.authorizationStatus()
+            }
+            notifyDenied = status != .authorized
+            if notifyDenied { turnCueNotifyLocked = false }
+        }
+    }
+
+    /// If iOS notifications were switched off after the toggle was enabled,
+    /// show the toggle as off.
+    private func refreshTurnCueNotificationState() async {
+        let status = await UNTurnCueNotificationCenter().authorizationStatus()
+        if turnCueNotifyLocked, status == .denied {
+            turnCueNotifyLocked = false
+            notifyDenied = true
         }
     }
 

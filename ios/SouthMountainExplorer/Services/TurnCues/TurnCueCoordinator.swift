@@ -36,6 +36,7 @@ final class TurnCueCoordinator {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let speaker: TurnCueSpeaker
     @ObservationIgnored private let haptics: TurnCueHaptics
+    @ObservationIgnored private let notifier: TurnCueNotifier
     @ObservationIgnored private let callObserver = CXCallObserver()
     @ObservationIgnored private var started = false
     @ObservationIgnored private var currentKey: Key?
@@ -56,7 +57,8 @@ final class TurnCueCoordinator {
         areas: AreaDataService,
         defaults: UserDefaults = .standard,
         speaker: TurnCueSpeaker? = nil,
-        haptics: TurnCueHaptics? = nil
+        haptics: TurnCueHaptics? = nil,
+        notificationCenter: (any TurnCueNotificationCenter)? = nil
     ) {
         self.recording = recording
         self.location = location
@@ -64,6 +66,7 @@ final class TurnCueCoordinator {
         self.defaults = defaults
         self.speaker = speaker ?? TurnCueSpeaker()
         self.haptics = haptics ?? TurnCueHaptics()
+        self.notifier = TurnCueNotifier(center: notificationCenter ?? UNTurnCueNotificationCenter())
     }
 
     func start() {
@@ -104,6 +107,7 @@ final class TurnCueCoordinator {
     }
 
     private func teardown() {
+        if let ended = currentKey { notifier.recordingEnded(recordingId: ended.recordingId) }
         session?.cancel()
         session = nil
         engine = nil
@@ -198,7 +202,9 @@ final class TurnCueCoordinator {
             appActive: location.isApplicationActive,
             callActive: callObserver.calls.contains { !$0.hasEnded }
         )
-        for action in TurnCueDispatcher.plan(event, ctx) {
+        let actions = TurnCueDispatcher.plan(event, ctx)
+        postLockedNotification(for: event, ctx: ctx, actions: actions)
+        for action in actions {
             switch action {
             case .banner(let ev):
                 showBanner(for: ev, now: now)
@@ -218,6 +224,22 @@ final class TurnCueCoordinator {
                 )
             }
         }
+    }
+
+    /// Lock Screen cue: only while the app is not active; the notifier
+    /// dedupes, replaces and checks permission.
+    private func postLockedNotification(for event: TurnCueEvent, ctx: TurnCueDeliveryContext, actions: [TurnCueAction]) {
+        guard let key = currentKey else { return }
+        let speaks = actions.contains { if case .speak = $0 { return true } else { return false } }
+        let nctx = TurnCueNotificationContext(
+            enabled: defaults.bool(forKey: StorageKeys.turnCueNotifyLocked),
+            appActive: ctx.appActive,
+            recordingId: key.recordingId,
+            trailName: engine?.route.trailName ?? "",
+            units: currentUnits(),
+            voiceWillSpeak: speaks)
+        guard nctx.enabled, !nctx.appActive else { return }
+        Task { @MainActor [notifier] in await notifier.handle(event, nctx) }
     }
 
     // MARK: - Banner

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UserNotifications
 
 /// Owns the UNUserNotificationCenter integration for trail-completion
@@ -72,6 +73,17 @@ extension NotificationService: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let info = response.notification.request.content.userInfo
+        // Turn-cue notification: reuse the Live Activity deep link to open the active hike.
+        if (info["kind"] as? String) == UNTurnCueNotificationCenter.userInfoKind {
+            let link = (info["url"] as? String).flatMap(URL.init(string:))
+            Task { @MainActor in
+                if let link, LiveActivityDeepLink.parse(link) != nil {
+                    UIApplication.shared.open(link)
+                }
+            }
+            completionHandler()
+            return
+        }
         guard
             (info["kind"] as? String) == "trailComplete",
             let areaId = info["areaId"] as? String,

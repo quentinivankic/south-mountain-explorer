@@ -48,13 +48,14 @@ final class AreaDataService {
     /// hammering a single one that just rate-limited us.
     private var endpointCursor = 0
 
-    private let cacheDir: URL = {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("areas", isDirectory: true)
-    }()
+    private let cacheDir: URL
+    private let cacheStore: AreaCacheStore
 
     private init() {
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
+        let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("areas", isDirectory: true)
+        cacheDir = directory
+        cacheStore = AreaCacheStore(cacheDirectory: directory)
         Task { await loadIndex() }
     }
 
@@ -304,13 +305,8 @@ final class AreaDataService {
     private func locallyAvailableAreaIds() -> [String] {
         var ids = Set(areaCache.keys)
         let valid = Set(summaries.map(\.id))
-        if let files = try? FileManager.default.contentsOfDirectory(
-            at: cacheDir, includingPropertiesForKeys: nil
-        ) {
-            for url in files where url.pathExtension == "json" {
-                let id = url.deletingPathExtension().lastPathComponent
-                if valid.contains(id) { ids.insert(id) }
-            }
+        for entry in cacheStore.entries() where valid.contains(entry.id) {
+            ids.insert(entry.id)
         }
         return Array(ids)
     }
@@ -352,37 +348,50 @@ final class AreaDataService {
             .map(\.area)
     }
 
-    /// Pull favorites and the user's 10 most-recently-opened areas down
-    /// to disk so they're available offline. Reuses the public
-    /// `area(id:)` path, which short-circuits anything fresher than 24 h
-    /// — so on warm caches this is essentially free. Progress callback
-    /// fires per item with `(completed, total)`; pass `nil` for silent
-    /// background runs (the cold-launch path).
-    func prefetchOffline(progress: ((Int, Int) async -> Void)? = nil) async {
+    /// Verify favorites first, then the user's ten most-recently-opened
+    /// areas, preserving stable order and performing at most one fetch at a
+    /// time. Progress counts verified outcomes, not attempted downloads.
+    func prefetchOffline(
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)? = nil
+    ) async -> OfflineTrailPrefetchResult {
         let favorites = FavoritesService.shared.favoriteAreas.map(\.id)
         let recents = ActivityService.shared.areaOpenedAt
             .sorted { $0.value > $1.value }
             .prefix(10)
             .map(\.key)
-        // Stable de-dupe: favorites first (the user's explicit signal),
-        // then any recents that aren't already a favorite. Keeps the
-        // Settings progress count climbing predictably and means a user
-        // with overlap doesn't double-fetch.
-        var seen = Set<String>()
-        var targets: [String] = []
-        for id in favorites + recents {
-            if seen.insert(id).inserted { targets.append(id) }
-        }
-        let total = targets.count
-        await progress?(0, total)
-        for (i, id) in targets.enumerated() {
-            _ = await area(id: id)
-            await progress?(i + 1, total)
-            // Yield so SwiftUI can render between cache-warm items;
-            // without it the loop completes inside one render tick and
-            // the count appears to flash straight to N of N.
-            await Task.yield()
-        }
+        return await prefetch(
+            ids: favorites + recents,
+            forceRefresh: false,
+            progress: progress
+        )
+    }
+
+    /// Refresh only the durable area files the user currently has. Existing
+    /// valid bytes remain available for every failed target.
+    func refreshOfflineTrails(
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)? = nil
+    ) async -> OfflineTrailPrefetchResult {
+        URLCache.shared.removeAllCachedResponses()
+        return await prefetch(
+            ids: cacheStore.entries().map(\.id).sorted(),
+            forceRefresh: true,
+            progress: progress
+        )
+    }
+
+    /// Retry precisely the failed IDs from a prior operation. Refresh retries
+    /// bypass the already-current shortcut so stale bytes are retained while a
+    /// new replacement is verified.
+    func retryOfflineTrails(
+        _ result: OfflineTrailPrefetchResult,
+        forceRefresh: Bool,
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)? = nil
+    ) async -> OfflineTrailPrefetchResult {
+        await prefetch(
+            ids: result.retryIDs,
+            forceRefresh: forceRefresh,
+            progress: progress
+        )
     }
 
     // MARK: - Nearby-Radius Prefetch
@@ -391,83 +400,98 @@ final class AreaDataService {
     private static let lastNearbyLatKey = StorageKeys.prefetchNearbyLastLat
     private static let lastNearbyLonKey = StorageKeys.prefetchNearbyLastLon
 
-    /// Pull every area whose center is within `radiusMi` of the given
-    /// coordinate down to disk. Skips anything already covered by
-    /// `prefetchOffline` (favorites + recents) so the two callers can
-    /// safely run back-to-back without double-fetching. Same per-item
-    /// loop pattern as `prefetchOffline`.
     func prefetchNearby(
         centerLat: Double,
         centerLon: Double,
         radiusMi: Double,
-        progress: ((Int, Int) async -> Void)? = nil
-    ) async {
-        let already = Set(
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)? = nil
+    ) async -> OfflineTrailPrefetchResult {
+        let alreadyPrioritized = Set(
             FavoritesService.shared.favoriteAreas.map(\.id)
             + ActivityService.shared.areaOpenedAt
                 .sorted { $0.value > $1.value }
                 .prefix(10)
                 .map(\.key)
         )
-        let targets: [String] = summaries.compactMap { s in
-            guard !already.contains(s.id) else { return nil }
-            let d = haversineDistanceMi(
-                lat1: centerLat, lon1: centerLon,
-                lat2: s.centerLat, lon2: s.centerLon
+        let targets = summaries.compactMap { summary -> String? in
+            guard !alreadyPrioritized.contains(summary.id) else { return nil }
+            let distance = haversineDistanceMi(
+                lat1: centerLat,
+                lon1: centerLon,
+                lat2: summary.centerLat,
+                lon2: summary.centerLon
             )
-            return d <= radiusMi ? s.id : nil
+            return distance <= radiusMi ? summary.id : nil
         }
-        let total = targets.count
-        await progress?(0, total)
-        for (i, id) in targets.enumerated() {
-            _ = await area(id: id)
-            await progress?(i + 1, total)
-            await Task.yield()
-        }
+        return await prefetch(ids: targets, forceRefresh: false, progress: progress)
     }
 
-    /// Orchestrator for the cold-launch / foreground-resume nearby
-    /// prefetch. Returns `true` if a prefetch ran (or was already
-    /// cache-fresh by the movement check), `false` if it was skipped
-    /// because of network policy / no location / not enough movement.
-    ///
-    /// Movement check: skips if the user hasn't moved more than 25 mi
-    /// since the last successful prefetch — keeps us from re-fetching
-    /// the same 50-mi disc on every foreground transition.
-    ///
-    /// Network check: defaults to Wi-Fi only. Pass `force: true` from a
-    /// user-initiated Settings button after they've confirmed cellular
-    /// is OK.
     @discardableResult
     func runNearbyPrefetchIfAppropriate(
         radiusMi: Double = 50,
         movementThresholdMi: Double = 25,
         force: Bool = false,
-        progress: ((Int, Int) async -> Void)? = nil
-    ) async -> Bool {
-        guard let loc = LocationService.shared.userLocation else { return false }
-        if !force && NetworkService.shared.isExpensive { return false }
-
-        let ud = UserDefaults.standard
-        let lastLat = ud.object(forKey: Self.lastNearbyLatKey) as? Double
-        let lastLon = ud.object(forKey: Self.lastNearbyLonKey) as? Double
-        if !force, let lastLat, let lastLon {
-            let moved = haversineDistanceMi(
-                lat1: lastLat, lon1: lastLon,
-                lat2: loc.latitude, lon2: loc.longitude
-            )
-            if moved < movementThresholdMi { return false }
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)? = nil
+    ) async -> NearbyOfflineTrailPrefetchResult {
+        guard let location = LocationService.shared.userLocation else {
+            return .skipped(.noLocation)
+        }
+        if let reason = NearbyOfflineTrailPrefetchResult.networkSkip(
+            isOnUnmeteredNetwork: NetworkService.shared.isOnUnmeteredNetwork,
+            isExpensive: NetworkService.shared.isExpensive,
+            force: force
+        ) {
+            return .skipped(reason)
         }
 
-        await prefetchNearby(
-            centerLat: loc.latitude,
-            centerLon: loc.longitude,
+        let defaults = UserDefaults.standard
+        let lastLat = defaults.object(forKey: Self.lastNearbyLatKey) as? Double
+        let lastLon = defaults.object(forKey: Self.lastNearbyLonKey) as? Double
+        if !force, let lastLat, let lastLon {
+            let moved = haversineDistanceMi(
+                lat1: lastLat,
+                lon1: lastLon,
+                lat2: location.latitude,
+                lon2: location.longitude
+            )
+            if moved < movementThresholdMi { return .skipped(.movementCooldown) }
+        }
+
+        let result = await prefetchNearby(
+            centerLat: location.latitude,
+            centerLon: location.longitude,
             radiusMi: radiusMi,
             progress: progress
         )
-        ud.set(loc.latitude, forKey: Self.lastNearbyLatKey)
-        ud.set(loc.longitude, forKey: Self.lastNearbyLonKey)
-        return true
+        let runResult = NearbyOfflineTrailPrefetchResult.completed(result)
+        if runResult.shouldAdvanceCooldown {
+            defaults.set(location.latitude, forKey: Self.lastNearbyLatKey)
+            defaults.set(location.longitude, forKey: Self.lastNearbyLonKey)
+        }
+        return runResult
+    }
+
+    private func prefetch(
+        ids: [String],
+        forceRefresh: Bool,
+        progress: ((OfflineTrailPrefetchProgress) async -> Void)?
+    ) async -> OfflineTrailPrefetchResult {
+        let prefetcher = OfflineTrailPrefetcher(
+            isDurablyAvailable: { [cacheStore] id in
+                cacheStore.validArea(id: id) != nil
+            },
+            fetchAndVerify: { [weak self] id in
+                guard let self else { return false }
+                let fetched = await self.fetchAndCacheAreaWithError(id: id)
+                return fetched.durableWriteSucceeded
+                    && self.cacheStore.validArea(id: id) != nil
+            }
+        )
+        return await prefetcher.run(
+            ids: ids,
+            forceRefresh: forceRefresh,
+            progress: progress
+        )
     }
 
     // MARK: - Full Area Data
@@ -592,7 +616,14 @@ final class AreaDataService {
             let result = await existing.value
             return (result, result == nil ? "Fetch already in progress but returned no data." : nil)
         }
-        return await fetchAndCacheAreaWithError(id: id)
+        let fetched = await fetchAndCacheAreaWithError(id: id)
+        return (fetched.area, fetched.error)
+    }
+
+    private struct AreaFetchResult {
+        let area: Area?
+        let error: String?
+        let durableWriteSucceeded: Bool
     }
 
     @discardableResult
@@ -600,22 +631,22 @@ final class AreaDataService {
         await fetchAndCacheAreaWithError(id: id).area
     }
 
-    private func fetchAndCacheAreaWithError(id: String) async -> (area: Area?, error: String?) {
-        guard let summary = summaries.first(where: { $0.id == id }) else {
-            return (nil, "Area not found in index.")
+    private func fetchAndCacheAreaWithError(id: String) async -> AreaFetchResult {
+        guard let summary = summariesById[id] else {
+            return AreaFetchResult(
+                area: nil,
+                error: "Area not found in index.",
+                durableWriteSucceeded: false
+            )
         }
 
-        // CDN-first: precomputed per-area JSON gives us deterministic
-        // trail ids and the same counts Browse shows. On 404 / network
-        // error / empty payload we fall through to the live Overpass
-        // path below, which still has its mirror-rotation + retry
-        // safety net for areas not yet present in our build.
-        if let cdnArea = await fetchFromCdn(id: id), !cdnArea.trails.isEmpty {
-            // Persist the raw CDN payload to disk first; decimation is a
-            // render-side concern and stays out of the on-disk cache.
-            saveAreaToDisk(cdnArea)
-            let cached = cacheAreaForRendering(cdnArea)
-            return (cached, nil)
+        // CDN-first: precomputed per-area JSON gives us deterministic trail
+        // identities. A replacement becomes the in-memory current copy only
+        // after its durable file has passed staged and final verification.
+        if let cdnArea = await fetchFromCdn(id: id),
+           cdnArea.id == id,
+           !cdnArea.trails.isEmpty {
+            return persistFetchedArea(cdnArea, expectedID: id)
         }
 
         let stub = AreaRow(
@@ -624,45 +655,25 @@ final class AreaDataService {
             zoom: 13, bbox: nil, trails: nil, trailCount: nil, totalMi: nil, cachedAt: nil,
             osmRelationId: summary.osmRelationId
         )
-        // Inline retry: Overpass occasionally returns an empty body (timeout
-        // converted to 200, rate-limit slot, etc.). One trip ≈ a 1–3s "Trail
-        // data didn't load" screen for the user; a quick second/third attempt
-        // catches the transient case in the same load instead of pushing the
-        // recovery onto a manual close-and-reopen.
         let maxAttempts = 3
         var attempt = 0
-        var lastError: Error? = nil
+        var lastError: Error?
         while attempt < maxAttempts {
             attempt += 1
             do {
-                let row = try await fetchFromOverpass(row: stub)
-                let area = row.toArea()
-                if area.trails.isEmpty {
-                    // Defensive: a flaky Overpass response can succeed with
-                    // zero trails. Don't overwrite a previously-good cache
-                    // with empty data.
-                    if let existingMemory = areaCache[id], !existingMemory.trails.isEmpty {
-                        return (existingMemory, nil)
-                    }
-                    if let existingDisk = loadAreaFromDisk(id: id), !existingDisk.trails.isEmpty {
-                        let cached = cacheAreaForRendering(existingDisk)
-                        return (cached, nil)
-                    }
+                let area = try await fetchFromOverpass(row: stub).toArea()
+                guard area.id == id, !area.trails.isEmpty else {
                     if attempt < maxAttempts {
-                        // No prior cache. Brief backoff and retry — the
-                        // failure mode here is usually a one-shot upstream
-                        // hiccup that resolves a second later.
                         try? await Task.sleep(for: .milliseconds(600 * attempt))
                         continue
                     }
-                    // Final attempt also empty. Don't write to disk so the
-                    // next open retries instead of caching the empty result.
-                    let cached = cacheAreaForRendering(area)
-                    return (cached, nil)
+                    return AreaFetchResult(
+                        area: existingValidArea(id: id),
+                        error: "Downloaded trail data was empty or did not match this area.",
+                        durableWriteSucceeded: false
+                    )
                 }
-                saveAreaToDisk(area)
-                let cached = cacheAreaForRendering(area)
-                return (cached, nil)
+                return persistFetchedArea(area, expectedID: id)
             } catch {
                 lastError = error
                 if attempt < maxAttempts {
@@ -670,7 +681,35 @@ final class AreaDataService {
                 }
             }
         }
-        return (nil, lastError?.localizedDescription ?? "Could not load trail data.")
+        return AreaFetchResult(
+            area: existingValidArea(id: id),
+            error: lastError?.localizedDescription ?? "Could not load trail data.",
+            durableWriteSucceeded: false
+        )
+    }
+
+    private func persistFetchedArea(_ area: Area, expectedID: String) -> AreaFetchResult {
+        let receipt = cacheStore.store(area, expectedID: expectedID)
+        guard receipt.succeeded,
+              let durableArea = cacheStore.validArea(id: expectedID)
+        else {
+            return AreaFetchResult(
+                area: existingValidArea(id: expectedID) ?? area,
+                error: "Trail data loaded, but couldn't be verified for offline use.",
+                durableWriteSucceeded: false
+            )
+        }
+        return AreaFetchResult(
+            area: cacheAreaForRendering(durableArea),
+            error: nil,
+            durableWriteSucceeded: true
+        )
+    }
+
+    private func existingValidArea(id: String) -> Area? {
+        if let area = areaCache[id], !area.trails.isEmpty { return area }
+        guard let area = cacheStore.validArea(id: id) else { return nil }
+        return cacheAreaForRendering(area)
     }
 
     // Returns (relationId, bbox [w,s,e,n]) or nil
@@ -957,14 +996,7 @@ final class AreaDataService {
     }
 
     private func loadAreaFromDisk(id: String) -> Area? {
-        let url = areaDiskURL(id: id)
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(Area.self, from: data)
-    }
-
-    private func saveAreaToDisk(_ area: Area) {
-        guard let data = try? JSONEncoder().encode(area) else { return }
-        try? data.write(to: areaDiskURL(id: area.id))
+        cacheStore.validArea(id: id)
     }
 
     func cachedArea(id: String) -> Area? {
@@ -973,10 +1005,9 @@ final class AreaDataService {
 
     func clearAreaCache() {
         areaCache.removeAll()
-        // The HTTP-response cache is SEPARATE from our disk cache. Without this
-        // a "Clear & Refresh" re-serves the same stale geom bytes from URLCache
-        // (the CDN's max-age=86400 keeps them "fresh"), so a removed pin never
-        // disappears. Clear it too so the refresh actually re-fetches.
+        // The HTTP-response cache is separate from durable Offline Trails.
+        // Explicit Manage Offline Trails deletion clears both so a later open
+        // cannot immediately repopulate from an old URLCache response.
         URLCache.shared.removeAllCachedResponses()
         if let files = try? FileManager.default.contentsOfDirectory(at: cacheDir, includingPropertiesForKeys: nil) {
             for file in files where file.pathExtension == "json" && file.lastPathComponent != "index-v2.json" && file.lastPathComponent != "summaries-v2.json" {
@@ -1000,30 +1031,21 @@ final class AreaDataService {
         let sizeBytes: Int
     }
 
-    /// Enumerate every area JSON cached on disk. Names come from the
-    /// loaded summaries index (`summaries`) — orphan cache files
-    /// (whose area is no longer in the index) fall back to the id.
-    /// Sorted by name for stable UI rendering.
+    /// Enumerate only decoded, non-empty, identity-matching durable area files.
+    /// File sizes are the verified JSON byte counts, not directory estimates.
     func downloadedAreas() -> [DownloadedArea] {
-        // uniquingKeysWith — a duplicate id in the published index must not trap.
-        let summariesById = Dictionary(summaries.map { ($0.id, $0) },
-                                       uniquingKeysWith: { first, _ in first })
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: cacheDir,
-            includingPropertiesForKeys: [.fileSizeKey]
-        ) else { return [] }
-        var rows: [DownloadedArea] = []
-        for file in files where file.pathExtension == "json" {
-            let last = file.lastPathComponent
-            if last == "index-v2.json" || last == "summaries-v2.json" { continue }
-            let id = String(last.dropLast(".json".count))
-            let resourceValues = try? file.resourceValues(forKeys: [.fileSizeKey])
-            let size = resourceValues?.fileSize ?? 0
-            let name = summariesById[id]?.name ?? id
-            rows.append(DownloadedArea(id: id, name: name, sizeBytes: size))
-        }
-        rows.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        return rows
+        let names = summariesById.mapValues(\.name)
+        return cacheStore.entries()
+            .map { entry in
+                DownloadedArea(
+                    id: entry.id,
+                    name: names[entry.id] ?? entry.area.name,
+                    sizeBytes: entry.sizeBytes
+                )
+            }
+            .sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
     }
 
     /// Remove a single area from the on-disk + in-memory cache. The

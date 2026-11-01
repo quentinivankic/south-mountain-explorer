@@ -285,4 +285,563 @@ struct FittedRegionTests {
         #expect(abs(r.center - (-95.8)) < 1e-9, "Expected plain midpoint, got \(r.center)")
         #expect(abs(r.span - 57.8) < 1e-9, "Expected plain span, got \(r.span)")
     }
+
+    // MARK: - Selected-route directional safe region
+
+    @Test func directionalBottomOnlyFit_isExistingFit() {
+        let existing = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112,
+            latDelta: 0.02, lonDelta: 0.03,
+            bottomInset: 240,
+            screenHeight: 800, screenWidth: 400
+        )
+        let directional = TrailMapView.fittedRegion(
+            centerLat: 33.3, centerLon: -112,
+            latDelta: 0.02, lonDelta: 0.03,
+            viewportInsets: MapViewportInsets(bottom: 240),
+            screenHeight: 800, screenWidth: 400,
+            maximumVerticalObstructionFraction: 0.85
+        )
+        #expect(directional == existing)
+    }
+
+    @Test func selectedRouteRegion_accessibilityObstructionFitsThreeNearMarkers() {
+        let screenHeight: CGFloat = 956
+        let screenWidth: CGFloat = 440
+        let minLat = 33.308428
+        let maxLat = 33.362899
+        let minLon = -112.147982
+        let maxLon = -111.985179
+        let routeCenterLat = (minLat + maxLat) / 2
+        let routeCenterLon = (minLon + maxLon) / 2
+        let routeLatDelta = (maxLat - minLat) * 1.4
+        let routeLonDelta = (maxLon - minLon) * 1.4
+        let nearMarkers: [(lat: Double, lon: Double)] = [
+            (33.330292, -112.144294),
+            (33.342873, -112.044261),
+            (33.362764, -111.985179),
+        ]
+        let obstruction = MapViewportInsets(
+            top: 174,
+            leading: 20,
+            bottom: 746,
+            trailing: 20
+        )
+        let compatibility = TrailMapView.fittedRegion(
+            centerLat: routeCenterLat,
+            centerLon: routeCenterLon,
+            latDelta: routeLatDelta,
+            lonDelta: routeLonDelta,
+            viewportInsets: obstruction,
+            screenHeight: screenHeight,
+            screenWidth: screenWidth
+        )
+        let selected = TrailMapView.selectedRouteRegion(
+            points: [(minLat, minLon), (maxLat, maxLon)] + nearMarkers,
+            viewportInsets: obstruction,
+            screenHeight: screenHeight,
+            screenWidth: screenWidth
+        )
+        guard case .region(
+            let oldLat, let oldLon, let oldLatDelta, let oldLonDelta
+        ) = compatibility,
+              let selected,
+              case .region(
+                let selectedLat, let selectedLon,
+                let selectedLatDelta, let selectedLonDelta
+              ) = selected else {
+            Issue.record("Expected compatibility and selected-route regions")
+            return
+        }
+
+        func project(
+            _ point: (lat: Double, lon: Double),
+            centerLat: Double,
+            centerLon: Double,
+            latDelta: Double,
+            lonDelta: Double
+        ) -> CGPoint {
+            let mercatorLatPerLon = max(0.05, cos(routeCenterLat * .pi / 180))
+            let displayedLatDelta = max(
+                latDelta,
+                lonDelta * Double(screenHeight / screenWidth) * mercatorLatPerLon
+            )
+            let displayedLonDelta = max(
+                lonDelta,
+                latDelta * Double(screenWidth / screenHeight) / mercatorLatPerLon
+            )
+            return CGPoint(
+                x: CGFloat(
+                    (0.5 + (point.lon - centerLon) / displayedLonDelta)
+                        * Double(screenWidth)
+                ),
+                y: CGFloat(
+                    (0.5 - (point.lat - centerLat) / displayedLatDelta)
+                        * Double(screenHeight)
+                )
+            )
+        }
+
+        let measuredFirstFrame = CGRect(x: 67, y: 290, width: 31, height: 34)
+        let oldFirstPoint = project(
+            nearMarkers[0],
+            centerLat: oldLat,
+            centerLon: oldLon,
+            latDelta: oldLatDelta,
+            lonDelta: oldLonDelta
+        )
+        let measuredOffset = CGPoint(
+            x: measuredFirstFrame.minX - oldFirstPoint.x,
+            y: measuredFirstFrame.minY - oldFirstPoint.y
+        )
+        func renderedFrames(
+            centerLat: Double,
+            centerLon: Double,
+            latDelta: Double,
+            lonDelta: Double
+        ) -> [CGRect] {
+            nearMarkers.map { marker in
+                let oldPoint = project(
+                    marker,
+                    centerLat: oldLat,
+                    centerLon: oldLon,
+                    latDelta: oldLatDelta,
+                    lonDelta: oldLonDelta
+                )
+                let targetPoint = project(
+                    marker,
+                    centerLat: centerLat,
+                    centerLon: centerLon,
+                    latDelta: latDelta,
+                    lonDelta: lonDelta
+                )
+                return CGRect(
+                    x: oldPoint.x + measuredOffset.x + (targetPoint.x - oldPoint.x).rounded(),
+                    y: oldPoint.y + measuredOffset.y + (targetPoint.y - oldPoint.y).rounded(),
+                    width: 31,
+                    height: 34
+                )
+            }
+        }
+        func paddedEnvelopeIsInsideMeasuredCorridor(_ frame: CGRect) -> Bool {
+            frame.minX >= 6
+                && frame.maxX <= screenWidth - 6
+                && frame.minY >= 134 + 6
+                && frame.maxY <= 290 - 6
+        }
+
+        let compatibilityFrames = renderedFrames(
+            centerLat: oldLat,
+            centerLon: oldLon,
+            latDelta: oldLatDelta,
+            lonDelta: oldLonDelta
+        )
+        let selectedFrames = renderedFrames(
+            centerLat: selectedLat,
+            centerLon: selectedLon,
+            latDelta: selectedLatDelta,
+            lonDelta: selectedLonDelta
+        )
+        #expect(!compatibilityFrames.allSatisfy(paddedEnvelopeIsInsideMeasuredCorridor))
+        #expect(selectedFrames.count == 3)
+        #expect(selectedFrames.allSatisfy(paddedEnvelopeIsInsideMeasuredCorridor))
+    }
+
+    @Test func selectedVerticalCeiling_keepsStandardDirectionalGeometryUnchanged() {
+        let standardInsets = MapViewportInsets(
+            top: 100,
+            leading: 120,
+            bottom: 300,
+            trailing: 40
+        )
+        let compatibility = TrailMapView.fittedRegion(
+            centerLat: 33.35,
+            centerLon: -111.95,
+            latDelta: 0.14,
+            lonDelta: 0.14,
+            viewportInsets: standardInsets,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        let selectedCeiling = TrailMapView.fittedRegion(
+            centerLat: 33.35,
+            centerLon: -111.95,
+            latDelta: 0.14,
+            lonDelta: 0.14,
+            viewportInsets: standardInsets,
+            screenHeight: 800,
+            screenWidth: 400,
+            maximumVerticalObstructionFraction: 0.85
+        )
+        #expect(selectedCeiling == compatibility)
+    }
+
+    @Test func selectedRouteRegion_includesRouteEndpointsAndNearbyParking() {
+        let trail = Trail(
+            id: "selected-route",
+            name: "Selected Route",
+            distanceMi: 1,
+            difficulty: .easy,
+            segments: [[
+                [33.30, -112.00],
+                [33.40, -111.90],
+            ]]
+        )
+        let near = ParkingLot(
+            lat: 33.3005,
+            lon: -112.0005,
+            name: nil,
+            fee: nil,
+            trailhead: nil,
+            source: "osm"
+        )
+        let far = ParkingLot(
+            lat: 33.50,
+            lon: -112.50,
+            name: nil,
+            fee: nil,
+            trailhead: nil,
+            source: "osm"
+        )
+        let nearbyParking = Area.nearestParking(lots: [near, far], for: trail)
+        let farFallback = Area.nearestParkingWithFallback(lots: [far], for: trail)
+        #expect(nearbyParking == [near])
+        #expect(farFallback.count == 1)
+        #expect(farFallback.first?.lot == far)
+        #expect(farFallback.first?.isNear == false)
+
+        guard let points = TrailMapView.selectedRoutePoints(
+            segments: trail.segments,
+            additionalPoints: nearbyParking.map { (lat: $0.lat, lon: $0.lon) }
+        ) else {
+            Issue.record("Expected valid route and nearby parking points")
+            return
+        }
+        #expect(points.contains { $0.lat == near.lat && $0.lon == near.lon })
+        #expect(!points.contains { $0.lat == far.lat && $0.lon == far.lon })
+
+        let target = TrailMapView.selectedRouteRegion(
+            points: points,
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(let centerLat, let centerLon, let latDelta, let lonDelta) = target else {
+            Issue.record("Expected a finite selected-route region")
+            return
+        }
+        #expect(centerLat.isFinite && centerLon.isFinite)
+        #expect(latDelta.isFinite && lonDelta.isFinite)
+        for point in points {
+            #expect(abs(point.lat - centerLat) <= latDelta / 2)
+            #expect(abs(point.lon - centerLon) <= lonDelta / 2)
+        }
+    }
+
+    @Test func selectedRouteRegion_usesShortAntimeridianExtent() {
+        let target = TrailMapView.selectedRouteRegion(
+            points: [(51, 179.5), (51.2, -179.5)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(_, let centerLon, _, let lonDelta) = target else {
+            Issue.record("Expected an antimeridian-safe selected-route region")
+            return
+        }
+        #expect(abs(centerLon) == 180)
+        #expect(lonDelta < 2)
+    }
+
+    @Test func selectedRouteRegion_directionalObstructionsContainVerticalBounds() {
+        let points: [(lat: Double, lon: Double)] = [
+            (33.30, -112.00),
+            (33.40, -111.90),
+        ]
+        let target = TrailMapView.selectedRouteRegion(
+            points: points,
+            viewportInsets: MapViewportInsets(top: 100, bottom: 300),
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let target,
+              case .region(let centerLat, _, let latDelta, _) = target else {
+            Issue.record("Expected a directionally fitted selected-route region")
+            return
+        }
+        let topFraction = 100.0 / 800.0
+        let bottomFraction = 1 - 300.0 / 800.0
+        for point in points {
+            let normalizedY = 0.5 - (point.lat - centerLat) / latDelta
+            #expect(normalizedY >= topFraction - 1e-9)
+            #expect(normalizedY <= bottomFraction + 1e-9)
+        }
+        #expect(centerLat < 33.35, "A larger bottom obstruction must move content upward")
+    }
+
+    @Test func selectedRouteRegion_asymmetricSideObstructionsShiftLongitude() {
+        let centered = TrailMapView.selectedRouteRegion(
+            points: [(33.3, -112.0), (33.4, -111.9)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        let leading = TrailMapView.selectedRouteRegion(
+            points: [(33.3, -112.0), (33.4, -111.9)],
+            viewportInsets: MapViewportInsets(leading: 80),
+            screenHeight: 800,
+            screenWidth: 400
+        )
+        guard let centered,
+              let leading,
+              case .region(_, let centeredLon, _, _) = centered,
+              case .region(_, let shiftedLon, _, let shiftedSpan) = leading else {
+            Issue.record("Expected directional longitude regions")
+            return
+        }
+        #expect(shiftedLon < centeredLon)
+        #expect(shiftedSpan > 0.14)
+    }
+
+    @Test func markerFramesAreComplete_rejectsIncompleteSet() {
+        let frames = [CGRect(x: 20, y: 20, width: 28, height: 40)]
+        #expect(!MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerFramesAreComplete_rejectsInvalidCompleteSet() {
+        let frames = [
+            CGRect(x: 20, y: 20, width: 28, height: 40),
+            CGRect(x: CGFloat.nan, y: 30, width: 28, height: 40),
+            CGRect(x: 40, y: 40, width: 0, height: 40),
+        ]
+        #expect(!MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerFramesAreComplete_acceptsFiniteThreeOfThreeSet() {
+        let frames = [
+            CGRect(x: 20, y: 20, width: 28, height: 40),
+            CGRect(x: 60, y: 30, width: 28, height: 40),
+            CGRect(x: 100, y: 40, width: 28, height: 40),
+        ]
+        #expect(MapKitMapView.markerFramesAreComplete(frames, expectedCount: 3))
+    }
+
+    @Test func markerOcclusionCorrection_aggregatesEveryFrame() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [
+                CGRect(x: 40, y: 4, width: 10, height: 10),
+                CGRect(x: 4, y: 40, width: 10, height: 10),
+                CGRect(x: 40, y: 84, width: 10, height: 10),
+                CGRect(x: 84, y: 40, width: 10, height: 10),
+            ],
+            mapBounds: CGRect(x: 0, y: 0, width: 100, height: 100),
+            visibleInsets: MapViewportInsets(top: 10, leading: 10, bottom: 10, trailing: 10),
+            padding: 0
+        )
+        #expect(correction.top == 6)
+        #expect(correction.leading == 6)
+        #expect(correction.bottom == 4)
+        #expect(correction.trailing == 4)
+    }
+
+    @Test func markerOcclusionCorrection_movesOnlyForRealSheetOverlap() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [CGRect(x: 150, y: 272, width: 28, height: 24)],
+            mapBounds: CGRect(x: 0, y: 0, width: 375, height: 667),
+            visibleInsets: MapViewportInsets(top: 88, bottom: 372),
+            padding: 6
+        )
+        #expect(correction.top == 0)
+        #expect(correction.leading == 0)
+        #expect(correction.bottom == 7)
+        #expect(correction.trailing == 0)
+    }
+
+    @Test func markerOcclusionCorrection_clearsMeasuredAccessibilitySheetOverlap() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: [CGRect(x: 241, y: 256, width: 31, height: 34)],
+            mapBounds: CGRect(x: 0, y: 0, width: 440, height: 956),
+            visibleInsets: MapViewportInsets(top: 134, bottom: 667)
+        )
+        #expect(correction == MapViewportInsets(bottom: 9))
+        #expect(TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: true,
+            correction: correction
+        ))
+        #expect(!TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: false,
+            correction: correction
+        ))
+    }
+
+    @Test func markerOcclusionCorrection_keepsVisibleLargeMarkerUnchanged() {
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            // Fully inside the physical screen/control/sheet viewport, while
+            // deliberately crossing the old synthetic 20-point side inset.
+            markerFrames: [CGRect(x: 4, y: 220, width: 28, height: 40)],
+            mapBounds: CGRect(x: 0, y: 0, width: 440, height: 956),
+            visibleInsets: MapViewportInsets(top: 134, bottom: 388),
+            padding: 6
+        )
+        #expect(correction == .zero)
+    }
+
+    @Test func markerAudit_completeZeroObservationLeavesGenerationOpen() {
+        let frames = [CGRect(x: 40, y: 40, width: 28, height: 40)]
+        #expect(MapKitMapView.markerFramesAreComplete(frames, expectedCount: 1))
+        let correction = MapKitMapView.markerOcclusionCorrection(
+            markerFrames: frames,
+            mapBounds: CGRect(x: 0, y: 0, width: 100, height: 100),
+            visibleInsets: .zero,
+            padding: 0
+        )
+        #expect(correction == .zero)
+
+        var lastConsumedGeneration = 0
+        let emitted = MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: 7,
+            correction: correction,
+            lastConsumedGeneration: &lastConsumedGeneration
+        )
+        #expect(!emitted)
+        #expect(lastConsumedGeneration == 0)
+    }
+
+    @Test func markerAudit_laterSameGenerationOcclusionEmitsOnce() {
+        var lastConsumedGeneration = 0
+        var reportCount = 0
+        let generation = 11
+
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: .zero,
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            reportCount += 1
+        }
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: MapViewportInsets(bottom: 7),
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            reportCount += 1
+        }
+
+        #expect(reportCount == 1)
+        #expect(lastConsumedGeneration == generation)
+    }
+
+    @Test func markerAudit_nonzeroReportConsumesBeforeCallback() {
+        var lastConsumedGeneration = 0
+        var generationObservedByCallback = 0
+        let generation = 13
+
+        if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+            generation: generation,
+            correction: MapViewportInsets(leading: 4),
+            lastConsumedGeneration: &lastConsumedGeneration
+        ) {
+            generationObservedByCallback = lastConsumedGeneration
+        }
+
+        #expect(generationObservedByCallback == generation)
+    }
+
+    @Test func markerAudit_duplicateNonzeroReportIsBlocked() {
+        var lastConsumedGeneration = 0
+        var reportCount = 0
+        let generation = 17
+        let correction = MapViewportInsets(trailing: 5)
+
+        for _ in 0..<2 {
+            if MapKitMapView.consumeMarkerAuditGenerationIfNeeded(
+                generation: generation,
+                correction: correction,
+                lastConsumedGeneration: &lastConsumedGeneration
+            ) {
+                reportCount += 1
+            }
+        }
+
+        #expect(reportCount == 1)
+        #expect(lastConsumedGeneration == generation)
+    }
+
+    @Test func selectedMarkerCorrection_lateOwnerShutdownCausesZeroCameraMoves() {
+        let lateCorrection = MapViewportInsets(bottom: 7)
+        let ownerShutdowns = [
+            "gesture",
+            "follow",
+            "recenter",
+            "recording",
+            "switched-trail-retarget",
+        ]
+        var simulatedCameraMoves = 0
+        for _ in ownerShutdowns {
+            if TrailMapView.authorizesSelectedMarkerCorrection(
+                isArmed: false,
+                correction: lateCorrection
+            ) {
+                simulatedCameraMoves += 1
+            }
+        }
+
+        #expect(simulatedCameraMoves == 0)
+        #expect(TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: true,
+            correction: lateCorrection
+        ))
+        #expect(!TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: true,
+            correction: .zero
+        ))
+        #expect(!TrailMapView.authorizesSelectedMarkerCorrection(
+            isArmed: true,
+            correction: MapViewportInsets(top: CGFloat.nan)
+        ))
+    }
+
+    @Test func selectedRouteRegion_malformedPointFailsClosed() {
+        #expect(TrailMapView.selectedRoutePoints(
+            segments: [[[33.3, -112], [33.4]]]
+        ) == nil)
+        #expect(TrailMapView.selectedRoutePoints(
+            segments: [],
+            additionalPoints: [(33.3, -112)]
+        ) == nil)
+
+        let valid: [(lat: Double, lon: Double)] = [(33.3, -112.0)]
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(Double.nan, -112)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(33.4, Double.infinity)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid + [(91, -112)],
+            viewportInsets: .zero,
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid,
+            viewportInsets: .zero,
+            screenHeight: 0,
+            screenWidth: 400
+        ) == nil)
+        #expect(TrailMapView.selectedRouteRegion(
+            points: valid,
+            viewportInsets: MapViewportInsets(top: .nan),
+            screenHeight: 800,
+            screenWidth: 400
+        ) == nil)
+    }
 }

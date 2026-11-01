@@ -10,8 +10,10 @@ import Foundation
 /// (`#if DEBUG`), so none of this — nor the demo data — can ship.
 ///
 /// Activated by launch arguments (set by `ScreenshotTests`):
-///   `--uitest-seed`       seed historical hikes + completions + coverage
-///   `--uitest-recording`  additionally inject a live active recording
+///   `--uitest-seed`           seed historical hikes + completions + coverage
+///   `--uitest-recording`      additionally inject a live active recording
+///   `--uitest-recording-gap`  inject that recording with a material GPS gap
+///   `--uitest-recording-paused` inject it with a stale final GPS fix
 ///
 /// All seeding writes the same UserDefaults keys and `hike-history.json`
 /// path used by normal app persistence, then re-hydrates the `@Observable`
@@ -30,7 +32,31 @@ enum UITestSupport {
     /// passed alone (run 33512537301) and failed in the full suite
     /// (run 34065141359).
     static var isFreshRequested: Bool { args.contains("--uitest-fresh") }
-    static var isRecordingRequested: Bool { args.contains("--uitest-recording") }
+    static var isRecordingGapRequested: Bool { args.contains("--uitest-recording-gap") }
+    static var isRecordingPausedRequested: Bool { args.contains("--uitest-recording-paused") }
+    static var isRecordingRequested: Bool {
+        args.contains("--uitest-recording")
+            || isRecordingGapRequested
+            || isRecordingPausedRequested
+    }
+
+    /// Freeze only the two recording-status visual audits to a clock derived
+    /// from their seeded path. Ordinary Debug launches return nil and continue
+    /// using the live clock and LocationService fix freshness.
+    static func recordingStatusNow(for recording: ActiveRecording?) -> Date? {
+        guard let recording else { return nil }
+        if isRecordingGapRequested {
+            return GpsIngest.materialGapSummary(recording.path)?.lastRecoveryAt
+        }
+        if isRecordingPausedRequested,
+           let finalPoint = recording.path.last(where: {
+               $0.count >= 3 && $0[0].isFinite && $0[1].isFinite && $0[2].isFinite
+           }) {
+            return Date(timeIntervalSince1970: finalPoint[2] / 1000)
+                .addingTimeInterval(GpsIngest.staleFixSeconds + 1)
+        }
+        return nil
+    }
 
     /// `--uitest-completed <n>`: seed n completed trails (the first n real IDs
     /// that aren't in `showcaseIncomplete`) instead of deriving completions
@@ -150,6 +176,11 @@ enum UITestSupport {
             }
         }
         writeJSON([areaId: completions], forKey: StorageKeys.completedTrails)
+        // Keep repeated UI-test launches deterministic. ProgressService can
+        // rebuild fingerprints from these seeded completions after area load;
+        // stale fingerprints from an earlier test must not make a zero-count
+        // seed render completed rows that its exact ID store does not contain.
+        UserDefaults.standard.removeObject(forKey: StorageKeys.completedTrailFingerprints)
 
         // Cosmetic: make the trail-detail "% remaining" bars read 100% /
         // 0%-remaining on completed trails.
@@ -216,7 +247,27 @@ enum UITestSupport {
         for i in 0..<path.count {
             path[i][2] = nowMs - (totalMeters - cumulative[i]) / speedMps * 1000
         }
-        let distanceMi = (pathLengthMi(path) * 100).rounded() / 100
+        if isRecordingGapRequested, path.count >= 4 {
+            // Keep two fresh points after the gap so the visual audit gets a
+            // drawable recovered run and the short-lived recovered status.
+            let recoveryIndex = path.count - 2
+            for index in 0..<recoveryIndex {
+                path[index][2] -= 120_000
+            }
+            path[recoveryIndex][2] = nowMs - 2_000
+            path[recoveryIndex + 1][2] = nowMs
+        } else if isRecordingPausedRequested {
+            // Deterministic signal-loss state for the screenshot audit. The
+            // path remains continuous and untouched apart from its timestamps;
+            // the newest recorded fix is old enough to derive `.paused`.
+            for index in path.indices {
+                path[index][2] -= 120_000
+            }
+        }
+        let recordedMiles = GpsIngest.continuousRuns(path)
+            .map { pathLengthMi($0) }
+            .reduce(0, +)
+        let distanceMi = (recordedMiles * 100).rounded() / 100
         let elapsed = totalMeters / speedMps
 
         return ActiveRecording(

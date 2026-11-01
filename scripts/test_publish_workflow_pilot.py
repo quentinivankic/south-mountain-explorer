@@ -155,6 +155,11 @@ def test_discovery_identity_and_one_row_index_are_structurally_verified():
 def test_denmark_prefilter_aoi_exact_assembly_and_routes_are_preserved():
     assert "https://download.geofabrik.de/europe/denmark-latest.osm.pbf" in _PILOT
     assert "bash extract/prefilter.sh \\" in _PILOT
+    # Exact-Denmark POI selectors are opt-in; both Mols prefilter calls opt in,
+    # every non-Denmark extract keeps the legacy prefilter command.
+    assert "          PREFILTER_DK_POIS=1 \\\n          RECEIPT_PARENT_LABEL=data/raw/denmark.osm.pbf \\" in _PILOT
+    assert ("PREFILTER_DK_POIS: ${{ steps.input_shape.outputs.region_code == 'dk' && '1' || '' }}"
+            in _PUBLISH)
     assert "data/raw/denmark.osm.pbf data/hiking.osm.pbf \\" in _PILOT
     assert "mols-bjerge.prefilter-transformation.json" in _PILOT
     assert "HIKING=data/hiking.osm.pbf" in _PILOT

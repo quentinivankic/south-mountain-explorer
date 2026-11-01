@@ -156,12 +156,33 @@ class PbfRelationMemberLoading(unittest.TestCase):
         with patch.dict(sys.modules, {
                 "osmium": SimpleNamespace(SimpleHandler=FakeHandler)}):
             loaded_nodes, loaded_ways, loaded_relations, _ = \
+                assemble.read_pbf("synthetic.osm.pbf", denmark=True)
+            _n, legacy_ways, legacy_relations, _ = \
                 assemble.read_pbf("synthetic.osm.pbf")
+        # Non-Denmark (US) keeps the pre-Denmark loading: no tagless members.
+        self.assertEqual(legacy_ways, {})
+        self.assertEqual(legacy_relations[700]["members"], [("w", 10, "")])
 
         self.assertEqual(set(loaded_ways), {10})
         self.assertEqual(loaded_ways[10]["tags"], {"surface": "ground"})
         self.assertEqual(loaded_nodes, {1: (1.0, 0.0), 2: (2.0, 0.0)})
         self.assertEqual(loaded_relations[700]["members"], [("w", 10, "")])
+    def test_route_type_is_normalized_only_for_denmark(self):
+        relation = SimpleNamespace(
+            id=701, tags=[SimpleNamespace(k="type", v=" Route ")],
+            members=[SimpleNamespace(type="w", ref=11, role="")])
+
+        class FakeHandler:
+            def apply_file(self, _path):
+                if hasattr(self, "relation"):
+                    self.relation(relation)
+        with patch.dict(sys.modules, {
+                "osmium": SimpleNamespace(SimpleHandler=FakeHandler)}):
+            *_, legacy_relations, _ = assemble.read_pbf("synthetic.osm.pbf")
+            *_, dk_relations, _ = assemble.read_pbf(
+                "synthetic.osm.pbf", denmark=True)
+        self.assertEqual(legacy_relations, {})
+        self.assertEqual(set(dk_relations), {701})
     def test_exact_denmark_and_legacy_poi_loading_policies_do_not_leak(self):
         poi_nodes = [
             SimpleNamespace(
@@ -225,7 +246,7 @@ class PbfRelationMemberLoading(unittest.TestCase):
         }
         read_modes = []
 
-        def read_pbf(_path, *, exact_denmark=False):
+        def read_pbf(_path, *, exact_denmark=False, denmark=False):
             read_modes.append(exact_denmark)
             pois = [*legacy_pois]
             if exact_denmark:
@@ -815,5 +836,42 @@ class ExactPilotAssembly(unittest.TestCase):
             self.assertIn("leaving trails unclipped", stderr.getvalue())
 
 
+class UsCliGate(unittest.TestCase):
+    """The CLI derives read_pbf(denmark=) and the log wording from --region."""
+
+    def _run(self, *region_args):
+        seen = {}
+        nodes = {1: (10.5, 56.15), 2: (10.6, 56.2)}
+        ways = {10: {"nodes": [1, 2], "tags": {"highway": "path", "name": "T"}}}
+
+        def read_pbf(_path, *, exact_denmark=False, denmark=False):
+            seen["denmark"] = denmark
+            return nodes, ways, {}, []
+
+        stderr = io.StringIO()
+        with TemporaryDirectory() as tmp:
+            with (
+                patch.object(assemble, "read_pbf", side_effect=read_pbf),
+                patch.object(areas, "assemble_areas", return_value=[]),
+                redirect_stderr(stderr),
+            ):
+                rc = assemble.main([
+                    "--in", str(Path(tmp) / "in.osm.pbf"),
+                    "--out", str(Path(tmp) / "out.geojson"), *region_args])
+        self.assertEqual(rc, 0)
+        return seen["denmark"], stderr.getvalue()
+
+    def test_region_dk_selects_denmark_loading_and_wording(self):
+        for args in (("--region", "dk"), ("--region", "DK")):
+            denmark, log = self._run(*args)
+            self.assertTrue(denmark, args)
+            self.assertIn("(curation/exact clip)", log)
+
+    def test_no_region_or_other_region_keeps_us_loading_and_wording(self):
+        for args in ((), ("--region", "ri"), ("--region", "az")):
+            denmark, log = self._run(*args)
+            self.assertFalse(denmark, args)
+            self.assertIn("trails (curation) ->", log)
+            self.assertNotIn("exact clip", log)
 if __name__ == "__main__":
     unittest.main()

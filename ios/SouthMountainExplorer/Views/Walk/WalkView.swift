@@ -2,6 +2,38 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+enum WalkGeometryLoadState: Equatable {
+    case locating
+    case loading(done: Int, total: Int)
+    case ready
+    case partial(loaded: Int, total: Int)
+    case restoringPartial(loaded: Int, total: Int)
+    case noLocation
+    case noAreas
+    case loadFailed
+
+    var allowsNewWalkStart: Bool {
+        switch self {
+        case .ready, .partial:
+            return true
+        default:
+            return false
+        }
+    }
+
+    static func resolved(
+        requested: Int,
+        loaded: Int,
+        restoringActiveWalk: Bool
+    ) -> WalkGeometryLoadState {
+        guard requested > 0, loaded > 0 else { return .loadFailed }
+        guard loaded < requested else { return .ready }
+        return restoringActiveWalk
+            ? .restoringPartial(loaded: loaded, total: requested)
+            : .partial(loaded: loaded, total: requested)
+    }
+}
+
 /// Area-less "start anywhere" walk. Full-screen map of every trail from
 /// the ~12 nearest areas (within 20 mi); one Start button; at stop time
 /// `RecordingService.stopWalk` credits trail coverage/completions to
@@ -23,7 +55,7 @@ struct WalkView: View {
     @Environment(ProgressService.self) private var progress
 
     @State private var loadedAreas: [Area] = []
-    @State private var loadState: LoadState = .locating
+    @State private var loadState: WalkGeometryLoadState = .locating
     @State private var mergedArea: Area? = nil
     @State private var selectedTrailId: String? = nil
     @State private var cameraTarget: MapTarget = .region(
@@ -37,15 +69,7 @@ struct WalkView: View {
     /// their persisted area IDs so current location can never change credit.
     @State private var candidateAreaIds: [String] = []
     @State private var isLoadInFlight = false
-
-    private enum LoadState: Equatable {
-        case locating
-        case loading(done: Int, total: Int)
-        case ready
-        case noLocation
-        case noAreas
-        case loadFailed
-    }
+    @State private var locationConsumer = LocationConsumerID()
 
     /// Credit radius. Areas whose CENTER is within this many miles of
     /// the user when the walk screen opens are loaded; capped at
@@ -107,7 +131,7 @@ struct WalkView: View {
                             dismiss()
                         }
                     }
-                } else if loadState == .ready {
+                } else if !isWalking, loadState.allowsNewWalkStart {
                     startButton
                 }
             }
@@ -117,6 +141,13 @@ struct WalkView: View {
         .overlay(alignment: .topTrailing) {
             if mergedArea != nil { recenterButton }
         }
+        .onAppear {
+            location.acquireHeading(for: locationConsumer)
+        }
+        .onDisappear {
+            location.releaseLocation(for: locationConsumer)
+            location.releaseHeading(for: locationConsumer)
+        }
         .task { await load() }
         .sheet(isPresented: $showSummary, onDismiss: { dismiss() }) {
             if let finished = finishedWalk {
@@ -124,13 +155,24 @@ struct WalkView: View {
             }
         }
         .alert(
-            "Recording Already Active",
+            recording.recoveryIssue == nil
+                ? "Recording Already Active"
+                : "Recording Recovery Needed",
             isPresented: Binding(
                 get: { startConflictMessage != nil },
                 set: { if !$0 { startConflictMessage = nil } }
             )
         ) {
-            Button("Keep Existing Recording", role: .cancel) { }
+            Button(
+                recording.recoveryIssue == nil
+                    ? "Keep Existing Recording"
+                    : "Retry Recovery",
+                role: .cancel
+            ) {
+                if recording.recoveryIssue != nil {
+                    recording.retryRecovery()
+                }
+            }
         } message: {
             Text(startConflictMessage ?? "Stop the current recording before starting a walk.")
         }
@@ -155,7 +197,15 @@ struct WalkView: View {
 
     private var recenterButton: some View {
         Button {
-            centerOnUser()
+            Task { @MainActor in
+                let result = await location.requestOneShotFix(
+                    for: locationConsumer,
+                    accuracy: .precise
+                )
+                if case .success = result {
+                    centerOnUser()
+                }
+            }
         } label: {
             Image(systemName: "location.fill")
                 .font(.body.weight(.semibold))
@@ -187,6 +237,22 @@ struct WalkView: View {
             statusCard("Finding you…", detail: nil, spinner: true)
         case .loading(let done, let total):
             statusCard("Loading nearby trails…", detail: "\(done) of \(total) areas", spinner: true)
+        case .partial(let loaded, let total):
+            statusCard(
+                "Some nearby trails are missing",
+                detail: "\(loaded) of \(total) areas loaded. Start uses the visible trails, or retry the missing areas first.",
+                spinner: false,
+                actionTitle: "Retry Missing",
+                action: retryAreaLoad
+            )
+        case .restoringPartial(let loaded, let total):
+            statusCard(
+                "More trails needed to save",
+                detail: "\(loaded) of \(total) saved walk areas loaded. Stop & Save stays unavailable until the full recorded scope is restored.",
+                spinner: false,
+                actionTitle: "Retry Missing",
+                action: retryAreaLoad
+            )
         case .noLocation:
             statusCard(
                 "Location needed",
@@ -306,30 +372,21 @@ struct WalkView: View {
                 return
             }
 
-            // Ask for a genuinely fresh fix on open. The last-known location is
-            // restored from UserDefaults and may represent a previous trip.
-            let openedAt = Date()
-            location.startLiveTracking()
-            location.requestFreshFix()
-
-            var center: CLLocationCoordinate2D? = nil
-            for _ in 0..<14 {
-                if let fixDate = location.lastFixDate,
-                   fixDate >= openedAt.addingTimeInterval(-2),
-                   let loc = location.liveLocation {
-                    center = loc
-                    break
-                }
-                do {
-                    try await Task.sleep(for: .milliseconds(500))
-                } catch {
-                    return
-                }
+            // Ask for a genuinely fresh precise fix on open. The last-known
+            // location is restored from UserDefaults and may represent a
+            // previous trip, so use it only as the established offline fallback.
+            let fixResult = await location.requestOneShotFix(
+                for: locationConsumer,
+                accuracy: .precise
+            )
+            guard !Task.isCancelled else { return }
+            let center: CLLocationCoordinate2D?
+            switch fixResult {
+            case .success(let coordinate):
+                center = coordinate
+            case .denied, .unavailable:
+                center = location.userLocation ?? location.liveLocation
             }
-
-            // Preserve the existing offline/indoor fallback when authorization
-            // remains valid but a fresh one-shot fix does not arrive.
-            if center == nil { center = location.userLocation ?? location.liveLocation }
             guard let loc = center else {
                 loadState = .noLocation
                 return
@@ -367,16 +424,6 @@ struct WalkView: View {
             }
         }
 
-        // A resumed Walk must restore its entire persisted credit scope before
-        // exposing Stop & Save. Partial geometry is useful for a new Walk, but
-        // saving an existing one with a subset would lose area credits forever.
-        if restoringActiveWalk, loaded.count != areaIds.count {
-            loadedAreas = []
-            mergedArea = nil
-            loadState = .loadFailed
-            return
-        }
-
         guard !loaded.isEmpty else {
             loadedAreas = []
             mergedArea = nil
@@ -386,7 +433,11 @@ struct WalkView: View {
 
         loadedAreas = loaded
         mergedArea = Self.merged(from: loaded)
-        loadState = .ready
+        loadState = WalkGeometryLoadState.resolved(
+            requested: areaIds.count,
+            loaded: loaded.count,
+            restoringActiveWalk: restoringActiveWalk
+        )
         centerOnUser()
     }
 
@@ -443,7 +494,13 @@ struct WalkView: View {
             primaryAreaId: nearest.id,
             nearbyAreaIds: loadedAreas.map(\.id)
         )
-        if result == .alreadyActive {
+        switch result {
+        case .started:
+            break
+        case .recoveryRequired:
+            startConflictMessage = recording.recoveryIssue?.message
+                ?? "Resolve the preserved recording recovery state before starting another walk."
+        case .alreadyActive:
             let activeMode = recording.activeRecording?.mode == .walk ? "walk" : "hike"
             startConflictMessage = "Your current \(activeMode) is still recording and was not changed. Stop or discard it before starting another walk."
         }
@@ -459,6 +516,9 @@ struct WalkRecordingPanel: View {
     let onStop: (FinishedRecording?) -> Void
 
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
+    @Environment(RecordingControlVisibility.self) private var controlVisibility
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
 
     @State private var elapsed: TimeInterval = 0
@@ -467,60 +527,68 @@ struct WalkRecordingPanel: View {
     @State private var showStopConfirm = false
     @State private var showDiscardConfirm = false
     @State private var saveFailureMessage: String? = nil
+    @State private var localControlToken = RecordingControlVisibility.Token()
 
     private var rec: ActiveRecording? { recording.activeRecording }
 
+    private var gpsStatus: (text: String, tint: Color) {
+        let status: GpsIngest.ActiveStatus
+        #if DEBUG
+        if let auditNow = UITestSupport.recordingStatusNow(for: rec) {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: nil,
+                now: auditNow
+            )
+        } else {
+            status = GpsIngest.activeStatus(
+                path: rec?.path ?? [],
+                lastFixAt: location.lastFixDate
+            )
+        }
+        #else
+        status = GpsIngest.activeStatus(
+            path: rec?.path ?? [],
+            lastFixAt: location.lastFixDate
+        )
+        #endif
+        switch status {
+        case .waiting:
+            return ("Waiting for GPS", .orange)
+        case .paused:
+            return ("GPS paused—route stays safe", .orange)
+        case .recovered:
+            return ("GPS recovered", .blue)
+        case .good:
+            return ("GPS good", .green)
+        }
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
-            if let rec, let stats = elevationStats(path: rec.path) {
-                ElevationProfileView(
-                    stats: stats,
-                    totalDistanceMeters: rec.distanceMi * 1609.344
-                )
-                .frame(height: 70)
-                .transition(.opacity)
-            }
-
-            HStack(spacing: 12) {
-                VStack(spacing: 2) {
-                    Image(systemName: "record.circle.fill")
-                        .foregroundStyle(.red)
-                        .font(.title2)
-                        .symbolEffect(.pulse)
-                    Text("REC")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    panelContents
                 }
-
-                Divider().frame(height: 40)
-
-                statColumn(label: "Distance", value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units))
-                statColumn(label: "Duration", value: formattedElapsed)
-                statColumn(label: "Pace",
-                           value: UnitFormatter.pace(metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
-                                                     units: units))
-
-                Button {
-                    showStopConfirm = true
-                } label: {
-                    if isStopping {
-                        ProgressView()
-                            .frame(width: 56, height: 56)
-                    } else {
-                        Image(systemName: "stop.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundStyle(.red)
-                    }
-                }
-                .disabled(isStopping || recording.isStopping)
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 320)
+                .accessibilityIdentifier("walk-recording-dashboard-scroll")
+            } else {
+                panelContents
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .compatibleGlass(in: .rect(cornerRadius: 24))
         .padding(.horizontal, 16)
-        .onAppear { startTimer() }
-        .onDisappear { timer?.invalidate() }
+        .onAppear {
+            controlVisibility.acquire(localControlToken)
+            startTimer()
+        }
+        .onDisappear {
+            timer?.invalidate()
+            controlVisibility.release(localControlToken)
+        }
         .confirmationDialog(
             "Stop this walk?",
             isPresented: $showStopConfirm,
@@ -554,6 +622,148 @@ struct WalkRecordingPanel: View {
         } message: {
             Text(saveFailureMessage ?? "Your active walk is still safe and location observation has resumed.")
         }
+    }
+
+    private var panelContents: some View {
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 16 : 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(gpsStatus.tint)
+                    .frame(width: 7, height: 7)
+                Text(gpsStatus.text)
+                    .font(dynamicTypeSize.isAccessibilitySize ? .caption.weight(.medium) : .caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("walk-gps-status")
+            .accessibilityLabel(gpsStatus.text)
+
+            if let rec, let stats = elevationStats(path: rec.path) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ElevationProfileView(
+                        stats: stats,
+                        totalDistanceMeters: rec.distanceMi * 1609.344
+                    )
+                    .frame(height: dynamicTypeSize.isAccessibilitySize ? 110 : 70)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Elevation profile")
+                    .accessibilityValue(elevationRangeLabel(stats))
+
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(elevationRangeLabel(stats))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("walk-elevation-summary")
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("walk-elevation-profile")
+                .transition(.opacity)
+            }
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 10) {
+                    metricRow(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    metricRow(label: "Duration", value: formattedElapsed)
+                    metricRow(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                }
+                .accessibilityIdentifier("walk-recording-metrics")
+                stopButton
+            } else {
+                HStack(spacing: 12) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "record.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.title2)
+                            .symbolEffect(.pulse)
+                        Text("REC")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.red)
+                    }
+
+                    Divider().frame(height: 40)
+                    statColumn(
+                        label: "Distance",
+                        value: UnitFormatter.distance(miles: rec?.distanceMi ?? 0, units: units)
+                    )
+                    statColumn(label: "Duration", value: formattedElapsed)
+                    statColumn(
+                        label: "Pace",
+                        value: UnitFormatter.pace(
+                            metersPerSecond: recording.smoothedPaceMetersPerSec() ?? 0,
+                            units: units
+                        )
+                    )
+                    stopButton
+                }
+            }
+        }
+    }
+
+    private var stopButton: some View {
+        Button {
+            showStopConfirm = true
+        } label: {
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack(spacing: 10) {
+                    if isStopping {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "stop.circle.fill")
+                    }
+                    Text(isStopping ? "Saving…" : "Stop")
+                        .font(.headline)
+                }
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+            } else if isStopping {
+                ProgressView()
+                    .frame(width: 56, height: 56)
+            } else {
+                Image(systemName: "stop.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.red)
+                    .frame(width: 56, height: 56)
+            }
+        }
+        .disabled(isStopping || recording.isStopping)
+        .accessibilityIdentifier("walk-stop-button")
+        .accessibilityLabel(isStopping ? "Saving walk" : "Stop walk")
+        .accessibilityHint("Opens options to save, discard, or keep walking")
+    }
+
+    private func metricRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.body)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(.headline.monospacedDigit())
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func elevationRangeLabel(_ stats: ElevationStats) -> String {
+        let low = UnitFormatter.elevation(meters: stats.minAltitudeMeters, units: units)
+        let high = UnitFormatter.elevation(meters: stats.maxAltitudeMeters, units: units)
+        return "Elevation range \(low) to \(high)"
     }
 
     private var stopMessage: String {
@@ -681,6 +891,14 @@ struct WalkSummarySheet: View {
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
+                }
+
+                if let gap = GpsIngest.materialGapSummary(finished.path) {
+                    Section {
+                        Label(gap.explanation, systemImage: "location.slash")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 if areaResults.isEmpty {

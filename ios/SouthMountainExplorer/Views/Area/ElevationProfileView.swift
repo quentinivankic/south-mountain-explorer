@@ -17,6 +17,7 @@ struct ElevationProfileView: View {
     let totalDistanceMeters: Double
 
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// X-axis domain pinned to the full hike length, with a fallback
     /// to the last sample so a sample-only call (e.g. a Preview) still
@@ -80,32 +81,36 @@ struct ElevationProfileView: View {
         .chartYScale(domain: yAxis.domain)
         .chartXScale(domain: xDomain)
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
-                AxisValueLabel {
-                    if let meters = value.as(Double.self) {
-                        // Two decimals for short hikes, one for longer
-                        // ones — mirrors UnitFormatter.distance rules
-                        // but on bare numbers so tick labels stay tight.
-                        let display = units == .imperial ? meters / 1609.344 : meters / 1000
-                        Text(display < 1 ? String(format: "%.2f", display) : String(format: "%.1f", display))
-                            .font(.caption2)
+            if !dynamicTypeSize.isAccessibilitySize {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
+                    AxisValueLabel {
+                        if let meters = value.as(Double.self) {
+                            // Two decimals for short hikes, one for longer
+                            // ones — mirrors UnitFormatter.distance rules
+                            // but on bare numbers so tick labels stay tight.
+                            let display = units == .imperial ? meters / 1609.344 : meters / 1000
+                            Text(display < 1 ? String(format: "%.2f", display) : String(format: "%.1f", display))
+                                .font(.caption2)
+                        }
                     }
                 }
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading, values: yAxis.ticks) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
-                AxisValueLabel {
-                    if let meters = value.as(Double.self) {
-                        let display = units == .imperial ? meters * 3.28084 : meters
-                        // .rounded() not Int() truncation: a tick is a
-                        // round display-unit value converted to meters
-                        // and back, so FP drift can land it at e.g.
-                        // 999.9999 — truncation would print "999".
-                        Text("\(Int(display.rounded()))")
-                            .font(.caption2)
+            if !dynamicTypeSize.isAccessibilitySize {
+                AxisMarks(position: .leading, values: yAxis.ticks) { value in
+                    AxisGridLine().foregroundStyle(.secondary.opacity(0.2))
+                    AxisValueLabel {
+                        if let meters = value.as(Double.self) {
+                            let display = units == .imperial ? meters * 3.28084 : meters
+                            // .rounded() not Int() truncation: a tick is a
+                            // round display-unit value converted to meters
+                            // and back, so FP drift can land it at e.g.
+                            // 999.9999 — truncation would print "999".
+                            Text("\(Int(display.rounded()))")
+                                .font(.caption2)
+                        }
                     }
                 }
             }

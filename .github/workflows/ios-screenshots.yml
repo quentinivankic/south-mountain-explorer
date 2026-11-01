@@ -1,31 +1,49 @@
-name: iOS – App Store screenshots
+name: iOS – Screenshot audits
 
-# Dispatch-only. Boots a 6.9" iPhone simulator (iPhone Pro Max class,
-# 1320 × 2868 — the App Store Connect "6.9-inch" required set), seeds a
-# deterministic South Mountain demo state via the DEBUG-only
-# UITestSupport hooks, drives the app through the five App Store screens
-# with the SouthMountainExplorerUITests bundle, and uploads the captured
-# PNGs as a downloadable artifact.
-#
-# Deliberately separate from ios-pr-build.yml: this is slow, depends on
-# outbound network to cdn.trekdex.app (the area's trail geometry is fetched
-# from R2 at runtime to draw the map), and should never gate a PR. Run it
-# from the Actions tab whenever you want a fresh screenshot set, then grab
-# the "appstore-screenshots" artifact and frame them (see
-# docs/app-store-submission.md).
+# Dispatch-only visual gate. Each matrix entry selects an exact device class,
+# verifies its framebuffer width, applies an explicit content-size category,
+# runs the requested UI audit, and uploads configuration-unique artifacts.
+# A missing small phone or wrong-width fallback fails the job instead of
+# silently producing another large-phone baseline.
 
 on:
   workflow_dispatch:
     inputs:
       test_class:
-        description: "UI test class to run (empty = all). AreaSheetAuditTests photographs the area sheet's states for layout debugging."
+        description: "UI test class to run (empty = all). AreaSheetAuditTests is the field-trust visual gate."
         required: false
         default: ""
 
 jobs:
   screenshots:
+    name: Screenshots – ${{ matrix.id }}
     runs-on: macos-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: 6.9-default
+            device_role: large
+            content_size: large
+            min_pixel_width: 1310
+            max_pixel_width: 1330
+          - id: small-default
+            device_role: small
+            content_size: large
+            min_pixel_width: 700
+            max_pixel_width: 800
+          - id: 6.9-accessibility
+            device_role: large
+            content_size: accessibility-extra-extra-extra-large
+            min_pixel_width: 1310
+            max_pixel_width: 1330
+    env:
+      CONFIG_ID: ${{ matrix.id }}
+      DEVICE_ROLE: ${{ matrix.device_role }}
+      CONTENT_SIZE: ${{ matrix.content_size }}
+      MIN_PIXEL_WIDTH: ${{ matrix.min_pixel_width }}
+      MAX_PIXEL_WIDTH: ${{ matrix.max_pixel_width }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,13 +52,6 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
 
       - name: Install iOS platform + Simulator runtime
-        # Same rationale as ios-pr-build.yml: the iOS platform isn't
-        # preinstalled on the rolled macos-latest image, so a build/test
-        # destination can't resolve without this. Un-sudo'd + retried.
-        # Between retries, bounce CoreSimulatorService: some runners come
-        # up with the daemon wedged ("Unable to connect to simulator"
-        # from the very first call) and it never recovers on its own —
-        # killing it forces a clean relaunch on the next attempt.
         run: |
           for attempt in 1 2 3 4; do
             if xcodebuild -downloadPlatform iOS; then
@@ -61,9 +72,6 @@ jobs:
           key: brew-${{ runner.os }}-xcodegen-xcparse
 
       - name: Install XcodeGen + xcparse
-        # HOMEBREW_NO_AUTO_UPDATE skips the slow `brew update` that otherwise
-        # runs before every install; NO_INSTALL_CLEANUP skips the post-install
-        # cleanup. Neither changes what's installed — just trims ~1 min.
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
           HOMEBREW_NO_INSTALL_CLEANUP: "1"
@@ -78,101 +86,172 @@ jobs:
         working-directory: ios
         run: xcodegen generate
 
-      - name: Pick a 6.9" iPhone simulator
-        # Prefer a Pro Max (6.9" → 1320 × 2868, the App Store required
-        # set); fall back to Plus, then any iPhone, so the run still
-        # produces frames even if the image's lineup shifts. Model name is
-        # logged so the captured resolution is verifiable.
+      - name: Pick exact simulator class
         run: |
-          read -r UDID NAME < <(xcrun simctl list devices available -j | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          devs = [d for v in data['devices'].values() for d in v]
-          def rank(n):
-              if 'Pro Max' in n: return 0
-              if 'Plus' in n: return 1
-              if 'iPhone' in n: return 2
-              return 9
-          iphones = sorted([d for d in devs if 'iPhone' in d['name']], key=lambda d: rank(d['name']))
-          if iphones:
-              print(iphones[0]['udid'], iphones[0]['name'])
-          ")
-          if [ -z "$UDID" ]; then
-            echo "No available iPhone simulator found" >&2
-            xcrun simctl list devices available >&2
+          read -r UDID NAME < <(python3 -c '
+          import json, os, subprocess
+
+          def simctl_json(*args):
+              output = subprocess.check_output(
+                  ["xcrun", "simctl", "list", *args, "-j"],
+                  text=True,
+              )
+              return json.loads(output)
+
+          devices = [
+              device
+              for runtime in simctl_json("devices", "available")["devices"].values()
+              for device in runtime
+          ]
+          iphones = [device for device in devices if "iPhone" in device["name"]]
+          role = os.environ["DEVICE_ROLE"]
+          if role == "large":
+              preferred = ["iPhone 17 Pro Max", "iPhone 16 Pro Max"]
+              by_name = {device["name"]: device for device in iphones}
+              matches = [by_name[name] for name in preferred if name in by_name]
+          elif role == "small":
+              matches = [device for device in iphones if device["name"] == "iPhone SE (3rd generation)"]
+              if not matches:
+                  device_types = simctl_json("devicetypes")["devicetypes"]
+                  device_type = next(
+                      (item for item in device_types if item["name"] == "iPhone SE (3rd generation)"),
+                      None,
+                  )
+                  runtimes = [
+                      item for item in simctl_json("runtimes", "available")["runtimes"]
+                      if item.get("isAvailable")
+                      and item["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
+                  ]
+                  if device_type is None:
+                      raise SystemExit("No iPhone SE (3rd generation) simulator device type is available")
+                  if not runtimes:
+                      raise SystemExit("No available iOS simulator runtime can host the small audit")
+                  runtime = max(
+                      runtimes,
+                      key=lambda item: tuple(int(part) for part in item["version"].split(".")),
+                  )
+                  udid = subprocess.check_output(
+                      [
+                          "xcrun", "simctl", "create", device_type["name"],
+                          device_type["identifier"], runtime["identifier"],
+                      ],
+                      text=True,
+                  ).strip()
+                  print(udid, device_type["name"])
+                  raise SystemExit
+          else:
+              raise SystemExit(f"Unknown device role: {role}")
+          if not matches:
+              names = ", ".join(sorted({device["name"] for device in iphones}))
+              raise SystemExit(f"No fail-closed {role} simulator is available. Available iPhones: {names}")
+          device = matches[0]
+          print(device["udid"], device["name"])
+          ')
+          if [ -z "$UDID" ] || [ -z "$NAME" ]; then
+            echo "Simulator selection returned no exact match" >&2
             exit 1
           fi
-          echo "Using simulator: $NAME ($UDID)"
           echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          echo "SIM_NAME=$NAME" >> "$GITHUB_ENV"
+          echo "AUDIT[configuration] id=$CONFIG_ID device=$NAME udid=$UDID content-size=$CONTENT_SIZE"
 
-      - name: Boot + configure simulator
-        # Dark appearance (app theme defaults to .system → follows the OS)
-        # and a clean 9:41 status bar for App-Store-grade frames.
+      - name: Boot, configure, and verify simulator
         run: |
           xcrun simctl boot "$SIM_UDID" || true
-          xcrun simctl bootstatus "$SIM_UDID" || true
-          xcrun simctl ui "$SIM_UDID" appearance dark || true
+          xcrun simctl bootstatus "$SIM_UDID"
+          xcrun simctl ui "$SIM_UDID" appearance dark
+          xcrun simctl ui "$SIM_UDID" content_size "$CONTENT_SIZE"
           xcrun simctl status_bar "$SIM_UDID" override \
             --time "9:41" \
             --batteryState charged --batteryLevel 100 \
             --cellularBars 4 \
             --wifiBars 3 \
-            --dataNetwork wifi || true
-          # Location: pre-grant the app permission and feed a simulated
-          # fix. Without permission the app presents its location-prompt
-          # sheet over Explore at launch, which covers the tab bar
-          # (swallowing the UI test's tab taps) and blocks every other
-          # sheet from presenting. The simulated fix also populates "X mi
-          # away" captions and the Near You section, which makes the
-          # captured frames richer. (The app-side seed suppresses the
-          # prompt too, so a failure of either half is non-fatal — hence
-          # the `|| true`.)
-          #
-          # The fix is set to the demo recording's CURRENT position (the
-          # last point of the seeded Bajada Trail track). The recording
-          # shot zooms to that point (TrailMapView.centerOnActiveRecording),
-          # so MKMapView's blue user-location dot lands at the visible
-          # centre — right at the head of the live magenta track. It's
-          # inside the park, so the whole-park shot 1 reads fine too.
-          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app || true
-          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609 || true
+            --dataNetwork wifi
+          DEVICE_SHOT="$RUNNER_TEMP/$CONFIG_ID-device.png"
+          xcrun simctl io "$SIM_UDID" screenshot "$DEVICE_SHOT"
+          read -r PIXEL_WIDTH PIXEL_HEIGHT < <(sips -g pixelWidth -g pixelHeight "$DEVICE_SHOT" | python3 -c '
+          import re, sys
+          text = sys.stdin.read()
+          width = re.search(r"pixelWidth: ([0-9]+)", text)
+          height = re.search(r"pixelHeight: ([0-9]+)", text)
+          if not width or not height:
+              raise SystemExit("Could not read simulator framebuffer dimensions")
+          print(width.group(1), height.group(1))
+          ')
+          if [ "$PIXEL_WIDTH" -lt "$MIN_PIXEL_WIDTH" ] || [ "$PIXEL_WIDTH" -gt "$MAX_PIXEL_WIDTH" ]; then
+            echo "Wrong simulator width for $CONFIG_ID: $PIXEL_WIDTH px, expected $MIN_PIXEL_WIDTH...$MAX_PIXEL_WIDTH" >&2
+            exit 1
+          fi
+          echo "AUDIT[configuration] id=$CONFIG_ID device=$SIM_NAME width=${PIXEL_WIDTH}px height=${PIXEL_HEIGHT}px content-size=$CONTENT_SIZE"
 
-      - name: Cache DerivedData (build products + SPM)
-        # Warm the build: DerivedData holds the compiled app, the PostHog SPM
-        # package + its built products, and the module cache. Restoring it lets
-        # xcodebuild do an INCREMENTAL build — only changed source recompiles
-        # (e.g. a one-line ScreenshotTests tweak), not the whole app + PostHog
-        # from scratch. The run_id in the key saves a fresh cache each run so
-        # it stays current; restore-keys warm-start from the most recent one.
-        # No stale-build risk: changed sources always recompile, and a
-        # module-cache mismatch would fail the build (visible), never ship a
-        # silently-stale app.
+      - name: Cache DerivedData
         uses: actions/cache@v4
         with:
           path: ios/DerivedData
-          key: dd-screenshots-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-${{ github.run_id }}
+          key: dd-screenshots-${{ matrix.id }}-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-${{ github.run_id }}
           restore-keys: |
-            dd-screenshots-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-
-            dd-screenshots-${{ runner.os }}-
+            dd-screenshots-${{ matrix.id }}-${{ runner.os }}-${{ hashFiles('ios/project.yml') }}-
+            dd-screenshots-${{ matrix.id }}-${{ runner.os }}-
 
-      - name: Capture screenshots (UI test)
+      - name: Build audited app for testing
         working-directory: ios
         run: |
-          rm -rf ScreenshotResults.xcresult
-          # Optional narrowing to one test class (e.g. AreaSheetAuditTests,
-          # the layout-debugging capture) so an audit run doesn't also pay
-          # for the five App Store screenshots.
-          ONLY_ARGS=()
-          if [ -n "${{ inputs.test_class }}" ]; then
-            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
-          fi
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project SouthMountainExplorer.xcodeproj \
             -scheme SouthMountainExplorerUITests \
             -configuration Debug \
             -destination "id=$SIM_UDID" \
             -derivedDataPath "$PWD/DerivedData" \
-            -resultBundlePath "$PWD/ScreenshotResults.xcresult" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install audited app
+        working-directory: ios
+        run: |
+          APP_PATHS=()
+          while IFS= read -r path; do
+            APP_PATHS+=("$path")
+          done < <(find "$PWD/DerivedData/Build/Products/Debug-iphonesimulator" \
+            -maxdepth 1 -type d -name 'SouthMountainExplorer.app' -print)
+          if [ "${#APP_PATHS[@]}" -ne 1 ]; then
+            echo "Expected exactly one audited app; found ${#APP_PATHS[@]}" >&2
+            exit 1
+          fi
+          xcrun simctl install "$SIM_UDID" "${APP_PATHS[0]}"
+          xcrun simctl get_app_container \
+            "$SIM_UDID" com.southmountainexplorer.app app >/dev/null
+
+      - name: Grant location to installed audited app
+        run: |
+          xcrun simctl privacy "$SIM_UDID" reset location com.southmountainexplorer.app
+          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app
+          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609
+
+      - name: Capture screenshots without rebuilding
+        working-directory: ios
+        run: |
+          RESULT_BUNDLE="ScreenshotResults-$CONFIG_ID.xcresult"
+          rm -rf "$RESULT_BUNDLE"
+          ONLY_ARGS=()
+          if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
+            # Every configuration runs the 22-capture visual audit. The focused
+            # semantic/reachability class runs on the accessibility matrix,
+            # where its explicit large-content assertions are meaningful.
+            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/AreaSheetAuditTests")
+            if [ "$CONFIG_ID" = "6.9-accessibility" ]; then
+              ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/FieldTrustAccessibilityTests")
+            fi
+          elif [ -n "${{ inputs.test_class }}" ]; then
+            ONLY_ARGS+=("-only-testing:SouthMountainExplorerUITests/${{ inputs.test_class }}")
+          fi
+          xcodebuild test-without-building \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorerUITests \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$PWD/DerivedData" \
+            -resultBundlePath "$PWD/$RESULT_BUNDLE" \
             "${ONLY_ARGS[@]}" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -182,31 +261,129 @@ jobs:
         if: always()
         working-directory: ios
         run: |
-          # When the job dies before the capture step (e.g. platform
-          # install failed), there's no result bundle and xcparse may not
-          # even be installed — skip cleanly instead of stacking a second,
-          # misleading error on top of the real one.
-          if [ ! -d ScreenshotResults.xcresult ]; then
-            echo "No ScreenshotResults.xcresult — capture step never ran; skipping extraction"
-            exit 0
+          RESULT_BUNDLE="ScreenshotResults-$CONFIG_ID.xcresult"
+          SCREENSHOT_DIR="screenshots-$CONFIG_ID"
+          if [ ! -d "$RESULT_BUNDLE" ]; then
+            echo "Missing $RESULT_BUNDLE; capture did not produce auditable results" >&2
+            exit 1
           fi
-          mkdir -p screenshots
-          xcparse screenshots ScreenshotResults.xcresult screenshots/
-          echo "---- captured files ----"
-          ls -R screenshots
+          rm -rf "$SCREENSHOT_DIR"
+          mkdir -p "$SCREENSHOT_DIR"
+          xcparse screenshots "$RESULT_BUNDLE" "$SCREENSHOT_DIR/"
+          PNG_COUNT=$(find "$SCREENSHOT_DIR" -type f -name '*.png' | wc -l | tr -d ' ')
+          if [ "$PNG_COUNT" -eq 0 ]; then
+            echo "No PNGs were extracted for $CONFIG_ID" >&2
+            exit 1
+          fi
+          if [ "${{ inputs.test_class }}" = "AreaSheetAuditTests" ]; then
+            EXPECTED_PER_MATRIX=22
+            EXPECTED_SCREENSHOTS=(
+              field-trust-00-explore-continue-card
+              field-trust-00-explore-area-card
+              field-trust-00-explore-location-empty-state
+              sheet-01-fit-initial
+              sheet-02-min-idle
+              sheet-03-min-after-scroll-up
+              sheet-04-min-after-scroll-back
+              sheet-05-min-trail-selected
+              sheet-06-min-trail-deselected
+              sheet-07-browse-after-deselect
+              sheet-07b-selected-from-browse
+              sheet-07d-selected-profile-lower-content
+              sheet-07c-deselected-back-to-browse
+              sheet-08-collection-open
+              sheet-08b-collection-completionist
+              sheet-08c-collection-difficulty
+              sheet-08d-collection-dedication
+              sheet-09-collection-closed
+              field-trust-01-gps-recovered
+              field-trust-02-gap-summary
+              field-trust-02b-summary-lower-content
+              field-trust-03-gps-paused
+            )
+            if [ "$PNG_COUNT" -ne "$EXPECTED_PER_MATRIX" ]; then
+              echo "Field-trust audit produced $PNG_COUNT PNGs; expected $EXPECTED_PER_MATRIX" >&2
+              exit 1
+            fi
+            for expected in "${EXPECTED_SCREENSHOTS[@]}"; do
+              MATCHING_COUNT=$(find "$SCREENSHOT_DIR" -type f -name "*${expected}*.png" | wc -l | tr -d ' ')
+              if [ "$MATCHING_COUNT" -ne 1 ]; then
+                echo "Field-trust capture count for $expected is $MATCHING_COUNT; expected exactly 1" >&2
+                exit 1
+              fi
+            done
+          fi
+          echo "AUDIT[configuration] id=$CONFIG_ID extracted-pngs=$PNG_COUNT"
+          find "$SCREENSHOT_DIR" -type f -name '*.png' -print
 
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: appstore-screenshots
-          path: ios/screenshots/**
-          if-no-files-found: warn
+          name: screenshots-${{ matrix.id }}
+          path: ios/screenshots-${{ matrix.id }}/**
+          if-no-files-found: error
 
-      - name: Upload result bundle (debug)
+      - name: Upload result bundle
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshot-xcresult
-          path: ios/ScreenshotResults.xcresult
-          if-no-files-found: ignore
+          name: screenshot-xcresult-${{ matrix.id }}
+          path: ios/ScreenshotResults-${{ matrix.id }}.xcresult
+          if-no-files-found: error
+
+  verify-field-trust-artifact-set:
+    name: Verify field-trust screenshot artifact set
+    if: ${{ always() && inputs.test_class == 'AreaSheetAuditTests' }}
+    needs: screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download large default screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-6.9-default
+          path: ${{ runner.temp }}/field-trust-screenshots/6.9-default
+
+      - name: Download small default screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-small-default
+          path: ${{ runner.temp }}/field-trust-screenshots/small-default
+
+      - name: Download large accessibility screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-6.9-accessibility
+          path: ${{ runner.temp }}/field-trust-screenshots/6.9-accessibility
+
+      - name: Verify exact screenshot totals
+        run: |
+          EXPECTED_PER_MATRIX=22
+          EXPECTED_TOTAL=66
+          ARTIFACT_ROOT="$RUNNER_TEMP/field-trust-screenshots"
+          CONFIG_DIR_COUNT=$(find "$ARTIFACT_ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          if [ "$CONFIG_DIR_COUNT" -ne 3 ]; then
+            echo "Field-trust artifact root contains $CONFIG_DIR_COUNT configuration directories; expected 3" >&2
+            exit 1
+          fi
+
+          TOTAL_PNG_COUNT=0
+          for configuration in 6.9-default small-default 6.9-accessibility; do
+            CONFIGURATION_DIR="$ARTIFACT_ROOT/$configuration"
+            if [ ! -d "$CONFIGURATION_DIR" ]; then
+              echo "Missing field-trust artifact directory for $configuration" >&2
+              exit 1
+            fi
+            PNG_COUNT=$(find "$CONFIGURATION_DIR" -type f -name '*.png' | wc -l | tr -d ' ')
+            if [ "$PNG_COUNT" -ne "$EXPECTED_PER_MATRIX" ]; then
+              echo "Field-trust artifact $configuration contains $PNG_COUNT PNGs; expected $EXPECTED_PER_MATRIX" >&2
+              exit 1
+            fi
+            TOTAL_PNG_COUNT=$((TOTAL_PNG_COUNT + PNG_COUNT))
+          done
+
+          if [ "$TOTAL_PNG_COUNT" -ne "$EXPECTED_TOTAL" ]; then
+            echo "Field-trust artifact set contains $TOTAL_PNG_COUNT PNGs; expected $EXPECTED_TOTAL" >&2
+            exit 1
+          fi
+          echo "AUDIT[field-trust-artifacts] matrices=3 perMatrix=$EXPECTED_PER_MATRIX total=$TOTAL_PNG_COUNT"

@@ -50,7 +50,12 @@ def _poi_kind(tags, *, exact_denmark: bool = False) -> bool:
     return any(signature in values for signature in signatures)
 
 
-def read_pbf(path: str, *, exact_denmark: bool = False):
+def read_pbf(path: str, *, exact_denmark: bool = False,
+             denmark: bool = False):
+    """`denmark` (--region dk) keeps the Denmark-era loading: type compared
+    normalized, and every direct way member of a route relation is loaded for
+    audit even without highway/trail tags. Every other region keeps the
+    pre-Denmark (72c6c7d22) loading byte-for-byte."""
     import osmium
 
     nodes: dict[int, tuple[float, float]] = {}
@@ -63,7 +68,9 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
     class RelationPass(osmium.SimpleHandler):
         def relation(self, relation):
             tags = {tag.k: tag.v for tag in relation.tags}
-            if model.member_safety.normalize(tags.get("type")) != "route":
+            route_type = (model.member_safety.normalize(tags.get("type"))
+                          if denmark else tags.get("type"))
+            if route_type != "route":
                 return
             members = [(member.type, member.ref, member.role)
                        for member in relation.members]
@@ -78,7 +85,7 @@ def read_pbf(path: str, *, exact_denmark: bool = False):
         def way(self, way):
             tags = {tag.k: tag.v for tag in way.tags}
             if not (model._is_trailish(tags) or "highway" in tags
-                    or way.id in direct_relation_way_ids):
+                    or (denmark and way.id in direct_relation_way_ids)):
                 return
             node_ids = [node.ref for node in way.nodes]
             if len(node_ids) < 2:
@@ -1205,7 +1212,8 @@ def main(argv=None) -> int:
         args.require_exact_area
         and model.member_safety.normalize(args.region) == "dk")
     nodes, ways, relations, pois = read_pbf(
-        args.inp, exact_denmark=exact_denmark)
+        args.inp, exact_denmark=exact_denmark,
+        denmark=model.member_safety.normalize(args.region) == "dk")
     # Raw authority may add out-of-AOI relation members below. Preserve the
     # rendered AOI way universe before augmentation so no standalone trail,
     # removal, or spur can be invented from country-scope evidence.
@@ -1666,7 +1674,9 @@ def main(argv=None) -> int:
           file=sys.stderr)
     print(
         f"removed {len(curation_removed_features) + len(clip_removed) + len(quality_removed):,} "
-        f"trails (curation/exact clip) -> {removed_path}",
+        # Non-Denmark runs keep the pre-Denmark (72c6c7d22) log wording.
+        f"trails ({'curation/exact clip' if model.member_safety.normalize(args.region) == 'dk' else 'curation'})"
+        f" -> {removed_path}",
         file=sys.stderr)
     return 2 if terminal_absorption_failure else 0
 

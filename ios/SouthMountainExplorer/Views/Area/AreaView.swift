@@ -35,6 +35,7 @@ struct AreaView: View {
     @Environment(CoverageService.self) private var coverage
     @Environment(ActivityService.self) private var activity
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Map style binding lives on AreaView so the user can flip
     /// it from the per-map "•••" menu rather than digging into
     /// Settings. Same `@AppStorage` key MapKitMapView reads, so
@@ -63,6 +64,10 @@ struct AreaView: View {
     /// half a second. Flipped by a task timer that starts on
     /// `.task(id: areaId)` and ends 1.5 s later.
     @State private var minLoadingTimeElapsed = false
+    /// Set once the silhouette draw-in has finished. The live map, sheet and
+    /// wide panel stay unmounted until then so their mount cost lands behind a
+    /// fully drawn silhouette instead of freezing the reveal.
+    @State private var revealComplete = false
 
     // MARK: - Measured blocks behind the smallest sheet stop
     //
@@ -116,6 +121,54 @@ struct AreaView: View {
     /// Window height, tracked so a runtime window resize (iPhone Duo fold /
     /// resize) re-evaluates the detent math, which reads `WindowMetrics`.
     @State private var windowHeight: CGFloat = 0
+    /// Measured window width (usable width plus side safe areas) and the
+    /// usable width inside the safe area. Drive the compact/wide gate; 0 until
+    /// the first layout, when `WindowMetrics` stands in.
+    @State private var measuredWindowWidth: CGFloat = 0
+    @State private var measuredUsableWidth: CGFloat = 0
+    @State private var measuredTrailingInset: CGFloat = 0
+    /// Persisted share of the usable width the wide side panel takes. 0 = unset.
+    @AppStorage(StorageKeys.areaPanelFraction) private var storedPanelFraction: Double = 0
+    /// Live panel width while the divider is being dragged; committed on release.
+    @State private var panelDragWidth: CGFloat? = nil
+    /// Bottom edge of the top map-control cluster in global screen points.
+    /// This is measured from rendered controls rather than inferred from a
+    /// device model so selected-route framing remains valid at every safe area.
+    @State private var measuredMapControlsBottom: CGFloat = 72
+
+    private var mapControlSize: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 48 : 44
+    }
+
+    private var mapControlIconFont: Font {
+        dynamicTypeSize.isAccessibilitySize
+            ? .system(size: 20, weight: .semibold)
+            : .body.weight(.semibold)
+    }
+
+    /// Selected markers need their whole glyph outside both control bands, not
+    /// merely their anchor coordinate. The fixed clearance is generic visual
+    /// chrome; no route, parking, or area data enters this value.
+    private var selectedMapViewportInsets: MapViewportInsets {
+        MapViewportInsets(
+            top: measuredMapControlsBottom + 40,
+            leading: 20,
+            bottom: effectiveBottomInset + (dynamicTypeSize.isAccessibilitySize ? 80 : 20),
+            trailing: 20
+        )
+    }
+
+    /// The physical map viewport, without aesthetic edge margins. MapKit uses
+    /// this only to compare rendered near-marker bounds against real controls,
+    /// screen edges, and the settled native sheet. A fully visible edge marker
+    /// therefore never causes a camera move merely for crossing a 20-point
+    /// design inset.
+    private var selectedMapVisibleInsets: MapViewportInsets {
+        MapViewportInsets(
+            top: measuredMapControlsBottom,
+            bottom: effectiveBottomInset
+        )
+    }
 
     /// Trail-list sheet detents — exactly TWO stops, and the MAP IS VISIBLE
     /// AT BOTH. There is no full-screen stop: this is a map screen, and a
@@ -187,8 +240,9 @@ struct AreaView: View {
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
-    /// Bumped by the toolbar search button after expanding to browse, so the
-    /// just-mounted search field grabs focus and the keyboard is ready.
+    /// Bumped by the toolbar search button before expanding to Browse. The
+    /// list persists the request until its conditionally mounted field appears,
+    /// so focus does not depend on a guessed animation delay.
     @State private var searchFocusTick = 0
     /// Set when selecting a trail from the browse stop dropped the sheet to
     /// fit so the map could show the trail. Deselecting then returns the sheet
@@ -243,6 +297,7 @@ struct AreaView: View {
 
     // Pre-flight checks before kicking off a recording.
     @State private var showConflictAlert = false
+    @State private var showRecordingRecoveryAlert = false
     @State private var conflictAreaName: String = ""
     /// Captured by tryStartRecording when a confirmation dialog interrupts
     /// the start. The dialog's "proceed" button reads this so a trail-mode
@@ -434,7 +489,7 @@ struct AreaView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if let area, minLoadingTimeElapsed {
+            if let area, mapMounted, !isWideLayout {
                 // Full-screen map. The trail-list sheet (presented
                 // via .sheet below) covers the bottom portion and
                 // is system-native, so we hand TrailMapView the
@@ -451,12 +506,16 @@ struct AreaView: View {
                     selectedTrailId: $selectedTrailId,
                     visibleTrailIds: visibleTrailIds,
                     bottomInset: effectiveBottomInset,
+                    selectedViewportInsets: selectedMapViewportInsets,
+                    selectedVisibleInsets: selectedMapVisibleInsets,
                     trackingMode: $trackingMode
                 )
                 .ignoresSafeArea()
+                .accessibilityHidden(loadingOverlayVisible)
 
                 floatingRetargetBanner(area: area)
                     .animation(.easeInOut(duration: 0.25), value: selectedTrailId)
+                    .accessibilityHidden(loadingOverlayVisible)
 
                 // iOS 26 presents the native sheet as a floating card: its
                 // custom presentation background is opaque, but the host itself
@@ -487,9 +546,9 @@ struct AreaView: View {
                 // means. On a page they are simply laid out, and there is no
                 // distance to compute.
 
-            } else if isLoading || (area != nil && !minLoadingTimeElapsed) {
-                loadingState
-            } else {
+            } else if let area, mapMounted {
+                wideContent(area: area)
+            } else if AreaLoadingVisibility.showsFailure(hasArea: area != nil, isLoading: isLoading) {
                 // Human copy + a way out. This used to render the raw error
                 // straight through — including engineer-facing strings like
                 // "Fetch already in progress but returned no data." — with no
@@ -506,6 +565,40 @@ struct AreaView: View {
                     Button("Try Again") { loadAttempt += 1 }
                         .buttonStyle(.borderedProminent)
                 }
+            }
+        }
+        // The ZStack is empty until the map mounts, and an overlay takes its
+        // parent's size, so without this the loading overlay is laid out at
+        // 0x0 and nothing is placed or drawn until the map mounts.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The map mounts once the draw-in reveal completes; the silhouette sits on
+        // top until the loading floor has elapsed, then fades out over the live
+        // map instead of hard-cutting to an empty one.
+        .overlay {
+            if loadingOverlayVisible {
+                loadingState
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.3), value: loadingOverlayVisible)
+        .onGeometryChange(for: AreaWidths.self) { proxy in
+            AreaWidths(
+                window: proxy.size.width
+                    + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing,
+                usable: proxy.size.width,
+                trailing: proxy.safeAreaInsets.trailing
+            )
+        } action: { widths in
+            guard widths.window.isFinite, widths.usable.isFinite else { return }
+            let wasWide = isWideLayout
+            if abs(measuredWindowWidth - widths.window) >= 1 { measuredWindowWidth = widths.window }
+            if abs(measuredUsableWidth - widths.usable) >= 1 { measuredUsableWidth = widths.usable }
+            if widths.trailing.isFinite, abs(measuredTrailingInset - widths.trailing) >= 1 {
+                measuredTrailingInset = widths.trailing
+            }
+            // The map pane resized with the window: refit a selected trail.
+            if wasWide || isWideLayout, selectedTrailId != nil, !isRecording {
+                scheduleSelectedTrailRefit()
             }
         }
         .sheet(isPresented: trailSheetPresented) {
@@ -678,92 +771,7 @@ struct AreaView: View {
         }
         .navigationBarHidden(true)
         .overlay(alignment: .top) {
-            HStack {
-                Button {
-                    ActivityLogService.shared.log(
-                        category: "area",
-                        action: "closed",
-                        context: ["areaId": areaId]
-                    )
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .compatibleGlass(in: .circle)
-                }
-                .accessibilityIdentifier("area-close-button")
-                Spacer()
-                // Area-level overflow menu. Currently hosts only
-                // "Export All Trails as GPX" but the chrome is
-                // sized to grow as more area-wide actions land
-                // (Stats / heatmap export, area download, etc.).
-                Menu {
-                    Picker("Map Style", selection: $mapStyle) {
-                        ForEach(MapStylePreference.allCases) { style in
-                            Text(style.label).tag(style)
-                        }
-                    }
-                    // Parking is normally gated to the selected trail (#429) so
-                    // a busy map stays readable. That gate also makes an area's
-                    // parking undiscoverable: Helena-Lewis and Clark NF has 31
-                    // lots, but only 16% of its trails have one within the 805 m
-                    // endpoint radius, so browsing trail by trail reads as "no
-                    // parking here". This answers the area-level question
-                    // without loosening the per-trail association.
-                    Toggle(isOn: $showAllParking) {
-                        Label("Show All Parking", systemImage: "parkingsign.circle")
-                    }
-                    .disabled((area?.parking?.isEmpty ?? true))
-                    Divider()
-                    // Selection-aware GPX export: with a trail selected in the
-                    // list, export just that one trail (small, what people
-                    // actually want); otherwise export the whole area as a
-                    // multi-track GPX (the bulk/backup path).
-                    if let area, let tid = selectedTrailId,
-                       let trail = area.trails.first(where: { $0.id == tid }) {
-                        Button {
-                            exportTrailGpx(trail)
-                        } label: {
-                            Label("Export \u{201C}\(trail.name)\u{201D} as GPX",
-                                  systemImage: "square.and.arrow.up")
-                        }
-                        Button {
-                            reportingTrail = trail
-                        } label: {
-                            Label("Report a problem with this trail",
-                                  systemImage: "exclamationmark.bubble")
-                        }
-                    } else {
-                        Button {
-                            exportAreaGpx()
-                        } label: {
-                            Label("Export All Trails as GPX", systemImage: "square.and.arrow.up")
-                        }
-                        .disabled(area == nil)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .compatibleGlass(in: .circle)
-                }
-                Button {
-                    Task { await favorites.toggle(areaId: areaId) }
-                } label: {
-                    Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .compatibleGlass(in: .circle)
-                        .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
-                }
-                .accessibilityLabel(
-                    favorites.isFavorite(areaId) ? "Remove from Saved Areas" : "Save Area"
-                )
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .safeAreaPadding(.top)
+            if !isWideLayout { mapControlCluster }
         }
         // Keyed on `loadAttempt` so the Try Again button can re-run the whole
         // load. Before this the area loaded exactly once and a failure was a
@@ -822,7 +830,10 @@ struct AreaView: View {
             // animation always completes — even when the area's data is
             // already on disk and lands in microseconds.
             minLoadingTimeElapsed = false
-            try? await Task.sleep(for: .seconds(1.5))
+            revealComplete = false
+            try? await Task.sleep(for: .seconds(AreaLoadingVisibility.revealDuration))
+            revealComplete = true
+            try? await Task.sleep(for: .seconds(AreaLoadingVisibility.floorDuration - AreaLoadingVisibility.revealDuration))
             minLoadingTimeElapsed = true
         }
         .task(id: isRecording) {
@@ -872,6 +883,111 @@ struct AreaView: View {
         }
     }
 
+    /// Close / options / favorite cluster. Compact: overlaid across the top of
+    /// the screen. Wide: overlaid on the map pane only, so it never sits on the panel.
+    @ViewBuilder
+    private var mapControlCluster: some View {
+        HStack {
+            Button {
+                ActivityLogService.shared.log(
+                    category: "area",
+                    action: "closed",
+                    context: ["areaId": areaId]
+                )
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(mapControlIconFont)
+                    .frame(width: mapControlSize, height: mapControlSize)
+                    .compatibleGlass(in: .circle)
+            }
+            .accessibilityLabel("Close Area")
+            .accessibilityIdentifier("area-close-button")
+            Spacer()
+            // Area-level overflow menu. Currently hosts only
+            // "Export All Trails as GPX" but the chrome is
+            // sized to grow as more area-wide actions land
+            // (Stats / heatmap export, area download, etc.).
+            Menu {
+                Picker("Map Style", selection: $mapStyle) {
+                    ForEach(MapStylePreference.allCases) { style in
+                        Text(style.label).tag(style)
+                    }
+                }
+                // Parking is normally gated to the selected trail (#429) so
+                // a busy map stays readable. That gate also makes an area's
+                // parking undiscoverable: Helena-Lewis and Clark NF has 31
+                // lots, but only 16% of its trails have one within the 805 m
+                // endpoint radius, so browsing trail by trail reads as "no
+                // parking here". This answers the area-level question
+                // without loosening the per-trail association.
+                Toggle(isOn: $showAllParking) {
+                    Label("Show All Parking", systemImage: "parkingsign.circle")
+                }
+                .disabled((area?.parking?.isEmpty ?? true))
+                Divider()
+                // Selection-aware GPX export: with a trail selected in the
+                // list, export just that one trail (small, what people
+                // actually want); otherwise export the whole area as a
+                // multi-track GPX (the bulk/backup path).
+                if let area, let tid = selectedTrailId,
+                   let trail = area.trails.first(where: { $0.id == tid }) {
+                    Button {
+                        exportTrailGpx(trail)
+                    } label: {
+                        Label("Export \u{201C}\(trail.name)\u{201D} as GPX",
+                              systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        reportingTrail = trail
+                    } label: {
+                        Label("Report a problem with this trail",
+                              systemImage: "exclamationmark.bubble")
+                    }
+                } else {
+                    Button {
+                        exportAreaGpx()
+                    } label: {
+                        Label("Export All Trails as GPX", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(area == nil)
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(mapControlIconFont)
+                    .frame(width: mapControlSize, height: mapControlSize)
+                    .compatibleGlass(in: .circle)
+            }
+            .accessibilityLabel("Area Options")
+            .accessibilityIdentifier("area-map-options-button")
+            Button {
+                Task { await favorites.toggle(areaId: areaId) }
+            } label: {
+                Image(systemName: favorites.isFavorite(areaId) ? "heart.fill" : "heart")
+                    .font(mapControlIconFont)
+                    .frame(width: mapControlSize, height: mapControlSize)
+                    .compatibleGlass(in: .circle)
+                    .foregroundStyle(favorites.isFavorite(areaId) ? .red : .primary)
+            }
+            .accessibilityLabel(
+                favorites.isFavorite(areaId) ? "Remove from Saved Areas" : "Save Area"
+            )
+            .accessibilityIdentifier("area-map-favorite-button")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .safeAreaPadding(.top)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("area-map-controls")
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.frame(in: .global).maxY
+        } action: { bottom in
+            if bottom.isFinite, abs(measuredMapControlsBottom - bottom) >= 1 {
+                measuredMapControlsBottom = bottom
+            }
+        }
+    }
+
     /// The list → map handoff. Tapping a trail is a question about WHERE it
     /// is, and the answer is on the map — so selecting from the browse stop
     /// drops the sheet to the fit stop (the whole card stays visible) and the
@@ -884,6 +1000,11 @@ struct AreaView: View {
     /// above browse still frames the trail, and the floating retarget banner
     /// answers the tap.
     private func handleSelectionHandoff(from old: String?, to new: String?) {
+        // Wide: no sheet to collapse or restore. The map pane refits itself.
+        if isWideLayout {
+            collapsedForSelection = false
+            return
+        }
         if new == nil {
             // EVERY deselect consumes the flag — including one made mid-hike
             // by dismissing the retarget banner — so a drop made from browse
@@ -926,12 +1047,134 @@ struct AreaView: View {
         }
     }
 
+    // MARK: - Wide layout (side panel)
+
+    private var windowWidthForLayout: CGFloat {
+        measuredWindowWidth > 0 ? measuredWindowWidth : WindowMetrics.size.width
+    }
+
+    private var usableWidthForLayout: CGFloat {
+        measuredUsableWidth > 0 ? measuredUsableWidth : WindowMetrics.size.width
+    }
+
+    /// True on the unfolded Duo and any other window wide enough for a side
+    /// panel. False for every iPhone and the folded Duo, which keep the sheet.
+    private var isWideLayout: Bool {
+        AreaPanelLayout.isWide(
+            windowWidth: windowWidthForLayout,
+            usableWidth: usableWidthForLayout,
+            accessibility: dynamicTypeSize.isAccessibilitySize
+        )
+    }
+
+    private var panelWidth: CGFloat {
+        let ax = dynamicTypeSize.isAccessibilitySize
+        if let drag = panelDragWidth {
+            return AreaPanelLayout.clampedWidth(drag, usableWidth: usableWidthForLayout, accessibility: ax)
+        }
+        return AreaPanelLayout.panelWidth(
+            fraction: storedPanelFraction,
+            usableWidth: usableWidthForLayout,
+            accessibility: ax
+        )
+    }
+
+    private func commitPanelWidth(_ requested: CGFloat) {
+        let width = AreaPanelLayout.clampedWidth(
+            requested,
+            usableWidth: usableWidthForLayout,
+            accessibility: dynamicTypeSize.isAccessibilitySize
+        )
+        storedPanelFraction = AreaPanelLayout.fraction(forWidth: width, usableWidth: usableWidthForLayout)
+        panelDragWidth = nil
+        if selectedTrailId != nil, !isRecording { scheduleSelectedTrailRefit() }
+    }
+
+    /// The silhouette stays on screen until the area has landed AND the loading
+    /// floor has elapsed. The failure state is the area-less, not-loading case.
+    /// Live map / sheet / wide panel mount only after the draw-in reveal.
+    private var mapMounted: Bool {
+        AreaLoadingVisibility.mapMounted(hasArea: area != nil, revealComplete: revealComplete)
+    }
+
+    private var loadingOverlayVisible: Bool {
+        AreaLoadingVisibility.overlayVisible(
+            hasArea: area != nil,
+            isLoading: isLoading,
+            floorElapsed: minLoadingTimeElapsed
+        )
+    }
+
+    /// Wide layout: menu as a full-height side panel on the left, map on the
+    /// right. Same `sheetContent` as the sheet, so every identifier, nested
+    /// sheet and alert comes along. No bottom inset: nothing covers the map.
+    @ViewBuilder
+    private func wideContent(area: Area) -> some View {
+        let width = panelWidth
+        let ax = dynamicTypeSize.isAccessibilitySize
+        // The map pane bleeds under the Duo's right rail; controls, banner and
+        // panel stay inside the safe area, and the camera insets add the bleed.
+        let bleed = AreaPanelLayout.mapTrailingBleed(trailingInset: measuredTrailingInset, isWide: true)
+        HStack(spacing: 0) {
+            sheetContent(area: area)
+                .frame(width: width)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(Color(.systemBackground).ignoresSafeArea(edges: [.top, .bottom]))
+                .ignoresSafeArea(edges: .bottom)
+            AreaPanelDivider(
+                panelWidth: width,
+                usableWidth: usableWidthForLayout,
+                accessibility: ax,
+                onDrag: { panelDragWidth = $0 },
+                onCommit: { commitPanelWidth($0) }
+            )
+            ZStack(alignment: .bottom) {
+                TrailMapView(
+                    area: area,
+                    activeRecording: isRecording ? recording.activeRecording : nil,
+                    pastHikes: pastHikes,
+                    recenterTick: recenterTick,
+                    centerOnSwitchedTrailTick: centerOnSwitchedTrailTick,
+                    fitSelectedTrailTick: fitSelectedTrailTick,
+                    selectedTrailId: $selectedTrailId,
+                    visibleTrailIds: visibleTrailIds,
+                    bottomInset: 0,
+                    selectedViewportInsets: MapViewportInsets(
+                        top: measuredMapControlsBottom + 40,
+                        leading: 20,
+                        bottom: ax ? 80 : 20,
+                        trailing: AreaPanelLayout.mapTrailingCameraInset(margin: 20, bleed: bleed)
+                    ),
+                    selectedVisibleInsets: MapViewportInsets(
+                        top: measuredMapControlsBottom,
+                        bottom: 0,
+                        trailing: bleed
+                    ),
+                    trackingMode: $trackingMode
+                )
+                .ignoresSafeArea(edges: [.top, .bottom, .trailing])
+                .accessibilityHidden(loadingOverlayVisible)
+
+                floatingRetargetBanner(area: area)
+                    .animation(.easeInOut(duration: 0.25), value: selectedTrailId)
+                    .accessibilityHidden(loadingOverlayVisible)
+            }
+            .overlay(alignment: .top) { mapControlCluster }
+        }
+    }
+
+    /// Search and filters show whenever there is no fit stop: always on wide.
+    private var atMinStopForChrome: Bool { atMinStop && !isWideLayout }
+
+    /// Inset the map shifts by for the bottom sheet. None on wide: no sheet.
+    private var mapBottomInset: CGFloat { isWideLayout ? 0 : effectiveBottomInset }
+
     /// Binding that gates the trail-list sheet's presentation on the
     /// area being loaded. Read-only — `interactiveDismissDisabled`
     /// blocks user-initiated dismissal so the setter is a no-op.
     private var trailSheetPresented: Binding<Bool> {
         Binding(
-            get: { self.area != nil && self.minLoadingTimeElapsed },
+            get: { self.area != nil && self.minLoadingTimeElapsed && !self.isWideLayout },
             set: { _ in }
         )
     }
@@ -968,12 +1211,15 @@ struct AreaView: View {
     }
 
     /// The browse stop's `.height()` value. Its visible extent (this plus the
-    /// home-indicator band) is ~66% of the sheet's maximum, which leaves the
-    /// top ~40% of every supported iPhone as map. A per-device constant, so
-    /// comparing a detent against `browseDetent` is stable — unlike the fit
-    /// stop, whose height is measured.
+    /// home-indicator band) is ~66% of the sheet's maximum at standard text,
+    /// which leaves the top ~40% of every supported iPhone as map. Accessibility
+    /// text needs a taller browse stop so a selected row can remain whole; 78%
+    /// still leaves more than a quarter of the screen as map. A per-device
+    /// constant, so comparing a detent against `browseDetent` is stable — unlike
+    /// the fit stop, whose height is measured.
     private var browseHeight: CGFloat {
-        ((maxDetentHeight * 0.66 - Self.bottomSafeInset) / 4).rounded(.down) * 4
+        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.78 : 0.66
+        return ((maxDetentHeight * fraction - Self.bottomSafeInset) / 4).rounded(.down) * 4
     }
 
     private var browseDetent: PresentationDetent { .height(browseHeight) }
@@ -986,8 +1232,9 @@ struct AreaView: View {
     ///   - trail selected → the ENTIRE expanded card — name, stats, elevation
     ///     chart, parking line — so selecting a trail nudges the sheet up by
     ///     exactly what the card needs, whatever its size.
-    ///   - browsing → the action toolbar plus three whole rows, the third row
-    ///     being the cue that the list continues.
+    ///   - browsing → the action toolbar plus measured trail rows. Standard
+    ///     sizes show three as a continuation cue; accessibility sizes show
+    ///     one complete row without compressing its metadata.
     ///
     /// The terms are measurements, but everything they measure is now FIXED
     /// BY DESIGN for the duration of its context: the dashboard's slots are
@@ -1010,12 +1257,15 @@ struct AreaView: View {
             // Clipping the stop button off the bottom is the worse failure.
             ceiling = maxDetentHeight * 0.85
         } else if selectedTrailId != nil {
-            let card = max(selectedRowHeight, collapsedRowHeight * 3)
+            let referenceRowCount: CGFloat = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+            let card = max(selectedRowHeight, collapsedRowHeight * referenceRowCount)
             h = headerHeightFull + idleToolbarHeight + card
                 - Self.bottomSafeInset + Self.fitBottomAir
             ceiling = browseHeight - 40
         } else {
-            h = headerHeightFull + idleToolbarHeight + collapsedRowHeight * 3
+            let referenceRowCount: CGFloat = dynamicTypeSize.isAccessibilitySize ? 1 : 3
+            h = headerHeightFull + idleToolbarHeight
+                + collapsedRowHeight * referenceRowCount
                 - Self.bottomSafeInset + Self.fitBottomAir
             ceiling = browseHeight - 40
         }
@@ -1340,7 +1590,13 @@ struct AreaView: View {
     private func startRecordingNow(trailId: String?) {
         let mode: RecordingMode = trailId == nil ? .roam : .trail
         let result = recording.startRecording(areaId: areaId, mode: mode, trailId: trailId)
-        guard result == .started else {
+        switch result {
+        case .started:
+            break
+        case .recoveryRequired:
+            showRecordingRecoveryAlert = true
+            return
+        case .alreadyActive:
             pendingRecordTrailId = trailId
             conflictAreaName = recording.activeRecording?.mode == .walk
                 ? "your walk"
@@ -1463,11 +1719,13 @@ struct AreaView: View {
                 // hike's path.
                 Task { await loadPastPaths() }
             }
+            .frame(maxHeight: dynamicTypeSize.isAccessibilitySize ? 320 : .infinity)
             .padding(.bottom, 4)
             // No Spacer. One sat here and the content measured taller than
             // itself, leaving a band of empty sheet under the panel.
         }
         .padding(.top, 8)
+        .frame(height: dynamicTypeSize.isAccessibilitySize ? 410 : nil, alignment: .top)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
             if abs(recordingHeight - h) >= 2 { recordingHeight = h }
         }
@@ -1513,7 +1771,7 @@ struct AreaView: View {
             // Search and filters exist only at the browse stop. At fit there is
             // no text field for the keyboard to grab, so focusing search can
             // never yank the sheet — when you can type, you are already at browse.
-            showsChrome: !atMinStop,
+            showsChrome: !atMinStopForChrome,
             focusSearchTick: searchFocusTick,
             scrollToTopTick: scrollListToTopTick,
             onRecordTrail: { trail in tryStartRecording(trailId: trail.id) },
@@ -1526,133 +1784,233 @@ struct AreaView: View {
         )
     }
 
-    /// The idle context's primary actions: start a hike and open the
-    /// Collection. Explicit and labeled — both used to be pages behind an
-    /// unlabeled horizontal swipe, which is why neither was discoverable.
-    /// The Start button states what it will record so there is no way to
-    /// press it and be surprised.
+    /// The idle context's primary actions: start a hike, open Browse search,
+    /// and open the Collection. At accessibility sizes they become full-width
+    /// rows so their labels never compete for horizontal space.
     @ViewBuilder
     private func areaActionRow(area: Area) -> some View {
         let selected = selectedTrailId.flatMap { id in area.trails.first { $0.id == id } }
-        HStack(spacing: 10) {
-            Button {
-                tryStartRecording(trailId: selected?.id)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "record.circle")
-                        .font(.body.weight(.semibold))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 6) {
+                    areaRecordButton(selected: selected)
+                    if atMinStopForChrome {
+                        areaSearchButton
+                    }
+                    areaCollectionButton
+                }
+            } else {
+                HStack(spacing: 10) {
+                    areaRecordButton(selected: selected)
+                    if atMinStopForChrome {
+                        areaSearchButton
+                    }
+                    areaCollectionButton
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("area-action-group")
+    }
+
+    private func areaRecordButton(selected: Trail?) -> some View {
+        Button {
+            tryStartRecording(trailId: selected?.id)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "record.circle")
+                    .font(.body.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(selected == nil ? "Start a Hike" : "Record This Trail")
+                        .font(.caption2.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
                     Text(selected == nil ? "Start a Hike" : "Record This Trail")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .compatibleGlass(in: .capsule)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-record-button")
-            .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 0)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
+            .compatibleGlass(in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-record-button")
+        .accessibilityLabel(selected.map { "Record \($0.name)" } ?? "Start a hike")
+    }
 
-            // Search lives at the browse stop; this button is the intentional
-            // way there — expand, then focus once the chrome has mounted.
-            // While a search or filter is ACTIVE, the icon swaps to a filled
-            // filter glyph in the accent color: the fit stop hides the chrome,
-            // so this constant-size badge is how a filtered 3-row list says
-            // it's filtered.
-            Button {
-                sheetDetent = browseDetent
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
-                    searchFocusTick &+= 1
-                }
-            } label: {
+    private var areaSearchButton: some View {
+        Button {
+            // Persist the request before Browse chrome mounts. TrailListView
+            // consumes it only after the TextField appears, so both a clean
+            // header and a previously scrolled AX header focus deterministically.
+            searchFocusTick &+= 1
+            sheetDetent = browseDetent
+        } label: {
+            HStack(spacing: 8) {
                 Image(systemName: hasActiveFilter
                       ? "line.3.horizontal.decrease.circle.fill"
                       : "magnifyingglass")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(hasActiveFilter ? Color.accentColor : .primary)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 12)
-                    .compatibleGlass(in: .capsule)
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(hasActiveFilter ? "Search & Filters" : "Search Trails")
+                        .font(.caption2.weight(.semibold))
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-search-button")
-            .accessibilityLabel(hasActiveFilter
-                                ? "Search and filters — filters active"
-                                : "Search trails")
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 13)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
+            .compatibleGlass(in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-search-button")
+        .accessibilityLabel(hasActiveFilter
+                            ? "Search and filters — filters active"
+                            : "Search trails")
+    }
 
-            Button {
-                showCollection = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "trophy")
-                        .font(.body.weight(.semibold))
+    private var areaCollectionButton: some View {
+        Button {
+            showCollection = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "trophy")
+                    .font(.body.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text("Collection")
+                        .font(.caption2.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
                     Text("Collection")
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .compatibleGlass(in: .capsule)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("area-collection-button")
-            .accessibilityLabel("Collection — badges earned in this area")
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 14)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
+            .compatibleGlass(in: .capsule)
         }
-        .padding(.horizontal, 20)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-collection-button")
+        .accessibilityLabel("Collection — badges earned in this area")
     }
 
-    @ViewBuilder
-    private func sheetContent(area: Area) -> some View {
-        VStack(spacing: 0) {
-            // Title + summary block — centered under the drag
-            // indicator, reads as one header. The trail count /
-            // completion line used to live in TrailListView's own
-            // summary header; with the area name now sitting above
-            // it, the two read as redundant stacked headers — moved
-            // up here so the user gets the whole "where am I, what's
-            // here" pitch in one block.
-            VStack(spacing: 4) {
-                // The name and summary NEVER stand down. They used to hide at
-                // the smallest stop while a trail was selected, to buy the
-                // expanded row ~40pt — and the audit photographed the price
-                // (sheet-06-min-trail-deselected, run 32203094649): the header
-                // growing back on deselect while the sheet resized under it
-                // left the search field tucked under the divider. A header
-                // with one height cannot do that, and hiding the park's name
-                // was the same "control that vanishes" mistake as the search
-                // bar's — twice reported as breakage, never read as intent.
-                Text(areaName)
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(1)
+    private func areaHeader(area: Area) -> some View {
+        let completed = progress.completionCount(in: area.id, trails: area.trails)
+        let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
 
-                // Single summary line: trails · total distance (unit-aware)
-                // · completion. `areaTrailIds` is the cached Set from
-                // recomputeFiltered() — avoids a per-eval O(N) rebuild.
-                // Whole line turns green at 100% as an area-complete cue.
-                let completed = progress.completionCount(in: area.id, trails: area.trails)
-                let areaComplete = area.resolvedTrailCount > 0 && completed >= area.resolvedTrailCount
+        return VStack(spacing: 0) {
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    areaHeaderContent(
+                        area: area,
+                        completed: completed,
+                        areaComplete: areaComplete
+                    )
+                }
+                .scrollIndicators(.visible)
+                .frame(maxHeight: 120)
+                .accessibilityIdentifier("area-header-scroll")
+            } else {
+                areaHeaderContent(
+                    area: area,
+                    completed: completed,
+                    areaComplete: areaComplete
+                )
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("area-header")
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+            if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
+        }
+    }
+
+    private func areaHeaderContent(
+        area: Area,
+        completed: Int,
+        areaComplete: Bool
+    ) -> some View {
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 8 : 4) {
+            // Keep content below the system grabber without relying on an
+            // overlay or a font-derived offset. This clearance participates
+            // in the same live measurement as the rest of the header.
+            Color.clear
+                .frame(height: 20)
+                .accessibilityHidden(true)
+
+            Text(areaName)
+                .font(dynamicTypeSize.isAccessibilitySize ? .caption2.weight(.semibold) : .title3.weight(.semibold))
+                .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
+                .frame(maxWidth: .infinity,
+                       alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+                .accessibilityIdentifier(
+                    isRecording ? "recording-area-header-title" : "area-header-title"
+                )
+
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 6) {
+                    areaHeaderMetric(
+                        label: "Trails",
+                        value: "\(area.resolvedTrailCount)"
+                    )
+                    areaHeaderMetric(
+                        label: "Total Distance",
+                        value: UnitFormatter.distance(miles: area.resolvedTotalMi, units: units)
+                    )
+                    areaHeaderMetric(
+                        label: "Completed",
+                        value: "\(completed) of \(area.resolvedTrailCount)",
+                        valueColor: areaComplete ? .green : .secondary
+                    )
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("area-header-metrics")
+            } else {
                 Text(areaSummaryLine(area: area, completed: completed))
                     .font(.subheadline)
                     .foregroundStyle(areaComplete ? .green : .secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
+            }
+        }
+        .frame(maxWidth: .infinity,
+               alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+        .padding(.horizontal, 20)
+        .padding(.top, 0)
+        .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 6 : 12)
+    }
 
-                // OSM attribution is NOT repeated here — the required
-                // "© OpenStreetMap contributors" credit lives in
-                // Settings → About (with the licence link), which
-                // satisfies the ODbL. Keeping the header uncluttered.
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
-            // Measured with a deadband like every other block the fit stop
-            // must contain, so a sub-2pt wobble cannot thrash the detent.
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
-                if abs(headerHeightFull - h) >= 2 { headerHeightFull = h }
-            }
+    private func areaHeaderMetric(
+        label: String,
+        value: String,
+        valueColor: Color = .secondary
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            Text(value)
+                .font(.caption2)
+                .foregroundStyle(valueColor)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func sheetContent(area: Area) -> some View {
+        VStack(spacing: 0) {
+            areaHeader(area: area)
 
             // The line the pages scroll under. The pager's top edge clips
             // whatever is scrolled past it, and with no rule there the cut
@@ -1754,6 +2112,16 @@ struct AreaView: View {
         // its binding stays true), which clobbered the dialog. Net:
         // dialog flashed for ~0.1s then vanished, and recording could
         // never start.
+        .alert(
+            "Recording Recovery Needed",
+            isPresented: $showRecordingRecoveryAlert
+        ) {
+            Button("Retry Recovery") { recording.retryRecovery() }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(recording.recoveryIssue?.message
+                 ?? "Resolve the preserved recording recovery state before starting another hike.")
+        }
         .confirmationDialog(
             "You're already recording at \(conflictAreaName)",
             isPresented: $showConflictAlert,
@@ -1824,7 +2192,7 @@ struct AreaView: View {
                 onDismiss: { selectedTrailId = nil }
             )
             // No horizontal padding here — the banner carries its own 16pt.
-            .padding(.bottom, effectiveBottomInset + 10)
+            .padding(.bottom, mapBottomInset + 10)
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
@@ -1909,123 +2277,39 @@ struct AreaView: View {
 /// arriving instead of dead air. Long trails are drawn first (they carry
 /// the most visual weight); then medium, then short. Total animation is
 /// capped so a 200-trail area still finishes in ~2.5s.
-private struct LoadingSilhouetteCanvas: View {
+struct LoadingSilhouetteCanvas: View {
     let silhouette: AreaSilhouette
 
     @Environment(\.colorScheme) private var colorScheme
-    @State private var startDate = Date()
-
     /// Draw order is difficulty priority so where trails cross, the harder
     /// color wins (red over orange over green) instead of two translucent
     /// strokes blending. Within a difficulty, longest spines lead so the reveal
     /// still fills big-to-small.
-    private static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
-    /// Sorted ONCE per silhouette, not per animation frame. This was a computed
-    /// property read inside the Canvas closure of a 60 fps TimelineView, so it
-    /// re-allocated and re-sorted the line list every frame — up to ~1,300 lines
-    /// on the largest areas, during the loading reveal that is meant to look
-    /// smooth.
-    @State private var orderedLines: [SilhouetteLine] = []
+    nonisolated fileprivate static func priority(_ d: String) -> Int { d == "h" ? 2 : (d == "m" ? 1 : 0) }
+    /// Sorted once per silhouette (in `init`), not per animation frame. This is a
+    /// plain `let`, NOT `@State` filled in `onAppear`: state that only the Canvas
+    /// closure reads never invalidates `body`, so the Canvas kept drawing from
+    /// the empty initial list and the draw-in never appeared on some paths.
+    private let orderedLines: [SilhouetteLine]
 
-    private func computeOrderedLines() -> [SilhouetteLine] {
-        silhouette.l.filter { $0.p.count >= 2 }.sorted {
-            let pa = Self.priority($0.d), pb = Self.priority($1.d)
+    init(silhouette: AreaSilhouette) {
+        self.silhouette = silhouette
+        self.orderedLines = Self.ordered(silhouette.l)
+    }
+
+    /// Draw order: difficulty priority (easy, moderate, hard), longer spines
+    /// first within a difficulty. Lines with fewer than 2 points are dropped.
+    nonisolated static func ordered(_ lines: [SilhouetteLine]) -> [SilhouetteLine] {
+        lines.filter { $0.p.count >= 2 }.sorted {
+            let pa = priority($0.d), pb = priority($1.d)
             return pa == pb ? $0.p.count > $1.p.count : pa < pb
         }
     }
 
+    /// Core Animation draws the lines (`strokeEnd` on CAShapeLayers), so the
+    /// draw-in keeps playing while the main thread is busy mounting the map.
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { context in
-            Canvas { ctx, size in
-                guard let bbox = silhouette.bbox else { return }
-                let lines = orderedLines
-                guard !lines.isEmpty else { return }
-
-                let pad: CGFloat = 24
-                let drawW = size.width - 2 * pad
-                let drawH = size.height - 2 * pad
-                guard drawW > 0, drawH > 0 else { return }
-
-                let centerLat = (bbox.s + bbox.n) / 2
-                let lonScale = cos(centerLat * .pi / 180)
-                let xRange = max((bbox.e - bbox.w) * lonScale, .leastNonzeroMagnitude)
-                let yRange = max(bbox.n - bbox.s, .leastNonzeroMagnitude)
-                let scale = min(drawW / xRange, drawH / yRange)
-                let canvasW = xRange * scale
-                let canvasH = yRange * scale
-                let xOffset = pad + (drawW - canvasW) / 2
-                let yOffset = pad + (drawH - canvasH) / 2
-
-                let totalAnimation: TimeInterval = 1.0
-                // Single-line silhouettes get the full duration to
-                // themselves so a tiny area doesn't snap-in in 0.4 s and
-                // look broken; everything else uses 0.4 s per line with
-                // the stagger sized to land the last line exactly at
-                // totalAnimation. AreaView holds the loading view for
-                // 1.5 s total — the reveal lands at 1.0 s, leaving
-                // ~0.5 s of "all trails visible + gentle wave" before
-                // the loaded view takes over. That settled window is
-                // what stops the eye from registering trails as
-                // "cut off mid-reveal" on hundred-trail areas.
-                let perLineDuration: TimeInterval = lines.count == 1 ? totalAnimation : 0.4
-                let stagger: TimeInterval = lines.count > 1
-                    ? (totalAnimation - perLineDuration) / Double(lines.count - 1)
-                    : 0
-                let elapsed = context.date.timeIntervalSince(startDate)
-
-                // Post-reveal subtle wave: once the reveal is done, displace
-                // each path point vertically by a small sine of its x
-                // position + time so the silhouette feels alive instead of
-                // frozen while we wait for trail data. Ramped in over 0.6 s
-                // so it doesn't pop on the moment reveal completes.
-                let waveActive = max(0, elapsed - totalAnimation)
-                let waveRamp = min(1.0, waveActive / 0.6)
-                let waveAmp = 2.0 * waveRamp
-                let waveOmegaT = waveActive * 1.4
-
-                for (i, line) in lines.enumerated() {
-                    guard line.p.count >= 2 else { continue }
-                    let lineStart = Double(i) * stagger
-                    let raw = (elapsed - lineStart) / perLineDuration
-                    let progress = max(0, min(1, raw))
-                    if progress <= 0 { continue }
-
-                    var path = Path()
-                    for (j, pt) in line.p.enumerated() {
-                        guard pt.count >= 2 else { continue }
-                        let lat = pt[0], lon = pt[1]
-                        let x = xOffset + (lon - bbox.w) * lonScale * scale
-                        let yBase = yOffset + canvasH - (lat - bbox.s) * scale
-                        let y = yBase + waveAmp * sin(x / 60.0 + waveOmegaT)
-                        let p = CGPoint(x: x, y: y)
-                        if j == 0 { path.move(to: p) } else { path.addLine(to: p) }
-                    }
-                    let trimmed = progress >= 1 ? path : path.trimmedPath(from: 0, to: progress)
-
-                    let color: Color
-                    switch line.d {
-                    case "e": color = .green
-                    case "m": color = .orange
-                    case "h": color = .red
-                    default:  color = .gray
-                    }
-                    // Opaque: overlapping trails must NOT accumulate alpha — that
-                    // additive blend is what pushed a dimmed orange up into gold.
-                    // The faint-backdrop wash is applied once to the whole Canvas
-                    // via `.opacity` below, AFTER overlaps resolve by priority, so
-                    // orange stays orange instead of collapsing to gold.
-                    ctx.stroke(
-                        trimmed,
-                        with: .color(color),
-                        style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round)
-                    )
-                }
-            }
+        LoadingSilhouetteLayers(lines: orderedLines, bounds4: silhouette.b)
             .opacity(colorScheme == .dark ? 0.9 : 0.82)
-        }
-        .onAppear {
-            startDate = Date()
-            orderedLines = computeOrderedLines()
-        }
     }
 }

@@ -124,7 +124,7 @@ struct HikeLockScreenView: View {
     let isStale: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Image(systemName: "figure.hiking")
                     .foregroundStyle(state.status.tint)
@@ -147,7 +147,7 @@ struct HikeLockScreenView: View {
             }
             HStack(alignment: .firstTextBaseline) {
                 HikeTimerText(startedAt: attributes.startedAt, state: state)
-                    .font(.system(.largeTitle, design: .rounded).weight(.semibold))
+                    .font(.system(.title, design: .rounded).weight(.semibold))
                     .minimumScaleFactor(0.7)
                 Spacer(minLength: 8)
                 Text(state.distanceText).font(.title3.weight(.medium))
@@ -163,7 +163,8 @@ struct HikeLockScreenView: View {
                 }
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 10)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(HikeActivityAccessibility.label(for: state))
         .accessibilityValue(Text(timerInterval: attributes.startedAt...Date.distantFuture,

@@ -14,6 +14,7 @@ struct RecordingDataSafetyTests {
     private final class FakeLocationController: RecordingLocationControlling {
         var liveLocation: CLLocationCoordinate2D? = nil
         var liveAltitude: Double? = nil
+        var lastFixDate: Date? = Date()
         private(set) var acquireCount = 0
         private(set) var releaseCount = 0
         private(set) var ownsRecordingLocation = false
@@ -204,6 +205,28 @@ struct RecordingDataSafetyTests {
         #expect(checkpointWasCleared, "Discard left an active checkpoint")
     }
 
+    @Test func staleFixIsNotAppendedButFreshFixIs() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let (defaults, suiteName) = try makeDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let service = RecordingService(
+            historyStore: RecordingHistoryStore(
+                fileURL: directory.appendingPathComponent("hike-history.json")
+            ),
+            userDefaults: defaults,
+            locationService: FakeLocationController(),
+            initialActiveRecording: makeActive()
+        )
+        let coord = CLLocationCoordinate2D(latitude: 33.3005, longitude: -112.0)
+        let before = service.activeRecording?.path.count ?? 0
+        // Zero-fix gap: live coordinate still readable, fix older than 10 s.
+        service.appendPoint(coord, lastFixAt: Date().addingTimeInterval(-GpsIngest.maxFixAgeSeconds - 1))
+        service.appendPoint(coord, lastFixAt: nil)
+        #expect(service.activeRecording?.path.count == before)
+        service.appendPoint(coord, lastFixAt: Date())
+        #expect(service.activeRecording?.path.count == before + 1)
+    }
     @Test func localControlVisibilityDoesNotMutateActiveRecording() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

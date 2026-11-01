@@ -1779,20 +1779,24 @@ final class RecordingService {
         locationObserver?.cancel()
         locationObserver = Task { [weak self] in
             while !Task.isCancelled {
-                let sample = await MainActor.run { () -> (CLLocationCoordinate2D, Double?)? in
+                let sample = await MainActor.run { () -> (CLLocationCoordinate2D, Double?, Date?)? in
                     guard let coord = self?.locationService.liveLocation else { return nil }
-                    return (coord, self?.locationService.liveAltitude)
+                    return (coord, self?.locationService.liveAltitude, self?.locationService.lastFixDate)
                 }
-                if let (coord, altitude) = sample {
-                    await MainActor.run { self?.appendPoint(coord, altitude: altitude) }
+                if let (coord, altitude, fixAt) = sample {
+                    await MainActor.run { self?.appendPoint(coord, altitude: altitude, lastFixAt: fixAt) }
                 }
                 try? await Task.sleep(for: gpsPollingInterval)
             }
         }
     }
 
-    private func appendPoint(_ coord: CLLocationCoordinate2D, altitude: Double? = nil) {
+    func appendPoint(_ coord: CLLocationCoordinate2D, altitude: Double? = nil, lastFixAt: Date?) {
         guard !isStopping, var rec = activeRecording else { return }
+        // Freshness gate: liveLocation keeps returning the last coordinate
+        // during a zero-fix gap. Recording it would stamp a stale position
+        // as live, hiding the gap (see GpsIngest.maxFixAgeSeconds).
+        guard GpsIngest.isFreshFix(lastFixAt: lastFixAt, now: Date()) else { return }
         let lat = Double(String(format: "%.6f", coord.latitude))!
         let lon = Double(String(format: "%.6f", coord.longitude))!
         let ts = Date().timeIntervalSince1970 * 1000
@@ -1817,7 +1821,7 @@ final class RecordingService {
         }
         activeRecording = rec
         persist()
-        refreshEstimates(now: Date(), lastFixAt: Date())
+        refreshEstimates(now: Date(), lastFixAt: lastFixAt)
     }
 
     // MARK: - Local history persistence

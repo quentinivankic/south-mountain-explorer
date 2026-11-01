@@ -1549,7 +1549,7 @@ def test_sync_dk_workflow_contract():
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"mode", "rollback_run_id"}              # the area list is never an input
     assert inputs["mode"]["options"] == ["plan", "apply", "rollback", "plan-update", "apply-update",
-                                         "rollback-update"]
+                                         "rollback-update", "plan-remove", "apply-remove", "rollback-remove"]
     assert doc["permissions"] == {"contents": "read", "actions": "read"}
     assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
         "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
@@ -1561,7 +1561,7 @@ def test_sync_dk_workflow_contract():
     assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in SYNC_DK
     assert "trap - EXIT" in SYNC_DK and "rollback-decide" in SYNC_DK and "derive-areas" in SYNC_DK
     assert 'test "$(cur "$key")" = "$(base "$key")"' in SYNC_DK       # ETag race guard
-    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 2   # apply + apply-update
+    assert SYNC_DK.count('test "$(cur parking.json)" = "$(base parking.json)"') == 3   # apply + apply-update + apply-remove
     assert "parking_after" in SYNC_DK                                  # rollback checks parking too
 
 
@@ -1618,7 +1618,7 @@ def test_every_hold_reason_is_from_the_documented_set():
     assert dk.HOLD_REASONS == {
         "island", "np-nested", "name-collision", "merge-into-klosterhede",
         "duplicate-of-live", "needs-rescope", "merge-pending", "mtb-centre",
-        "curated-do-not-ship"}
+        "curated-do-not-ship", "superseded"}
 
 
 def test_registry_rejects_an_undocumented_hold_reason(tmp_path):
@@ -2926,3 +2926,328 @@ def test_run_area_script_passes_container_from_routes_only_when_set():
 def test_only_batch_l_registry_entries_use_container_from_routes():
     assert {a["id"] for a in json.loads(REGISTRY.read_text(encoding="utf-8"))["areas"]
             if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW}
+
+
+# ------------------------------------------------------------ REMOVE mode ----
+# Denmark-only, opt-in (registry hold=superseded). Unlists areas from the three shared files;
+# the 2N per-area objects are never written or deleted.
+
+def _remove_fixture(tmp_path, total, rm, *, mark=True, commit=True):
+    """Repo committed with `total` live areas; live R2 = the same areas. `rm` = positions to remove.
+    Registry marks the removed ids hold=superseded when `mark`."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    repo, live, ids = _make_repo(tmp_path, total)
+    rows = json.loads((repo / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())
+    (repo / "public/areas/index.json").write_bytes(_default(rows))
+    rm_ids = [ids[i] for i in rm]
+    reg_path = repo / "trailforge/golden/dk-areas.json"
+    doc = json.loads(reg_path.read_text())
+    for entry in doc["areas"]:
+        if mark and entry["id"] in rm_ids:
+            entry["hold"] = "superseded"
+    reg_path.write_text(json.dumps(doc), encoding="utf-8")
+    search = [["Old Trail", "old-area-co", "a", 1.0, "Easy"]]
+    shapes = {"old-area-co/a": [0, 0, 255, 255]}
+    for aid in ids:
+        geom = (repo / f"public/areas/geom/{aid}.json").read_bytes()
+        search += dk.expected_records("trail-search.json", aid, geom)
+        shapes.update({r[0]: r[1] for r in dk.expected_records("trail-shapes.json", aid, geom)})
+    (live / "index.json").write_bytes(_compact(rows))
+    (live / "trail-search.json").write_bytes(_compact(search))
+    (live / "trail-shapes.json").write_bytes(_compact(shapes))
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "live published state")
+    return {"repo": repo, "live": live, "ids": ids, "rm": rm_ids, "tmp": tmp_path}
+
+
+def _do_remove(fx, ids=None, *, stage=True):
+    rc = dk.main(["remove-areas", "--repo", str(fx["repo"]), "--ids", ",".join(fx["rm"] if ids is None else ids)])
+    if stage and rc == 0:
+        _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    return rc
+
+
+def _derive_remove(fx, out=None):
+    out = out or fx["tmp"] / "rm-areas.txt"
+    rc = dk.main(["derive-remove-areas", "--repo", str(fx["repo"]), "--live-index", str(fx["live"] / "index.json"),
+                  "--out", str(out)])
+    return rc, out
+
+
+def _build_remove(fx, out, extra=()):
+    return dk.main(["build-remove-candidates", "--repo", str(fx["repo"]),
+                    "--live-index", str(fx["live"] / "index.json"),
+                    "--live-search", str(fx["live"] / "trail-search.json"),
+                    "--live-shapes", str(fx["live"] / "trail-shapes.json"), "--out-dir", str(out), *extra])
+
+
+REMOVE_CASES = [(3, [0]), (3, [1]), (3, [2]), (6, [0, 3, 5]), (45, list(range(1, 41)))]
+
+
+@pytest.mark.parametrize("total,rm", REMOVE_CASES, ids=["first", "middle", "last", "N3", "N40"])
+def test_remove_unlists_exactly_the_superseded_areas_and_keeps_everything_else_byte_identical(tmp_path, total, rm):
+    fx = _remove_fixture(tmp_path, total, rm)
+    parking = (fx["live"] / "parking.json").read_bytes()
+    assert _do_remove(fx) == 0
+    rc, areas_file = _derive_remove(fx)
+    assert rc == 0 and areas_file.read_text().split() == fx["rm"]
+    out = tmp_path / "out"
+    assert _build_remove(fx, out, ["--areas-file", str(areas_file)]) == 0
+    plan = json.loads((out / "plan.json").read_text())
+    n = len(fx["rm"])
+    assert plan["schema"] == dk.REMOVE_SCHEMA and plan["areas"] == fx["rm"]
+    assert [w["key"] for w in plan["writes"]] == ["index.json", "trail-search.json", "trail-shapes.json"]
+    assert len(plan["kept_objects"]) == 2 * n and not any("parking" in k for k in plan["kept_objects"])
+    assert plan["kept_objects"] == [k for a in fx["rm"] for k in (f"{a}.json", f"silhouettes/{a}.json")]
+    assert (fx["live"] / "parking.json").read_bytes() == parking
+    for w in plan["writes"]:
+        assert dk._sha((out / w["file"]).read_bytes()) == w["sha256"]
+    gone = set(fx["rm"])
+    for key, as_dict, owner in (("index.json", False, lambda r: r[0]),
+                                ("trail-search.json", False, lambda r: r[1]),
+                                ("trail-shapes.json", True, lambda r: r[0].split("/")[0])):
+        before = dk._split_records((fx["live"] / key).read_bytes(), as_dict, "b")
+        after = dk._split_records((out / key).read_bytes(), as_dict, "a")
+        assert [raw for rec, raw in before if owner(rec) not in gone] == [raw for _, raw in after]
+        assert not any(owner(rec) in gone for rec, _ in after) and len(before) > len(after)
+    # the non-Danish row is untouched and the new index is exactly the repo bundle
+    new_index = json.loads((out / "index.json").read_bytes())
+    assert new_index[0] == OLD_ROW
+    assert new_index == json.loads((fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json").read_bytes())
+    # repo edit: both index files lost exactly those rows; removed files are gone, the rest remain
+    for aid in fx["ids"]:
+        present = (fx["repo"] / f"public/areas/geom/{aid}.json").exists()
+        assert present == (aid not in gone)
+    assert [r[0] for r in json.loads((fx["repo"] / "public/areas/index.json").read_bytes())] == \
+        [r[0] for r in new_index]
+
+
+def test_remove_verify_staged_and_commit_accept_exactly_the_removal_diff(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1, 2])
+    assert _do_remove(fx) == 0
+    ids = ",".join(fx["rm"])
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", ids, "--mode", "remove"]) == 0
+    _git(fx["repo"], "commit", "-q", "-m", "remove")
+    assert dk.main(["verify-commit", "--repo", str(fx["repo"]), "--areas", ids, "--mode", "remove"]) == 0
+    # a different id set is not the diff
+    assert dk.main(["verify-commit", "--repo", str(fx["repo"]), "--areas", fx["ids"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_verify_refuses_extra_changes(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1])
+    assert _do_remove(fx, stage=False) == 0
+    other = fx["repo"] / f"public/areas/geom/{fx['ids'][3]}.json"
+    other.write_bytes(other.read_bytes() + b" ")                                # an unrelated area changes too
+    _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", fx["rm"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_verify_refuses_a_tampered_other_row(tmp_path):
+    fx = _remove_fixture(tmp_path, 4, [1])
+    assert _do_remove(fx, stage=False) == 0
+    path = fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(path.read_bytes())
+    rows[1][1] = "Renamed"
+    path.write_bytes(_compact(rows))
+    _git(fx["repo"], "add", "-A", "public/areas", "ios/SouthMountainExplorer/Resources/areas-index.json")
+    assert dk.main(["verify-staged", "--repo", str(fx["repo"]), "--areas", fx["rm"][0], "--mode", "remove"]) == 1
+
+
+def test_remove_areas_refuses_non_danish_unmarked_missing_and_over_cap(tmp_path, capsys):
+    fx = _remove_fixture(tmp_path, 3, [0])
+    before = {p: p.read_bytes() for p in fx["repo"].rglob("*.json") if ".git" not in p.parts}
+    for ids in (["old-area-co"],                                 # not a Danish registry area
+                [fx["ids"][1]],                                  # registry area but not superseded
+                [fx["rm"][0], fx["rm"][0]],                      # duplicate
+                ["ghost-dk"], []):
+        assert _do_remove(fx, ids) == 1
+    (fx["repo"] / f"public/areas/silhouettes/{fx['rm'][0]}.json").unlink()   # missing file
+    assert _do_remove(fx) == 1
+    capsys.readouterr()
+    after = {p: p.read_bytes() for p in fx["repo"].rglob("*.json") if ".git" not in p.parts}
+    assert {p: b for p, b in before.items() if p.name != f"{fx['rm'][0]}.json" or "silhouettes" not in p.parts} == \
+        {p: b for p, b in after.items() if p in before}            # refusals wrote nothing
+    big = _remove_fixture(tmp_path / "big", 45, list(range(41)))
+    assert _do_remove(big) == 1                                   # 41 > cap
+
+
+def test_remove_areas_refuses_when_a_row_is_missing_or_listed_twice(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    path = fx["repo"] / "public/areas/index.json"
+    rows = json.loads(path.read_bytes())
+    path.write_bytes(_default([r for r in rows if r[0] != fx["rm"][0]]))
+    assert _do_remove(fx) == 1
+    path.write_bytes(_default(rows + [rows[2]]))
+    assert _do_remove(fx) == 1
+
+
+def test_remove_derivation_refusals(tmp_path):
+    # registry not marked superseded
+    fx = _remove_fixture(tmp_path / "a", 3, [1], mark=False)
+    assert _do_remove(fx) == 1
+    # bundle dropped a row but the registry is not marked: derive refuses
+    fx = _remove_fixture(tmp_path / "b", 3, [1])
+    assert _do_remove(fx) == 0
+    reg = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(reg.read_text())
+    for e in doc["areas"]:
+        e.pop("hold", None)
+    reg.write_text(json.dumps(doc), encoding="utf-8")
+    assert _derive_remove(fx)[0] == 1
+    assert _build_remove(fx, tmp_path / "b-out") == 1
+    # nothing to remove
+    fx = _remove_fixture(tmp_path / "c", 3, [1])
+    assert _derive_remove(fx)[0] == 1
+    # a repo geom is still present for a removed area
+    fx = _remove_fixture(tmp_path / "d", 3, [1])
+    assert _do_remove(fx) == 0
+    (fx["repo"] / f"public/areas/geom/{fx['rm'][0]}.json").write_bytes(b"{}")
+    assert _derive_remove(fx)[0] == 1
+    # bundle also changed another live row, or added a row: not live-minus-removed
+    fx = _remove_fixture(tmp_path / "e", 4, [1])
+    assert _do_remove(fx) == 0
+    bundle = fx["repo"] / "ios/SouthMountainExplorer/Resources/areas-index.json"
+    rows = json.loads(bundle.read_bytes())
+    changed = copy.deepcopy(rows)
+    changed[1][1] = "Renamed"
+    bundle.write_bytes(_compact(changed))
+    assert _derive_remove(fx)[0] == 1
+    bundle.write_bytes(_compact(rows[::-1]))                     # order changed
+    assert _derive_remove(fx)[0] == 1
+    bundle.write_bytes(_compact(rows + [["new-dk", "New", "Denmark", 56.0, 9.0, 2, 3.0, 7]]))   # an add
+    assert _derive_remove(fx)[0] == 1
+    # the areas file must equal the derivation
+    bundle.write_bytes(_compact(rows))
+    wrong = tmp_path / "wrong.txt"
+    wrong.write_text(fx["ids"][0] + "\n", encoding="utf-8")
+    assert _build_remove(fx, tmp_path / "e-out", ["--areas-file", str(wrong)]) == 1
+    assert _build_remove(fx, tmp_path / "e-ok") == 0
+
+
+def test_remove_build_refuses_non_contiguous_or_missing_live_blocks(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    assert _do_remove(fx) == 0
+    search_path = fx["live"] / "trail-search.json"
+    search = json.loads(search_path.read_bytes())
+    gone = fx["rm"][0]
+    hit = [i for i, r in enumerate(search) if r[1] == gone]
+    shuffled = search[:hit[0]] + [search[hit[0]]] + [search[0]] + search[hit[0] + 1:]   # splits the block
+    shuffled = [search[i] for i in range(len(search)) if i not in hit]
+    shuffled.insert(1, search[hit[0]])
+    shuffled.insert(len(shuffled) - 1, search[hit[1]])
+    search_path.write_bytes(_compact(shuffled))
+    assert _build_remove(fx, tmp_path / "a") == 1
+    search_path.write_bytes(_compact([r for r in search if r[1] != gone]))              # no records at all
+    assert _build_remove(fx, tmp_path / "b") == 1
+    search_path.write_bytes(_compact(search))
+    shapes_path = fx["live"] / "trail-shapes.json"
+    shapes = json.loads(shapes_path.read_bytes())
+    shapes_path.write_bytes(_compact({k: v for k, v in shapes.items() if not k.startswith(gone + "/")}))
+    assert _build_remove(fx, tmp_path / "c") == 1
+    shapes_path.write_bytes(_compact(shapes))
+    assert _build_remove(fx, tmp_path / "ok") == 0
+
+
+def test_remove_prove_delta_refuses_a_candidate_that_touches_another_record(tmp_path):
+    fx = _remove_fixture(tmp_path, 3, [1])
+    ids = fx["rm"]
+    before = (fx["live"] / "trail-search.json").read_bytes()
+    good = dk.drop_area_records(before, "trail-search.json", ids)
+    assert dk.prove_remove_delta("trail-search.json", before, good, ids)["removed_records"] == 2
+    rows = json.loads(good)
+    rows[0][3] = 9.9                                             # another record's bytes changed
+    with pytest.raises(dk.DkError):
+        dk.prove_remove_delta("trail-search.json", before, _compact(rows), ids)
+    with pytest.raises((dk.DkError, contract.ManifestError)):                              # same values, different bytes (1.0 -> 1.00)
+        dk.prove_remove_delta("trail-search.json", before, good.replace(b"1.0,", b"1.00,", 1), ids)
+    with pytest.raises(dk.DkError):                              # nothing removed
+        dk.prove_remove_delta("trail-search.json", before, before, ids)
+
+
+def _remove_plan(tmp_path, capsys):
+    fx = _remove_fixture(tmp_path, 4, [1, 2])
+    assert _do_remove(fx) == 0
+    out = tmp_path / "out"
+    assert _build_remove(fx, out) == 0
+    capsys.readouterr()
+    return fx, out
+
+
+def _decide_remove(fx, out, tmp_path, capsys, spec):
+    plan = json.loads((out / "plan.json").read_text())
+    cur = tmp_path / "cur"
+    cur.mkdir(exist_ok=True)
+    for w in plan["writes"]:
+        data = {"cand": (out / w["file"]).read_bytes(), "old": (fx["live"] / w["key"]).read_bytes(),
+                "other": b'{"third":"party"}'}[spec.get(w["key"], spec["*"])]
+        (cur / w["key"]).write_bytes(data)
+    code = dk.main(["rollback-decide-remove", "--plan", str(out / "plan.json"), "--live-dir", str(cur)])
+    cap = capsys.readouterr()
+    return code, [line.split("\t") for line in cap.out.splitlines() if "\t" in line], cap.err
+
+
+def test_remove_rollback_restores_candidates_skips_baseline_and_never_deletes(tmp_path, capsys):
+    fx, out = _remove_plan(tmp_path, capsys)
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "cand"})
+    assert code == 0 and lines == [["index.json", "restore"], ["trail-search.json", "restore"],
+                                   ["trail-shapes.json", "restore"]]
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "old"})
+    assert code == 0 and {a for _, a in lines} == {"skip"}
+    code, lines, _ = _decide_remove(fx, out, tmp_path, capsys, {"*": "old", "trail-shapes.json": "cand"})
+    assert code == 0 and dict(lines) == {"index.json": "skip", "trail-search.json": "skip",
+                                         "trail-shapes.json": "restore"}
+
+
+@pytest.mark.parametrize("bad", ["index.json", "trail-search.json", "trail-shapes.json"])
+def test_remove_rollback_refuses_third_party_bytes(tmp_path, capsys, bad):
+    fx, out = _remove_plan(tmp_path, capsys)
+    code, lines, err = _decide_remove(fx, out, tmp_path, capsys, {"*": "cand", bad: "other"})
+    assert code == 1 and lines == [] and "refusing" in err
+
+
+def test_remove_rollback_refuses_a_non_remove_plan(tmp_path, capsys):
+    fx, out = _remove_plan(tmp_path, capsys)
+    plan = json.loads((out / "plan.json").read_text())
+    plan["schema"] = "trekdex-dk-r2-update-plan-v1"
+    (out / "plan2.json").write_text(json.dumps(plan))
+    assert dk.main(["rollback-decide-remove", "--plan", str(out / "plan2.json"), "--live-dir", str(fx["live"])]) == 1
+
+
+def test_sync_dk_remove_modes_contract():
+    yaml = pytest.importorskip("yaml")
+    doc = yaml.safe_load(SYNC_DK)
+    steps = {s["name"]: s for s in next(iter(doc["jobs"].values()))["steps"] if "name" in s}
+    cond = {n: s.get("if", "") for n, s in steps.items()}
+    guards = SYNC_DK.split("- name: Guards", 1)[1].split("- name: Snapshot", 1)[0]
+    assert "plan-remove|apply-remove|rollback-remove" in guards and '"$MODE" = "rollback-remove"' in guards
+    plan = SYNC_DK.split("- name: Remove plan", 1)[1].split("\n      - name:", 1)[0]
+    apply_ = SYNC_DK.split("- name: Apply remove", 1)[1].split("\n      - name:", 1)[0]
+    rollback = SYNC_DK.split("- name: Rollback remove", 1)[1]
+    assert cond[next(n for n in steps if n.startswith("Remove plan"))] == \
+        "${{ inputs.mode == 'plan-remove' || inputs.mode == 'apply-remove' }}"
+    assert cond[next(n for n in steps if n.startswith("Apply remove"))] == "${{ inputs.mode == 'apply-remove' }}"
+    assert cond[next(n for n in steps if n.startswith("Rollback remove"))] == "${{ inputs.mode == 'rollback-remove' }}"
+    # the removal set is derived, never an input; the kept objects must exist
+    assert "derive-remove-areas" in plan and "build-remove-candidates" in plan and "head-object" in plan
+    assert (SYNC_DK.index("- name: Remove plan") < SYNC_DK.index("dk-r2-remove-snapshot-${{ github.run_id }}")
+            < SYNC_DK.index("- name: Apply remove"))
+    # archive, never delete: no object is deleted or written except the three shared files
+    for block in (plan, apply_, rollback):
+        assert "delete-object" not in block and "aws s3 rm" not in block
+        assert not re.search(r"--key\s+parking\.json[^\n]*--body|put[^\n]*parking", block)
+    assert "--if-match" in apply_ and "--if-match" in rollback and "put-object" in apply_
+    assert apply_.index("changed since snapshot") < apply_.index('put "cand/$file"')
+    assert "PARTIAL APPLY: dispatch mode=rollback-remove with rollback_run_id=$GITHUB_RUN_ID" in apply_
+    assert "READBACK MISMATCH" in apply_ and "KEPT OBJECT CHANGED" in apply_ and "trap - EXIT" in apply_
+    assert 'test "$(cur parking.json)" = "$(base parking.json)"' in apply_
+    assert "rollback-decide-remove" in rollback and "ROLLBACK READBACK MISMATCH" in rollback
+    assert "KEPT OBJECT CHANGED" in rollback and "parking_after" in rollback
+    # pre-existing steps are untouched: same names and same `if:` conditions as before this change
+    assert cond["Plan (area list from the committed index diff; build + prove candidates)"] == \
+        "${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}"
+    assert cond["Apply (write 2N+3 keys in order, read each back)"] == "${{ inputs.mode == 'apply' }}"
+    assert cond["Apply update (conditional overwrite of 2N+3 keys, read each back)"] == \
+        "${{ inputs.mode == 'apply-update' }}"
+    assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC_DK))) == [
+        "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]

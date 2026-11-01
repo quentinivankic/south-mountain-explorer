@@ -387,6 +387,28 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   `dk_publish` swaps the name check for the tag check and lowers the minimum
   polygon size from 0.01 to 0.005 degrees per axis (`CONTAINER_SPAN_MIN`); a
   missing, duplicated, non-forest or wrong-kind polygon fails closed.
+- **Container from routes** (registry `container_from_routes: {"reason": "..."}`,
+  `--dk-container-from-routes`, dk-v3 exact Denmark only): for an area with NO
+  usable OSM polygon (a kommune / fond route cluster). The container is DERIVED,
+  not drawn: the whole geometry of every `include_trails` route (nested route
+  relations followed) is projected locally (equirectangular at the cluster's mean
+  latitude, 1 degree = 111,320 m), unioned and buffered by 150 m, vertices rounded
+  to 6 decimals (`areas.route_cluster_container`, version `route-cluster-v1`).
+  Fail closed: fewer than two distinct `r<id>` includes, the registry
+  `relation_id` (the anchor, = the first include) not among them, an include that
+  is missing, not a hiking/foot route or has incomplete geometry, a cluster wider
+  than 0.12 degrees per axis, outside Denmark, an invalid polygon, or a real
+  polygon that already carries the registry name (use the polygon path then).
+  Sealed in `*.exact-area.geojson` as `evidence_type: "route-cluster"` with the
+  exact `route_relation_ids`, buffer, `route_linework_sha256` (hash of the input
+  linework, independent of GEOS) and the usual `geometry_sha256`; the same block
+  is in the assembly report's `boundary_selection`. `osm_type`/`osm_id` of the
+  seal are the anchor route relation. Trails come ONLY from `include_trails`
+  (whole routes, exactly one match each); everything else inside is removed as
+  `dk-container-only`. Nothing is synthesized and the silhouette is trail-derived
+  as always. The registry `name` is the explicit area name. `dk_publish` checks
+  every include (present once, hiking/foot route, geometry) and the cluster size
+  in prepare-areas. Off by default: every other area is untouched.
 - **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
   dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
   and validation as `exclude_trails`. A listed trail is published whole whatever

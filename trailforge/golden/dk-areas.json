@@ -18,7 +18,7 @@
       "hold": null,
       "est_trails": 34,
       "est_mi": 92.3,
-      "notes": "Published. Pinned constants (r2_release_contract.MOLS_*). Legacy rules plus legacy_exclude_trails (9 exercise, children, fragment and road-name trails removed, then BATCH-1 2026-11-01: Molsruten, Bjergetapen, Kaløetapen, Midtervej and Kaløstien removed as long-distance legs or fragments; Kløverstier-Naturruten, a signed 12.2 km national-park walk, is kept). Mols stays ONE whole area (not split): expect 12 trails.",
+      "notes": "Published. Pinned constants (r2_release_contract.MOLS_*). Legacy rules plus legacy_exclude_trails (9 exercise, children, fragment and road-name trails removed, then BATCH-1 2026-11-01: Molsruten, Bjergetapen, Kaløetapen, Midtervej and Kaløstien removed as long-distance legs or fragments; Kløverstier-Naturruten, a signed 12.2 km national-park walk, is kept). Mols stays ONE whole area (not split): expect 12 trails. BATCH-4 (audit 2): KEEP Kløverstier-Naturruten (r11350069, 12.2 km folder route). The whole relation is connected in OSM (0 m); the shipped 6.52 mi is the legacy polygon clip and the 276 m break is where the route leaves the park, bridged by Lyngevej and paths. No include_trails on legacy rules, so the clipped tail stays out. Both Helligkildestien stay: no official source for a distinguishing name.",
       "allow_update": true,
       "legacy_exclude_trails": [
         {"id": "n*:Kløverstier-Landsbyruten", "name": "Kløverstier-Landsbyruten", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): lcn fragment: 1.32 of 4.59 mi (29%) of a longer village route lies in the park"},
@@ -677,7 +677,7 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 12.4,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Tur 1, 2, 3, 5 (the prefix would fix the names) but Orø (9.6 mi) and Tur 4 are lost to relation gaps, so 4 of 6 routes, and no official page names them. Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. dk-v3 + trail_name_prefix Orø + accept_gap on Tur 4 (142 m gap, cap 200) + two excludes. Orø Tur 1 2.96, Tur 2 1.99, Tur 3 3.76, Tur 4 3.70 mi (lwn relations, description Trampesti, no operator). Tur 5 (0.39 mi village stub on Bygaden, mostly road members) is excluded as a fragment. Known omission: the lwn relation r2728167 'Orø' (9.6 mi island loop, no operator, symbol or website; widest gap measured 537.9 m, so an accept_gap of 600 would admit it): not added because the relation carries no evidence of signage. The earlier estimate of 1269 m for that gap was wrong. No official page found.",
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Tur 1, 2, 3, 5 (the prefix would fix the names) but Orø (9.6 mi) and Tur 4 are lost to relation gaps, so 4 of 6 routes, and no official page names them. Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): SHIP. dk-v3 + trail_name_prefix Orø + accept_gap on Tur 4 (142 m gap, cap 200) + two excludes. Orø Tur 1 2.96, Tur 2 1.99, Tur 3 3.76, Tur 4 3.70 mi (lwn relations, description Trampesti, no operator). Tur 5 (0.39 mi village stub on Bygaden, mostly road members) is excluded as a fragment. Known omission: the lwn relation r2728167 'Orø' (9.6 mi island loop, no operator, symbol or website; widest gap measured 537.9 m, so an accept_gap of 600 would admit it): not added because the relation carries no evidence of signage. The earlier estimate of 1269 m for that gap was wrong. No official page found. BATCH-4 (audit 2): KEEP Orø Tur 4 (r3435156). The audit's 2.4 mi jump is polyline order; real gap 142 m (accept_gap above), filled by Olufsmindevej and footways. The Tur 1-4 names already carry the Orø prefix.",
       "trail_name_prefix": "Orø",
       "exclude_trails": [
         {
@@ -725,7 +725,7 @@
       "hold": null,
       "est_trails": 28,
       "est_mi": 15.8,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c.",
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. BATCH-4 (audit 2): KEEP Søruten (r17901842, red:grey:red_dot hiking relation). The audit's 2.8 mi jump is the order of its separate polylines; widest source gap 75.3 m (bridged), nearest OSM ways in it are walkable paths. Nothing synthesized.",
       "display_name": "Himmelbjerget og Rye Nørreskov",
       "allow_rename": {"from": "Rye Nørreskov", "reason": "audit item 8 (reviewed 2026-11-01, BATCH-2): the Himmelbjerget summit (OSM peak node, 147 m) lies inside a member polygon of the Rye Nørreskov relation and Lynghedeturen passes 0.1 mi from it; Naturstyrelsen runs the nearby guide Himmelbjerget og Slåensø, so the name tells the visitor what the area contains"}
     },
@@ -742,7 +742,7 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 13.2,
-      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 4 clusters; re-scope (Nordby Bakker, coastal path) before shipping. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Gul and Blå (the prefix would fix the names) but Grøn (5.1 mi) is lost to a relation gap, name-stitches Alstrup and Besser Rev ship, and no official page names the routes. Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): SHIP, rescoped to the Nordby Bakker walks. dk-v3 + trail_name_prefix Samsø + two name-stitch excludes + accept_gap on Grøn (216.4 m gap between 3 pieces, cap 250; the earlier 1005 m estimate was wrong, so the cap is not raised). Samsø Gul 3.27 mi, Blå 1.97 (OSM source Naturstyrelsen turfolder nr. 62, Nordby Bakker), Grøn 5.13, Ballebjergturen 2.81 (all lwn or hiking relations, no operator tag). Naturstyrelsen guide Nordby Bakker på Samsø names a blue route at P5 and a red route at Ballebjerg; the guide's walk list page could not be fetched. Registry bbox is the island (margin rule); the centre sits on the walks in the north.",
+      "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Hold (dk-quality): island yields too little in 4 clusters; re-scope (Nordby Bakker, coastal path) before shipping. Batch B (dk-v3 replay, 2026-10-31): Do not ship: Gul and Blå (the prefix would fix the names) but Grøn (5.1 mi) is lost to a relation gap, name-stitches Alstrup and Besser Rev ship, and no official page names the routes. Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): SHIP, rescoped to the Nordby Bakker walks. dk-v3 + trail_name_prefix Samsø + two name-stitch excludes + accept_gap on Grøn (216.4 m gap between 3 pieces, cap 250; the earlier 1005 m estimate was wrong, so the cap is not raised). Samsø Gul 3.27 mi, Blå 1.97 (OSM source Naturstyrelsen turfolder nr. 62, Nordby Bakker), Grøn 5.13, Ballebjergturen 2.81 (all lwn or hiking relations, no operator tag). Naturstyrelsen guide Nordby Bakker på Samsø names a blue route at P5 and a red route at Ballebjerg; the guide's walk list page could not be fetched. Registry bbox is the island (margin rule); the centre sits on the walks in the north. BATCH-4 (audit 2): KEEP Samsø Grøn (r19937141, lwn, distance 8.5 km). The audit's 1.9 mi jump is polyline order; real gap 216 m (accept_gap above), filled by Ballebjergvejen service roads and a path.",
       "trail_name_prefix": "Samsø",
       "exclude_trails": [
         {
@@ -824,7 +824,7 @@
       "hold": null,
       "est_trails": 9,
       "est_mi": 26.6,
-      "notes": "Tier 2 state_forest_like, Jutland. ONE destination (Naturstyrelsen guide 'Randbøl Hede og Frederikshåb Plantage'). The exact path supports one boundary polygon, so the Frederikshåb Plantage relation is the container and the Randbøl Hede routes come in through include_trails (whole OSM relations, nothing clipped). The sibling randbol-hede-dk stays held merge-pending and must never be published. bbox/center computed by the qualify run (pad 0.05 covers Randbøl Hede). BATCH-1 2026-11-01: KEEP Randbøl Rød Rute (0.49 mi). Naturstyrelsen lwn relation with its own distance=1 km tag, listed as the guide's red trail in the batch-D curation; the NST hiking-folder PDF could not be opened this session.",
+      "notes": "Tier 2 state_forest_like, Jutland. ONE destination (Naturstyrelsen guide 'Randbøl Hede og Frederikshåb Plantage'). The exact path supports one boundary polygon, so the Frederikshåb Plantage relation is the container and the Randbøl Hede routes come in through include_trails (whole OSM relations, nothing clipped). The sibling randbol-hede-dk stays held merge-pending and must never be published. bbox/center computed by the qualify run (pad 0.05 covers Randbøl Hede). BATCH-1 2026-11-01: KEEP Randbøl Rød Rute (0.49 mi). Naturstyrelsen lwn relation with its own distance=1 km tag, listed as the guide's red trail in the batch-D curation; the NST hiking-folder PDF could not be opened this session. BATCH-4 (audit 2): KEEP Frederikshåb plantage og Randbøl Hede Rundtur (r12417118, Naturstyrelsen) and Randbøl Rød Rute (r2900915, Naturstyrelsen, OSM distance 1 km, red dot). The Rundtur is one connected relation (source gap 0 m); the audit's 2.0 mi jump is polyline order. Bare 'Randbøl rute' names stay: no official source for a better name.",
       "include_trails": [
         {
           "id": "r2900959",
@@ -2239,7 +2239,7 @@
       "est_trails": 4,
       "est_mi": 8.1,
       "trail_name_prefix": "Staurby",
-      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi. BATCH-1 2026-11-01: KEEP Rød Rute (0.58 mi). The four relations carry the Middelfart Kommune forest page as website and that page presents the four walks together; the municipal page itself could not be fetched this session (TLS error), so this rests on the relation tags."
+      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi. BATCH-1 2026-11-01: KEEP Rød Rute (0.58 mi). The four relations carry the Middelfart Kommune forest page as website and that page presents the four walks together; the municipal page itself could not be fetched this session (TLS error), so this rests on the relation tags. BATCH-4 (audit 2): KEEP Staurby Rød Rute (0.58 mi): hiking relation r13743172 with waymark green:green:red_triangle and url staurbyskov.middelfart.dk 'Find rundt i skoven' (page unreachable, TLS error). Weakest of the four short trails; kept as a signed route of the same set as the Blå/Lilla/Grå routes."
     },
     {
       "id": "sogard-skov-dk",
@@ -3162,7 +3162,7 @@
       "hold": null,
       "est_trails": 2,
       "est_mi": 2.8,
-      "notes": "Batch I (dk-v3 + container_by_id from PR 666, 2026-10-31): SHIP, thin, reviewer call. Naturstyrelsen Søheden Plantage, Brønderslev: the official trip page (VisitDenmark/Enjoy Nordjylland 'Søheden Skov 1 km / 3.3 km') lists exactly these two signed walks, so 2 of 2 is the whole destination; the red one is a Naturstyrelsen 100-best-hikes pick. Rød Rute 2.24 mi + Gul Rute 0.57 mi (the 1 km loop; 83% of it runs on the red) = 2 trails / 2.8 mi. Container: named forest relation 12484791 holds 83% of the linework; it is 0.027 x 0.009 deg, under the normal size floor, so container_by_id. The Gul stub is kept only because it is the second official walk. Operator typo 'Naturstyrelen' in OSM. Unlock for HOLD: drop the Gul and the area falls to one trail. BATCH-1 2026-11-01: KEEP Gul Rute. VisitDenmark's Søheden Skov page (https://www.visitdenmark.com/denmark/plan-your-trip/hiking-soheden-forest-1-km-33-km-gdk1113216) lists exactly two walks, Red route 3.3 km and Yellow route 1 km, so 2 of 2 is the official set.",
+      "notes": "Batch I (dk-v3 + container_by_id from PR 666, 2026-10-31): SHIP, thin, reviewer call. Naturstyrelsen Søheden Plantage, Brønderslev: the official trip page (VisitDenmark/Enjoy Nordjylland 'Søheden Skov 1 km / 3.3 km') lists exactly these two signed walks, so 2 of 2 is the whole destination; the red one is a Naturstyrelsen 100-best-hikes pick. Rød Rute 2.24 mi + Gul Rute 0.57 mi (the 1 km loop; 83% of it runs on the red) = 2 trails / 2.8 mi. Container: named forest relation 12484791 holds 83% of the linework; it is 0.027 x 0.009 deg, under the normal size floor, so container_by_id. The Gul stub is kept only because it is the second official walk. Operator typo 'Naturstyrelen' in OSM. Unlock for HOLD: drop the Gul and the area falls to one trail. BATCH-1 2026-11-01: KEEP Gul Rute. VisitDenmark's Søheden Skov page (https://www.visitdenmark.com/denmark/plan-your-trip/hiking-soheden-forest-1-km-33-km-gdk1113216) lists exactly two walks, Red route 3.3 km and Yellow route 1 km, so 2 of 2 is the official set. BATCH-4 (audit 2): KEEP Gul Rute Søheden Skov (0.57 mi): Naturstyrelsen lwn relation r14688103 with distance 1 km and website enjoynordjylland.dk vandrerute-soeheden-skov-1-km-33-km; the tourism page lists exactly the 1 km yellow and 3.3 km red walks.",
       "include_trails": [
         {
           "id": "r12627643",
@@ -3639,7 +3639,7 @@
       "hold": null,
       "est_trails": 3,
       "est_mi": 4.0,
-      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Ammitsbøl Bæk near Ødsted: three Ødsted-Jerlev Lokalråd walks (rød 2.03 mi, gul 1.49, blå 0.51), the lokalråd's complete signed set. THIN: blå is a 0.8 km stub; reviewer may drop it (area stays 2 trails, 3.5 mi). BATCH-1 2026-11-01: KEEP Blå rute (0.51 mi). Part of the Ødsted-Jerlev Lokalråd's three signed walks (batch L); no official page could be fetched to re-confirm, and the area would still hold 2 trails without it.",
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Ammitsbøl Bæk near Ødsted: three Ødsted-Jerlev Lokalråd walks (rød 2.03 mi, gul 1.49, blå 0.51), the lokalråd's complete signed set. THIN: blå is a 0.8 km stub; reviewer may drop it (area stays 2 trails, 3.5 mi). BATCH-1 2026-11-01: KEEP Blå rute (0.51 mi). Part of the Ødsted-Jerlev Lokalråd's three signed walks (batch L); no official page could be fetched to re-confirm, and the area would still hold 2 trails without it. BATCH-4 (audit 2): KEEP Ammitsbøl Bæk Blå rute (0.51 mi): lwn hiking relation r12594074, blue:white:blue_hiker roundtrip, Ødsted-Jerlev Lokalråd, third route of the same red/yellow/blue set.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Ammitsbøl Bæk; container derived from the 3 included signed routes"
       },
@@ -3800,7 +3800,7 @@
       "hold": null,
       "est_trails": 2,
       "est_mi": 11.4,
-      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Nybøl Nor (Sønderborg Kommune): Nybøl Nor Stien 8.43 mi and Nybølstien 2.94 mi, 11.4 mi, both kommune walks around the cove. 39 percent shared. Æblestien (3.5 mi route mostly outside) and the alternative-route variant stay out; no polygon carries the name.",
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Nybøl Nor (Sønderborg Kommune): Nybøl Nor Stien 8.43 mi and Nybølstien 2.94 mi, 11.4 mi, both kommune walks around the cove. 39 percent shared. Æblestien (3.5 mi route mostly outside) and the alternative-route variant stay out; no polygon carries the name. BATCH-4 (audit 2): KEEP Nybøl Nor Stien (r3304092, Sønderborg Kommune lwn). The audit's 2.3 mi jump is polyline order; widest source gap 10.2 m (bridged).",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Nybøl Nor; container derived from the 2 included signed routes"
       },
@@ -4427,7 +4427,7 @@
       "state": "Denmark",
       "way_id": 1135412600,
       "bbox": [8.45, 56.97, 8.78, 57.17],
-      "center": [57.072, 8.63],
+      "center": [57.0265, 8.6132],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -4438,7 +4438,7 @@
         {"id": "r2528917", "name": "Hanstholm - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2528917 (0.73 mi), whole route, waymarked red:red:red; Hanstholm rød rute (Naturstyrelsen)"},
         {"id": "r12747075", "name": "Degnbjergruten", "reason": "Naturstyrelsen lwn hiking relation r12747075 (3.13 mi), whole route, waymarked blue:green::blue_triangle::; Degnbjergruten, Naturstyrelsen walk at the south edge of the Hanstholm Vildtreservat"}
       ],
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella; Hanstholm Gul rute (NS, 10.6 mi) was never live.",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nationalpark Thy umbrella; Hanstholm Gul rute (NS, 10.6 mi) was never live. Centre pin (BATCH-4, audit 2): moved from open ground 2.9 mi from the nearest trail onto Degnbjergruten at its vertex 57.0265,8.6132. It is the only trail ground inside the reserve polygon bbox that the pin rule requires (Gul rute and the red loop lie north and east of it), and it is within the 0.1 deg trail-extent rule. Gul rute (r2526364) is the whole Naturstyrelsen relation; its widest source gap is 62.6 m (bridged), the audit 5.0 mi jump is the order of its separate polylines, not a hole.",
       "est_trails": 3,
       "est_mi": 14.2
     },
@@ -4477,7 +4477,7 @@
       "tier": 2,
       "hold": null,
       "display_name": "Tønder",
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix.",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix. BATCH-4 (audit 2): KEEP Tur på Papegøjestien (r7802913, Tønder Kommune lwn). The audit's 2.0 mi jump is polyline order; widest source gap 26.5 m (bridged).",
       "container_from_routes": {"reason": "Tønder has no usable polygon for the pair; container derived from the 2 included signed routes"},
       "include_trails": [
         {"id": "r7802913", "name": "Tur på Papegøjestien", "reason": "Tønder Kommune lwn hiking relation r7802913 (4.97 mi), whole route; Tønder Kommune Papegøjestien, was in the Nationalpark Vadehavet umbrella (37% inside the park)"},

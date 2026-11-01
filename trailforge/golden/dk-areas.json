@@ -18,7 +18,19 @@
       "hold": null,
       "est_trails": 34,
       "est_mi": 92.3,
-      "notes": "Published. Pinned constants (r2_release_contract.MOLS_*). Use as the qualify control: expect 26 trails / 85.4 mi."
+      "notes": "Published. Pinned constants (r2_release_contract.MOLS_*). Legacy rules plus legacy_exclude_trails (9 exercise, children, fragment and road-name trails removed; Kløverstier-Naturruten, a signed 12.2 km national-park walk, is kept): expect 17 trails.",
+      "allow_update": true,
+      "legacy_exclude_trails": [
+        {"id": "n*:Kløverstier-Landsbyruten", "name": "Kløverstier-Landsbyruten", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): lcn fragment: 1.32 of 4.59 mi (29%) of a longer village route lies in the park"},
+        {"id": "n*:Kløverstier-Motionsruten", "name": "Kløverstier-Motionsruten", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): 2.6 km exercise ('motion') loop, not a hiking route"},
+        {"id": "n*:Smølfesporet", "name": "Smølfesporet", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): children's Smurf-themed play trail, name-stitched, no relation"},
+        {"id": "n*:Dråby Sporet. Blå rute", "name": "Dråby Sporet. Blå rute", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): fragment: 0.33 of 0.98 mi (34%) of a local spor.dk route lies in the park"},
+        {"id": "n*:Skovbjerg", "name": "Skovbjerg", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): fragment: 0.57 mi lcn roundtrip without signed-walk tags"},
+        {"id": "n*:Kristoffervejen", "name": "Kristoffervejen", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): road-name stitch (6 segments), fragment, no relation"},
+        {"id": "n*:Dalby kærvej", "name": "Dalby kærvej", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): road-name stitch, fragment, no relation"},
+        {"id": "n*:Jomfrustien", "name": "Jomfrustien", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): 0.22 mi name-stitch, under the 0.3 mi fragment limit"},
+        {"id": "n*:Tyvelhøjvej", "name": "Tyvelhøjvej", "reason": "reviewed 2026-10-31 (OSM tags + length in AOI): road-name stitch like its siblings (0.76 mi), no relation"}
+      ]
     },
     {
       "id": "nationalpark-thy-dk",
@@ -2607,6 +2619,8 @@
     {
       "id": "fovslet-skov-dk",
       "name": "Fovslet Skov",
+      "display_name": "Fovslet, Hoppeshuse og Svanemosen",
+      "allow_rename": {"from": "Fovslet Skov", "reason": "reviewed: the Naturstyrelsen destination is Svanemosen, Hoppes og Fovslet Skov; the area already holds all its routes (batch G)"},
       "state": "Denmark",
       "way_id": 157392184,
       "bbox": [9.34, 55.37, 9.47, 55.49],
@@ -2616,7 +2630,7 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.0,
-      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31). Display-name rename to 'Fovslet, Hoppeshuse og Svanemosen' deferred: update mode forbids index row-name changes (follow-up).",
+      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31). Display name 'Fovslet, Hoppeshuse og Svanemosen' applied through allow_rename (update mode).",
       "include_trails": [
         {
           "id": "r17635361",
@@ -2670,6 +2684,8 @@
       "hold": null,
       "id": "staksrode-skov-dk",
       "name": "Staksrode Skov",
+      "display_name": "Staksrode Skov og Lindfald",
+      "allow_rename": {"from": "Staksrode Skov", "reason": "reviewed: the area holds the Staksrode Skov routes plus Lindfald ruten, which lies mostly outside the forest polygon"},
       "relation_id": 9542372,
       "est_trails": 3,
       "est_mi": 5.6,

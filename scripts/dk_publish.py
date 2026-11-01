@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dk_trail_name_fix  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
 
@@ -334,6 +335,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
                 _dk_names().validate_prefix(entry["trail_name_prefix"])
             except ValueError as error:
                 raise DkError(f"{aid}: trail_name_prefix is invalid: {error}") from None
+        if "trail_name_fixes" in entry:
+            if entry.get("rules") not in ("dk-v2", "dk-v3"):
+                raise DkError(f"{aid}: trail_name_fixes requires rules dk-v2 or dk-v3")
+            try:
+                dk_trail_name_fix.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
+            except dk_trail_name_fix.FixError as error:
+                raise DkError(str(error)) from None
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):
             raise DkError(f"{aid}: est_mi must be a non-negative number")
@@ -768,8 +776,8 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
                             f"[{MARGIN_MIN}, {MARGIN_MAX}] of the boundary bbox {boundary}"
                             + (f" (max measured from the include_trails reach {rec['include_reach_bbox']})"
                                if reach != boundary else ""))
-        if entry.get("rules") == "dk-v3":
-            # dk-v3 only: the pin may sit on the trails instead of the rounded boundary midpoint,
+        if entry.get("rules") in ("dk-v2", "dk-v3"):
+            # dk-v2/dk-v3: the pin may sit on the trails instead of the rounded boundary midpoint,
             # but it must stay inside the boundary bbox (the trail-centroid check runs at publish).
             c = entry["center"]
             if not (boundary[1] <= c[0] <= boundary[3] and boundary[0] <= c[1] <= boundary[2]):

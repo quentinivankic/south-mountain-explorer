@@ -564,7 +564,7 @@
       "state": "Denmark",
       "relation_id": 2353749,
       "bbox": [14.81, 55.04, 15.03, 55.19],
-      "center": [55.1, 14.9],
+      "center": [55.115, 14.913],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -667,13 +667,16 @@
       "state": "Denmark",
       "relation_id": 8387696,
       "bbox": [8.22, 56.36, 8.56, 56.56],
-      "center": [56.5, 8.4],
+      "center": [56.479, 8.405],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 25,
       "est_mi": 37.9,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c.",
+      "trail_name_fixes": [
+        {"osm_name": "Kronheden Ellebækturen", "name": "Kronhede Ellebækturen", "source": "https://www.visitdenmark.com/denmark/plan-your-trip/trail-ancient-times-klosterhede-plantage-sonderby-gdk1108208", "reason": "typo: the plantation is Kronhede Plantage (VisitDenmark, Naturstyrelsen 100 udvalgte ruter); the sibling OSM routes Kronhede Møllevejturen, Slugtturen, Botanikturen and Staldhøje already use Kronhede"}
+      ]
     },
     {
       "id": "tisvilde-hegn-dk",
@@ -842,7 +845,7 @@
       "state": "Denmark",
       "relation_id": 416103,
       "bbox": [9.51, 56.09, 9.67, 56.22],
-      "center": [56.2, 9.6],
+      "center": [56.156, 9.588],
       "rules": "dk-v2",
       "tier": 2,
       "hold": null,
@@ -880,7 +883,12 @@
           "name": "Langsøstien",
           "reason": "stitched fragment; pipeline disposition invalid-source-geometry, 3 disjoint pieces after clip"
         }
-      ]
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Gul Rute", "name": "Nordskov Gul", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/soehoejlandet-og-oestjylland/silkeborgskovene/praktisk", "reason": "reviewed 2026-11-01 (BATCH-2), audit item 7: bare 'Gul Rute' is ambiguous country-wide; its siblings are Nordskov Lang and Nordskov Kort and Naturstyrelsen marks every Nordskov walk as a yellow route"}
+      ],
+      "display_name": "Nordskoven (Silkeborg)",
+      "allow_rename": {"from": "Nordskoven", "reason": "audit item 7 (reviewed 2026-11-01, BATCH-2): Nordskoven is a common Danish forest name; this one is the Nordskov of the Silkeborgskovene (Naturstyrelsen guide Silkeborgskovene, folder Vandretursfolder Nordskoven)"}
     },
     {
       "id": "tokkekob-hegn-dk",
@@ -956,7 +964,9 @@
       "hold": null,
       "est_trails": 28,
       "est_mi": 15.8,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c.",
+      "display_name": "Himmelbjerget og Rye Nørreskov",
+      "allow_rename": {"from": "Rye Nørreskov", "reason": "audit item 8 (reviewed 2026-11-01, BATCH-2): the Himmelbjerget summit (OSM peak node, 147 m) lies inside a member polygon of the Rye Nørreskov relation and Lynghedeturen passes 0.1 mi from it; Naturstyrelsen runs the nearby guide Himmelbjerget og Slåensø, so the name tells the visitor what the area contains"}
     },
     {
       "id": "samso-dk",
@@ -1116,7 +1126,12 @@
           "reason": "single 0.9 mi dirt path named Mergel-sporet inside Randbøl Hede (marl-track heritage path); not a relation, lower confidence, kept for completeness"
         }
       ],
-      "trail_name_prefix": "Randbøl"
+      "trail_name_prefix": "Randbøl",
+      "trail_name_fixes": [
+        {"osm_name": "Ranbøl rute", "name": "Randbøl rute", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/randboel-hede-og-frederikshaab-plantage/praktisk", "reason": "typo: Naturstyrelsen spells the area Randbøl Hede (Randbøl, not Ranbøl)"},
+        {"osm_name": "Ranbøl rute 2", "name": "Randbøl rute 2", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/randboel-hede-og-frederikshaab-plantage/praktisk", "reason": "typo: Naturstyrelsen spells the area Randbøl Hede (Randbøl, not Ranbøl)"},
+        {"osm_name": "Grøn vandrerute i Fredrikshåb Plantage", "name": "Grøn vandrerute i Frederikshåb Plantage", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/randboel-hede-og-frederikshaab-plantage/praktisk", "reason": "typo: Naturstyrelsen spells the plantation Frederikshåb (Frederikshåb, not Fredrikshåb)"}
+      ]
     },
     {
       "id": "jaegersborg-hegn-dk",
@@ -1961,7 +1976,10 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 6.9,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. Centre moved onto the trails (was outside the boundary bbox); stale dk-v2 Geheimeraadens Sti exclude dropped (route lies outside the area)."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 2): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. Centre moved onto the trails (was outside the boundary bbox); stale dk-v2 Geheimeraadens Sti exclude dropped (route lies outside the area).",
+      "trail_name_fixes": [
+        {"osm_name": "Hjertestien, Hindemaj", "name": "Hjertestien, Hindemade", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/soenderjylland/pamhule-hindemade-og-haderslev-dyrehave/praktisk", "reason": "typo: the lake and Naturstyrelsen guide are Hindemade (Pamhule, Hindemade og Haderslev Dyrehave)"}
+      ]
     },
     {
       "id": "kollerup-plantage-dk",
@@ -2123,7 +2141,7 @@
       "state": "Denmark",
       "relation_id": 1015410,
       "bbox": [9.19, 55.66, 9.35, 55.78],
-      "center": [55.7, 9.3],
+      "center": [55.717, 9.271],
       "rules": "dk-v2",
       "tier": 2,
       "hold": null,
@@ -2411,13 +2429,16 @@
       "state": "Denmark",
       "relation_id": 18081324,
       "bbox": [9.13, 56.06, 9.26, 56.17],
-      "center": [56.1, 9.2],
+      "center": [56.115, 9.196],
       "rules": "dk-v2",
       "tier": 2,
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.3,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run."
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
+      "trail_name_fixes": [
+        {"osm_name": "Gul Rute, Skelhøj Plantage2", "name": "Gul Rute, Skelhøj Plantage", "source": "https://www.visitdenmark.com/denmark/plan-your-trip/skelhoje-plantation-gdk603346", "reason": "typo: stray digit; the sibling routes Blå, Rød and Grøn Rute are named 'Skelhøj Plantage' without a digit (VisitDenmark: Skelhøj Plantation)"}
+      ]
     },
     {
       "id": "stenholtsvang-dk",
@@ -2829,7 +2850,7 @@
       "state": "Denmark",
       "relation_id": 2885275,
       "bbox": [9.21, 54.76, 9.39, 54.9],
-      "center": [54.832, 9.303],
+      "center": [54.835, 9.32],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -2863,6 +2884,9 @@
           "name": "Brændsmade",
           "reason": "Naturstyrelsen lwn relation (yellow) at Ferup Sø, outside the Harte Skov polygon"
         }
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Lilla rute i Harde Skov", "name": "Lilla rute i Harte Skov", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/harte-skov-og-ferup-soe/praktisk", "reason": "typo: the forest is Harte Skov (Naturstyrelsen guide Harte Skov og Ferup Sø); the sibling OSM routes already say Harte Skov"}
       ]
     },
     {
@@ -4144,6 +4168,9 @@
           "name": "En kultur- og natursti rundt om Nysted",
           "reason": "Naturlandet Lolland-Falster lwn walk, whole route"
         }
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "En kultur- og natursti rundt om Nysted", "name": "Nysted rundt", "source": "https://www.visitdenmark.com/denmark/plan-your-trip/hiking-route-around-nysted-7-km-gdk1122915", "reason": "reviewed 2026-11-01 (BATCH-2), audit item 7: the OSM name is a sentence; VisitDenmark lists this 7 km culture and nature path as 'Around Nysted'"}
       ]
     },
     {
@@ -4435,6 +4462,9 @@
           "name": "Skovstien",
           "reason": "hiking route, blue pointer waymarks, Naturvejleder Hjørring Sindal walks brochure"
         }
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Skovstien", "name": "Sindal Skovstien", "source": "https://naturhjoerring.dk/wp-content/uploads/2015/01/vandrestier_i_sindal_2009.pdf", "reason": "reviewed 2026-11-01 (BATCH-2), audit item 7: bare 'Skovstien' is ambiguous (a second Skovstien, relation 12375280, is a different lwn route elsewhere); this relation 14374323 carries the Naturhjørring brochure 'Vandrestier i Sindal' as its website"}
       ]
     },
     {

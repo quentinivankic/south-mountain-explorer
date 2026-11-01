@@ -279,7 +279,9 @@
       "trail_count": 10,
       "total_mi": 34.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Kronhede Ellebækturen"
+      ],
       "forbidden_names": [
         "Bagskifteren",
         "Bagskærmen",
@@ -326,7 +328,8 @@
         "Åbogårdvej",
         "Æ Landingsbane",
         "Ørsvej",
-        "Øvre Søvej"
+        "Øvre Søvej",
+        "Kronheden Ellebækturen"
       ]
     },
     "almindingen-dk": {
@@ -393,8 +396,12 @@
       "trail_count": 4,
       "total_mi": 10.4,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
-      "forbidden_names": []
+      "required_names": [
+        "Gul Rute, Skelhøj Plantage"
+      ],
+      "forbidden_names": [
+        "Gul Rute, Skelhøj Plantage2"
+      ]
     },
     "hammer-bakker-dk": {
       "trail_count": 4,
@@ -471,7 +478,9 @@
       "trail_count": 4,
       "total_mi": 9.3,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Hjertestien, Hindemade"
+      ],
       "forbidden_names": [
         "Bakkevej",
         "Brunsbyttel og Christiansdal - rød rute",
@@ -521,7 +530,9 @@
       "trail_count": 3,
       "total_mi": 6.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Nordskov Gul"
+      ],
       "forbidden_names": [
         "Arnberg",
         "Banesløjfen",
@@ -567,7 +578,8 @@
         "Søvej",
         "Tricky Woods",
         "Ulvedalsvej",
-        "Ulvehovedvej"
+        "Ulvehovedvej",
+        "Gul Rute"
       ]
     },
     "mons-klint-dk": {
@@ -617,7 +629,10 @@
       "required_names": [
         "Randbøl Blå Rute",
         "Randbøl Gul Rute",
-        "Randbøl Rød Rute"
+        "Randbøl Rød Rute",
+        "Randbøl rute",
+        "Randbøl rute 2",
+        "Grøn vandrerute i Frederikshåb Plantage"
       ],
       "forbidden_names": [
         "Gammel Randbølvej",
@@ -628,7 +643,10 @@
         "Langs Egene",
         "Rygbjergvej",
         "Søvej",
-        "Voldborgvej"
+        "Voldborgvej",
+        "Ranbøl rute",
+        "Ranbøl rute 2",
+        "Grøn vandrerute i Fredrikshåb Plantage"
       ]
     },
     "rold-skov-dk": {
@@ -1093,10 +1111,11 @@
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Brændsmade",
-        "Lilla rute i Harde Skov"
+        "Lilla rute i Harte Skov"
       ],
       "forbidden_names": [
-        "Gul rute - Harteskov"
+        "Gul rute - Harteskov",
+        "Lilla rute i Harde Skov"
       ]
     },
     "barsbol-skov-dk": {
@@ -1778,15 +1797,16 @@
       "total_mi": 7.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "En kultur- og natursti rundt om Nysted",
-        "Aalholm Slot rundtur"
+        "Aalholm Slot rundtur",
+        "Nysted rundt"
       ],
       "forbidden_names": [
         "Den Danske Klosterrute",
         "Paradisruten",
         "Sjællandsleden 2012",
         "sti",
-        "Ålholm Parkvej"
+        "Ålholm Parkvej",
+        "En kultur- og natursti rundt om Nysted"
       ]
     },
     "bovbjerg-fyr-dk": {
@@ -1835,10 +1855,12 @@
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Soldalstien",
-        "Skovstien",
-        "Ulstedbostien"
+        "Ulstedbostien",
+        "Sindal Skovstien"
       ],
-      "forbidden_names": []
+      "forbidden_names": [
+        "Skovstien"
+      ]
     },
     "jensen-og-sorensens-plantage-dk": {
       "trail_count": 2,

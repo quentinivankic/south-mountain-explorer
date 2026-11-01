@@ -38,94 +38,34 @@ Against that baseline there are **49 app-code commits**.
 
 ---
 
-## 1.1 — draft, not yet submitted
-
-### Paste-ready copy
-
+## 1.2 (draft, TestFlight; not submitted to the App Store yet)
+Baseline: App Store 1.1 is live. The old 1.1 draft that used to be here is
+superseded; it described the area-screen rebuild and other work that has
+already shipped. Source for this list:
+`.agents/tasks/changes-since-appstore-1.1/report.md` section 5. Trim any
+bullet not confirmed on a real hike (turn cues, Dynamic Island, notifications)
+before pasting into App Store Connect. Do not say Apple maps work offline:
+base-map tiles are not downloaded.
 ```
-A big update to the area screen, to recording, and to your first run through
-the app.
+Hike with your phone locked, and see your hike on the Lock Screen.
 
-THE AREA SCREEN IS REBUILT
-• Areas open full screen instead of as a half sheet.
-• The bottom panel is only as tall as what it is showing, so a selected trail
-  or a hike in progress fits without being cut off.
-• Swipe between Record, Trails and Dex instead of tapping a segmented control.
-• The search field stays where it is — it no longer slides away or slips
-  behind the header.
-• Sort trails by nearest to you, shortest, longest, most progress, or A–Z.
-
-YOUR HIKE GETS ITS OWN PAGE
-• Recording has its own page now, with the map controls beside it.
-• Two live estimates while you walk: when you will finish the trail, and when
-  you will be back where you started.
-• Tapping Record on a different trail no longer discards the hike you are on.
-• Trails you finish mid-hike now count in neighbouring areas you cross into.
-
-ON THE MAP
-• Your walked route follows the trail's own shape instead of drifting off it.
-• Your dot always shows which way you are facing, not only when the map is
-  following your heading.
-
-ELEVATION PROFILES
-• Charts now open from the trailhead car park rather than from wherever you
-  happen to be standing, so a climb reads as a climb when you plan at home.
-
-STATS
-• Insights moved into Stats, so it is all in one place.
-• Recent Hikes lists the newest hike first.
-
-FIRST LAUNCH
-• The welcome walkthrough was being skipped on new installs. Fixed.
-• It now ends by explaining what location is for, before asking for it.
-
-ALSO
-• Browse scrolls faster.
-• A failed export says so instead of going quiet.
-• Elevation badges no longer claim a climb they cannot back up.
+NEW
+- Lock Screen and Dynamic Island: a live card while you record shows your time, distance and status. Tap it to jump back into your hike.
+- Turn cues: TrekDex warns you before forks and turns with a spoken cue, a haptic tap and a banner. It also tells you when you drift off the trail and when you are back on. Turn voice and haptics on or off in Settings > Turn Cues.
+- Optional locked-screen alerts: switch on "Notify when locked" to get each cue as a notification in your pocket.
+- Download by state or country: Settings > Offline Trails > Download by State or Country saves every trail in a state (or all of the US) so areas open without service. Resumable, verified, and easy to remove.
+- Better Remaining and Back estimates: Remaining is the time left to finish the trail you picked. Back is the time to retrace to where you started. Both adapt to climbs, rests and loops.
+- Denmark: the first trails outside North America.
+- Surface Duo and wide screens: the area menu moves to a resizable side panel next to the map.
+IMPROVED
+- The area screen is simpler. The hidden swipe pages are gone: one sheet adapts to what you are doing, the map always stays visible, and your trail list is reachable mid-hike. Badges live behind a Collection button.
+- Areas open centered and fade in from an animated outline.
+- Explore no longer shows a stale "last location" notice.
+- Larger text and VoiceOver work better across Explore, the area sheet and recording.
+- Settings: Offline Trails shows what is saved and verified.
+SAFER
+- A failed save no longer loses your hike, and a recording that cannot be recovered says so.
+- GPS gaps no longer draw a straight line or add distance.
+- Deleting hikes and loading trail links are more careful.
+- Backup import is removed; export is unchanged. TrekDex no longer uploads diagnostics automatically.
 ```
-
-### What each line rests on
-
-| Note | Commit | Also verified |
-|---|---|---|
-| Areas open full screen | `af82bae2a` #538 | |
-| Panel sized to its content | `2cac4d426` #552 | the three stops themselves are NOT new — `013e01772` already had `.height(150)` / `.fraction(0.5)` / `.large` |
-| Swipe Record / Trails / Dex | `6177cc535` #542 removed the segmented control; `51a1b3b70` #573 added the Record page | `AreaSheetTab` predates the history floor, so only the swipe and the Record page are new |
-| Search field stays put | `1cc53e921` #580 | asserted in `AreaSheetAuditTests` |
-| Six sort orders | `83ba385bc` #543 | `TrailSort`: default, nearest, shortest, longest, progress, A–Z |
-| Camera controls on the hike page | `6bb44dcd1` #575 | |
-| Finish / Back estimates | `3e1d59b74` #566 | `RecordingPanel.estimatesLine` |
-| Record on another trail is safe | `dfff52ebc` #571 | |
-| Completions in crossed areas | `295778525` #535 | |
-| Walked route follows the trail | `99e775f48` #534 | the CYAN colour is `56e75553d` #528 and is already in 1.0.1 — not claimed |
-| Facing cone always drawn | `fbed080a0` #548, `76b0d6642` #549 | `MapKitMapView.userHeading` |
-| Chart opens from the trailhead | `92b81e1ca` #562 | parking now outranks the user's position; the nearest-end rule (#447) and the Flip button (`d1ae919c4` #462, 2026-07-19) both shipped earlier and are NOT claimed |
-| Insights inside Stats | `9c2538bfb` #550 | `Views/Stats/` holds only `StatsView.swift` |
-| Recent Hikes newest first | `58d76680c` #572 | |
-| First launch fixed | `8e8f1ac65` #584 | run 33512537301, `sawLocationPrompt=true`, test passed |
-| Browse faster | `2783180bc` #536 | |
-| Export failure surfaced | `59e24e347` #553 | `exportError` in `SettingsView.swift` |
-| Gain badge honesty | `59e24e347` #553 | |
-
-### Cut after checking, and why
-
-- **Live coverage drawn in cyan** (`56e75553d` #528) — ancestor of `013e01772`.
-  Shipped in 1.0.1.
-- **Flip button on the elevation chart** (`d1ae919c4` #462, 2026-07-19) — older
-  than v1.0 itself.
-- **"One tap opens a hike"** (`d38546e2c` #539) — the long-press regression it
-  fixed was introduced and repaired inside this cycle. `013e01772` has no
-  `simultaneousGesture` in `StatsView.swift`, so nobody on 1.0.1 ever saw it.
-- **Discover gallery coloured by difficulty** (`6ba2a300e` #532) — genuinely new,
-  but too granular for release copy. Add if the notes need padding.
-
-### Version number
-
-`ios/project.yml` reads `CFBundleShortVersionString: "1.0.2"`, the TestFlight
-train for builds 266–302.
-
-- **Submit as 1.0.2** using build 302, which is verified on device. Nothing to
-  rebuild.
-- **Submit as 1.1** — more honest for 49 commits of feature work, at the cost of
-  one more TestFlight build carrying only a changed version string.

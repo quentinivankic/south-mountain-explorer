@@ -91,9 +91,10 @@ def prepare_input(args: argparse.Namespace) -> int:
     return 0
 
 
-# Reviewed exact result (pilot dry run 40911065636): 26 trails / 85.4 mi.
-EXPECTED_TRAILS = 26
-EXPECTED_MILES = 85.4
+# Reviewed exact result: 26 trails / 85.4 mi (pilot dry run 40911065636), then 17 trails / 79.8 mi after the
+# registry legacy_exclude_trails removed 9 exercise/children/fragment/road-name trails (qualify run 41267576156).
+EXPECTED_TRAILS = 17
+EXPECTED_MILES = 79.8
 MILES_TOLERANCE = 0.05
 REQUIRED_TRAILS = ("Molsruten", "Kaløstien")
 # Unqualified trails the generic statewide assembly added (66 trails / 127.2 mi).
@@ -101,6 +102,9 @@ FORBIDDEN_TRAILS = (
     "Enhøjvej", "Lyngevej", "Gravlevstien", "Skolevej", "Hjelm", "Fægyden",
     "Krogryggevej", "Rugårdsvej", "Langs Kysten", "Den gamle købstad",
     "Mols Bjerge-stien Gåsehage-etapen", "Mols Bjerge-stien Ebeltoftetapen",
+    # excluded by the registry legacy_exclude_trails (exercise, children, fragments, road-name stitches)
+    "Kløverstier-Landsbyruten", "Kløverstier-Motionsruten", "Smølfesporet", "Dråby Sporet. Blå rute",
+    "Skovbjerg", "Kristoffervejen", "Dalby kærvej", "Jomfrustien", "Tyvelhøjvej",
 )
 
 

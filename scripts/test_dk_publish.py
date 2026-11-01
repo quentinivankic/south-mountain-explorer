@@ -261,14 +261,26 @@ def test_batch_g_registry_prefixes_includes_excludes_and_centres():
         assert by_id[aid]["rules"] == "dk-v3" and by_id[aid]["trail_name_prefix"] == prefix
     for aid, ids in BATCH_G_INCLUDE.items():
         assert by_id[aid]["rules"] == "dk-v3" and ids <= {t["id"] for t in by_id[aid]["include_trails"]}
-    # display renames deferred: update mode keeps index row names (live names unchanged)
-    assert "display_name" not in by_id["fovslet-skov-dk"] and by_id["fovslet-skov-dk"]["name"] == "Fovslet Skov"
+    # display renames apply through allow_rename (update mode keeps the registry name as the live `from`)
+    fov = by_id["fovslet-skov-dk"]
+    assert fov["name"] == "Fovslet Skov" and fov["display_name"] == "Fovslet, Hoppeshuse og Svanemosen"
+    assert fov["allow_rename"]["from"] == "Fovslet Skov"
     assert "r15655202" not in {t["id"] for t in by_id["fovslet-skov-dk"]["include_trails"]}
-    assert "display_name" not in by_id["staksrode-skov-dk"] and by_id["staksrode-skov-dk"]["name"] == "Staksrode Skov"
+    stak = by_id["staksrode-skov-dk"]
+    assert stak["name"] == "Staksrode Skov" and stak["display_name"] == "Staksrode Skov og Lindfald"
+    assert stak["allow_rename"]["from"] == "Staksrode Skov"
     kong = {t["id"] for t in by_id["nationalpark-kongernes-nordsjaelland-dk"]["exclude_trails"]}
     assert {"r12585237", "r13649311"} <= kong
     for aid, centre in BATCH_G_CENTRES.items():
         assert by_id[aid]["center"] == centre and by_id[aid]["rules"] == "dk-v3"
+def test_mols_registry_excludes_exactly_the_nine_reviewed_trails_and_keeps_naturruten():
+    mols = {a["id"]: a for a in _reg()["areas"]}[MOLS]
+    assert mols["rules"] == "legacy" and mols["allow_update"] is True
+    assert [i["name"] for i in mols["legacy_exclude_trails"]] == [
+        "Kløverstier-Landsbyruten", "Kløverstier-Motionsruten", "Smølfesporet", "Dråby Sporet. Blå rute",
+        "Skovbjerg", "Kristoffervejen", "Dalby kærvej", "Jomfrustien", "Tyvelhøjvej"]
+    assert all(i["id"] == "n*:" + i["name"] for i in mols["legacy_exclude_trails"])
+    assert "exclude_trails" not in mols and not any("Naturruten" in i["name"] for i in mols["legacy_exclude_trails"])
 def test_harte_skov_display_name_does_not_claim_ferup():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     a = by_id["harte-skov-dk"]
@@ -416,7 +428,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
                           *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                           *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED}
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
-        MOLS: (26, 85.4), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
+        MOLS: (17, 79.8), "nationalpark-thy-dk": (26, 67.4), "nationalpark-vadehavet-dk": (17, 59.8),
         "nationalpark-skjoldungernes-land-dk": (4, 19.1),
         "nationalpark-kongernes-nordsjaelland-dk": (19, 75.3),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (7, 20.4),
@@ -2120,15 +2132,17 @@ def test_update_refuses_mols_and_legacy_unless_the_registry_flag_allows_it(tmp_p
     assert MOLS in dk._index_ids(real_index)                          # Mols is live, so only the legacy rule can stop it
     out = tmp_path / "sel.txt"
     base = ["select", "--index", str(real_index), "--areas", MOLS, "--mode", "update", "--out", str(out)]
-    assert dk.main(base) == 1 and not out.exists()                    # default: refused
+    unflagged = tmp_path / "unflagged.json"                           # the committed registry now opts Mols in, so strip it
+    _write_registry(unflagged, lambda d: next(a for a in d["areas"] if a["id"] == MOLS).pop("allow_update", None))
+    assert dk.main([*base, "--registry", str(unflagged)]) == 1 and not out.exists()   # default: refused
     flagged = tmp_path / "reg.json"
     _write_registry(flagged, lambda d: d["areas"][0].update(allow_update=True))
     assert dk.main([*base, "--registry", str(flagged)]) == 0 and out.read_text().split() == [MOLS]
     # bool only
     bad = _write_registry(tmp_path / "bad.json", lambda d: d["areas"][0].update(allow_update="yes"))
     assert dk.main([*base, "--registry", str(bad)]) == 1
-    # a dk-v2 live park is selectable, the committed registry carries no allow_update flag
-    assert all("allow_update" not in a for a in json.loads(REGISTRY.read_text())["areas"])
+    # a dk-v2 live park is selectable; Mols is the only committed registry entry carrying allow_update
+    assert [a["id"] for a in json.loads(REGISTRY.read_text())["areas"] if "allow_update" in a] == [MOLS]
     assert dk.main(["select", "--index", str(real_index), "--areas", "nationalpark-thy-dk", "--mode", "update",
                     "--out", str(out)]) == 0
 

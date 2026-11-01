@@ -2581,6 +2581,152 @@ def test_run_area_script_passes_the_boundary_opt_ins_only_when_set():
     assert "--dk-boundary-by-id" in script
     assert ".container_by_id // empty | .reason" in script and '[ -n "$CONTAINER_BY_ID" ]' in script
     assert "--dk-container-by-id" in script
+# ------------------------------------------- allow_rename (update-mode display-name change) --
+ROW = ["a-dk", "Fovslet Skov", "Denmark", 55.1, 10.2, 3, 4.5, 123]
+RENAME_OK = {"from": "Fovslet Skov", "reason": "reviewed: the Naturstyrelsen destination name"}
+RENAMED = "Fovslet, Hoppeshuse og Svanemosen"
+def _renamed_entry(**changes):
+    return {"id": "a-dk", "name": "Fovslet Skov", "display_name": RENAMED, "allow_rename": dict(RENAME_OK), **changes}
+def test_row_identity_kept_refuses_a_name_change_without_the_opt_in():
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(ROW, [*ROW[:1], RENAMED, *ROW[2:]], "a-dk")                       # no entry at all
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(ROW, [*ROW[:1], RENAMED, *ROW[2:]], "a-dk",
+                              {"id": "a-dk", "display_name": RENAMED})                          # entry without allow_rename
+    dk._row_identity_kept(ROW, list(ROW), "a-dk")                                              # control: unchanged passes
+    dk._row_identity_kept(ROW, [*ROW[:3], 55.2, 10.3, 7, 9.9, 123], "a-dk")                    # control: counts/centre move
+def test_row_identity_kept_allows_exactly_the_opted_in_rename():
+    new = [*ROW[:1], RENAMED, *ROW[2:]]
+    dk._row_identity_kept(ROW, new, "a-dk", _renamed_entry())
+    dk._row_identity_kept(new, new, "a-dk", _renamed_entry())                                  # idempotent re-run after the rename
+@pytest.mark.parametrize("old_name,new_name", [
+    ("Andet Navn", RENAMED),                  # live name is not `from`
+    ("Fovslet Skov", "Et helt andet navn"),   # new name is not the registry display_name
+])
+def test_row_identity_kept_refuses_a_rename_that_does_not_match_the_opt_in(old_name, new_name):
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept([ROW[0], old_name, *ROW[2:]], [ROW[0], new_name, *ROW[2:]], "a-dk", _renamed_entry())
+@pytest.mark.parametrize("old,new", [
+    (ROW, ["a-dk", RENAMED, "Sweden", *ROW[3:]]),                 # state changed
+    (ROW, ["a-dk", RENAMED, *ROW[2:7], 124]),                     # relation id changed
+    (ROW, ["b-dk", RENAMED, *ROW[2:]]),                           # id changed
+    (ROW, ["a-dk", RENAMED, *ROW[2:7]]),                          # way-shaped (7) vs relation row (8)
+])
+def test_row_identity_kept_keeps_id_state_and_relation_even_with_the_opt_in(old, new):
+    with pytest.raises(dk.DkError):
+        dk._row_identity_kept(old, new, "a-dk", _renamed_entry())
+def test_registry_validates_allow_rename(tmp_path):
+    def shown(d, **extra):
+        d["areas"][1].update(display_name="Nyt visningsnavn", **extra)
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: shown(d, allow_rename={"from": "Gammelt navn", "reason": "reviewed"})))
+    assert reg["areas"][1]["allow_rename"] == {"from": "Gammelt navn", "reason": "reviewed"}
+    for bad in ("Gammelt navn", {}, {"from": "A"}, {"from": "A", "reason": " "}, {"from": "", "reason": "x"},
+                {"from": "A", "reason": "x", "extra": 1}, {"from": "Nyt visningsnavn", "reason": "x"},
+                {"from": "A\u0301", "reason": "x"}, {"from": 3, "reason": "x"}):
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "b.json", lambda d, b=bad: shown(d, allow_rename=b)))
+    with pytest.raises(dk.DkError):   # a rename needs a display_name (the new name)
+        dk.load_registry(_write_registry(
+            tmp_path / "c.json", lambda d: d["areas"][1].update(allow_rename={"from": "A", "reason": "x"})))
+def _rename_fixture(tmp_path, *, opt_in=True, from_name=None):
+    fx = _update_fixture(tmp_path, 3, [1])
+    path = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(path.read_text())
+    pos = fx["ids"].index(fx["upd"][0])
+    entry = next(a for a in doc["areas"] if a["id"] == fx["upd"][0])
+    old_name = fx["new_rows"][pos][1]
+    entry["display_name"] = RENAMED
+    if opt_in:
+        entry["allow_rename"] = {"from": from_name or old_name, "reason": "reviewed rename"}
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    fx["new_rows"][pos][1] = RENAMED
+    fx["pos"] = pos
+    return fx
+def test_update_with_the_opt_in_renames_the_row_in_place_and_nothing_else(tmp_path):
+    fx = _rename_fixture(tmp_path)
+    before = (fx["repo"] / "public/areas/index.json").read_bytes()
+    assert _finish(fx) == 0
+    assert _verify_update(fx) == 0                                               # staged-diff gate accepts it
+    old_p = _pieces_default(before)
+    new_p = _pieces_default((fx["repo"] / "public/areas/index.json").read_bytes())
+    for (orow, oraw), (nrow, nraw) in zip(old_p, new_p):
+        if orow[0] == fx["upd"][0]:
+            assert nrow[1] == RENAMED and orow[1] != RENAMED and nrow[0] == orow[0] and nrow[7] == orow[7]
+        else:
+            assert nraw == oraw                                                  # every other row byte-identical
+    _git(fx["repo"], "commit", "-q", "-m", "update")
+    assert _verify_update(fx, "verify-commit") == 0
+    out = tmp_path / "out"
+    rc, _ = _derive(fx)
+    assert rc == 0 and _build_update(fx, out) == 0                               # candidate builder accepts it too
+    idx = json.loads((out / "index.json").read_bytes())
+    assert [r[1] for r in idx if r[0] == fx["upd"][0]] == [RENAMED]
+def test_update_without_the_opt_in_still_refuses_a_row_rename(tmp_path):
+    fx = _rename_fixture(tmp_path, opt_in=False)
+    before = (fx["repo"] / "public/areas/index.json").read_bytes()
+    assert _finish(fx) == 1
+    assert (fx["repo"] / "public/areas/index.json").read_bytes() == before      # nothing written
+def test_update_with_a_wrong_from_name_refuses_the_rename(tmp_path):
+    fx = _rename_fixture(tmp_path, from_name="Not the live name")
+    assert _finish(fx) == 1
+def test_update_staged_diff_refuses_a_rename_when_the_registry_has_no_opt_in(tmp_path):
+    fx = _rename_fixture(tmp_path)
+    assert _finish(fx) == 0 and _verify_update(fx) == 0
+    path = fx["repo"] / "trailforge/golden/dk-areas.json"
+    doc = json.loads(path.read_text())
+    for entry in doc["areas"]:
+        entry.pop("allow_rename", None)
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    assert _verify_update(fx) == 1                                               # the gate re-checks against the registry
+# ------------------------------ legacy_exclude_trails (legacy-rules area, explicit opt-in) --
+def test_registry_accepts_legacy_exclude_trails_only_on_legacy_entries(tmp_path):
+    star = {"id": "n*:Smølfesporet", "name": "Smølfesporet", "reason": "children's trail"}
+    items = [GOOD_EXCLUDE, {"id": "n:Foo Sti", "name": "Foo Sti", "reason": "x"}, star]
+    reg = dk.load_registry(_write_registry(
+        tmp_path / "r.json", lambda d: d["areas"][0].update(legacy_exclude_trails=items)))
+    assert reg["areas"][0]["legacy_exclude_trails"] == items and reg["areas"][0]["rules"] == "legacy"
+    for idx in (1, 2):                                     # dk-v2 / dk-v3 entries: exclude_trails is their field
+        for rules in ("dk-v2", "dk-v3"):
+            with pytest.raises(dk.DkError):
+                dk.load_registry(_write_registry(
+                    tmp_path / "x.json", lambda d, i=idx, r=rules: d["areas"][i].update(
+                        rules=r, legacy_exclude_trails=[GOOD_EXCLUDE])))
+    with pytest.raises(dk.DkError):                        # control: exclude_trails is still refused on legacy
+        dk.load_registry(_write_registry(
+            tmp_path / "y.json", lambda d: d["areas"][0].update(exclude_trails=[GOOD_EXCLUDE])))
+@pytest.mark.parametrize("value", [
+    [], "r123", [{"id": "123", "name": "A", "reason": "x"}], [{**GOOD_EXCLUDE, "reason": " "}],
+    [{**GOOD_EXCLUDE, "extra": 1}], [GOOD_EXCLUDE, GOOD_EXCLUDE], [{"id": "n:A", "name": "B", "reason": "x"}],
+    [{"id": "n*:A", "name": "B", "reason": "x"}],
+])
+def test_registry_rejects_bad_legacy_exclude_trails(tmp_path, value):
+    with pytest.raises(dk.DkError):
+        dk.load_registry(_write_registry(
+            tmp_path / "r.json", lambda d: d["areas"][0].update(legacy_exclude_trails=value)))
+def test_run_area_script_reads_legacy_excludes_only_for_legacy_entries(tmp_path):
+    """Run the real argument-building part of dk-run-area.sh (everything before ROOT=)."""
+    head = (ROOT / "scripts/dk-run-area.sh").read_text(encoding="utf-8").split('\nROOT="$(pwd)"\n')[0]
+    (tmp_path / "trailforge/golden").mkdir(parents=True)
+    probe = tmp_path / "probe.sh"
+    probe.write_text(head + '\necho "n=${#EXCLUDE_ARGS[@]}"\nprintf "%s|" ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"}\n',
+                     encoding="utf-8")
+    item = [{"id": "n:Foo Sti", "name": "Foo Sti", "reason": "x"}]
+    def run(**entry):
+        (tmp_path / "trailforge/golden/dk-areas.json").write_text(
+            json.dumps({"areas": [{"id": FOREST, **entry}]}), encoding="utf-8")
+        proc = subprocess.run(["/bin/bash", str(probe)], cwd=tmp_path, capture_output=True, text=True, env={
+            **os.environ, "AREA_ID": FOREST, "AREA_NAME": "x", "BBOX": "1,2,3,4", "RELATION_ID": "7",
+            "WAY_ID": "", "W": str(tmp_path / "w")})
+        assert proc.returncode == 0, proc.stderr
+        return proc.stdout
+    got = run(legacy_exclude_trails=item)                                  # legacy + opt-in: one flag, file written
+    assert got.startswith("n=2\n--dk-curated-exclude|") and got.endswith("dk-curated-exclude.json|")
+    assert json.loads((tmp_path / "w" / FOREST / "dk-curated-exclude.json").read_text()) == item
+    assert run() == "n=0\n|"                                               # control: legacy without the opt-in
+    assert run(rules="dk-v2", exclude_trails=item).startswith("n=2\n--dk-curated-exclude|")   # control: v2 unchanged
+    assert run(rules="dk-v2", legacy_exclude_trails=item) == "n=0\n|"      # the legacy key means nothing off legacy
+    assert run(exclude_trails=item) == "n=0\n|"                            # nor does exclude_trails on legacy
 # ------------------------------------------------------ container_from_routes --
 GOOD_CLUSTER = {"reason": "no OSM polygon: a kommune route cluster"}
 def _route(rid, name="Rute"):

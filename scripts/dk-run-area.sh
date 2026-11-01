@@ -35,8 +35,10 @@ fi
 RULES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .rules // "legacy"' \
   trailforge/golden/dk-areas.json)"
 [[ "$RULES" =~ ^(legacy|dk-v2|dk-v3)$ ]]
-# Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble).
-EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .exclude_trails // []' \
+# Optional curated exclusions (registry exclude_trails; validated by dk_publish and assemble). A
+# legacy-rules area reads only its explicit legacy_exclude_trails opt-in (absent = [] = no flag).
+EXCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id)
+  | if (.rules // "legacy") == "legacy" then (.legacy_exclude_trails // []) else (.exclude_trails // []) end' \
   trailforge/golden/dk-areas.json)"
 # Optional curated inclusions (registry include_trails; dk-v3 only, validated by dk_publish and assemble).
 INCLUDE_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .include_trails // []' \

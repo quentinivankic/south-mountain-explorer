@@ -3678,14 +3678,14 @@
       "name": "Hindsgavl",
       "state": "Denmark",
       "relation_id": 19349071,
-      "bbox": [9.63, 55.44, 9.77, 55.57],
-      "center": [55.506, 9.7],
+      "bbox": null,
+      "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 9.8,
-      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Hindsgavl peninsula near Middelfart: Hindsgavl-ruten 5.93 mi and Hindsgavl-halvøen 3.88 mi, both named for the place; no polygon carries the name. 49 percent shared ground. The Middelfart town routes (Keramikruten, Marsvinruten, Klimaruten, Kløversti) are not Hindsgavl and stay out; Lillebæltsstien is long-distance.",
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Hindsgavl HOLD (batch L route-cluster): Actions qualify 41267523010 on the current Geofabrik extract failed closed: both routes were removed as unresolved-relation-gap after the AOI gained new ways and they collided with Lillebæltstien in the overlap step (local replay on the older extract shipped 2 trails / 9.8 mi). Unlock: replay on the current extract and review the Lillebæltstien overlap; no accept_gap without that. Hindsgavl peninsula near Middelfart: Hindsgavl-ruten 5.93 mi and Hindsgavl-halvøen 3.88 mi, both named for the place; no polygon carries the name. 49 percent shared ground. The Middelfart town routes (Keramikruten, Marsvinruten, Klimaruten, Kløversti) are not Hindsgavl and stay out; Lillebæltsstien is long-distance.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Hindsgavl; container derived from the 2 included signed routes"
       },

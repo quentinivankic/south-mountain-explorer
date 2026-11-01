@@ -229,13 +229,13 @@ BATCH_K_HELD_NEW = ("grene-sande-dk", "kaergard-klitplantage-dk", "kollemorten-k
                     "klim-bjerg-dk", "storring-praestegards-skov-dk", "anebjerg-skov-dk", "alstrup-krat-dk",
                     "fosdal-plantage-dk")
 BATCH_K_WAY = ("osteradalen-dk", "stoubaek-krat-dk", "storring-praestegards-skov-dk")
-# batch L (container_from_routes from PR 677): twenty shipping route-cluster areas (slivso-dk was the batch I hold,
-# now relation-anchored) and seven new held entries; registry bbox/centre of the shipping areas set in the curation PR
-BATCH_L_SHIP = ("bangsbo-skov-dk", "hindsgavl-dk", "hellevad-dk", "grenen-dk", "asted-adal-dk", "slivso-dk",
+# batch L (container_from_routes from PR 677): nineteen shipping route-cluster areas (slivso-dk was the batch I hold,
+# now relation-anchored) and eight new held entries (Hindsgavl held after the Actions qualify); registry bbox/centre of the shipping areas set in the curation PR
+BATCH_L_SHIP = ("bangsbo-skov-dk", "hellevad-dk", "grenen-dk", "asted-adal-dk", "slivso-dk",
                 "ammitsbol-baek-dk", "tinglev-dk", "skaelskor-dk", "hingelbjerge-dk", "nybol-nor-dk",
                 "skamlingsbanken-dk", "kas-hoved-dk", "nysted-dk", "bovbjerg-fyr-dk", "orslevkloster-so-dk",
                 "troldhede-brunkulsleje-dk", "bogense-dk", "sindal-dk", "jensen-og-sorensens-plantage-dk")
-BATCH_L_HELD_NEW = ("gesten-dk", "faarup-so-dk", "borum-dk", "store-dannesbo-dk", "kaerby-molle-dk",
+BATCH_L_HELD_NEW = ("hindsgavl-dk", "gesten-dk", "faarup-so-dk", "borum-dk", "store-dannesbo-dk", "kaerby-molle-dk",
                     "lystrupminde-dk", "klim-dk")
 FLAGSHIPS = ("rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk")
 BATCH_A_SHIP = ("stenderupskovene-dk", "grastenskovene-dk", "store-hareskov-dk", "stursbol-plantage-dk",
@@ -414,7 +414,6 @@ def test_batch_l_route_cluster_ships_and_holds():
     # est counts = the replay (trails, miles) on main f6f819949; centre inside the bbox
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_L_SHIP} == {
         "bangsbo-skov-dk": (3, 5.6),
-        "hindsgavl-dk": (2, 9.8),
         "hellevad-dk": (4, 13.5),
         "grenen-dk": (4, 12.7),
         "asted-adal-dk": (3, 6.7),
@@ -480,9 +479,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 94, "name-collision": 2, "np-nested": 16, "island": 5, "duplicate-of-live": 5,
+        None: 93, "name-collision": 2, "np-nested": 16, "island": 5, "duplicate-of-live": 5,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 62}
+        "curated-do-not-ship": 63}
     assert sorted(holds["duplicate-of-live"]) == [
         "gribskov-dk", "nordskoven-8166504-dk", "romo-dk", "store-dyrehave-dk", "tisvilde-hegn-dk"]
     assert sorted(holds["needs-rescope"]) == ["amager-dk", "bornholm-dk", "mors-dk"]
@@ -596,7 +595,7 @@ def test_batches_are_deterministic_parks_first_then_est_miles_desc():
     batches = [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     assert [len(b) for b in batches] == [12, 12]
     with pytest.raises(dk.DkError):
-        dk.select_areas(reg, {MOLS}, "batch=9", 12, "qualify")  # 93 unheld non-Mols ids: 8 batches
+        dk.select_areas(reg, {MOLS}, "batch=9", 12, "qualify")  # 92 unheld non-Mols ids: 8 batches
     assert batches == [dk.select_areas(reg, {MOLS}, f"batch={n}", 12, "qualify") for n in (1, 2)]
     flat = [i for b in batches for i in b]
     assert len(set(flat)) == 24 and MOLS not in flat

@@ -402,6 +402,7 @@ struct SettingsView: View {
                 // TESTFLIGHT/DEV ONLY: hidden from App Store production installs.
                 if BuildEnv.isTestFlight {
                 Section("Developer") {
+                    NavigationLink("USGS Topo base map (test)") { UsgsTopoSettingsView() }  // USGS-TOPO-SPIKE
                     Toggle(isOn: $showDebugHUD) {
                         Label("Show Debug HUD", systemImage: "speedometer")
                     }

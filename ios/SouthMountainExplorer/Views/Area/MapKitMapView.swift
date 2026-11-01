@@ -248,6 +248,7 @@ struct MapKitMapView: UIViewRepresentable {
         Self.applyCameraTarget(cameraTarget, to: mv, animated: false)
 
         context.coordinator.mapView = mv
+        context.coordinator.usgsTopo = UsgsTopoController(mapView: mv)  // USGS-TOPO-SPIKE
         // Halos first, then trails — within MKMapView's `.aboveRoads`
         // overlay level, insertion order is z-order. Halos must
         // render UNDER trails so the user's past-hike highlight sits
@@ -747,6 +748,7 @@ struct MapKitMapView: UIViewRepresentable {
         // one renderer), so styling updates are O(1) per affected
         // trail rather than O(segments-per-trail).
         var trailOverlays: [String: MKMultiPolyline] = [:]
+        var usgsTopo: UsgsTopoController?  // USGS-TOPO-SPIKE
         var trailRenderers: [String: MKMultiPolylineRenderer] = [:]
         /// Reverse lookup overlay → trailId for the tap hit-test.
         var trailIdByOverlay: [ObjectIdentifier: String] = [:]
@@ -1569,6 +1571,7 @@ struct MapKitMapView: UIViewRepresentable {
         }()
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let tiles = overlay as? MKTileOverlay { return MKTileOverlayRenderer(tileOverlay: tiles) }  // USGS-TOPO-SPIKE
             if let multi = overlay as? MKMultiPolyline {
                 let r = MKMultiPolylineRenderer(multiPolyline: multi)
                 if let trailId = trailIdByOverlay[ObjectIdentifier(multi)] {

@@ -97,11 +97,18 @@ class Geometry(unittest.TestCase):
         }}
         before = copy.deepcopy(ways)
 
-        trails = m.assemble(nodes, ways, relations, [])
+        # Immutable source records are the Denmark-only behavior; every other
+        # region keeps the legacy in-place reversal (see UsLegacyGate).
+        trails = m.assemble(nodes, ways, relations, [], region="dk")
 
         self.assertEqual(ways, before)
         self.assertEqual(len(trails), 1)
         self.assertEqual(trails[0].lines, [[(0, 0), (0, 1), (0, 2)]])
+
+        legacy_ways = copy.deepcopy(before)
+        legacy = m.assemble(nodes, legacy_ways, relations, [])
+        self.assertEqual(legacy_ways[2]["nodes"], [2, 3])
+        self.assertEqual(legacy[0].lines, [[(0, 0), (0, 1), (0, 2)]])
 
 
 class RelationsFirst(unittest.TestCase):
@@ -926,6 +933,171 @@ class NameStitch(unittest.TestCase):
             ((1.0, 0.0), (2.0, 0.0)),
         })
 
+
+class UsLegacyGate(unittest.TestCase):
+    """US control: non-Denmark runs keep the pre-Denmark (72c6c7d22) behavior of
+    order_ways (in-place reversal) and _fuse_cluster (unconditional line
+    extend, base-first member_ways). Denmark keeps the immutable-view order_ways
+    and the de-duplicating fuse. The gate is `member_safety.normalize(region)
+    == "dk"` inside assemble(), the same signal the other dk code uses."""
+
+    @staticmethod
+    def _ways():
+        return {1: W([1, 2], highway="path"), 2: W([3, 2], highway="path")}
+
+    def test_order_ways_legacy_mutates_in_place(self):
+        ways = self._ways()
+        chains = m.order_ways([1, 2], ways, legacy_mutate=True)
+        self.assertEqual(ways[2]["nodes"], [2, 3])      # flipped in place
+        self.assertEqual(chains, [[m.OrientedWay(1, "source"),
+                                   m.OrientedWay(2, "source")]])
+
+    def test_order_ways_default_keeps_ways_immutable(self):
+        ways = self._ways()
+        chains = m.order_ways([1, 2], ways)
+        self.assertEqual(ways, self._ways())
+        self.assertEqual(chains[0][1], m.OrientedWay(2, "reversed"))
+
+    def test_order_ways_legacy_and_new_render_same_geometry(self):
+        nodes = {1: (0, 0), 2: (0, 1), 3: (0, 2)}
+        a, b = self._ways(), self._ways()
+        new = m.chains_to_multiline(m.order_ways([1, 2], a), a, nodes)
+        old = m.chains_to_multiline(
+            m.order_ways([1, 2], b, legacy_mutate=True), b, nodes)
+        self.assertEqual(new, old)
+
+    @staticmethod
+    def _dup_cluster():
+        line = [(0.0, 0.0), (1.0, 0.0)]
+        out = []
+        for ways in ([10, 11], [11, 10]):
+            t = m.Trail("Dup Trail", "name-stitch", list(ways), [list(line)], {}, [])
+            t.geometry_ways = list(ways)
+            out.append(t)
+        return out, line
+
+    def test_fuse_legacy_extends_lines_unconditionally(self):
+        cluster, line = self._dup_cluster()
+        fused = m._fuse_cluster(cluster, legacy=True)
+        self.assertEqual(fused.lines, [line, line])      # duplicate kept
+        self.assertEqual(fused.member_ways, [10, 11])
+
+    def test_fuse_new_deduplicates_repeated_linework(self):
+        cluster, line = self._dup_cluster()
+        fused = m._fuse_cluster(cluster)
+        self.assertEqual(fused.lines, [line])            # no novel ways
+        self.assertEqual(fused.member_ways, [10, 11])
+
+    def test_fuse_hike_inherited_only_when_not_legacy(self):
+        for legacy, expect in ((True, False), (False, True)):
+            cluster, _line = self._dup_cluster()
+            cluster[0].member_ways.append(12)            # make [0] the base
+            cluster[1].hike = True
+            fused = m._fuse_cluster(cluster, legacy=legacy)
+            self.assertIs(fused, cluster[0])
+            self.assertEqual(fused.hike, expect, legacy)
+
+    def test_merge_and_coalesce_thread_the_gate(self):
+        for fn, kwargs in ((m.merge_same_name, {}),
+                           (m.coalesce_by_area, {})):
+            for legacy, expect in ((True, 2), (False, 1)):
+                cluster, _line = self._dup_cluster()
+                for t in cluster:
+                    t.area = "ParkA"
+                out = fn(cluster, legacy=legacy, **kwargs)
+                self.assertEqual(len(out), 1)
+                self.assertEqual(len(out[0].lines), expect, (fn.__name__, legacy))
+
+    def _assemble(self, region):
+        nodes = {1: (0.0, 0.0), 2: (0.0, 0.001), 3: (0.0, 0.002)}
+        ways = {
+            1: W([1, 2], highway="path", name="Gate Trail"),
+            2: W([3, 2], highway="path", name="Gate Trail"),
+        }
+        m.assemble(nodes, ways, {}, [], region=region)
+        return ways
+
+    def test_assemble_non_denmark_uses_legacy_order_ways(self):
+        for region in (None, "ri", "az"):
+            self.assertEqual(self._assemble(region)[2]["nodes"], [2, 3], region)
+
+    def test_assemble_denmark_keeps_new_order_ways(self):
+        for region in ("dk", "DK"):
+            self.assertEqual(self._assemble(region)[2]["nodes"], [3, 2], region)
+
+    def test_assemble_threads_fuse_gate_to_merge_and_coalesce(self):
+        # Removing/hardcoding `legacy=` in assemble() must fail here.
+        nodes = {1: (0.0, 0.0), 2: (0.0, 0.001)}
+        for region, expect in ((None, True), ("ri", True), ("dk", False),
+                               ("DK", False)):
+            seen = {}
+            real_merge, real_coalesce = m.merge_same_name, m.coalesce_by_area
+
+            def merge(*a, **kw):
+                seen.setdefault("merge", []).append(kw.get("legacy"))
+                return real_merge(*a, **kw)
+
+            def coalesce(*a, **kw):
+                seen.setdefault("coalesce", []).append(kw.get("legacy"))
+                return real_coalesce(*a, **kw)
+
+            m.merge_same_name, m.coalesce_by_area = merge, coalesce
+            try:
+                m.assemble(nodes, {1: W([1, 2], highway="path", name="T")},
+                           {}, [], region=region)
+            finally:
+                m.merge_same_name, m.coalesce_by_area = real_merge, real_coalesce
+            self.assertTrue(seen.get("merge"), region)
+            self.assertTrue(seen.get("coalesce"), region)
+            self.assertEqual(set(seen["merge"]), {expect}, region)
+            self.assertEqual(set(seen["coalesce"]), {expect}, region)
+
+    @staticmethod
+    def _diamond():
+        # root 1 -> {2, 3, 2}; 2 -> 4; 3 -> 4 (approach). Shared child 4.
+        def rel(*members):
+            return {"tags": {"type": "route", "route": "hiking"},
+                    "members": list(members)}
+        return {
+            1: rel(("r", 2, ""), ("r", 3, ""), ("r", 2, "")),
+            2: rel(("w", 10, ""), ("r", 4, "")),
+            3: rel(("w", 11, ""), ("r", 4, "approach")),
+            4: rel(("w", 12, "")),
+        }
+
+    def test_legacy_resolver_expands_shared_child_once(self):
+        self.assertEqual(
+            m._resolve_route_members_legacy(1, self._diamond()),
+            [(10, "main"), (12, "main"), (11, "main")])
+
+    def test_denmark_resolver_expands_shared_child_per_path(self):
+        self.assertEqual(
+            m.resolve_route_members(1, self._diamond()),
+            [(10, "main"), (12, "main"), (11, "main"), (12, "approach"),
+             (10, "main"), (12, "main")])
+
+    def test_assemble_picks_resolver_by_region(self):
+        calls = []
+        real_legacy, real_new = (m._resolve_route_members_legacy,
+                                 m.resolve_route_members)
+        m._resolve_route_members_legacy = (
+            lambda *a, **k: calls.append("legacy") or real_legacy(*a, **k))
+        m.resolve_route_members = (
+            lambda *a, **k: calls.append("new") or real_new(*a, **k))
+        try:
+            for region, expect in ((None, "legacy"), ("ri", "legacy")):
+                del calls[:]
+                m.assemble({1: (0.0, 0.0), 2: (0.0, 0.001)},
+                           {10: W([1, 2], highway="path")},
+                           {1: {"tags": {"type": "route", "route": "hiking",
+                                         "name": "R"},
+                                "members": [("w", 10, "")]}},
+                           [], region=region)
+                self.assertIn(expect, calls, region)
+                self.assertNotIn("new", calls, region)
+        finally:
+            m._resolve_route_members_legacy, m.resolve_route_members = (
+                real_legacy, real_new)
 
 class SpurAttach(unittest.TestCase):
     def test_devils_bridge_reaches_the_arch(self):

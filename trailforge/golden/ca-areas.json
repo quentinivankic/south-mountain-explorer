@@ -19,12 +19,12 @@
         46.56
       ],
       "center": [
-        46.5,
-        -63.1
+        46.414,
+        -63.087
       ],
       "tier": 1,
       "hold": null,
-      "notes": "PEI smoke test 2026-11-01. Local rehearsal 12 trails / 28.7 mi before exclusions; 10 trails after. Dropped as under 0.6 mi (no official-page waiver verified, follow-up): Cavendish Beach Trail 0.32, Dunelands Trail 0.56, Haunted Wood Trail 0.51, Dunes Trail 0.49, Balsam Hollow Trail 0.28, Havre Saint Pierre 0.45, Greenwich Beach 0.28. Long-distance super-relations removed by the engine: Confederation Trail, International Appalachian Trail, Island Trails, Winter River/Breadalbane (Island Walk).",
+      "notes": "PEI smoke test 2026-11-01. Local rehearsal 12 trails / 28.7 mi before exclusions; 10 trails after. Dropped as under 0.6 mi (no official-page waiver verified, follow-up): Cavendish Beach Trail 0.32, Dunelands Trail 0.56, Haunted Wood Trail 0.51, Dunes Trail 0.49, Balsam Hollow Trail 0.28, Havre Saint Pierre 0.45, Greenwich Beach 0.28. Long-distance super-relations removed by the engine: Confederation Trail, International Appalachian Trail, Island Trails, Winter River/Breadalbane (Island Walk). live-fix1 2026-11-02: pin moved from [46.5, -63.1] (5.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Gulf Shore Trail",
@@ -152,7 +152,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02. PENDING (not applied): pending_keep_trails is not read by the filter; promote to keep_trails only when the Canada lane has an update path for live areas.",
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02. PENDING (not applied): pending_keep_trails is not read by the filter; promote to keep_trails only when the Canada lane has an update path for live areas. live-fix1 2026-11-02: promoted pending waivers and added Mica Hill and Cap-Rouge. Not added: Green Cove (0.06 mi, under the 0.1 mi assembler minimum), Jigging Cove and Freshwater Lake Look-off (no named way in OSM).",
       "boundary_by_id": true,
       "exclude_trails": [
         {
@@ -176,26 +176,50 @@
           "reason": "Abandoned old road alignment; not a hiking trail (the official Le vieux chemin du Cap-Rouge is not this feature)"
         }
       ],
-      "pending_keep_trails": [
+      "keep_trails": [
         {
           "name": "Middle head",
           "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
-          "reason": "Parks Canada lists Middle Head as a day hike (5.3 km). OSM maps it as a nwn route relation named lowercase 'Middle head'; wholly inside the park."
+          "reason": "Parks Canada lists Middle Head (5.3 km return). OSM maps it as an nwn relation named lowercase 'Middle head', wholly inside the park; the nwn network rule drops it."
         },
         {
           "name": "Lone Shieling Trail",
           "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
-          "reason": "Parks Canada lists Lone Shieling (loop, 0.6 km); a short signed interpretive loop, below the 0.6 mi fragment floor."
+          "reason": "Parks Canada lists Lone Shieling (0.6 km loop); a short signed interpretive loop below the 0.6 mi fragment floor."
         },
         {
           "name": "Bog Trail",
           "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
-          "reason": "Parks Canada lists Bog (loop, 0.5 km); a short boardwalk loop, below the 0.6 mi fragment floor."
+          "reason": "Parks Canada lists Bog (0.5 km loop); short boardwalk loop below the 0.6 mi fragment floor."
         },
         {
           "name": "MacIntosh Brook Trail",
           "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
           "reason": "Parks Canada lists MacIntosh Brook (1.7 km); OSM geometry is 0.48 mi, below the 0.6 mi fragment floor."
+        },
+        {
+          "name": "Mica Hill Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Mica Hill (7.9 km return, about 2.4 mi one way = the 2.40 mi OSM relation); wholly inside the park; the nwn network rule drops it."
+        },
+        {
+          "name": "Le vieux chemin du Cap Rouge",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Le vieux chemin du Cap-Rouge (9 km return); a signed hiking trail on the old road bed, dropped only by the road-name rule ('chemin')."
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Middle head",
+          "name": "Middle Head",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada name is 'Middle Head'; OSM relation name is lowercase"
+        },
+        {
+          "osm_name": "Le vieux chemin du Cap Rouge",
+          "name": "Le vieux chemin du Cap-Rouge",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada spells it with a hyphen: Le vieux chemin du Cap-Rouge"
         }
       ]
     },
@@ -241,13 +265,8 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q1): 7 trails, 8.8 mi, pre/post clip 34>30.",
+      "notes": "Qualify 2026-11-02 (run q1): 7 trails, 8.8 mi, pre/post clip 34>30. live-fix1 2026-11-02: Liberty Lake Loop dropped (7.7 mi hole). Hemlocks and Hardwoods Trail is kept: it is the park's signature day trail, listed on its own by Parks Canada, and stays independently completable although its ground lies inside Channel Lake Loop.",
       "keep_trails": [
-        {
-          "name": "Liberty Lake Loop",
-          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
-          "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
-        },
         {
           "name": "Channel Lake Loop",
           "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
@@ -257,6 +276,13 @@
           "name": "West River Trail",
           "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
           "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
+        }
+      ],
+      "exclude_trails": [
+        {
+          "id": "n:Liberty Lake Loop",
+          "name": "Liberty Lake Loop",
+          "reason": "Geometry hole: the OSM route is 33.4 mi but 12.2 mi of its drivable-tagged track members are dropped by the engine, leaving 21.2 mi with a 7.7 mi gap; not a whole route (repair needs an engine rule, follow-up)"
         }
       ]
     },
@@ -1906,7 +1932,12 @@
       ],
       "tier": 3,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3."
+      "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3. live-fix1 2026-11-02: display name Western Common (halifax.ca/media/84230). Trail 'Nichols Falls' not renamed: that it is the Nichols Lake Trail is unconfirmed.",
+      "display_name": "Western Common",
+      "allow_rename": {
+        "from": "Western Commons",
+        "reason": "Halifax Regional Municipality documents the park as the Western Common (Western Common Wilderness Common Master Plan, Nichols Lake Trail updates); 'Commons' is the AllTrails wording"
+      }
     },
     {
       "id": "crystal-crescent-beach-provincial-park-ca-ns",
@@ -1946,7 +1977,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance. Black Hole excluded (not on the Parks Canada list). Point Wolfe Beach kept (official 1 km beach walk).",
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance. Black Hole excluded (not on the Parks Canada list). Point Wolfe Beach kept (official 1 km beach walk). live-fix1 2026-11-02: Point Wolfe Beach dropped (not on the current list); Medicine Trail renamed to its Parks Canada name.",
       "exclude_trails": [
         {
           "id": "n:Upper Salmon",
@@ -1967,6 +1998,11 @@
           "id": "n:Black Hole",
           "name": "Black Hole",
           "reason": "Not on the Parks Canada Fundy trail list (complete hiking and MTB list); one way is access=no"
+        },
+        {
+          "id": "n:Point Wolfe Beach",
+          "name": "Point Wolfe Beach",
+          "reason": "Not on the current Parks Canada Fundy trail list (the list has Alma Beach and Herring Cove Beach only); 0.3 mi beach stub"
         }
       ],
       "keep_trails": [
@@ -1984,11 +2020,14 @@
           "name": "Herring Cove Beach",
           "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
           "reason": "Parks Canada trail list: Herring Cove Beach, 1 km return, stairs to the beach; short official walk"
-        },
+        }
+      ],
+      "trail_name_fixes": [
         {
-          "name": "Point Wolfe Beach",
+          "osm_name": "Medicine Trail",
+          "name": "MacLaren Pond Medicine Trail",
           "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
-          "reason": "Parks Canada trail list: Point Wolfe Beach, 1 km return, beach access; short official walk"
+          "reason": "Parks Canada Fundy trail list name: MacLaren Pond Medicine Trail"
         }
       ]
     },
@@ -2530,7 +2569,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT.",
+      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT. live-fix1 2026-11-02: Western Brook Pond (0.10 mi of footway; the 1.17 mi service-road approach is a drivable way), Lookout (boundary-clipped) and Lobster Cove Head (no named way) cannot be added from this extract.",
       "exclude_trails": [
         {
           "id": "n:Lookout trail",
@@ -2594,6 +2633,12 @@
           "name": "Tablelands Trail",
           "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
           "reason": "Parks Canada trail #16 Tablelands Trail"
+        },
+        {
+          "osm_name": "Steve’s Trail",
+          "name": "Steve's Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #2 Steve's Trail (straight apostrophe, the style of the other Gros Morne names)"
         }
       ]
     },
@@ -3118,12 +3163,12 @@
         52.32
       ],
       "center": [
-        51.494,
-        -116.155
+        51.476,
+        -116.098
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored Fairview Mountain Trail, Simpson Pass Healy Pass Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:2240 Trail",
@@ -3384,6 +3429,731 @@
           "id": "n:equestrian trail",
           "name": "equestrian trail",
           "reason": "horse/equestrian-use trail"
+        },
+        {
+          "id": "n:Anthozoan Mountain Trail",
+          "name": "Anthozoan Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Arctomys Peak Trail",
+          "name": "Arctomys Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Armor Peak Trail",
+          "name": "Armor Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Aylmer Ridge Route",
+          "name": "Aylmer Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Baker-Tilley Col Route",
+          "name": "Baker-Tilley Col Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Barrier Mountain Trail",
+          "name": "Barrier Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Beyond Alice Lake Route",
+          "name": "Beyond Alice Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Big Bend Peak Trail",
+          "name": "Big Bend Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bobac Mountain Trail",
+          "name": "Bobac Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bow Hut Route",
+          "name": "Bow Hut Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bow Peak Trail",
+          "name": "Bow Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Burstall Pass Trail",
+          "name": "Burstall Pass Trail",
+          "reason": "Same trail as the longer Burstall Pass Trail in Peter Lougheed Provincial Park (one trail, one area)"
+        },
+        {
+          "id": "n:Butterhole Route",
+          "name": "Butterhole Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Caldron Peak Trail",
+          "name": "Caldron Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cascade Mountain Trail",
+          "name": "Cascade Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cascade Trail",
+          "name": "Cascade Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Castle Mountain Trail",
+          "name": "Castle Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cataract Peak Trail",
+          "name": "Cataract Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Chephren/Cirque Lakes Trail",
+          "name": "Chephren/Cirque Lakes Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cirque Forepeak Trail",
+          "name": "Cirque Forepeak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cirque Peak Trail",
+          "name": "Cirque Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cockscomb Mountain Trail",
+          "name": "Cockscomb Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Conical Peak Trail",
+          "name": "Conical Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Copper Mountain Trail",
+          "name": "Copper Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Crowfoot Mountain Trail",
+          "name": "Crowfoot Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Crystal Ridge North Route",
+          "name": "Crystal Ridge North Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Crystal Ridge Route",
+          "name": "Crystal Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cyclone Mountain Trail",
+          "name": "Cyclone Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Devil's Thumb Trail",
+          "name": "Devil's Thumb Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Devon Lakes Route",
+          "name": "Devon Lakes Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Dolomite Peak Trail",
+          "name": "Dolomite Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Dolomite Ridge Trail",
+          "name": "Dolomite Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Dolomite Shoulder Trail",
+          "name": "Dolomite Shoulder Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Douglas and Lychnis Routes",
+          "name": "Douglas and Lychnis Routes",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Eiffel Peak Trail",
+          "name": "Eiffel Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Gable Mountain Trail",
+          "name": "Gable Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Gibbon Pass Peak Trail",
+          "name": "Gibbon Pass Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Greater Pharaoh Peak Trail",
+          "name": "Greater Pharaoh Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Healy Ridge Route",
+          "name": "Healy Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Heather Ridge Route",
+          "name": "Heather Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hector Creek Trail",
+          "name": "Hector Creek Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hector South Peak Trail",
+          "name": "Hector South Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hector South Ridge Trail",
+          "name": "Hector South Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Helen Ridge Route",
+          "name": "Helen Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Helena Ridge East Trail",
+          "name": "Helena Ridge East Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Helena Ridge Trail",
+          "name": "Helena Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hillsdale Ridge Trail",
+          "name": "Hillsdale Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Inglismaldie to Girouard Route",
+          "name": "Inglismaldie to Girouard Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Jimmy Junior Peak Trail",
+          "name": "Jimmy Junior Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lesser Pharaoh Peak Trail",
+          "name": "Lesser Pharaoh Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lipalian Mountain Trail",
+          "name": "Lipalian Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Bourgeau Route",
+          "name": "Little Bourgeau Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Temple Route",
+          "name": "Little Temple Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Marvel Peak Traverse",
+          "name": "Marvel Peak Traverse",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Massive Mountain Route",
+          "name": "Massive Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Merlin Lake Route",
+          "name": "Merlin Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Molar Mountain Trail",
+          "name": "Molar Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Molar Pass South to North Route",
+          "name": "Molar Pass South to North Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mosquito Creek to Devon Lake Route",
+          "name": "Mosquito Creek to Devon Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mosquito Mountain Trail",
+          "name": "Mosquito Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Amery Trail",
+          "name": "Mount Amery Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Andromache Route",
+          "name": "Mount Andromache Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Astley NE Trail",
+          "name": "Mount Astley NE Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Bell East Ridge Trail",
+          "name": "Mount Bell East Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Bell NE Route",
+          "name": "Mount Bell NE Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Bell Trail",
+          "name": "Mount Bell Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Brett Trail",
+          "name": "Mount Brett Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Brewster Trail",
+          "name": "Mount Brewster Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Cory Route",
+          "name": "Mount Cory Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Costigan Trail",
+          "name": "Mount Costigan Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Drummond Trail",
+          "name": "Mount Drummond Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mt Fortune to Fortulent Peaks Route",
+          "name": "Mt Fortune to Fortulent Peaks Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Girouard Trail",
+          "name": "Mount Girouard Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Hector Trail",
+          "name": "Mount Hector Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Howard Douglas Trail",
+          "name": "Mount Howard Douglas Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Inglismaldie Route",
+          "name": "Mount Inglismaldie Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Ishbel Trail",
+          "name": "Mount Ishbel Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Jimmy Simpson Trail",
+          "name": "Mount Jimmy Simpson Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lyell Route",
+          "name": "Mount Lyell Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Morrison Trail",
+          "name": "Mount Morrison Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Niblock Trail",
+          "name": "Mount Niblock Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Norquay East Peak Route",
+          "name": "Mount Norquay East Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Norquay Trail",
+          "name": "Mount Norquay Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Noyes Trail",
+          "name": "Mount Noyes Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Patterson Trail",
+          "name": "Mount Patterson Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Peechee Shoulder Route",
+          "name": "Mount Peechee Shoulder Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Peechee Trail",
+          "name": "Mount Peechee Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Perren Route",
+          "name": "Mount Perren Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Richardson Shortcut",
+          "name": "Mount Richardson Shortcut",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Rundle Trail",
+          "name": "Mount Rundle Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Sarbach Trail",
+          "name": "Mount Sarbach Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount St. Piran Route",
+          "name": "Mount St. Piran Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Temple Trail",
+          "name": "Mount Temple Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Turner Trail",
+          "name": "Mount Turner Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Tyrrell Route",
+          "name": "Mount Tyrrell Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Weed Trail",
+          "name": "Mount Weed Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount White Trail",
+          "name": "Mount White Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Willingdon Trail",
+          "name": "Mount Willingdon Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mounts Aberdeen and Haddo Routes",
+          "name": "Mounts Aberdeen and Haddo Routes",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mt Bourgeau Rt",
+          "name": "Mt Bourgeau Rt",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Muleshoe Ridge Trail",
+          "name": "Muleshoe Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Natural Bridge Route",
+          "name": "Natural Bridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Nigel SE3 Route",
+          "name": "Nigel SE3 Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:North Crowfoot Mountain Trail",
+          "name": "North Crowfoot Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Noseeum Peak Route",
+          "name": "Noseeum Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:OXO Peak Trail",
+          "name": "OXO Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Observation Peak Route",
+          "name": "Observation Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Og Mountain East Trail",
+          "name": "Og Mountain East Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Oyster Peak Trail",
+          "name": "Oyster Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Panorama Peak Route",
+          "name": "Panorama Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Panorama Ridge East Route",
+          "name": "Panorama Ridge East Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Panorama Ridge Route",
+          "name": "Panorama Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Parker Ridge W1 Trail",
+          "name": "Parker Ridge W1 Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Peyto Hut Trail",
+          "name": "Peyto Hut Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Peyto Peak Trail",
+          "name": "Peyto Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Peyto Trail",
+          "name": "Peyto Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Pilot Mountain Trail",
+          "name": "Pilot Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Pipestone Mountain Trail",
+          "name": "Pipestone Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Portal Peak Trail",
+          "name": "Portal Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Protection Mountain Route",
+          "name": "Protection Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ptarmigan Peak Trail",
+          "name": "Ptarmigan Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Quartzite Peak Trail",
+          "name": "Quartzite Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Quill Peak Trail",
+          "name": "Quill Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ramp Peak Trail",
+          "name": "Ramp Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Redoubt Mountain Trail",
+          "name": "Redoubt Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Rudolph Peak Trail",
+          "name": "Rudolph Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Saddle Peak Trail",
+          "name": "Saddle Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sheol Mountain Trail",
+          "name": "Sheol Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sira Peak Scramble",
+          "name": "Sira Peak Scramble",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Skoki Mountain Trail",
+          "name": "Skoki Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Skoki Passes Route",
+          "name": "Skoki Passes Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:South Totem and Spreading Peak Route",
+          "name": "South Totem and Spreading Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sundance Ridge Route",
+          "name": "Sundance Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Survey Peak Route",
+          "name": "Survey Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Temple Lake Ridge Route",
+          "name": "Temple Lake Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Sphinx Trail",
+          "name": "The Sphinx Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Towers Trail",
+          "name": "The Towers Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tower of Babel Route",
+          "name": "Tower of Babel Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Trapper Peak Route",
+          "name": "Trapper Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Unity Peak Trail",
+          "name": "Unity Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Waputik Peak Trail",
+          "name": "Waputik Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Warden Rock West Route",
+          "name": "Warden Rock West Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wastach Mountain Trail",
+          "name": "Wastach Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Watermelon Peak Trail",
+          "name": "Watermelon Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:White Pyramid Trail",
+          "name": "White Pyramid Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -3397,18 +4167,6 @@
           "osm_name": "Harvey Pass Tr",
           "name": "Harvey Pass Trail",
           "source": "https://www.openstreetmap.org/way/24831434",
-          "reason": "Abbreviation expanded; same trail"
-        },
-        {
-          "osm_name": "Mt Bourgeau Rt",
-          "name": "Mt Bourgeau Route",
-          "source": "https://www.openstreetmap.org/way/24831437",
-          "reason": "Abbreviation expanded; same trail"
-        },
-        {
-          "osm_name": "Mt Fortune to Fortulent Peaks Route",
-          "name": "Mount Fortune to Fortulent Peaks Route",
-          "source": "https://www.openstreetmap.org/way/264946260",
           "reason": "Abbreviation expanded; same trail"
         },
         {
@@ -3428,6 +4186,12 @@
           "name": "Talc Lake Trail",
           "source": "https://www.openstreetmap.org/way/24831442",
           "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Nigel Pass trail",
+          "name": "Nigel Pass Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
       ]
     },
@@ -3444,12 +4208,12 @@
         53.53
       ],
       "center": [
-        52.804,
-        -117.634
+        52.746,
+        -117.611
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded. live-fix1 2026-11-02: pin moved from [52.804, -117.634] (3.37 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored The Whistlers Summit Trail, Pyramid Mountain Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:12a Wapiti Campground",
@@ -3820,15 +4584,184 @@
           "id": "n:Youth Lagoon Sport Climbing Trail",
           "name": "Youth Lagoon Sport Climbing Trail",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Boundary Peak Route",
+          "name": "Boundary Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cinquifoil Peak",
+          "name": "Cinquifoil Peak",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Columbia Icefield Route",
+          "name": "Columbia Icefield Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Curator Mountain Trail",
+          "name": "Curator Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Daybreak Peak Scramble",
+          "name": "Daybreak Peak Scramble",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Diadem Peak Trail",
+          "name": "Diadem Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Evelyn Peak Trail",
+          "name": "Evelyn Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Geraldine Peak Trail",
+          "name": "Geraldine Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hawk Mountain Trail",
+          "name": "Hawk Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Indian Ridge Route",
+          "name": "Indian Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Morrow Peak",
+          "name": "Morrow Peak",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Aberhart Trail",
+          "name": "Mount Aberhart Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Androlumbia Trail",
+          "name": "Mount Androlumbia Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Andromeda Trail",
+          "name": "Mount Andromeda Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Athabasca Trail",
+          "name": "Mount Athabasca Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Brazeau Trail",
+          "name": "Mount Brazeau Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Cromwell Trail",
+          "name": "Mount Cromwell Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Cumnock Trail",
+          "name": "Mount Cumnock Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Greenock Trail",
+          "name": "Mount Greenock Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Hardisty Trail",
+          "name": "Mount Hardisty Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Warren Route",
+          "name": "Mount Warren Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Nigel Peak Trail",
+          "name": "Nigel Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Opal Peak Route",
+          "name": "Opal Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Poboktan Mountain Route",
+          "name": "Poboktan Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Replica Peak Trail",
+          "name": "Replica Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Roche Bonhomme Trail",
+          "name": "Roche Bonhomme Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Roche Miete",
+          "name": "Roche Miete",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Roche de Smet Trail",
+          "name": "Roche de Smet Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Stutfield Glacier Ice Cave Route",
+          "name": "Stutfield Glacier Ice Cave Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sunwapta Peak Trail",
+          "name": "Sunwapta Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tangle Ridge Trail",
+          "name": "Tangle Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Utopia Mountain Trail",
+          "name": "Utopia Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:West Twin Peak Trail",
+          "name": "West Twin Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wilcox Ridge Trail",
+          "name": "Wilcox Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wilcox Ridge Viewpoint Trail",
+          "name": "Wilcox Ridge Viewpoint Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
-        {
-          "osm_name": "Roche Miete",
-          "name": "Roche Miette",
-          "source": "https://www.openstreetmap.org/way/1184916601",
-          "reason": "Typo/numeric-name fix to the official spelling; same trail"
-        },
         {
           "osm_name": "Valley of the 5 Lakes - Trail 9",
           "name": "Valley of the Five Lakes Trail",
@@ -3870,6 +4803,60 @@
           "name": "Minnow Lake Trail",
           "source": "https://www.openstreetmap.org/way/155368936",
           "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Tonquin Valley trail",
+          "name": "Tonquin Valley Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Jaque Lake trail",
+          "name": "Jaque Lake Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Chaba trail",
+          "name": "Chaba Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Poboktan Creek trail",
+          "name": "Poboktan Creek Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Jonas Pass trail",
+          "name": "Jonas Pass Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Lovat Scouts trail",
+          "name": "Lovat Scouts Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Brazeau River trail",
+          "name": "Brazeau River Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Snake Indian Falls trail",
+          "name": "Snake Indian Falls Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Brazeau Lake trail",
+          "name": "Brazeau Lake Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
       ]
     },
@@ -3891,7 +4878,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here. live-fix1 2026-11-02: added Crypt Lake (whole 6.2 mi in Waterton; its 0.33 mi clipped stub in the US area waterton-lakes-national-park-mt is not touched and should be retired by the US owner) and Snowshoe; Carthew-Alderson, Lakeshore, Blakiston Valley and Boundary Creek have no named way in OSM; Akamina Pass is boundary-clipped (0.9 of 1.6 mi inside). Peak and route items dropped.",
       "exclude_trails": [
         {
           "id": "n:Akamina Pass Trail",
@@ -3902,11 +4889,6 @@
           "id": "n:Bertha Peak Main Trail",
           "name": "Bertha Peak Main Trail",
           "reason": "Duplicate stitched piece of Bertha Peak Trail"
-        },
-        {
-          "id": "n:Crypt Lake Trail",
-          "name": "Crypt Lake Trail",
-          "reason": "Already published whole in the live US areas waterton-lakes-national-park-mt and waterton-glacier-international-peace-park-mt (qualify duplicate gate); one trail, one area. The US rows are not touched here."
         },
         {
           "id": "n:Festubert Mountain Route",
@@ -3937,6 +4919,106 @@
           "id": "n:Twin Lakes Trail",
           "name": "Twin Lakes Trail",
           "reason": "Duplicate/variant of 'Twin Lakes Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Anderson Peak Route",
+          "name": "Anderson Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bertha Peak Trail",
+          "name": "Bertha Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Buchanan Ridge East Peak Route",
+          "name": "Buchanan Ridge East Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Buchanan Ridge Trail",
+          "name": "Buchanan Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cameron Lake to Sage Pass Trail",
+          "name": "Cameron Lake to Sage Pass Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Dunwey Route",
+          "name": "Dunwey Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Galwey to Bellevue Route",
+          "name": "Galwey to Bellevue Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hawkins Horseshoe Route",
+          "name": "Hawkins Horseshoe Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lakeview Ridge Route",
+          "name": "Lakeview Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lineham Ridge Trail",
+          "name": "Lineham Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lost Lake Route",
+          "name": "Lost Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Alderson Trail",
+          "name": "Mount Alderson Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Carthew Trail",
+          "name": "Mount Carthew Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Crandell Trail",
+          "name": "Mount Crandell Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Galwey Trail",
+          "name": "Mount Galwey Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Glendowan Route",
+          "name": "Mount Glendowan Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Richards Trail",
+          "name": "Mount Richards Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Rowe Route",
+          "name": "Mount Rowe Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ruby Ridge Route",
+          "name": "Ruby Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sofa Mountain Trail",
+          "name": "Sofa Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "keep_trails": [
@@ -3944,6 +5026,25 @@
           "name": "Red Rock Canyon Trail",
           "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking",
           "reason": "Parks Canada Waterton trail table: Red Rock Canyon Loop, 0.7 km (0.4 mi), interpretive loop; short official walk"
+        },
+        {
+          "name": "Snowshoe Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists Snowshoe (16.4 km return, summer hiking on a former fire road from Red Rock Canyon); the winter-only name rule is a false positive for this trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Crypt Lake Trail",
+          "name": "Crypt Lake",
+          "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists it as 'Crypt' (10.6 mi return, boat shuttle from the townsite). Named 'Crypt Lake' (no 'Trail') so it does not read as the same name as the 0.33 mi clipped stub in the live US area waterton-lakes-national-park-mt"
+        },
+        {
+          "osm_name": "South Kootenay Pass trail",
+          "name": "South Kootenay Pass Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
       ]
     },
@@ -3999,7 +5100,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Kananaskis component park (patchwork split). Named hikes and named scrambles/backcountry routes kept; boundary-clipped stubs, alt/variant pieces, abbreviated duplicates, paved path and decommissioned trail excluded. Alberta Parks trail list not parsed trail-by-trail (unverified).",
+      "notes": "AB curation 2026-11-02. Kananaskis component park (patchwork split). Named hikes and named scrambles/backcountry routes kept; boundary-clipped stubs, alt/variant pieces, abbreviated duplicates, paved path and decommissioned trail excluded. Alberta Parks trail list not parsed trail-by-trail (unverified). live-fix1 remediation (review #717): restored Chester Lake to Rummel Lake Route (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:Birdwood Pass Route",
@@ -4135,15 +5236,314 @@
           "id": "n:Tryst Lake Ridge Route",
           "name": "Tryst Lake Ridge Route",
           "reason": "Boundary-clipped: 0.9 of 1.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Blacksmith Ridge Trail",
+          "name": "Blacksmith Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Burstall Pass Peak Trail",
+          "name": "Burstall Pass Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Chester/Headwall Col Rt",
+          "name": "Chester/Headwall Col Rt",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Commonwealth Peak Trail",
+          "name": "Commonwealth Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Commonwealth Ridge Trail",
+          "name": "Commonwealth Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Galatea South Route",
+          "name": "Galatea South Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Gap Mountain Route",
+          "name": "Gap Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Grizzly Col Trail",
+          "name": "Grizzly Col Trail",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Grizzly Peak Trail",
+          "name": "Grizzly Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Gusty Peak Trail",
+          "name": "Gusty Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Gypsum Ridge Trail",
+          "name": "Gypsum Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Haig Ridge Peak Trail",
+          "name": "Haig Ridge Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Invincible to Indefatigable Traverse",
+          "name": "Invincible to Indefatigable Traverse",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Kent Ridge North Trail",
+          "name": "Kent Ridge North Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Kent South Knob Route",
+          "name": "Kent South Knob Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:King Creek Opal Traverse Route",
+          "name": "King Creek Opal Traverse Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:King Creek Ridge Route",
+          "name": "King Creek Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:King Creek Ridge Southeast Route",
+          "name": "King Creek Ridge Southeast Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Leaning Peak Trail",
+          "name": "Leaning Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Arethusa Trail",
+          "name": "Little Arethusa Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Galatea Trail",
+          "name": "Little Galatea Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Lawson Peak Trail",
+          "name": "Little Lawson Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Marlborough Pond Trail",
+          "name": "Marlborough Pond Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Beatty Trail",
+          "name": "Mount Beatty Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Birdwood Trail",
+          "name": "Mount Birdwood Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Black Prince Trail",
+          "name": "Mount Black Prince Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Burstall Trail",
+          "name": "Mount Burstall Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Chesmill Trail",
+          "name": "Mount Chesmill Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Chester Trail",
+          "name": "Mount Chester Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Evan-Thomas Trail",
+          "name": "Mount Evan-Thomas Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Evan-Thomas W Ridge Route",
+          "name": "Mount Evan-Thomas W Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Foch Trail",
+          "name": "Mount Foch Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount French Trail",
+          "name": "Mount French Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Hood Trail",
+          "name": "Mount Hood Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount James Walker Trail",
+          "name": "Mount James Walker Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Jellicoe Trail",
+          "name": "Mount Jellicoe Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Joffre Trail",
+          "name": "Mount Joffre Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Kent Trail",
+          "name": "Mount Kent Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lyautey Trail",
+          "name": "Mount Lyautey Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Marlborough Trail",
+          "name": "Mount Marlborough Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Maude Trail",
+          "name": "Mount Maude Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Murray Trail",
+          "name": "Mount Murray Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Nomad Route",
+          "name": "Mount Nomad Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Putnik Trail",
+          "name": "Mount Putnik Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Roberta Trail",
+          "name": "Mount Roberta Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Sarrail Trail",
+          "name": "Mount Sarrail Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Smith-Dorrien Trail",
+          "name": "Mount Smith-Dorrien Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Tyrwhitt Trail",
+          "name": "Mount Tyrwhitt Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Warspite Trail",
+          "name": "Mount Warspite Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Wintour North Trail",
+          "name": "Mount Wintour North Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Wintour Route",
+          "name": "Mount Wintour Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mt. Everest Intr Trail",
+          "name": "Mt. Everest Intr Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Opal Traverse Route",
+          "name": "Opal Traverse Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Packenham Junior Trail",
+          "name": "Packenham Junior Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Paved Path",
+          "name": "Paved Path",
+          "reason": "Paved path, not a hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Piggy Plus Route",
+          "name": "Piggy Plus Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sarrail Ridge Trail",
+          "name": "Sarrail Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Smutwood Peak Trail",
+          "name": "Smutwood Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Fist Trail",
+          "name": "The Fist Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Turret Trail",
+          "name": "The Turret Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Warrior Mountain Trail",
+          "name": "Warrior Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
-        {
-          "osm_name": "Chester/Headwall Col Rt",
-          "name": "Chester/Headwall Col Route",
-          "source": "https://www.openstreetmap.org/way/24836759",
-          "reason": "Abbreviation expanded; same trail"
-        },
         {
           "osm_name": "Headwall Lakes Tr",
           "name": "Headwall Lakes Trail",
@@ -4258,6 +5658,101 @@
           "id": "n:The Wedge Trail",
           "name": "The Wedge Trail",
           "reason": "Boundary-clipped: 0.9 of 2.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Buller Mountain Trail",
+          "name": "Buller Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Buller Pass Peak Route",
+          "name": "Buller Pass Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Fortress Ridge Route",
+          "name": "Fortress Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Limestone Mountain Route",
+          "name": "Limestone Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Limestone Ridge Route",
+          "name": "Limestone Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lost Lake Route",
+          "name": "Lost Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Engadine North Ridge Route",
+          "name": "Mount Engadine North Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Engadine Trail",
+          "name": "Mount Engadine Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Kidd Lookout Trail",
+          "name": "Mount Kidd Lookout Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Kidd South Trail",
+          "name": "Mount Kidd South Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Kidd Trail",
+          "name": "Mount Kidd Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lawson Trail",
+          "name": "Mount Lawson Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Old Goat Mountain Trail",
+          "name": "Old Goat Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Rummel Ridge Trail",
+          "name": "Rummel Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Spoon Needle Route",
+          "name": "Spoon Needle Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Tower Trail",
+          "name": "The Tower Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tryst Lake and Mount Smutwood Route",
+          "name": "Tryst Lake and Mount Smutwood Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tryst Lake to Tent Ridge Route",
+          "name": "Tryst Lake to Tent Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wedge Smears Trail",
+          "name": "Wedge Smears Trail",
+          "reason": "Climber approach to an ice-climbing crag, not a hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -4282,12 +5777,12 @@
         51.22
       ],
       "center": [
-        50.954,
-        -115.292
+        51.049,
+        -115.211
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Kananaskis component park (Canmore/Exshaw side). Named hikes and scrambles kept; Trans Canada Trail legs, clipped stubs, approach and alt pieces excluded. Alberta Parks list not parsed (unverified).",
+      "notes": "AB curation 2026-11-02. Kananaskis component park (Canmore/Exshaw side). Named hikes and scrambles kept; Trans Canada Trail legs, clipped stubs, approach and alt pieces excluded. Alberta Parks list not parsed (unverified). live-fix1 2026-11-02: pin moved from [50.954, -115.292] (2.02 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Bald Eagle Peak Trail",
@@ -4423,6 +5918,201 @@
           "id": "n:The Razor's Edge",
           "name": "The Razor's Edge",
           "reason": "Boundary-clipped: 1.8 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bald Eagle Peak Route",
+          "name": "Bald Eagle Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Big Sister",
+          "name": "Big Sister",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bogart Tower Trail",
+          "name": "Bogart Tower Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Buller North Ridge Route",
+          "name": "Buller North Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cougar Creek Route",
+          "name": "Cougar Creek Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cougar Peak Trail",
+          "name": "Cougar Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Fable to Mythic Route",
+          "name": "Fable to Mythic Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Great Moraine Traverse Route",
+          "name": "Great Moraine Traverse Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Grotto Mountain N1.4 Trail",
+          "name": "Grotto Mountain N1.4 Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Little Lougheed Trail",
+          "name": "Little Lougheed Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mary Barclay's Mountain Route",
+          "name": "Mary Barclay's Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:McConnell Ridge Scrambling Route",
+          "name": "McConnell Ridge Scrambling Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:McGillivray Canyon Route",
+          "name": "McGillivray Canyon Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Middle Sister Trail",
+          "name": "Middle Sister Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Charles Stewart Route",
+          "name": "Mount Charles Stewart Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Charles Stewart South Trail",
+          "name": "Mount Charles Stewart South Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Collembola Trail",
+          "name": "Mount Collembola Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lawrence Grassi Trail",
+          "name": "Mount Lawrence Grassi Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lorette Route",
+          "name": "Mount Lorette Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lougheed Trail",
+          "name": "Mount Lougheed Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount McGillivray Trail",
+          "name": "Mount McGillivray Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Sparrowhawk Trail",
+          "name": "Mount Sparrowhawk Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Townsend Route",
+          "name": "Mount Townsend Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Pigeon Mountain South Peak trail",
+          "name": "Pigeon Mountain South Peak trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Queen's Tarn Route",
+          "name": "Queen's Tarn Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Read's Tower Trail",
+          "name": "Read's Tower Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Red Peak Trail",
+          "name": "Red Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Red Ridge Trail",
+          "name": "Red Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ribbon Peak Approximate Route",
+          "name": "Ribbon Peak Approximate Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ship's Prow Mountain Trail",
+          "name": "Ship's Prow Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Sparrowhawk Tarns to Red Ridge",
+          "name": "Sparrowhawk Tarns to Red Ridge",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Orphan Trail",
+          "name": "The Orphan Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Rimwall Trail",
+          "name": "The Rimwall Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Twin Towers East (Jewell Peak) Trail",
+          "name": "Twin Towers East (Jewell Peak) Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:West Col Trail",
+          "name": "West Col Trail",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:West Wind Ridge Trail",
+          "name": "West Wind Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wind Mountain Trail",
+          "name": "Wind Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Windtower Trail",
+          "name": "Windtower Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Yamnuska Ascent Normal",
+          "name": "Yamnuska Ascent Normal",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -4649,6 +6339,226 @@
           "id": "n:Upper Canyon Alt. Route",
           "name": "Upper Canyon Alt. Route",
           "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Cougar Mountain Trail",
+          "name": "Cougar Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Crown Peak West Trail",
+          "name": "Crown Peak West Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Elpoca Mountain Trail",
+          "name": "Elpoca Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Fisher Peak Trail",
+          "name": "Fisher Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Fullerton Ridge Trail",
+          "name": "Fullerton Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Highwood Peak Trail",
+          "name": "Highwood Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Jagermeister Peak Trail",
+          "name": "Jagermeister Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Kananaskis Peak Trail",
+          "name": "Kananaskis Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lineham Peaks Route",
+          "name": "Lineham Peaks Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Lower Lineham Ridge Trail",
+          "name": "Lower Lineham Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mackay Hills Route",
+          "name": "Mackay Hills Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Midnight Peak Trail",
+          "name": "Midnight Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mist Mountain Mount Lipsett Traverse",
+          "name": "Mist Mountain Mount Lipsett Traverse",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mist Mountain Outlier Trail",
+          "name": "Mist Mountain Outlier Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Baldy West Ridge Route",
+          "name": "Mount Baldy West Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Bryant Trail",
+          "name": "Mount Bryant Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Denny South Trail",
+          "name": "Mount Denny South Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Fullerton Trail",
+          "name": "Mount Fullerton Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Lipsett Trail",
+          "name": "Mount Lipsett Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Mackay Trail",
+          "name": "Mount Mackay Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Odlum Trail",
+          "name": "Mount Odlum Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Potts Trail",
+          "name": "Mount Potts Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Remus Trail",
+          "name": "Mount Remus Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Romulus Trail",
+          "name": "Mount Romulus Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Schlee Trail",
+          "name": "Mount Schlee Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Nameless Ridge Route",
+          "name": "Nameless Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:North Storelk Cirque Route",
+          "name": "North Storelk Cirque Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Old Mt Lipsett Trail",
+          "name": "Old Mt Lipsett Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Opal Ridge South Trail",
+          "name": "Opal Ridge South Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Opal South Peak",
+          "name": "Opal South Peak",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Perdition Purgatory Route",
+          "name": "Perdition Purgatory Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Porcupine Ridge Trail",
+          "name": "Porcupine Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Remus East Ridge",
+          "name": "Remus East Ridge",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Shoulder Peak Trail",
+          "name": "Shoulder Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:South Highwood Peak Trail",
+          "name": "South Highwood Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Storelk Mountain Trail",
+          "name": "Storelk Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Storelk Scramble Route",
+          "name": "Storelk Scramble Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tombstone Mountain South Trail",
+          "name": "Tombstone Mountain South Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Upper Canyon Creek Drain Route",
+          "name": "Upper Canyon Creek Drain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Upper Canyon Creek SE Ridge Route",
+          "name": "Upper Canyon Creek SE Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Volcano Peak Trail",
+          "name": "Volcano Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wasootch Peak Trail",
+          "name": "Wasootch Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wasootch Tower Route",
+          "name": "Wasootch Tower Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:West Highwood Peak Route",
+          "name": "West Highwood Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -4700,6 +6610,26 @@
           "id": "n:The Razor's Edge",
           "name": "The Razor's Edge",
           "reason": "Boundary-clipped: 1.0 of 3.5 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Middle Lake trail",
+          "name": "Middle Lake Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/bow-valley-pp/",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Elk Flats trail",
+          "name": "Elk Flats Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/bow-valley-pp/",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Bow River trail",
+          "name": "Bow River Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/bow-valley-pp/",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
       ]
     },
@@ -4838,12 +6768,12 @@
         49.68
       ],
       "center": [
-        49.392,
-        -114.304
+        49.257,
+        -114.16
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Castle Wildland PP: named hikes and scrambles (Barnaby Ridge, Castle Peak, Windsor, Table Mountain, Yarrow Creek). Clipped stubs and alt routes excluded.",
+      "notes": "AB curation 2026-11-02. Castle Wildland PP: named hikes and scrambles (Barnaby Ridge, Castle Peak, Windsor, Table Mountain, Yarrow Creek). Clipped stubs and alt routes excluded. live-fix1 2026-11-02: pin moved from [49.392, -114.304] (4.82 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Andy Good Peak Traverse Route",
@@ -4949,6 +6879,134 @@
           "id": "n:Windsor Mountain Trail",
           "name": "Windsor Mountain Trail",
           "reason": "Duplicate/variant of 'Windsor Mountain Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Big Rock Mountain Trail",
+          "name": "Big Rock Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Castle Peak Trail",
+          "name": "Castle Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Chinook Peak Trail",
+          "name": "Chinook Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Drywood Mountain Shortcut Route",
+          "name": "Drywood Mountain Shortcut Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Drywood Mountain Trail",
+          "name": "Drywood Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Jake Smith Peak and Red Argillite Peak Routes",
+          "name": "Jake Smith Peak and Red Argillite Peak Routes",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Loaf Mountain East Trail",
+          "name": "Loaf Mountain East Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Middle Kootenay Mountain Trail",
+          "name": "Middle Kootenay Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Coulthard East Trail",
+          "name": "Mount Coulthard East Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Darrah S3 Trail",
+          "name": "Mount Darrah S3 Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount McGladrey Trail",
+          "name": "Mount McGladrey Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount McLaren Trail",
+          "name": "Mount McLaren Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Parrish Trail",
+          "name": "Mount Parrish Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:North Castle Route",
+          "name": "North Castle Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Pincher Ridge Trail",
+          "name": "Pincher Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Ptolemy Plateau Route",
+          "name": "Ptolemy Plateau Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Spionkop Ridge Trail",
+          "name": "Spionkop Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Spionkop Route",
+          "name": "Spionkop Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Spread Eagle Mountain Trail",
+          "name": "Spread Eagle Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Victoria Peak Trail",
+          "name": "Victoria Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Whistler Mountain Trail",
+          "name": "Whistler Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Windsor Mountain Route",
+          "name": "Windsor Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Yarrow Creek access trail",
+          "name": "Yarrow Creek access trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Yarrow Ridge Route",
+          "name": "Yarrow Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Yarrow Creek trail",
+          "name": "Yarrow Creek Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
       ]
     },
@@ -5117,12 +7175,12 @@
         54.07
       ],
       "center": [
-        53.658,
-        -119.118
+        53.748,
+        -119.137
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names.",
+      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names. live-fix1 2026-11-02: pin moved from [53.658, -119.118] (9.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Cowlick Creek Trail",
@@ -5144,6 +7202,14 @@
           "name": "Willow Creek Trail",
           "reason": "Boundary-clipped: 2.4 of 4.6 mi lie inside the polygon; not a whole route"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mawdsley trail",
+          "name": "Mawdsley Trail",
+          "source": "https://www.albertaparks.ca/parks/northwest/willmore-wilderness-park/",
+          "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        }
       ]
     },
     {
@@ -5159,12 +7225,12 @@
         51.52
       ],
       "center": [
-        50.824,
-        -114.962
+        50.798,
+        -114.865
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Don Getty Wildland PP (patchwork backcountry, ex-Ghost/Sheep). Most OSM routes straddle the polygon edge and are excluded as boundary-clipped; the 20 whole named routes/scrambles remain.",
+      "notes": "AB curation 2026-11-02. Don Getty Wildland PP (patchwork backcountry, ex-Ghost/Sheep). Most OSM routes straddle the polygon edge and are excluded as boundary-clipped; the 20 whole named routes/scrambles remain. live-fix1 2026-11-02: six unsigned route / peak items dropped. live-fix1 2026-11-02: pin moved from [50.824, -114.962] (5.66 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Association Peak Alt Route",
@@ -5490,6 +7556,36 @@
           "id": "n:Windy Peak to Saddle Mountain Route",
           "name": "Windy Peak to Saddle Mountain Route",
           "reason": "Boundary-clipped: 2.7 of 7.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Astral Peak Route",
+          "name": "Astral Peak Route",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bolton / Armstrong Col Route",
+          "name": "Bolton / Armstrong Col Route",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hill of the Flowers West Route",
+          "name": "Hill of the Flowers West Route",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:McPhail Muir Strachan Routes",
+          "name": "McPhail Muir Strachan Routes",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wendell East Route",
+          "name": "Wendell East Route",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Forgetmenot Mt",
+          "name": "Forgetmenot Mt",
+          "reason": "Unsigned route / scramble / peak ascent, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
         }
       ]
     },
@@ -5535,7 +7631,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names.",
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names. live-fix1 remediation (review #717): restored Paget Peak North Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:Celeste Lake Connector",
@@ -5586,6 +7682,146 @@
           "id": "n:Wenkchemna Pass/Opabin Pass Route (Mountaineering)",
           "name": "Wenkchemna Pass/Opabin Pass Route (Mountaineering)",
           "reason": "Mountaineering composite of Wenkchemna Pass and Opabin Pass routes; not a standalone hiking trail"
+        },
+        {
+          "id": "n:Abbot Pass Trail",
+          "name": "Abbot Pass Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Bow Yoho Traverse",
+          "name": "Bow Yoho Traverse",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cathedral Falls Route",
+          "name": "Cathedral Falls Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Cathedral Mountain Trail",
+          "name": "Cathedral Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Chancellor Peak Route",
+          "name": "Chancellor Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Consummation Peak Route",
+          "name": "Consummation Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Divide Mountain Route",
+          "name": "Divide Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Emerald Peak Route",
+          "name": "Emerald Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Isolated Peak Trail",
+          "name": "Isolated Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Kiwetinok Pass Trail",
+          "name": "Kiwetinok Pass Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Bosworth Route",
+          "name": "Mount Bosworth Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Burgess Route",
+          "name": "Mount Burgess Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Carnarvon Trail",
+          "name": "Mount Carnarvon Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Daly Route",
+          "name": "Mount Daly Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Field Trail",
+          "name": "Mount Field Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount McArthur Trail",
+          "name": "Mount McArthur Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Niles Trail",
+          "name": "Mount Niles Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Ogden Trail",
+          "name": "Mount Ogden Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Owen Trail",
+          "name": "Mount Owen Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Schaffer Trail",
+          "name": "Mount Schaffer Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Stephen Trail",
+          "name": "Mount Stephen Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Vaux Scramble",
+          "name": "Mount Vaux Scramble",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Narao Peak Trail",
+          "name": "Narao Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Park Mountain Trail",
+          "name": "Park Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Takakkaw Lake Route",
+          "name": "Takakkaw Lake Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Top Hat Peak Trail",
+          "name": "Top Hat Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Wapta Mountain Route",
+          "name": "Wapta Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Yukness Mountain Trail",
+          "name": "Yukness Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -5628,12 +7864,12 @@
         51.36
       ],
       "center": [
-        50.942,
-        -116.093
+        51.017,
+        -116.128
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas).",
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Ball Pass Trail",
@@ -5679,6 +7915,96 @@
           "id": "n:The Monarch Trail",
           "name": "The Monarch Trail",
           "reason": "Boundary-clipped: 1.4 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Chickadee Peak Trail",
+          "name": "Chickadee Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Hawk Ridge Route",
+          "name": "Hawk Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Helmet-Ochre Junction Trail",
+          "name": "Helmet-Ochre Junction Trail",
+          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Isabelle Peak Trail",
+          "name": "Isabelle Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Ball to Beatrice Peak Route",
+          "name": "Mount Ball to Beatrice Peak Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Haffner Trail",
+          "name": "Mount Haffner Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Wardle Route",
+          "name": "Mount Wardle Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Mount Whymper Trail",
+          "name": "Mount Whymper Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Numa Mountain Route",
+          "name": "Numa Mountain Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Numa Pass Trail",
+          "name": "Numa Pass Trail",
+          "reason": "Internal section of the Rockwall Trail (kept whole); not listed on its own by Parks Canada"
+        },
+        {
+          "id": "n:Ochre Spring Peak Trail",
+          "name": "Ochre Spring Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Rockwall Pass Trail",
+          "name": "Rockwall Pass Trail",
+          "reason": "Internal section of the Rockwall Trail (kept whole); not listed on its own by Parks Canada"
+        },
+        {
+          "id": "n:Spar Mountain Trail",
+          "name": "Spar Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Stanley Peak Trail",
+          "name": "Stanley Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Storm Mountain Trail",
+          "name": "Storm Mountain Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Storm North Ridge Route",
+          "name": "Storm North Ridge Route",
+          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Tumbling Pass Trail",
+          "name": "Tumbling Pass Trail",
+          "reason": "Internal section of the Rockwall Trail (kept whole); not listed on its own by Parks Canada"
+        },
+        {
+          "id": "n:Vermilion Peak Trail",
+          "name": "Vermilion Peak Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "keep_trails": [
@@ -6010,12 +8336,12 @@
         53.35
       ],
       "center": [
-        53.002,
-        -118.833
+        53.087,
+        -118.923
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (Mount Robson Provincial Park relation only; the Corridor protected area is separate). Berg Lake Trail 15.2 mi, Snowbird Pass, Fitzwilliam, Resplendent routes present. Moose River Route, Robson Pass and Overlander Falls cross the park edge and are excluded as boundary-clipped; the Great Divide alternate is excluded. BC Parks list not compared name by name (unverified).",
+      "notes": "BC curation 2026-11-02. Whole park (Mount Robson Provincial Park relation only; the Corridor protected area is separate). Berg Lake Trail 15.2 mi, Snowbird Pass, Fitzwilliam, Resplendent routes present. Moose River Route, Robson Pass and Overlander Falls cross the park edge and are excluded as boundary-clipped; the Great Divide alternate is excluded. BC Parks list not compared name by name (unverified). live-fix1 2026-11-02: pin moved from [53.002, -118.833] (12.45 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Moose River Route",
@@ -6316,12 +8642,12 @@
         52.93
       ],
       "center": [
-        52.129,
-        -119.946
+        52.092,
+        -119.874
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Table Mountain, Battle Mountain, Pyramid Mountain, Chain Meadows, Blackwater, Marathon, McDougall Falls, Smith Lake, Placid Lake, Murtle River/Lake trails present. Azure Lake portages excluded (canoe circuit). Trophy Mountain is boundary-clipped (excluded). BC Parks list not compared name by name (unverified).",
+      "notes": "BC curation 2026-11-02. Whole park. Table Mountain, Battle Mountain, Pyramid Mountain, Chain Meadows, Blackwater, Marathon, McDougall Falls, Smith Lake, Placid Lake, Murtle River/Lake trails present. Azure Lake portages excluded (canoe circuit). Trophy Mountain is boundary-clipped (excluded). BC Parks list not compared name by name (unverified). live-fix1 2026-11-02: pin moved from [52.129, -119.946] (3.99 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Baily's Loop Trail",
@@ -6353,12 +8679,12 @@
         51.14
       ],
       "center": [
-        50.93,
-        -115.715
+        50.931,
+        -115.658
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w167123033). Core-area routes ship as mapped, including OSM's descriptive names 'Rock Lake Campground to the Core Area' and 'Surprise Creek Cabin to Rock Lake Campground'. The classic approaches Assiniboine Pass, Wonder Pass, Citadel Pass, Simpson River and Twin Cairns cross into Banff / Kootenay and are excluded as boundary-clipped. BC Parks list not compared name by name (unverified).",
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w167123033). Core-area routes ship as mapped, including OSM's descriptive names 'Rock Lake Campground to the Core Area' and 'Surprise Creek Cabin to Rock Lake Campground'. The classic approaches Assiniboine Pass, Wonder Pass, Citadel Pass, Simpson River and Twin Cairns cross into Banff / Kootenay and are excluded as boundary-clipped. BC Parks list not compared name by name (unverified). live-fix1 2026-11-02: two campground-to-campground stage legs dropped. live-fix1 2026-11-02: pin moved from [50.93, -115.715] (2.16 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Assiniboine Pass Trail",
@@ -6414,6 +8740,16 @@
           "id": "n:Wonder Pass Trail",
           "name": "Wonder Pass Trail",
           "reason": "Boundary-clipped: 3.7 of 6.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Rock Lake Campground to the Core Area",
+          "name": "Rock Lake Campground to the Core Area",
+          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
+        },
+        {
+          "id": "n:Surprise Creek Cabin to Rock Lake Campground",
+          "name": "Surprise Creek Cabin to Rock Lake Campground",
+          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
         }
       ]
     },
@@ -7047,20 +9383,12 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail list read (https://parks.canada.ca/pn-np/on/rouge/activ/sentiers-trails): Cedar, Mast, Orchard, Vista, Monarch, Tallgrass Trek present. 'Rouge National Park Trail' (16.3 mi) is the OSM name of the park's north-south spine (official Northeast, Harvest, Central and South Central trails, about 28 km). Not mapped by name (known omissions): Woodland, Glen Eagles Vista, Reesor Way (0.5 mi piece only), Beare Wetlands loop. Oak Ridges Trail Association side trail excluded.",
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail list read (https://parks.canada.ca/pn-np/on/rouge/activ/sentiers-trails): Cedar, Mast, Orchard, Vista, Monarch, Tallgrass Trek present. 'Rouge National Park Trail' (16.3 mi) is the OSM name of the park's north-south spine (official Northeast, Harvest, Central and South Central trails, about 28 km). Not mapped by name (known omissions): Woodland, Glen Eagles Vista, Reesor Way (0.5 mi piece only), Beare Wetlands loop. Oak Ridges Trail Association side trail excluded. live-fix1 2026-11-02: the north-south spine is shown under its OSM name 'Rouge National Park Trail' instead of a three-trail list name. Splitting it into Northeast, Harvest and Central needs per-section names in OSM.",
       "exclude_trails": [
         {
           "id": "n:Oak Ridges Trail Association side trail",
           "name": "Oak Ridges Trail Association side trail",
           "reason": "Oak Ridges Trail Association side trail (long-distance trail network); not a Parks Canada trail"
-        }
-      ],
-      "trail_name_fixes": [
-        {
-          "osm_name": "Rouge National Park Trail",
-          "name": "Northeast, Harvest and Central Trails",
-          "source": "https://parks.canada.ca/pn-np/on/rouge/activ/sentiers-trails",
-          "reason": "OSM name is not an official Parks Canada trail; the spine is the Northeast, Harvest and Central trails"
         }
       ]
     },
@@ -8789,24 +11117,12 @@
         54.38
       ],
       "center": [
-        53.897,
-        -106.366
+        53.899,
+        -106.276
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine.",
-      "keep_trails": [
-        {
-          "name": "Westwind Campsite to Chipewyan Portage Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
-        },
-        {
-          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
-        }
-      ],
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine. live-fix1 2026-11-02: the five Grey Owl Trail campsite legs and the Kingsmere River connector dropped as stage legs. The Grey Owl Trail itself needs a merge of its legs or one OSM relation (follow-up). live-fix1 2026-11-02: pin moved from [53.897, -106.366] (6.64 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): the five Grey Owl Trail legs restored until a merged Grey Owl Trail exists.",
       "trail_name_fixes": [
         {
           "osm_name": "Blue Red Deer Trail",
@@ -8850,6 +11166,25 @@
           "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
           "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
         }
+      ],
+      "exclude_trails": [
+        {
+          "id": "n:Kingsmere River to Northend Campsite",
+          "name": "Kingsmere River to Northend Campsite",
+          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+        },
+        {
+          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+        }
       ]
     },
     {
@@ -8865,12 +11200,12 @@
         49.27
       ],
       "center": [
-        49.129,
-        -107.113
+        49.106,
+        -107.203
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park, East and West Blocks (one relation). Compared with the Parks Canada Grasslands hiking page (https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking): all 14 listed trails and the Otter Basin route present (nine names corrected from the page, Top Dogtown waived at 0.45 mi). Old Wagon trail is not on the list and is excluded.",
+      "notes": "SK/MB curation 2026-11-02. Whole park, East and West Blocks (one relation). Compared with the Parks Canada Grasslands hiking page (https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking): all 14 listed trails and the Otter Basin route present (nine names corrected from the page, Top Dogtown waived at 0.45 mi). Old Wagon trail is not on the list and is excluded. live-fix1 2026-11-02: pin moved from [49.129, -107.113] (5.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Old Wagon trail",

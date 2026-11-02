@@ -94,10 +94,10 @@ def test_staged_diff_refuses_extra_missing_modified_reordered_and_miscounted(tmp
     assert _verify(repo, ids) == 1                                  # framing differs from producer
 
 
-def test_verify_cli_is_publish_only(tmp_path):
+def test_verify_cli_accepts_only_publish_and_update(tmp_path):
     repo, ids, rows, new = _baseline_repo(tmp_path, 1)
     with pytest.raises(SystemExit):
-        ca.main(["verify-staged", "--repo", str(repo), "--areas", ids[0], "--mode", "update"])
+        ca.main(["verify-staged", "--repo", str(repo), "--areas", ids[0], "--mode", "remove"])
 
 
 def test_merge_index_appends_sorted_rows_and_keeps_existing_bytes(tmp_path):

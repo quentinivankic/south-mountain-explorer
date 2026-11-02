@@ -8279,12 +8279,17 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Nine of nine Douglas trails (Wolf Willow loops, Cacti, Dune, Juniper, Sunset), Trans Canada Trail legs dropped by the engine, Cacti / Dune Loop composite excluded as duplicate of its two parts. Sask Parks list not readable (JS-rendered).",
+      "notes": "SK/MB curation 2026-11-02. Nine of nine Douglas trails (Wolf Willow loops, Cacti, Dune, Juniper, Sunset), Trans Canada Trail legs dropped by the engine, Cacti / Dune Loop and Wolf Willow Loop composites excluded as duplicates of their parts. Sask Parks list not readable (JS-rendered).",
       "exclude_trails": [
         {
           "id": "n:Cacti / Dune Loop",
           "name": "Cacti / Dune Loop",
           "reason": "Composite of the Cacti Hiking Trail and Dune Hiking Trail (4.02 mi = 1.56 + 2.47 mi, same ground); the two named trails ship"
+        },
+        {
+          "id": "n:Wolf Willow Loop",
+          "name": "Wolf Willow Loop",
+          "reason": "Composite of the Wolf Willow Short, Middle and Far loops (every point of each is on this 7.99 mi line); the three named loops ship"
         }
       ]
     },
@@ -8306,8 +8311,13 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Brule, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop).",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop).",
       "exclude_trails": [
+        {
+          "id": "n:Brûlé",
+          "name": "Brûlé",
+          "reason": "Trail id would be the accent-mangled permanent id br-l; ids are permanent, so left out until the lane transliterates (Parks Canada 2026 guide lists Brûlé 4.2 km)"
+        },
         {
           "id": "n:Burls and Bittersweet",
           "name": "Burls and Bittersweet",
@@ -8372,8 +8382,8 @@
         -95.462
       ],
       "tier": 2,
-      "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Manitoba Parks Whiteshell page (https://www.gov.mb.ca/sd/parks/park-maps-and-locations/eastern/whiteshell.html) and hiking page (https://gov.mb.ca/sd/parks/recreation-and-activities/hiking/index.html): Amisk, Falcon Creek, Forrester's Footsteps, McGillivray Falls and Pine Point self-guiding trails present; the Mantario Trail (60 km, multi-day) ships whole via a keep waiver, judged as a local expert would: it lives entirely inside Whiteshell and is the park's signature trail (OSM 37.95 mi = 61 km). Whiteshell River Self-guiding Trail not mapped by name. Hunt Lake Trail excluded as an OSM stub (3.97 of about 10 mi). North and South Whiteshell Trails (rwn multi-use regional networks, 47.4 and 16.9 mi) are long-distance legs and stay out. Several OSM trails (Centennial, Cabin Lake, Lost Lake, Jessica Lake, White Pine, High Lake, Top of the World, Bear Lake, Sturgeon Falls) are mapped hiking routes not on the pages read; kept as OSM-named hiking routes, unverified against Manitoba Parks.",
+      "hold": "needs-rescope",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Manitoba Parks Whiteshell page (https://www.gov.mb.ca/sd/parks/park-maps-and-locations/eastern/whiteshell.html) and hiking page (https://gov.mb.ca/sd/parks/recreation-and-activities/hiking/index.html): Amisk, Falcon Creek, Forrester's Footsteps, McGillivray Falls and Pine Point self-guiding trails present; the Mantario Trail (60 km, multi-day) ships whole via a keep waiver, judged as a local expert would: it lives entirely inside Whiteshell and is the park's signature trail (OSM 37.95 mi = 61 km). Whiteshell River Self-guiding Trail not mapped by name. Hunt Lake Trail excluded as an OSM stub (3.97 of about 10 mi). North and South Whiteshell Trails (rwn multi-use regional networks, 47.4 and 16.9 mi) are long-distance legs and stay out. Several OSM trails (Centennial, Cabin Lake, Lost Lake, Jessica Lake, White Pine, High Lake, Top of the World, Bear Lake, Sturgeon Falls) are mapped hiking routes not on the pages read; kept as OSM-named hiking routes, unverified against Manitoba Parks. Held: Hunt Lake Trail (official 16 km per Manitoba Parks hiking page) is a 3.97 mi OSM stub and Whiteshell River Self-guiding Trail is unmapped; Canada lane cannot update live areas. Re-open when OSM completes Hunt Lake.",
       "exclude_trails": [
         {
           "id": "n:Alf Hole Winter Trail",

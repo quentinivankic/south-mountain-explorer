@@ -9967,6 +9967,78 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Elbow River PRA (r6365024): replay SAFETY BLOCK, no publishable trails after the Canada filter."
+    },
+    {
+      "id": "clearwater-lake-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2025522,
+      "name": "Clearwater Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Clearwater Lake PP (r2025522, leisure=park only): the generic prefilter does not keep the boundary (found []), so it cannot be assembled."
+    },
+    {
+      "id": "grass-river-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 14467395,
+      "name": "Grass River Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Grass River PP: replay SAFETY BLOCK, no publishable trails."
+    },
+    {
+      "id": "porcupine-hills-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 19676170,
+      "name": "Porcupine Hills Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Porcupine Hills PP (r19676170): straddles the MB/SK border; the Manitoba extract holds no whole boundary (found 0)."
+    },
+    {
+      "id": "pembina-valley-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 11947902,
+      "name": "Pembina Valley Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pembina Valley PP: replay 3 trails / 6.4 mi (Pembina Rim 4.1 mi, Oak Woods, Porcupine Ridges). Four short Manitoba Parks trails (Boulder Creek 0.28, Valley Vistas 0.31, Whitetail Hollows 0.45, Hawks Hills 0.48 mi) fall under the 0.6 mi floor; the official PDF (gov.mb.ca pembina_valley_pp.pdf) could not be read to justify waivers. Re-open with waivers."
+    },
+    {
+      "id": "pike-lake-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "way_id": 288117721,
+      "name": "Pike Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pike Lake PP (w288117721): replay 2 trails, both generic ('Interpretive Trail', 'Pike lake hills trails' 6.8 mi network); no official names."
+    },
+    {
+      "id": "echo-valley-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 11810119,
+      "name": "Echo Valley Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Echo Valley PP: replay 1 trail (Mink Trail 1.0 mi)."
     }
   ]
 }

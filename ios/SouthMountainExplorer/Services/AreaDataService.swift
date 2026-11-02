@@ -1009,6 +1009,8 @@ final class AreaDataService {
     func cachedArea(id: String) -> Area? {
         areaCache[id] ?? loadAreaFromDisk(id: id)
     }
+    /// In-memory hit only, never touches disk (safe on the main actor).
+    func memoryArea(id: String) -> Area? { areaCache[id] }
 
     func clearAreaCache() {
         areaCache.removeAll()

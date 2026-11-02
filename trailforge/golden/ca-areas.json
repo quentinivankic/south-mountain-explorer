@@ -152,7 +152,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02. PENDING (not applied): pending_keep_trails is not read by the filter; promote to keep_trails only when the Canada lane has an update path for live areas.",
       "boundary_by_id": true,
       "exclude_trails": [
         {
@@ -174,6 +174,28 @@
           "id": "n:Old Cabot Trail (Abandoned)",
           "name": "Old Cabot Trail (Abandoned)",
           "reason": "Abandoned old road alignment; not a hiking trail (the official Le vieux chemin du Cap-Rouge is not this feature)"
+        }
+      ],
+      "pending_keep_trails": [
+        {
+          "name": "Middle head",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Middle Head as a day hike (5.3 km). OSM maps it as a nwn route relation named lowercase 'Middle head'; wholly inside the park."
+        },
+        {
+          "name": "Lone Shieling Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Lone Shieling (loop, 0.6 km); a short signed interpretive loop, below the 0.6 mi fragment floor."
+        },
+        {
+          "name": "Bog Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Bog (loop, 0.5 km); a short boardwalk loop, below the 0.6 mi fragment floor."
+        },
+        {
+          "name": "MacIntosh Brook Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/cbreton/activ/randonnee-hiking",
+          "reason": "Parks Canada lists MacIntosh Brook (1.7 km); OSM geometry is 0.48 mi, below the 0.6 mi fragment floor."
         }
       ]
     },
@@ -1770,8 +1792,25 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+      "hold": null,
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter.",
+      "keep_trails": [
+        {
+          "name": "The Highlander",
+          "source": "https://parks.novascotia.ca/sites/default/files/Whycocomagh%20Trail%20Map%202026.pdf",
+          "reason": "Official Nova Scotia Parks trail map lists The Highlander Trail (970 m); OSM maps it as an rwn relation wholly inside the park."
+        },
+        {
+          "name": "Salt Mountain Trail",
+          "source": "https://parks.novascotia.ca/sites/default/files/Whycocomagh%20Trail%20Map%202026.pdf",
+          "reason": "Official Nova Scotia Parks trail map and park page list the Salt Mountain trail; OSM maps it as an rwn relation wholly inside the park."
+        },
+        {
+          "name": "Scout Trail",
+          "source": "https://parks.novascotia.ca/sites/default/files/Whycocomagh%20Trail%20Map%202026.pdf",
+          "reason": "Scout Trail is the park's third signed trail (with Highlander and Salt Mountain, Destination Cape Breton Salt Mountain listing); OSM maps it as an rwn relation wholly inside the park."
+        }
+      ]
     },
     {
       "id": "first-lake-regional-park-ca-ns",
@@ -1860,6 +1899,18 @@
       "tier": 3,
       "hold": null,
       "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3."
+    },
+    {
+      "id": "crystal-crescent-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855708,
+      "name": "Crystal Crescent Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": null,
+      "notes": "leisure=park boundary (not kept by prefilter.sh): trailforge-publish-ca.yml re-adds it from the raw PBF by relation id. Scratch replay 2026-11-02: Pennant Point Trail 4.75 mi + Spine Trail 1.76 mi."
     }
   ]
 }

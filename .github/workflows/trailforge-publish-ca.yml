@@ -115,7 +115,11 @@ jobs:
           # Way-backed boundaries (registry way_id) are only kept by the prefilter when their tags
           # happen to match. Add exactly the selected closed ways (plus their nodes) from the raw
           # file, and only when a way-backed area is selected: every other run keeps the prefilter bytes.
-          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E '^w[1-9][0-9]*$' || true)"
+          # Relation boundaries the prefilter drops (leisure=park, which prefilter.sh does not select) are
+          # re-added the same way, by explicit id only: every other relation run keeps the prefilter bytes.
+          # 4855708 = Crystal Crescent Beach Provincial Park.
+          PARK_RELS="r4855708"
+          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E -x "w[1-9][0-9]*|$PARK_RELS" || true)"
           if [ -n "$WAY_IDS" ]; then
             # shellcheck disable=SC2086
             osmium getid -r --overwrite -o data/way-boundaries.osm.pbf "data/raw/canada-$PROVINCE.osm.pbf" $WAY_IDS

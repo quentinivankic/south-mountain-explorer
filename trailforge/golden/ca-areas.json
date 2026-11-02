@@ -133,6 +133,1733 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "Boundary 0.006 x 0.004 deg fails the size gate; no named route in OSM."
+    },
+    {
+      "id": "cape-breton-highlands-national-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855583,
+      "name": "Cape Breton Highlands National Park",
+      "bbox": [
+        -61.01,
+        46.55,
+        -60.27,
+        46.91
+      ],
+      "center": [
+        46.73,
+        -60.641
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true,
+      "exclude_trails": [
+        {
+          "id": "n:Unmaintained Wilderness Trail",
+          "name": "Unmaintained Wilderness Trail",
+          "reason": "Not a Parks Canada hiking trail (absent from the official Cape Breton Highlands trail list); unmaintained, 19.9 mi"
+        },
+        {
+          "id": "n:Unmaintained Trail",
+          "name": "Unmaintained Trail",
+          "reason": "Not a Parks Canada hiking trail (absent from the official trail list); unmaintained"
+        },
+        {
+          "id": "n:Branch Pond Lookoff (CLOSED)",
+          "name": "Branch Pond Lookoff (CLOSED)",
+          "reason": "Closed; not a current Parks Canada trail"
+        },
+        {
+          "id": "n:Old Cabot Trail (Abandoned)",
+          "name": "Old Cabot Trail (Abandoned)",
+          "reason": "Abandoned old road alignment; not a hiking trail (the official Le vieux chemin du Cap-Rouge is not this feature)"
+        }
+      ]
+    },
+    {
+      "id": "fortress-of-louisbourg-national-historic-park-of-canada-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17542437,
+      "name": "Fortress of Louisbourg National Historic Park of Canada",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; pinned replay yields 1 trail (Old Town Trail 1.4 mi), below the 2-trail bar. Held."
+    },
+    {
+      "id": "kejimkujik-national-park-seaside-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17790005,
+      "name": "Kejimkujik National Park Seaside",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "np-nested",
+      "notes": "Seaside unit of Kejimkujik; whole-park rule keeps Kejimkujik as one area; also two same-name boundaries."
+    },
+    {
+      "id": "kejimkujik-national-park-and-national-historic-site-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 15670732,
+      "name": "Kejimkujik National Park and National Historic Site",
+      "bbox": [
+        -65.5,
+        44.21,
+        -65.1,
+        44.53
+      ],
+      "center": [
+        44.4,
+        -65.3
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 7 trails, 8.8 mi, pre/post clip 34>30.",
+      "keep_trails": [
+        {
+          "name": "Liberty Lake Loop",
+          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
+          "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
+        },
+        {
+          "name": "Channel Lake Loop",
+          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
+          "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
+        },
+        {
+          "name": "West River Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
+          "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
+        }
+      ]
+    },
+    {
+      "id": "alder-grounds-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342131936,
+      "name": "Alder Grounds Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "arisaig-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342237331,
+      "name": "Arisaig Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "barachois-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855697,
+      "name": "Barachois Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "battery-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342237333,
+      "name": "Battery Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "beaver-mountain-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855699,
+      "name": "Beaver Mountain Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.4 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "ben-eoin-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17763163,
+      "name": "Ben Eoin Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.3 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "blind-bay-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872481,
+      "name": "Blind Bay Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "blomidon-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855700,
+      "name": "Blomidon Provincial Park",
+      "bbox": [
+        -64.42,
+        45.21,
+        -64.28,
+        45.36
+      ],
+      "center": [
+        45.284,
+        -64.349
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 3 trails, 6.2 mi, pre/post clip 7>5."
+    },
+    {
+      "id": "blue-mountain-birch-cove-lakes-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4851205,
+      "name": "Blue Mountain - Birch Cove Lakes Wilderness Area",
+      "bbox": [
+        -63.83,
+        44.6,
+        -63.63,
+        44.75
+      ],
+      "center": [
+        44.673,
+        -63.729
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 5 trails, 5.6 mi, pre/post clip 109>21.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Whicky-Whack loop",
+          "name": "Whicky-Whack Loop",
+          "source": "https://www.openstreetmap.org/relation/668172720",
+          "reason": "Capitalisation only; same loop"
+        }
+      ]
+    },
+    {
+      "id": "boggy-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854527,
+      "name": "Boggy Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "bonnett-lake-barrens-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854796,
+      "name": "Bonnett Lake Barrens Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "bowers-meadows-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855348,
+      "name": "Bowers Meadows Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "boylston-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855701,
+      "name": "Boylston Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "cains-mountain-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7214240,
+      "name": "Cains Mountain Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "calvary-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058288,
+      "name": "Calvary River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "canso-coastal-barrens-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854797,
+      "name": "Canso Coastal Barrens Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "cape-chignecto-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855703,
+      "name": "Cape Chignecto Provincial Park",
+      "bbox": [
+        -64.99,
+        45.28,
+        -64.77,
+        45.5
+      ],
+      "center": [
+        45.4,
+        -64.9
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 5 trails, 9.1 mi, pre/post clip 10>10.",
+      "keep_trails": [
+        {
+          "name": "Coastal Trail",
+          "source": "https://parks.novascotia.ca/park/cape-chignecto",
+          "reason": "Park-internal route inside ONE park (kept however long); Nova Scotia Parks lists the 52 km Cape Chignecto coastal loop as the park hiking trail. OSM tags it rwn."
+        },
+        {
+          "name": "Eatonville Trail",
+          "source": "https://parks.novascotia.ca/park/cape-chignecto",
+          "reason": "Park-internal route inside ONE park (kept however long); Nova Scotia Parks lists the 52 km Cape Chignecto coastal loop as the park hiking trail. OSM tags it rwn."
+        },
+        {
+          "name": "Refugee Cove Trail",
+          "source": "https://parks.novascotia.ca/park/cape-chignecto",
+          "reason": "Park-internal route inside ONE park (kept however long); Nova Scotia Parks lists the 52 km Cape Chignecto coastal loop as the park hiking trail. OSM tags it rwn."
+        },
+        {
+          "name": "Fundy Ridge Trail",
+          "source": "https://parks.novascotia.ca/park/cape-chignecto",
+          "reason": "Park-internal route inside ONE park (kept however long); Nova Scotia Parks lists the 52 km Cape Chignecto coastal loop as the park hiking trail. OSM tags it rwn."
+        }
+      ]
+    },
+    {
+      "id": "cape-smokey-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342237336,
+      "name": "Cape Smokey Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 0.8 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "cape-split-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 6078134,
+      "name": "Cape Split Provincial Park",
+      "bbox": [
+        -64.55,
+        45.26,
+        -64.38,
+        45.39
+      ],
+      "center": [
+        45.325,
+        -64.463
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "card-lake-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855704,
+      "name": "Card Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "caribou-munroes-island-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855705,
+      "name": "Caribou-Munroes Island Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "chignecto-isthmus-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854821,
+      "name": "Chignecto Isthmus Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "clam-harbour-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855706,
+      "name": "Clam Harbour Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 0.9 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "clattenburgh-brook-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 5741828,
+      "name": "Clattenburgh Brook Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "cloud-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854904,
+      "name": "Cloud Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "cole-harbour-lawrencetown-coastal-heritage-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855707,
+      "name": "Cole Harbour-Lawrencetown Coastal Heritage Park",
+      "bbox": [
+        -63.53,
+        44.58,
+        -63.26,
+        44.74
+      ],
+      "center": [
+        44.659,
+        -63.393
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 4 trails, 7.1 mi, pre/post clip 41>7.",
+      "exclude_trails": [
+        {
+          "id": "n:Cole Harbour Heritage Trails",
+          "name": "Cole Harbour Heritage Trails",
+          "reason": "Umbrella relation: its nodes lie 100% on Costley Farm Trail and Jerry Lonecloud Trail (and other named walks), kept as the named walks"
+        }
+      ]
+    },
+    {
+      "id": "dalem-lake-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855709,
+      "name": "Dalem Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.4 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "denis-lakes-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7140520,
+      "name": "Denis Lakes Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "dominion-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855711,
+      "name": "Dominion Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "eastern-shore-islands-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7077179,
+      "name": "Eastern Shore Islands Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.3 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "economy-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342147136,
+      "name": "Economy River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 10.2 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "eigg-mountain-james-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854801,
+      "name": "Eigg Mountain - James River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "ellenwood-lake-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17787000,
+      "name": "Ellenwood Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "five-bridge-lakes-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854438,
+      "name": "Five Bridge Lakes Wilderness Area",
+      "bbox": [
+        -63.93,
+        44.49,
+        -63.69,
+        44.73
+      ],
+      "center": [
+        44.6,
+        -63.8
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 6 trails, 35.6 mi, pre/post clip 68>6.",
+      "exclude_trails": [
+        {
+          "id": "n:The Bluff Wilderness Hiking Trail",
+          "name": "The Bluff Wilderness Hiking Trail",
+          "reason": "Umbrella relation: 100% of its nodes lie on Mi'kmaw Hill, Hay Marsh, Bluff and Pot Lake loops, kept as the named loops"
+        }
+      ]
+    },
+    {
+      "id": "five-islands-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855713,
+      "name": "Five Islands Provincial Park",
+      "bbox": [
+        -64.15,
+        45.33,
+        -63.97,
+        45.46
+      ],
+      "center": [
+        45.394,
+        -64.06
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q1): 3 trails, 5.2 mi, pre/post clip 5>5."
+    },
+    {
+      "id": "fox-harbour-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058277,
+      "name": "Fox Harbour Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "french-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342217767,
+      "name": "French River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "gabarus-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855562,
+      "name": "Gabarus Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 4.3 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "glenwood-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17783364,
+      "name": "Glenwood Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "graves-island-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855715,
+      "name": "Graves Island Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "gully-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342145074,
+      "name": "Gully Lake Wilderness Area",
+      "bbox": [
+        -63.16,
+        45.44,
+        -62.95,
+        45.64
+      ],
+      "center": [
+        45.5,
+        -63.1
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q2): 4 trails, 13.7 mi, pre/post clip 8>6."
+    },
+    {
+      "id": "humes-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 5341134,
+      "name": "Humes River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 0.8 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "jerry-lawrence-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17836562,
+      "name": "Jerry Lawrence Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "jim-campbells-barren-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342219163,
+      "name": "Jim Campbells Barren Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "judds-pool-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855718,
+      "name": "Judd's Pool Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "kelley-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854852,
+      "name": "Kelley River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "kluscap-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7099153,
+      "name": "Kluscap Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "lake-charlotte-north-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17597697,
+      "name": "Lake Charlotte North Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "lake-charlotte-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872482,
+      "name": "Lake Charlotte Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
+    },
+    {
+      "id": "lake-rossignol-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855350,
+      "name": "Lake Rossignol Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "lennox-passage-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17630572,
+      "name": "Lennox Passage Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "liscomb-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7140518,
+      "name": "Liscomb River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
+    },
+    {
+      "id": "lower-east-chezzetcook-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872483,
+      "name": "Lower East Chezzetcook Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 0.8 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "margaree-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855584,
+      "name": "Margaree River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "martinique-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855723,
+      "name": "Martinique Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "mavilette-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855724,
+      "name": "Mavilette Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "mcgill-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854905,
+      "name": "McGill Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "mcnabs-and-lawlors-island-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872484,
+      "name": "McNabs and Lawlors Island Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 2 trail(s), 1.4 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "middle-river-framboise-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855565,
+      "name": "Middle River - Framboise Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "middle-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342217768,
+      "name": "Middle River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "mira-river-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17626178,
+      "name": "Mira River Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
+    },
+    {
+      "id": "north-mountain-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7075659,
+      "name": "North Mountain Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "north-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855566,
+      "name": "North River Wilderness Area",
+      "bbox": [
+        -60.81,
+        46.19,
+        -60.6,
+        46.42
+      ],
+      "center": [
+        46.3,
+        -60.7
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q2): 2 trails, 5.6 mi, pre/post clip 6>4.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "North-River-Falls-Trail",
+          "name": "North River Falls Trail",
+          "source": "https://www.openstreetmap.org/way/449538011",
+          "reason": "OSM name is hyphenated like a slug; spaces restored, same trail"
+        }
+      ]
+    },
+    {
+      "id": "oakfield-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 9492943,
+      "name": "Oakfield Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.3 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "ogden-round-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854798,
+      "name": "Ogden Round Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "owls-head-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17531252,
+      "name": "Owls Head Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
+    },
+    {
+      "id": "paces-lake-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872489,
+      "name": "Paces Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "polletts-cove-aspy-fault-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855585,
+      "name": "Polletts Cove - Aspy Fault Wilderness Area",
+      "bbox": [
+        -60.84,
+        46.77,
+        -60.42,
+        47.09
+      ],
+      "center": [
+        46.927,
+        -60.629
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "polly-brook-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 479607493,
+      "name": "Polly Brook Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "pomquet-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 5011751,
+      "name": "Pomquet Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "porcupine-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7200106,
+      "name": "Porcupine Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "portapique-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342147152,
+      "name": "Portapique River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "porters-lake-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17578122,
+      "name": "Porters Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
+    },
+    {
+      "id": "powells-point-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058281,
+      "name": "Powells Point Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "raven-head-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854842,
+      "name": "Raven Head Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "rissers-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855732,
+      "name": "Risser's Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "roseway-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7118255,
+      "name": "Roseway River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "ruiss-noir-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 358720238,
+      "name": "Ruiss Noir Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "sable-river-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855734,
+      "name": "Sable River Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "sackville-lakes-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17805535,
+      "name": "Sackville Lakes Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.4 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "salt-springs-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 5011617,
+      "name": "Salt Springs Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "sand-hills-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855737,
+      "name": "Sand Hills Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "scatarie-island-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855567,
+      "name": "Scatarie Island Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "scrag-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7191339,
+      "name": "Scrag Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "shelburne-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855356,
+      "name": "Shelburne River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "ship-harbour-long-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854480,
+      "name": "Ship Harbour Long Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Qualify 2026-11-02: Musquodoboit Trailway rail trail overlaps all; South Granite Ridge goes to White Lake; one walk (Admiral Lake Trail) remains."
+    },
+    {
+      "id": "shubenacadie-provincial-wildlife-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855739,
+      "name": "Shubenacadie Provincial Wildlife Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "south-panuke-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058272,
+      "name": "South Panuke Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "summerville-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17790017,
+      "name": "Summerville Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "tangier-grand-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854456,
+      "name": "Tangier Grand Lake Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "taylor-head-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855744,
+      "name": "Taylor Head Provincial Park",
+      "bbox": [
+        -62.63,
+        44.74,
+        -62.49,
+        44.92
+      ],
+      "center": [
+        44.828,
+        -62.563
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true,
+      "exclude_trails": [
+        {
+          "id": "n:Taylor Head Provincial Park",
+          "name": "Taylor Head Provincial Park",
+          "reason": "Park-named lwn umbrella relation (5.95 mi): its member ways include the Headland Trail way and other named walks already kept, so it duplicates them rather than being a distinct signed walk"
+        }
+      ]
+    },
+    {
+      "id": "terence-bay-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4848435,
+      "name": "Terence Bay Wilderness Area",
+      "bbox": [
+        -63.78,
+        44.42,
+        -63.58,
+        44.63
+      ],
+      "center": [
+        44.5,
+        -63.7
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q3): 4 trails, 3.7 mi, pre/post clip 65>6.",
+      "exclude_trails": [
+        {
+          "id": "n:E off Lynwood connector",
+          "name": "E off Lynwood connector",
+          "reason": "Not a real trail name (connector description)"
+        }
+      ]
+    },
+    {
+      "id": "the-big-bog-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342131941,
+      "name": "The Big Bog Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "the-islands-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855745,
+      "name": "The Islands Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "the-stillwaters-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 5327069,
+      "name": "The Stillwaters Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "thomas-raddall-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7114072,
+      "name": "Thomas Raddall Provincial Park",
+      "bbox": [
+        -64.99,
+        43.77,
+        -64.83,
+        43.9
+      ],
+      "center": [
+        43.837,
+        -64.906
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q3): 3 trails, 2.5 mi, pre/post clip 11>9."
+    },
+    {
+      "id": "tidney-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855360,
+      "name": "Tidney River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "toadfish-lakes-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7227845,
+      "name": "Toadfish Lakes Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "tobeatic-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855361,
+      "name": "Tobeatic Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "tracadie-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058278,
+      "name": "Tracadie River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "trout-brook-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 342217770,
+      "name": "Trout Brook Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "tusket-islands-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7119325,
+      "name": "Tusket Islands Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "tusket-river-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7184609,
+      "name": "Tusket River Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "twelve-mile-stream-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7058269,
+      "name": "Twelve Mile Stream Wilderness Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "valleyview-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7061543,
+      "name": "Valleyview Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "waterside-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855749,
+      "name": "Waterside Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "waverley-salmon-river-long-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4851363,
+      "name": "Waverley - Salmon River Long Lake Wilderness Area",
+      "bbox": [
+        -63.6,
+        44.7,
+        -63.31,
+        44.92
+      ],
+      "center": [
+        44.8,
+        -63.5
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q3): 5 trails, 17.6 mi, pre/post clip 46>8.",
+      "exclude_trails": [
+        {
+          "id": "n:Crowbar Lake Trails",
+          "name": "Crowbar Lake Trails",
+          "reason": "Umbrella relation: 100% of its nodes lie on West Lake, Salmon River, Spriggs Brook and Porters Lake loops, kept as the named walks"
+        }
+      ]
+    },
+    {
+      "id": "west-dover-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4872497,
+      "name": "West Dover Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.5 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+    },
+    {
+      "id": "west-mabou-beach-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855752,
+      "name": "West Mabou Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "white-lake-wilderness-area-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4854496,
+      "name": "White Lake Wilderness Area",
+      "bbox": [
+        -63.28,
+        44.76,
+        -63.06,
+        44.95
+      ],
+      "center": [
+        44.856,
+        -63.168
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Qualify 2026-11-02: South and North Granite Ridge Trail kept; Musquodoboit Trailway rail trail excluded. South Granite Ridge also touches Ship Harbour Long Lake (held), so it lives only here.",
+      "exclude_trails": [
+        {
+          "id": "n:Musquodoboit Trailway",
+          "name": "Musquodoboit Trailway",
+          "reason": "Rail trail running through White Lake and Ship Harbour Long Lake; whole route in neither, and it overlaps both Granite Ridge trails"
+        }
+      ]
+    },
+    {
+      "id": "whycocomagh-provincial-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855753,
+      "name": "Whycocomagh Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "first-lake-regional-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4866519,
+      "name": "First Lake Regional Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter."
+    },
+    {
+      "id": "hemlock-ravine-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 9769499,
+      "name": "Hemlock Ravine Park",
+      "bbox": [
+        -63.73,
+        44.63,
+        -63.61,
+        44.75
+      ],
+      "center": [
+        44.691,
+        -63.672
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "Qualify 2026-11-02 (run 41371842464): 2 trails, 1.7 mi after removing umbrella system and duplicate; below the >=2.5 mi or >=3 trails bar.",
+      "exclude_trails": [
+        {
+          "id": "n:Hemlock Ravine Park Trail System",
+          "name": "Hemlock Ravine Park Trail System",
+          "reason": "Umbrella relation: Rockingham Loop lies 100% on it; park system kept as its named walks"
+        },
+        {
+          "id": "n:Cabin Lake and Fleetview Trails",
+          "name": "Cabin Lake and Fleetview Trails",
+          "reason": "Identical geometry to Cabin Lake Trail (27/27 nodes); kept as one entry"
+        }
+      ]
+    },
+    {
+      "id": "sir-sandford-fleming-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4866523,
+      "name": "Sir Sandford Fleming Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "Qualify 2026-11-02: 2 trails but Frog Pond Trail lies 100% on the Fleming Park Trail System umbrella; one real walk after de-duplication."
+    },
+    {
+      "id": "upper-clements-picnic-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4855747,
+      "name": "Upper Clements Picnic Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "Boundary fails the size gate; no named walks."
+    },
+    {
+      "id": "western-commons-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 4866524,
+      "name": "Western Commons",
+      "bbox": [
+        -63.8,
+        44.51,
+        -63.61,
+        44.68
+      ],
+      "center": [
+        44.6,
+        -63.7
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3."
     }
   ]
 }

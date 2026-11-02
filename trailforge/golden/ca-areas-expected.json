@@ -2410,6 +2410,319 @@
         "South Whiteshell Trail",
         "Teagan's Connector"
       ]
+    },
+    "parc-national-daiguebelle-ca-qc": {
+      "trail_count": 9,
+      "total_mi": 15.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chemin du Charbonnier",
+        "Montée d'Aiguebelle"
+      ]
+    },
+    "parc-national-danticosti-ca-qc": {
+      "trail_count": 11,
+      "total_mi": 26.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chemin de la Rivière-de-l'Ours",
+        "SEntier les Sentinelles",
+        "Sentier Observation-la-Mer",
+        "Sentier les Aigles"
+      ]
+    },
+    "parc-national-de-forillon-ca-qc": {
+      "trail_count": 10,
+      "total_mi": 29.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Détour hivernal",
+        "Le Portage",
+        "Les Lacs",
+        "SIA Mont-Saint-Alban",
+        "SIA, 1-Forillon",
+        "SIA, 2-Côte de Gaspé",
+        "Sentier International des Appalaches - International Appalachian Trail",
+        "Sentier Lac au Renard",
+        "Sentier international des Appalaches, Québec",
+        "Sentier la Chute",
+        "Sentier les Crêtes",
+        "Sentier les Graves",
+        "Sentier les Lacs",
+        "Sentier les Parages",
+        "Sentier écrasement avion"
+      ]
+    },
+    "parc-national-de-frontenac-ca-qc": {
+      "trail_count": 8,
+      "total_mi": 22.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "La Brise"
+      ]
+    },
+    "parc-national-de-la-jacques-cartier-ca-qc": {
+      "trail_count": 17,
+      "total_mi": 52.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Accès Lac Cauchon",
+        "Accès Lac Poitras",
+        "Chemin 101",
+        "L'incursion",
+        "La Rivière-à-l'Epaule",
+        "Lac Cook",
+        "Les Loups (hiver)",
+        "Raquette",
+        "Sentier du Hibou Nord"
+      ]
+    },
+    "parc-national-de-la-mauricie-ca-qc": {
+      "trail_count": 16,
+      "total_mi": 38.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Camping Piéton",
+        "Chute Waber",
+        "Deux-Criques",
+        "Point-de-Vue",
+        "Portage",
+        "Sentier Chute-du-Diable",
+        "Sentier La Tourbière",
+        "Sentier Le Trapeur",
+        "Sentier Mékinac / Deux-Criques",
+        "Sentier National",
+        "Sentier National, Mauricie",
+        "Sentier Père-Jacques-Buteux",
+        "Sentier Roland-Leclerc",
+        "Sentier Ruisseau-Bouchard",
+        "Sentier Saint-Bernard",
+        "Sentier Vallerand",
+        "Sentier Vianney-Guillemette",
+        "Sentier Vieux-Brûlis",
+        "Sentier de la Chute Parker",
+        "Sentier du Lac Reid",
+        "Sentier du Lac-du-Pimbina"
+      ]
+    },
+    "parc-national-de-la-yamaska-ca-qc": {
+      "trail_count": 6,
+      "total_mi": 9.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "La Rivière",
+        "Sentier La Baie",
+        "Sentier La Forestière"
+      ]
+    },
+    "parc-national-des-grands-jardins-ca-qc": {
+      "trail_count": 10,
+      "total_mi": 23.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Approach TiCul",
+        "Approach Ziggy",
+        "Le Boréal",
+        "Sentier National",
+        "Sentier National, Charlevoix",
+        "Sentier d'approche (escalade)",
+        "Sentier d'hiver",
+        "Sentier de la Tour",
+        "Sentier des Florents",
+        "Sentier des Pointes",
+        "Sentier le Brûlé"
+      ]
+    },
+    "parc-national-des-hautes-gorges-de-la-riviere-malbaie-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 15.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Approach Gandalf",
+        "Approach Hysterie Collective",
+        "La Traversée de Charlevoix",
+        "Sentier Le Pied-des-Sommets",
+        "Sentier de la Chute-duRuisseau-Blanc",
+        "Sentier du Mont Élie",
+        "Sentier le Belvédère",
+        "Sortie Malbaie"
+      ]
+    },
+    "parc-national-des-iles-de-boucherville-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier Le Grand-Duc",
+        "Sentier du Boisé Grosbois"
+      ]
+    },
+    "parc-national-des-monts-valin-ca-qc": {
+      "trail_count": 7,
+      "total_mi": 17.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Approach Dent de Dracula",
+        "Sentier Mirador (Hiver seulement)",
+        "Sentier d'hiver",
+        "Sentier de la tête de chien",
+        "Sentier l'Hibernal (hiver seulement)",
+        "Sentier le Yéti"
+      ]
+    },
+    "parc-national-doka-ca-qc": {
+      "trail_count": 6,
+      "total_mi": 8.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Les Chapelles",
+        "Lien parc d'Oka",
+        "L’Orée",
+        "Raquette",
+        "Sentier Littoral",
+        "Voie de Service"
+      ]
+    },
+    "parc-national-dopemican-ca-qc": {
+      "trail_count": 6,
+      "total_mi": 13.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chemin Jodoin",
+        "Portage Star-Roussel",
+        "Route de Portages Sauvage",
+        "Sentier de La-Grande-Chute",
+        "Sentier de la Rivière Kipawa: Parcours Grand Chute-Inukshuk",
+        "Sentier de la Rivière Kipawa: Parcours Laniel-Broken Bridge"
+      ]
+    },
+    "parc-national-du-bic-ca-qc": {
+      "trail_count": 12,
+      "total_mi": 18.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Coulée Blanchette",
+        "La Colonie Nord",
+        "La Colonie Sud",
+        "Le Chemin du nord",
+        "Le Chocolat",
+        "Le Malard",
+        "Les Escaliers"
+      ]
+    },
+    "parc-national-du-lac-temiscouata-ca-qc": {
+      "trail_count": 8,
+      "total_mi": 26.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Parc National du lac Témiscouata, Quebec",
+        "Refuge du Curé Cyr",
+        "Sentier Montagne à Fourneau",
+        "Sentier National",
+        "Sentier National - tronçon Rivière Touladi",
+        "Sentier National, Bas-Saint-Laurent",
+        "Sentier Nationnal",
+        "Sentier Suterland",
+        "Sentier des Curieux de nature",
+        "Sentier national Dégelis",
+        "Sentier national la Grande Baie",
+        "Tronçon Dégelis",
+        "Tronçon Lac Anna",
+        "Tronçon Les Érables",
+        "Tronçon Rivière Touladi",
+        "Tronçon la Grande Baie",
+        "Tronçon la Montagne à Fourneau",
+        "Tronçon les Cascades Sutherland"
+      ]
+    },
+    "parc-national-du-mont-megantic-ca-qc": {
+      "trail_count": 14,
+      "total_mi": 36.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Accès",
+        "Boucle de Cassiopée",
+        "Chemin de service de la Vallée",
+        "La Promenade Boréale",
+        "Lien passerelle de la Chute",
+        "Sentier Frontalier 9",
+        "Sentier Frontalier SF9",
+        "Sentier du Soleil"
+      ]
+    },
+    "parc-national-du-mont-orford-ca-qc": {
+      "trail_count": 20,
+      "total_mi": 36.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brompton ~ Accès ~ SE ~ Chemin Bombardier (500 m)",
+        "Brompton ~ Accès ~ SE ~ Mont-Cathédrale (Carré) (1,2 km)",
+        "Brompton ~ Alternatif ~ SE ~ Sentier secondaire du Mont des Trois-Lacs (500 m)",
+        "Brompton ~ Principal ~ SE ~ Brompton",
+        "Circuit Altitude",
+        "Colline de la Serpentine",
+        "Colline du Campeur",
+        "Kingsbury ~ Accès ~ SE ~ Lac Miller (1,5 km)",
+        "Kingsbury ~ Alternatif ~ SE ~ Le marais (1,2 km)",
+        "Kingsbury ~ Principal ~ SE ~ Kingsbury",
+        "La Passe 45",
+        "Le Vallonnier",
+        "Magnum",
+        "Magog",
+        "Sentier de l'Estrie",
+        "Sentier de l'Estrie Zone Brompton",
+        "Sentier de l'Estrie Zone Brompton, accès",
+        "Sentier de l'Estrie, Zone Bolton",
+        "Sentier de l'Estrie, Zone Bolton, accès",
+        "Sentier de l'Estrie, Zone Kingsbruy",
+        "Sentier de l'Estrie, Zone Kingsbruy, Accès",
+        "Sentier de l'Estrie, Zone Orford",
+        "Sentier de l'Estrie, Zone Orford, Accès",
+        "Sentier de l'Érablière",
+        "Sentier des Loutres & du Pékan",
+        "Sentier du Pékan / La Morille"
+      ]
+    },
+    "parc-national-du-mont-tremblant-ca-qc": {
+      "trail_count": 18,
+      "total_mi": 45.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chemin de la Crique-Desjardins",
+        "Chouette Nord",
+        "Chutes Croches",
+        "Coupe-Canada",
+        "Escalade",
+        "Everesting 29029",
+        "Grand Prix des Couleurs",
+        "Jim-Minty",
+        "Le Malard",
+        "Le Ruisseau",
+        "Nord-Sud",
+        "Sentier La Chute du Diable",
+        "Sentier Ruisseaux",
+        "Sentier du Mont Nixon",
+        "Tonga Lumina",
+        "Tour d'observation"
+      ]
     }
   }
 }

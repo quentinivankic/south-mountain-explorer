@@ -1,5 +1,33 @@
 {
   "schema": "trekdex-ca-areas-expected-v1",
   "note": "Blessed per-area results for the Canada lane. Produced by the qualify run of trailforge-publish-ca.yml (artifact file ca-areas-expected.proposed.json) and approved once; publish refuses unless every selected area matches.",
-  "areas": {}
+  "areas": {
+    "prince-edward-island-national-park-ca-pe": {
+      "trail_count": 10,
+      "total_mi": 20.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Balsam Hollow Trail",
+        "Breadalbane Nature Trail",
+        "Cavendish Beach Trail",
+        "Central PEI Coastal Walk",
+        "Confederation Trail (all spurs)",
+        "Confederation Trail - Tignish to Elmira",
+        "Dunelands Trail",
+        "Dunes Trail",
+        "Greenwich Beach",
+        "Greenwich Trails",
+        "Gulf Shore Trail",
+        "Haunted Wood Trail",
+        "Havre Saint Pierre",
+        "International Appalachian Trail, PEI",
+        "Island Trails",
+        "Old Feller",
+        "Old Feller (extension)",
+        "Sentier International des Appalaches - International Appalachian Trail",
+        "Winter River Hiking Trail"
+      ]
+    }
+  }
 }

@@ -88,3 +88,48 @@ if __name__ == "__main__":
         fn()
         print(f"ok  {fn.__name__}")
     print(f"\n{len(fns)} passed")
+# --- Canada accent fold (region=ca only) -------------------------------------
+def _ids(name, area_id, state):
+    fc = {"features": [{
+        "geometry": {"type": "MultiLineString",
+                     "coordinates": [[[-70.0, 47.0], [-70.001, 47.001]]]},
+        "properties": {"name": name, "kind": "trail", "length_mi": 1.0}}]}
+    row = conv.convert(fc, area_id, "Area", state, (47.0, -70.0), None,
+                       {"trail", "hike", "route"})
+    return [t["id"] for t in row["trails"]]
+FRENCH = {
+    "Sentier de la Vallée": "sentier-de-la-vallee",
+    "La Rivière-Cachée": "la-riviere-cachee",
+    "La Taïga": "la-taiga",
+    "Grand Brûlé": "grand-brule",
+    "Les Éclaireurs": "les-eclaireurs",
+    "Là-Haut": "la-haut",
+    "Pâtis": "patis",
+    "Noël": "noel",
+    "Cœur": "coeur",
+    "Œuvre": "oeuvre",
+    "Où": "ou",
+    "Lÿs": "lys",
+    "Île Verte": "ile-verte",
+    "Mary Schäffer Loop": "mary-schaffer-loop",
+}
+def test_canada_trail_ids_fold_french_accents():
+    for name, want in FRENCH.items():
+        assert _ids(name, "x-ca-qc", "Canada") == [want], name
+def test_canada_fold_handles_decomposed_input():
+    # NFD "e" + combining acute must fold the same as precomposed
+    assert _ids("Rivie\u0300re", "x-ca-qc", "Canada") == ["riviere"]
+def test_non_canada_ids_are_unchanged_by_the_fold():
+    for name in FRENCH:
+        for state, aid in (("Arizona", "x-az"), ("Denmark", "x-dk"),
+                           ("Vermont", "x-vt")):
+            assert _ids(name, aid, state) == [conv.trail_slug(name)], (name, state)
+    assert conv.trail_slug("La Rivière") == "la-rivi-re"
+    assert conv.trail_slug("Cœur") == "c-ur"
+def test_live_canadian_areas_keep_their_legacy_ids():
+    assert _ids("Brûlé Trail", "awenda-provincial-park-ca-on", "Canada") == ["br-l-trail"]
+    assert _ids("Mary Schäffer Loop", "jasper-national-park-ca-ab", "Canada") == ["mary-sch-ffer-loop"]
+    assert _ids("Brûlé Trail", "other-park-ca-on", "Canada") == ["brule-trail"]
+def test_ascii_canadian_names_are_unchanged():
+    for name in ("Bald Hill", "Steve’s Trail", "Grey Owl 2"):
+        assert _ids(name, "x-ca-mb", "Canada") == [conv.trail_slug(name)]

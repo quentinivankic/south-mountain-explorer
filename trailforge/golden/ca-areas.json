@@ -8282,12 +8282,19 @@
         50.42
       ],
       "center": [
-        50.3,
-        -122.5
+        50.347,
+        -122.47
       ],
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "BC curation 2026-11-02. Only 2 whole named trails: Joffre Lakes Trail (OSM maps 0.84 mi of the official 5 km one-way route) and Slalok Mountain Trail; Tszil Mountain Trail is boundary-clipped (0.7 of 1.1 mi). 2.0 mi total is under the 2.5 mi / 3 trail bar and the flagship distance would be understated by a factor of three. OSM mapping gap; Quentin's call whether to complete the OSM trail. Known omission (review #707): Joffre Lakes Trail (held). Retry 2026-11-02 (ca-missing): replay 3 trails / 2.7 mi, but the flagship Joffre Lakes Trail (lwn relation r6035636, 18 members, 2.7 mi of ways vs 3.1 mi official) publishes only 0.84 mi: the relation is disjoint and the Canada lane has no accept_gap. Still HOLD few-trails; centre unchanged."
+      "hold": null,
+      "notes": "BC curation 2026-11-02, unheld after engine rules PR #716 (accept_gap, Quentin-approved). Three real named trails: Joffre Lakes Trail (lwn relation r6035636, 2.66 mi in one part with accept_gap; official 5 km one way = 3.1 mi, OSM still about 0.4 mi short at the ends), Slalok Mountain Trail 1.17 mi, Tszil Mountain Trail 0.68 mi (boundary-clipped, 0.7 of 1.1 mi). No other named walks inside the park. Total 4.5 mi meets the 2.5 mi / 3 trail bar. Known omission: the last 0.4 mi of Joffre Lakes Trail is unmapped in OSM.",
+      "accept_gap": [
+        {
+          "relation": "r6035636",
+          "max_gap_m": 250,
+          "reason": "BC Parks lwn Joffre Lakes Trail: 9 member ways carry piste:type=skitour with foot=yes/sac_scale=hiking and are dropped at ingest; restoring them makes the relation one connected 2.7 mi route (official 5 km one way)."
+        }
+      ]
     },
     {
       "id": "golden-ears-provincial-park-ca-bc",
@@ -9402,8 +9409,8 @@
         -78.199
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. KNOWN OMISSION: Western Uplands Backpacking Trail (60 mi super-relation r11851829) is dropped by the engine as a thru-hike super-relation; it is not registry-waivable (code follow-up). Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified). Review 708: Brent Crater Trail restored (on the Ontario Parks Algonquin hiking list, 2 km). HELD needs-rescope until Western Uplands can ship (single-park super-relation rule) or the omission is accepted. Retry 2026-11-02 (ca-missing): replay 26 trails / 80.2 mi. The Western Uplands Backpacking Trail (lwn super-relation, 60 mi) and its 8 child relations are dropped by the shared assembler as a thru-hike super-relation; that is not waivable by keep_trails (verified in removed.geojson: category thru-hike). Shipping now would lock the omission because the Canada lane cannot update live areas. Still HOLD needs-rescope; code follow-up: single-park super-relation rule.",
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. Western Uplands Backpacking Trail (60 mi lwn super-relation r11851829) ships whole via keep_superroute (engine rules PR #716, Quentin-approved); its 7 child relations stay removed. Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified). Review 708: Brent Crater Trail restored (on the Ontario Parks Algonquin hiking list, 2 km). Unheld 2026-11-02 (ca-joffre-algonquin): replay 27 trails / 140.6 mi including Western Uplands 60.35 mi, Highland 20.47 mi and Eastern Pines 11.85 mi backpacking trails.",
       "exclude_trails": [
         {
           "id": "n:Arowhon Pine trail",
@@ -9479,6 +9486,12 @@
           "id": "n:White Partridge - Travers Cart Path",
           "name": "White Partridge - Travers Cart Path",
           "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        }
+      ],
+      "keep_superroute": [
+        {
+          "relation": "r11851829",
+          "reason": "Western Uplands Backpacking Trail: Ontario Parks signed 60 mi loop network wholly inside Algonquin PP; single-park trail, not a long-distance network."
         }
       ]
     },

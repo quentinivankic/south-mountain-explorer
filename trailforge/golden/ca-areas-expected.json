@@ -284,6 +284,103 @@
       "forbidden_names": [
         "Pennant Point Lookoff"
       ]
+    },
+    "fundy-national-park-ca-nb": {
+      "trail_count": 27,
+      "total_mi": 66.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Black Hole",
+        "Caribou Plain Boardwalk Trail",
+        "Dickson Falls Long Loop Trail",
+        "Dickson Falls Short Loop Trail",
+        "Fundy Footpath",
+        "Fundy Footpath Link",
+        "Moosehorn/The Forks",
+        "Trans Canada Trail (NB)",
+        "Trans Canada Trail (New Brunswick - Fundy Trail)",
+        "Upper Salmon",
+        "Wolfe Lake Lakeview campground trail"
+      ]
+    },
+    "fundy-trail-parkway-ca-nb": {
+      "trail_count": 5,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Big Salmon River Beach Loop & Stairs",
+        "Big Salmon River Cemetery Trail",
+        "Bradshaw Lookout Trail",
+        "Fundy Footpath",
+        "Fundy Trail Pathway",
+        "McCumber Brook Wetlands trail",
+        "McLeod Brook Falls Loop",
+        "Melvin Beach Access Trail",
+        "Trans Canada Trail (New Brunswick - Fundy Trail)",
+        "Walton Glenn Gorge Observation Deck Trail",
+        "Walton Glenn Gorge Trail to the Eye of the Needle",
+        "Walton Glenn Observation Deck Shortcut",
+        "Walton Glenn Observation Deck Trail"
+      ]
+    },
+    "herring-cove-provincial-park-ca-nb": {
+      "trail_count": 4,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Herring Cove"
+      ]
+    },
+    "kouchibouguac-national-park-ca-nb": {
+      "trail_count": 8,
+      "total_mi": 13.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Salt Marsh / Le Marias Sale"
+      ]
+    },
+    "mactaquac-provincial-park-ca-nb": {
+      "trail_count": 7,
+      "total_mi": 5.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Eagle Trail",
+        "Maple Sugar Trail"
+      ]
+    },
+    "mount-carleton-provincial-park-ca-nb": {
+      "trail_count": 9,
+      "total_mi": 29.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chutes Williams Falls",
+        "East View Point",
+        "Portage Trail",
+        "Sentier Nepisiguit Mi'gmaq Trail",
+        "View Point"
+      ]
+    },
+    "new-river-beach-provincial-park-ca-nb": {
+      "trail_count": 2,
+      "total_mi": 2.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "the-anchorage-provincial-park-ca-nb": {
+      "trail_count": 4,
+      "total_mi": 1.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Ox Head Trail"
+      ]
     }
   }
 }

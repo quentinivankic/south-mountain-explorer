@@ -1946,7 +1946,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance.",
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance. Black Hole excluded (not on the Parks Canada list). Point Wolfe Beach kept (official 1 km beach walk).",
       "exclude_trails": [
         {
           "id": "n:Upper Salmon",
@@ -1962,6 +1962,11 @@
           "id": "n:Dickson Falls Long Loop Trail",
           "name": "Dickson Falls Long Loop Trail",
           "reason": "Duplicates the official Dickson Falls 1.5 km loop, kept as 'Dickson Falls' (the name on the Parks Canada list)"
+        },
+        {
+          "id": "n:Black Hole",
+          "name": "Black Hole",
+          "reason": "Not on the Parks Canada Fundy trail list (complete hiking and MTB list); one way is access=no"
         }
       ],
       "keep_trails": [
@@ -1979,6 +1984,11 @@
           "name": "Herring Cove Beach",
           "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
           "reason": "Parks Canada trail list: Herring Cove Beach, 1 km return, stairs to the beach; short official walk"
+        },
+        {
+          "name": "Point Wolfe Beach",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
+          "reason": "Parks Canada trail list: Point Wolfe Beach, 1 km return, beach access; short official walk"
         }
       ]
     },
@@ -2025,6 +2035,24 @@
           "name": "Mi'gmaq Cedar",
           "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
           "reason": "Official Parks Canada spelling is Mi'gmaq Cedar; OSM has Migmag Cedars Trail"
+        },
+        {
+          "osm_name": "Sentier de la rivi\u00e8re Kouchibouguac",
+          "name": "Kouchibouguac River",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Official Parks Canada name is Kouchibouguac River; OSM carries the French-only name"
+        },
+        {
+          "osm_name": "Tweedie / Tweedie",
+          "name": "Tweedie",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Duplicated halves in OSM; official name is Tweedie"
+        },
+        {
+          "osm_name": "Claire Fontaine / Claire Fontaine",
+          "name": "Claire-Fontaine",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Duplicated halves in OSM; official name is Claire-Fontaine"
         }
       ]
     },
@@ -2046,7 +2074,21 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Official source: NB Parks https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park (the trail map is script-rendered, no trail list readable); trail names match the park's published hikes (Mount Carleton, Head, Bailey, Sagamook, Bald Mountain Brook, Big Brook, Dry Brook, Pine Point). Dropped: Nepisiguit Mi'gmaq Trail (rwn long-distance), Portage Trail (canoe portage), Ruisseau Caribou Brook (OSM access=no), Williams Falls 0.19 mi (fragment, no readable official source). Bilingual OSM names unchanged."
+      "notes": "NB curation 2026-11-02. Official source: NB Parks https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park (the trail map is script-rendered, no trail list readable); trail names match the park's published hikes (Mount Carleton, Head, Bailey, Sagamook, Bald Mountain Brook, Big Brook, Dry Brook, Pine Point). Dropped: Nepisiguit Mi'gmaq Trail (rwn long-distance), Portage Trail (canoe portage), Ruisseau Caribou Brook (OSM access=no), Williams Falls 0.19 mi (fragment, no readable official source). Bilingual OSM names unchanged.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Ruisseau Bald Mountain Brook",
+          "name": "Bald Mountain Brook Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM name glues a French word onto an English name"
+        },
+        {
+          "osm_name": "Ruisseau Dry Brook",
+          "name": "Dry Brook Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM name glues a French word onto an English name"
+        }
+      ]
     },
     {
       "id": "sugarloaf-provincial-park-ca-nb",
@@ -2176,7 +2218,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Official list (https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park) has 10 trails; 8 shipped. Maple Sugar and Eagle are marked Closed on the page (Eagle is mapped and kept, Maple Sugar 0.43 mi dropped). Beaver Pond to Alex Creek not mapped as a separate way.",
+      "notes": "NB curation 2026-11-02. Official list (https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park) has 10 trails; 8 shipped. Maple Sugar and Eagle are marked Closed on the page (Eagle is excluded (Closed, old road), Maple Sugar 0.43 mi dropped). Beaver Pond to Alex Creek not mapped as a separate way.",
       "keep_trails": [
         {
           "name": "Alex Creek to Murch Field Connecting Trail / Lien entre sentiers Ruisseau Alex et Champ Murch",
@@ -2187,6 +2229,21 @@
           "name": "Porcupine Pass",
           "source": "https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park",
           "reason": "NB Parks trail list: Porcupine Pass; short official walk"
+        }
+      ],
+      "exclude_trails": [
+        {
+          "id": "n:Eagle Trail",
+          "name": "Eagle Trail",
+          "reason": "NB Parks lists 10 - Eagle as Closed; old road beside the head pond"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Alex Creek to Murch Field Connecting Trail / Lien entre sentiers Ruisseau Alex et Champ Murch",
+          "name": "Alex Creek to Murch Field Connecting Trail",
+          "source": "https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park",
+          "reason": "Shorten 100-character bilingual OSM name to the English official name"
         }
       ]
     },

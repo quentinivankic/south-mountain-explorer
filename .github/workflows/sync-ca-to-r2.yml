@@ -1,0 +1,279 @@
+name: Sync Canadian areas to R2 (N areas, registry)
+# Manual R2 publish for the Canadian areas committed by trailforge-publish-ca.yml. Same semantics
+# as sync-dk-to-r2.yml (append-only plan | apply | rollback), cloned for Canada. Needs only the
+# three R2 repo secrets (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY). No environment,
+# no signed receipt.
+#
+# SHARES the concurrency group `sync-geom-to-r2` with the Denmark and Mols syncs, so R2 writers
+# serialize: never merge or start another chain between a `plan` and its `apply`.
+#
+# The area list is NOT an input: it is the committed index diff, i.e. the rows of
+# ios/.../areas-index.json beyond the LIVE R2 index.json rows (each must be a registry area of
+# trailforge/golden/ca-areas.json with a blessed expected-table entry, 1..120 areas).
+#
+# The write set is exactly 2N per-area keys (geom + silhouette) plus index.json, trail-search.json
+# and trail-shapes.json. The three shared files are the LIVE R2 bytes with the N areas' records
+# spliced on, so no other area's bytes can change. parking.json is read only to prove it did not
+# move (ETag checked before and after); it is never written.
+#
+# mode=plan      read-only: snapshot live R2, build + prove candidates, upload the snapshot/plan as
+#                an artifact. Writes nothing to R2.
+# mode=apply     plan, then write the 2N+3 keys (geoms/silhouettes, shapes, search, index last) and
+#                read each back by sha256.
+# mode=rollback  restore the shared files from an apply run's snapshot (each at candidate -> restore,
+#                or already baseline -> skip; anything else is a third party's publish and is
+#                refused) and delete exactly the 2N keys.
+# ADOPT-ORPHAN: a per-area key that already exists in R2 is overwritten only if the area is NOT in the live
+# index.json and the existing geom is a System-1 leftover (state Canada, same id, cached_at); a silhouette must
+# be a {b,l} document. Plan lists each adopted key; apply backs it up (artifact cand/orphans/), writes it
+# If-Match its ETag; rollback restores the backed-up bytes (never deletes an adopted key). Else it refuses.
+# (Update and remove families are not part of the Canada lane yet.)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "plan | apply | rollback (append new Canadian areas)"
+        type: choice
+        options: [plan, apply, rollback]
+        default: plan
+      rollback_run_id:
+        description: "rollback only: run id of the apply run whose snapshot to restore"
+        default: ""
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: sync-geom-to-r2
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      MODE: ${{ inputs.mode }}
+      ROLLBACK_RUN_ID: ${{ inputs.rollback_run_id }}
+      BUCKET: trekdex-areas
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Guards (main tip, inputs, secrets)
+        run: |
+          set -euo pipefail
+          [[ "$MODE" =~ ^(plan|apply|rollback)$ ]]
+          if [ "$MODE" = "rollback" ]; then
+            [[ "$ROLLBACK_RUN_ID" =~ ^[0-9]+$ ]]
+          else
+            test -z "$ROLLBACK_RUN_ID"
+          fi
+          test "$GITHUB_REF_NAME" = "main"
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+          for v in R2_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            test -n "${!v}" || { echo "Missing repo secret for $v"; exit 1; }
+          done
+          echo "ENDPOINT=https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" >> "$GITHUB_ENV"
+          echo "main tip $(git rev-parse HEAD) mode=$MODE"
+
+      - name: Snapshot live R2 (index, trail-search, trail-shapes, parking)
+        run: |
+          set -euo pipefail
+          mkdir -p snap
+          : > snap/etags.tsv
+          for key in index.json trail-search.json trail-shapes.json parking.json; do
+            etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" \
+              --endpoint-url "$ENDPOINT" --query ETag --output text "snap/$key")"
+            etag="${etag//\"/}"
+            printf '%s\t%s\t%s\n' "$key" "$etag" "$(sha256sum "snap/$key" | cut -d' ' -f1)" >> snap/etags.tsv
+          done
+          cat snap/etags.tsv
+
+      - name: Plan (area list from the committed index diff; build + prove candidates)
+        if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
+        run: |
+          set -euo pipefail
+          mkdir -p cand
+          python3 scripts/ca_publish.py derive-areas \
+            --repo . --live-index snap/index.json --out cand/areas.txt
+          # Per-area keys that already exist in R2 are saved (bytes + ETag) and classified: only a System-1
+          # leftover of an area that is NOT in the live index may be adopted (overwritten, backed up, rolled
+          # back to the backup). Anything else refuses. Nothing is written in this step.
+          mkdir -p cand/orphans
+          : > cand/existing.tsv
+          : > cand/orphan-headers.tsv
+          while read -r area; do
+            for key in "$area.json" "silhouettes/$area.json"; do
+              found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" \
+                --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+              if [ -n "$found" ] && [ "$found" != "None" ]; then
+                mkdir -p "cand/orphans/$(dirname "$key")"
+                etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" \
+                  --query ETag --output text "cand/orphans/$key")"
+                printf '%s\t%s\n' "$key" "${etag//\"/}" >> cand/existing.tsv
+                # Original headers, so a rollback restores them exactly (jq fails loudly on bad JSON).
+                aws s3api head-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --output json \
+                  | jq -r --arg k "$key" '[$k, .ContentType, .CacheControl] | @tsv' >> cand/orphan-headers.tsv
+              fi
+            done
+          done < cand/areas.txt
+          python3 scripts/ca_publish.py classify-orphans \
+            --areas-file cand/areas.txt --live-index snap/index.json \
+            --existing cand/existing.tsv --orphan-dir cand/orphans --out cand/adopt.json
+          python3 scripts/ca_publish.py build-candidates \
+            --repo . \
+            --live-index snap/index.json --live-search snap/trail-search.json \
+            --live-shapes snap/trail-shapes.json \
+            --areas-file cand/areas.txt --out-dir cand
+          cp snap/etags.tsv cand/baseline-etags.tsv
+
+      - name: Save snapshot + candidates (rollback source; before any write)
+        if: ${{ inputs.mode == 'plan' || inputs.mode == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ca-r2-snapshot-${{ github.run_id }}
+          path: |
+            snap/
+            cand/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Apply (write 2N+3 keys in order, read each back)
+        if: ${{ inputs.mode == 'apply' }}
+        run: |
+          set -euo pipefail
+          put() { # file key cache-control
+            aws s3 cp "$1" "s3://$BUCKET/$2" --endpoint-url "$ENDPOINT" \
+              --content-type "application/json" --cache-control "$3" --no-progress
+          }
+          # Adopted orphan: same conditional write as sync-dk-to-r2.yml apply-update (bare ETag, --if-match "$4").
+          put_if() { # file key cache-control etag
+            aws s3api put-object --bucket "$BUCKET" --key "$2" --body "$1" \
+              --content-type "application/json" --cache-control "$3" --if-match "$4" \
+              --endpoint-url "$ENDPOINT" > /dev/null
+          }
+          cur() { aws s3api head-object --bucket "$BUCKET" --key "$1" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"'; }
+          base() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv; }
+          # Race guard: shared files and parking must still be the snapshotted objects.
+          for key in index.json trail-search.json trail-shapes.json parking.json; do
+            test "$(cur "$key")" = "$(base "$key")" || { echo "$key changed since snapshot; aborting before any write"; exit 1; }
+          done
+          trap 'rc=$?; [ "$rc" -eq 0 ] || echo "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID"' EXIT
+          # plan.json lists writes in order: geoms, silhouettes, shapes, search, index last
+          # (the app only learns about the areas once their data exists).
+          jq -r '.writes[] | [.key, .file] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file; do
+            case "$key" in
+              index.json|trail-search.json|trail-shapes.json) cc="public, max-age=300" ;;
+              *) cc="public, max-age=86400" ;;
+            esac
+            etag="$(jq -r --arg k "$key" '.adopt[] | select(.key==$k) | .etag' cand/adopt.json)"
+            if [ -n "$etag" ]; then
+              # Adopted System-1 orphan: must still be the planned object, then overwritten If-Match its ETag.
+              test "$(cur "$key")" = "$etag" || { echo "adopted $key changed since plan; aborting"; exit 1; }
+              put_if "cand/$file" "$key" "$cc" "$etag"
+            else
+              put "cand/$file" "$key" "$cc"
+            fi
+          done
+          mkdir -p verify
+          jq -r '.writes[] | [.key, .file, .sha256] | @tsv' cand/plan.json | while IFS=$'\t' read -r key file sha; do
+            mkdir -p "verify/$(dirname "$file")"
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$file" > /dev/null
+            test "$(sha256sum "verify/$file" | cut -d' ' -f1)" = "$sha" || { echo "READBACK MISMATCH $key"; exit 1; }
+            echo "verified $key $sha"
+          done
+          test "$(cur parking.json)" = "$(base parking.json)" || { echo "parking.json changed"; exit 1; }
+          trap - EXIT
+          echo "apply complete. rollback: dispatch mode=rollback rollback_run_id=$GITHUB_RUN_ID"
+
+      - name: Rollback (restore shared files, delete exactly the 2N area keys)
+        if: ${{ inputs.mode == 'rollback' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p rb
+          gh run download "$ROLLBACK_RUN_ID" -R "$GITHUB_REPOSITORY" -n "ca-r2-snapshot-$ROLLBACK_RUN_ID" -D rb
+          # Artifact is unzipped as rb/snap/* and rb/cand/*.
+          test -f rb/cand/plan.json
+          # Snapshot files must match the hashes recorded when they were taken.
+          for key in index.json trail-search.json trail-shapes.json; do
+            want="$(jq -r --arg k "$key" '.baseline[$k].sha256' rb/cand/plan.json)"
+            test "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" = "$want" || { echo "snapshot $key corrupt"; exit 1; }
+          done
+          parking_before="$(awk -F'\t' '$1=="parking.json" {print $2}' snap/etags.tsv)"
+          # Do not clobber anyone else's later publish: each shared file must be the applied
+          # candidate (restore) or already the baseline (skip); anything else refuses.
+          # Adopted orphan keys. The saved orphan bytes must still be exactly what the plan recorded.
+          python3 scripts/ca_publish.py check-adopt-files --adopt rb/cand/adopt.json --dir rb/cand/orphans
+          # Current live bytes + ETags of the adopted keys. Only a real 404 means "absent"; every other
+          # fetch error fails the rollback (set -e), so a failure can never pass for a missing key.
+          mkdir -p rb/cur
+          : > rb/live-etags.tsv
+          for key in $(jq -r '.adopt[].key' rb/cand/adopt.json); do
+            found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+            if [ -n "$found" ] && [ "$found" != "None" ]; then
+              mkdir -p "rb/cur/$(dirname "$key")"
+              etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --query ETag --output text "rb/cur/$key")"
+              printf '%s\t%s\n' "$key" "${etag//\"/}" >> rb/live-etags.tsv
+            fi
+          done
+          python3 scripts/ca_publish.py rollback-decide --plan rb/cand/plan.json --live-dir snap \
+            --adopt rb/cand/adopt.json --cur-dir rb/cur > rb/actions.tsv
+          cat rb/actions.tsv
+          # Restores first (index first so the app stops listing the areas), then deletes.
+          while IFS=$'\t' read -r key action; do
+            case "$action" in
+              restore)
+                aws s3 cp "rb/snap/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
+                  --content-type "application/json" --cache-control "public, max-age=300" --no-progress ;;
+              restore-orphan)
+                ct="$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/cand/orphan-headers.tsv)"
+                cc="$(awk -F'\t' -v k="$key" '$1==k {print $3}' rb/cand/orphan-headers.tsv)"
+                test -n "$ct" && test -n "$cc" || { echo "no saved headers for $key"; exit 1; }
+                live_etag="$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/live-etags.tsv)"
+                if [ -n "$live_etag" ]; then
+                  aws s3api put-object --bucket "$BUCKET" --key "$key" --body "rb/cand/orphans/$key" \
+                    --content-type "$ct" --cache-control "$cc" --if-match "$live_etag" \
+                    --endpoint-url "$ENDPOINT" > /dev/null
+                else
+                  aws s3api put-object --bucket "$BUCKET" --key "$key" --body "rb/cand/orphans/$key" \
+                    --content-type "$ct" --cache-control "$cc" --endpoint-url "$ENDPOINT" > /dev/null
+                fi ;;
+              skip) echo "skip $key (already baseline)" ;;
+              delete)
+                aws s3api delete-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" ;;
+              *) echo "unknown action $action"; exit 1 ;;
+            esac
+          done < rb/actions.tsv
+          mkdir -p verify
+          for key in index.json trail-search.json trail-shapes.json; do
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$key" > /dev/null
+            test "$(sha256sum "verify/$key" | cut -d' ' -f1)" = "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" || { echo "ROLLBACK READBACK MISMATCH $key"; exit 1; }
+          done
+          # Adopted keys: read every one back; bytes AND content-type/cache-control must be the saved orphan's.
+          mkdir -p verify-orphans
+          for key in $(jq -r '.adopt[].key' rb/cand/adopt.json); do
+            mkdir -p "verify-orphans/$(dirname "$key")"
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify-orphans/$key" > /dev/null
+            want="$(awk -F'\t' -v k="$key" '$1==k {print $2 "|" $3}' rb/cand/orphan-headers.tsv)"
+            got="$(aws s3api head-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --output json | jq -r '[.ContentType, .CacheControl] | join("|")')"
+            test "$got" = "$want" || { echo "ROLLBACK HEADER MISMATCH $key: $got != $want"; exit 1; }
+          done
+          python3 scripts/ca_publish.py check-adopt-files --adopt rb/cand/adopt.json --dir verify-orphans
+          awk -F'\t' '$2=="delete" {print $1}' rb/actions.tsv | while read -r key; do
+            found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+            test -z "$found" -o "$found" = "None" || { echo "$key still present"; exit 1; }
+          done
+          parking_after="$(aws s3api head-object --bucket "$BUCKET" --key parking.json --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"')"
+          test "$parking_after" = "$parking_before" || { echo "parking.json changed"; exit 1; }
+          echo "rollback verified"

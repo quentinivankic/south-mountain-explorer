@@ -1,0 +1,268 @@
+name: Trailforge — publish Canadian areas (registry, N per run, one province per run)
+
+# Canada lane on the UNMODIFIED generic engine. One job, one province PBF download +
+# plain prefilter (no PREFILTER_DK_* env: the US command, byte for byte), then every selected
+# area runs scripts/ca-run-area.sh in its own work dir:
+#   AOI cut -> unique-boundary check -> assemble (--only-area, exact relation id when
+#   relation-backed) -> ca_trail_filter -> publish_areas (--state Canada, one-row index,
+#   --no-boundary-fetch --no-elevation)
+# No --region, no --dk-* flags, no discovery validator, no relation-slice ledgers.
+#
+# mode=qualify  DRY RUN. Writes nothing to main. Uploads a per-area report artifact (counts,
+#               miles, removed categories, trail names, computed bbox/centre, duplicates) plus a
+#               PROPOSED ca-areas-expected.json and registry bbox/centre. Runs on any branch.
+# mode=publish  main only. Needs trailforge/golden/ca-areas-expected.json (the blessed table) and a
+#               complete registry entry per area. Refuses unless EVERY selected area matches; one
+#               commit of exactly 2N+2 paths; NO R2 write (sync-ca-to-r2.yml is separate).
+#
+# areas: comma list of registry ids (all in the chosen province), or batch=<n> (n-th chunk,
+#        1-based, of the unheld registry entries of that province not yet in public/areas/index.json).
+# chunk_size: default 25, hard max 40 (also the cap on an explicit list).
+
+on:
+  workflow_dispatch:
+    inputs:
+      areas:
+        description: "Registry ids (comma list, one province) or batch=<n> (n-th chunk of unpublished registry areas of the province)"
+        required: true
+      province:
+        description: "Province / territory of the areas (one per run)"
+        type: choice
+        options: ["ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt"]
+        default: pe
+      mode:
+        description: "qualify (dry run, report only) | publish (main only, new areas)"
+        type: choice
+        options: [qualify, publish]
+        default: qualify
+      chunk_size:
+        description: "Areas per run (default 25, hard max 40)"
+        default: "25"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trailforge-publish
+  cancel-in-progress: false
+
+jobs:
+  ca:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Validate input shape before checkout
+        env:
+          RAW_AREAS: ${{ inputs.areas }}
+          RAW_PROVINCE: ${{ inputs.province }}
+          RAW_MODE: ${{ inputs.mode }}
+          RAW_CHUNK: ${{ inputs.chunk_size }}
+        run: |
+          set -euo pipefail
+          [[ "$RAW_PROVINCE" =~ ^(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)$ ]]
+          [[ "$RAW_AREAS" =~ ^(batch=[1-9][0-9]{0,3}|[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)(,[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt))*)$ ]]
+          [[ "$RAW_MODE" =~ ^(qualify|publish)$ ]]
+          [[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]
+          if [ "$RAW_MODE" != "qualify" ]; then
+            test "$GITHUB_REF_TYPE" = "branch"
+            test "$GITHUB_REF_NAME" = "main"
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Publish guard (main tip is this checkout)
+        if: ${{ inputs.mode == 'publish' }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+          test -f trailforge/golden/ca-areas-expected.json
+
+      - name: Select areas (registry, province, chunk cap)
+        id: select
+        env:
+          AREAS: ${{ inputs.areas }}
+          PROVINCE: ${{ inputs.province }}
+          MODE: ${{ inputs.mode }}
+          CHUNK: ${{ inputs.chunk_size }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ca"
+          python3 scripts/ca_publish.py select \
+            --areas "$AREAS" --province "$PROVINCE" --mode "$MODE" --chunk-size "$CHUNK" \
+            --out "$RUNNER_TEMP/ca/selected.txt" --github-output "$GITHUB_OUTPUT"
+
+      - name: Install osmium + pyosmium + shapely + Pillow
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool python3-pyosmium python3-shapely python3-pil jq
+
+      - name: Download + prefilter the province (once)
+        env:
+          PROVINCE: ${{ inputs.province }}
+          GETID_ARGS: ${{ steps.select.outputs.getid_args }}
+        run: |
+          set -euo pipefail
+          URL="$(python3 scripts/ca_publish.py pbf-url --province "$PROVINCE")"
+          cd trailforge
+          mkdir -p data/raw data/aoi
+          curl -fL --retry 5 --retry-delay 5 --connect-timeout 20 \
+            --speed-limit 2000 --speed-time 30 -o "data/raw/canada-$PROVINCE.osm.pbf" "$URL"
+          ls -lh "data/raw/canada-$PROVINCE.osm.pbf"
+          # Plain prefilter: no PREFILTER_DK_* env, so this is the US command.
+          bash extract/prefilter.sh "data/raw/canada-$PROVINCE.osm.pbf" data/hiking.osm.pbf
+          # Way-backed boundaries (registry way_id) are only kept by the prefilter when their tags
+          # happen to match. Add exactly the selected closed ways (plus their nodes) from the raw
+          # file, and only when a way-backed area is selected: every other run keeps the prefilter bytes.
+          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E '^w[1-9][0-9]*$' || true)"
+          if [ -n "$WAY_IDS" ]; then
+            # shellcheck disable=SC2086
+            osmium getid -r --overwrite -o data/way-boundaries.osm.pbf "data/raw/canada-$PROVINCE.osm.pbf" $WAY_IDS
+            osmium merge --overwrite -o data/hiking.merged.osm.pbf data/hiking.osm.pbf data/way-boundaries.osm.pbf
+            mv data/hiking.merged.osm.pbf data/hiking.osm.pbf
+            rm -f data/way-boundaries.osm.pbf
+          fi
+
+      - name: Boundary bbox derivation (registry relation/way cross-check)
+        id: prepare
+        env:
+          PROVINCE: ${{ inputs.province }}
+          MODE: ${{ inputs.mode }}
+          GETID_ARGS: ${{ steps.select.outputs.getid_args }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/ca"
+          SOURCE_PBF="$GITHUB_WORKSPACE/trailforge/data/raw/canada-$PROVINCE.osm.pbf"
+          # One pass over the raw PBF for every selected boundary relation / way.
+          # shellcheck disable=SC2086
+          osmium getid -r --overwrite -o "$W/bounds.osm.pbf" "$SOURCE_PBF" $GETID_ARGS
+          python3 scripts/ca_publish.py prepare-areas \
+            --selected "$W/selected.txt" --bounds-pbf "$W/bounds.osm.pbf" \
+            --mode "$MODE" --out-dir "$W"
+
+      - name: Run the pipeline per area (fail closed per area)
+        id: areas
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -uo pipefail
+          # GitHub runs this step as `bash -e`: without this, one failing area would kill the step
+          # before mark-failed / continue and the remaining areas would never run. Failure stays
+          # fail-closed via FAILED=1 and the publish refusal below.
+          set +e
+          W="$RUNNER_TEMP/ca"
+          FAILED=0
+          for ID in $(cat "$W/selected.txt"); do
+            A="$W/$ID"
+            echo "::group::$ID"
+            if [ "$(jq -r .status "$A/area.json")" != "ok" ]; then
+              python3 scripts/ca_publish.py mark-failed --area-id "$ID" --stage prepare \
+                --area-json "$A/area.json" --out "$A/report.json"
+              FAILED=1; echo "::endgroup::"; continue
+            fi
+            NAME="$(jq -r .name "$A/area.json")"
+            REL="$(jq -r '.relation_id // empty' "$A/area.json")"
+            WAY="$(jq -r '.way_id // empty' "$A/area.json")"
+            BBOX="$(jq -r .bbox_arg "$A/area.json")"
+            ( set -euo pipefail
+              AREA_ID="$ID" AREA_NAME="$NAME" RELATION_ID="$REL" WAY_ID="$WAY" BBOX="$BBOX" W="$W" \
+                bash scripts/ca-run-area.sh ) 2>&1 | tee "$W/$ID.log"
+            if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+              python3 scripts/ca_publish.py mark-failed --area-id "$ID" --stage pipeline \
+                --area-json "$A/area.json" --out "$A/report.json"
+              FAILED=1; echo "::endgroup::"; continue
+            fi
+            python3 scripts/ca_publish.py report-area \
+              --area-json "$A/area.json" --geom "$A/geom/$ID.json" \
+              --trails-geojson "$A/trails.geojson" --removed-geojson "$A/removed.geojson" \
+              --assembly-json "$A/assembly.json" --out "$A/report.json" || FAILED=1
+            if [ "$MODE" != "qualify" ]; then
+              python3 scripts/ca_publish.py assert-expected --geom "$A/geom/$ID.json" --area-id "$ID" || {
+                python3 scripts/ca_publish.py mark-failed --area-id "$ID" --stage blessed-table \
+                  --area-json "$A/area.json" --out "$A/report.json"
+                FAILED=1; }
+            fi
+            echo "::endgroup::"
+          done
+          echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
+          # publish: any failed area aborts before the repo is touched.
+          if [ "$MODE" != "qualify" ] && [ "$FAILED" -ne 0 ]; then
+            echo "REFUSED: at least one selected area is not the blessed result; nothing committed"
+            exit 1
+          fi
+          exit 0
+
+      - name: Qualify report + proposed tables
+        if: ${{ always() && inputs.mode == 'qualify' }}
+        run: |
+          set +e
+          W="$RUNNER_TEMP/ca"
+          mkdir -p "$W/qualify"
+          python3 scripts/ca_publish.py qualify-aggregate \
+            --reports-dir "$W" --out-dir "$W/qualify"
+          cat "$W/qualify/qualify-report.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
+          exit 0
+
+      - name: Upload qualify / publish evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ca-${{ inputs.mode }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ca
+            !${{ runner.temp }}/ca/**/*.pbf
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Fail the qualify run if any area failed
+        if: ${{ inputs.mode == 'qualify' }}
+        env:
+          FAILED: ${{ steps.areas.outputs.failed }}
+        run: test "${FAILED:-1}" = "0"
+
+      - name: Install blessed geoms, append index rows, regenerate silhouettes + bundle
+        if: ${{ inputs.mode == 'publish' }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/ca"
+          for ID in $(cat "$W/selected.txt"); do
+            test ! -e "public/areas/geom/$ID.json"
+            cp "$W/$ID/geom/$ID.json" "public/areas/geom/$ID.json"
+          done
+          python3 scripts/ca_publish.py merge-index \
+            --selected "$W/selected.txt" --rows-dir "$W" \
+            --geom-dir public/areas/geom --target public/areas/index.json
+          python3 scripts/silhouettes-from-geom.py
+          python3 scripts/filter-ios-bundle.py
+
+      - name: Commit published data (exactly 2N+2 paths) and push to main
+        if: ${{ inputs.mode == 'publish' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_TERMINAL_PROMPT: "0"
+          AREA_IDS: ${{ steps.select.outputs.area_ids }}
+          AREA_COUNT: ${{ steps.select.outputs.area_count }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_TYPE" = "branch"
+          test "$GITHUB_REF_NAME" = "main"
+          git config user.name "trailforge-bot"
+          git config user.email "actions@users.noreply.github.com"
+          W="$RUNNER_TEMP/ca"
+          git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
+          python3 scripts/ca_publish.py verify-staged --repo "$GITHUB_WORKSPACE" \
+            --areas "$AREA_IDS" --mode publish --output "$W/staged-diff-receipt.json"
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."; exit 1
+          fi
+          git commit -m "trailforge: publish ${AREA_COUNT} Canadian area(s) to app" -m "areas: ${AREA_IDS}"
+          git config --local credential.https://github.com.helper '!gh auth git-credential'
+          python3 scripts/ca_publish.py verify-commit --repo "$GITHUB_WORKSPACE" \
+            --areas "$AREA_IDS" --mode publish --output "$W/commit-diff-receipt.json"
+          git fetch --no-tags origin main
+          test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"
+          git push
+          git config --local --unset-all credential.https://github.com.helper || true
+          echo "pushed $(git rev-parse HEAD) tree $(git rev-parse 'HEAD^{tree}')"
+          echo "Commit pushed to main only. Dispatch sync-ca-to-r2.yml (mode=plan) separately."

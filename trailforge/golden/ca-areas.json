@@ -1,0 +1,138 @@
+{
+  "schema": "trekdex-ca-areas-v1",
+  "extract_base": "north-america/canada",
+  "state": "Canada",
+  "bbox_order": "lon_min,lat_min,lon_max,lat_max",
+  "center_order": "lat,lon",
+  "note": "Canada lane registry. Ids are hand-set <slug>-ca-<prov> (ASCII, lower-case, letters folded by hand, never dropped); permanent once live. Tier: 1 national, 2 provincial/territorial park or reserve, 3 regional. Scripts: scripts/ca_publish.py, scripts/ca_trail_filter.py, scripts/ca-run-area.sh.",
+  "areas": [
+    {
+      "id": "prince-edward-island-national-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "relation_id": 10351694,
+      "name": "Prince Edward Island National Park",
+      "bbox": [
+        -63.53,
+        46.35,
+        -62.6,
+        46.56
+      ],
+      "center": [
+        46.5,
+        -63.1
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "PEI smoke test 2026-11-01. Local rehearsal 12 trails / 28.7 mi before exclusions; 10 trails after. Dropped as under 0.6 mi (no official-page waiver verified, follow-up): Cavendish Beach Trail 0.32, Dunelands Trail 0.56, Haunted Wood Trail 0.51, Dunes Trail 0.49, Balsam Hollow Trail 0.28, Havre Saint Pierre 0.45, Greenwich Beach 0.28. Long-distance super-relations removed by the engine: Confederation Trail, International Appalachian Trail, Island Trails, Winter River/Breadalbane (Island Walk).",
+      "exclude_trails": [
+        {
+          "id": "n:Gulf Shore Trail",
+          "name": "Gulf Shore Trail",
+          "reason": "Way-level duplicate: 100% of its nodes lie on the Gulf Shore Way route relation (5.3 mi), kept as the one entry"
+        },
+        {
+          "id": "n:Greenwich Trails",
+          "name": "Greenwich Trails",
+          "reason": "Umbrella relation: 100% of its nodes lie on Tlaqatik and Greenwich Dunes, both kept as the named walks"
+        }
+      ]
+    },
+    {
+      "id": "basin-head-provincial-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "relation_id": 13481114,
+      "name": "Basin Head Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary 0.004 x 0.003 deg fails the size gate; no named hiking route relation in OSM."
+    },
+    {
+      "id": "conway-sandhills-nature-reserve-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "relation_id": 12326768,
+      "name": "The Conway Sandhills Nature Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Local rehearsal: 0 publishable trails."
+    },
+    {
+      "id": "cascumpec-sand-hills-nature-reserve-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "relation_id": 12326788,
+      "name": "Cascumpec Sand Hills Nature Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Local rehearsal: 0 publishable trails."
+    },
+    {
+      "id": "black-pond-migratory-bird-sanctuary-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "relation_id": 20677112,
+      "name": "Black Pond Migratory Bird Sanctuary",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Local rehearsal: 0 publishable trails."
+    },
+    {
+      "id": "green-park-provincial-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "way_id": 168942569,
+      "name": "Green Park Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Local rehearsal: 0 publishable trails."
+    },
+    {
+      "id": "cabot-provincial-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "way_id": 1136768600,
+      "name": "Cabot Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Local rehearsal: 0 publishable trails."
+    },
+    {
+      "id": "linkletter-provincial-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "way_id": 348374862,
+      "name": "Linkletter Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary 0.011 x 0.005 deg fails the size gate; no named route in OSM."
+    },
+    {
+      "id": "red-point-provincial-park-ca-pe",
+      "province": "pe",
+      "state": "Canada",
+      "way_id": 361447389,
+      "name": "Red Point Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Boundary 0.006 x 0.004 deg fails the size gate; no named route in OSM."
+    }
+  ]
+}

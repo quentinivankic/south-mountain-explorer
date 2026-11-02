@@ -188,18 +188,151 @@ struct GpsIngestTests {
         #expect(GpsIngest.activeStatus(
             path: continuous,
             lastFixAt: Date(timeIntervalSince1970: 200),
-            now: Date(timeIntervalSince1970: 245)
+            now: Date(timeIntervalSince1970: 200 + GpsIngest.staleFixSeconds)
         ) == .good)
         #expect(GpsIngest.activeStatus(
             path: continuous,
             lastFixAt: Date(timeIntervalSince1970: 200),
-            now: Date(timeIntervalSince1970: 245.001)
+            now: Date(timeIntervalSince1970: 200.001 + GpsIngest.staleFixSeconds)
         ) == .paused)
         #expect(GpsIngest.activeStatus(
             path: continuous,
             lastFixAt: Date(timeIntervalSince1970: 200),
             now: now
         ) == .good)
+    }
+
+    // MARK: - GPS pause fixes (stale status, heartbeat, segmentation)
+
+    /// Replays `decide` over polls at `times` (seconds) with position
+    /// `northAt(t)`; returns the folded path. Polls in `skip` are zero-fix
+    /// (the recorder's freshness gate never calls `decide` for them).
+    private func replay(times: [Double], northAt: (Double) -> Double,
+                        skip: (Double) -> Bool = { _ in false }) -> [GpsPoint] {
+        var path: [GpsPoint] = []
+        for t in times where !skip(t) {
+            let p = pt(northAt(t), t * 1000)
+            let d = GpsIngest.decide(prev: path.last, lat: p[0], lon: p[1],
+                                     tsMs: p[2], priorCount: path.count)
+            if d.keep { path.append(p) }
+        }
+        return path
+    }
+
+    @Test func zeroFixGapFlipsToPausedAfterThresholdAndRecoversOnNextFix() {
+        let t0 = Date(timeIntervalSince1970: 1_000)
+        let n = GpsIngest.staleFixSeconds
+        let walking = [pt(0, 990_000), pt(10, 1_000_000)]
+        #expect(GpsIngest.activeStatus(path: walking, lastFixAt: t0,
+                                       now: t0.addingTimeInterval(n)) == .good)
+        #expect(GpsIngest.activeStatus(path: walking, lastFixAt: t0,
+                                       now: t0.addingTimeInterval(n + 0.001)) == .paused)
+        // Next good fix after a 60 s hole: path has the material gap.
+        let t1 = t0.addingTimeInterval(60)
+        let resumed = walking + [pt(20, t1.timeIntervalSince1970 * 1000)]
+        #expect(GpsIngest.activeStatus(path: resumed, lastFixAt: t1, now: t1) == .recovered)
+        #expect(GpsIngest.activeStatus(
+            path: resumed, lastFixAt: t1.addingTimeInterval(16),
+            now: t1.addingTimeInterval(16)) == .good)
+    }
+
+    @Test func staleFixIsNotAppended() {
+        let now = Date(timeIntervalSince1970: 500)
+        let m = GpsIngest.maxFixAgeSeconds
+        #expect(GpsIngest.isFreshFix(lastFixAt: now.addingTimeInterval(-m), now: now))
+        #expect(!GpsIngest.isFreshFix(lastFixAt: now.addingTimeInterval(-m - 0.001), now: now))
+        #expect(!GpsIngest.isFreshFix(lastFixAt: nil, now: now))
+    }
+
+    @Test func stationaryHoldCreatesNoPause() {
+        let times = stride(from: 0.0, through: 150.0, by: 2.0).map { $0 }
+        // Walk first so the jitter filter is past warm-up, then stand.
+        let walk = replay(times: stride(from: 0.0, through: 20.0, by: 2.0).map { $0 },
+                          northAt: { $0 * 1.4 })
+        var path = walk
+        let standLat = walk.last![0]
+        for t in times.map({ $0 + 22 }) {
+            let d = GpsIngest.decide(prev: path.last, lat: standLat, lon: -112.0,
+                                     tsMs: t * 1000, priorCount: path.count)
+            if d.keep { path.append([standLat, -112.0, t * 1000]) }
+        }
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+        let heartbeats = path.count - walk.count
+        #expect((13...16).contains(heartbeats), "heartbeats: \(heartbeats)")
+    }
+
+    /// Request asked for "stop + gap = two pauses"; per findings.md a stop is
+    /// not a GPS pause, so a 150 s stop plus a 60 s zero-fix gap is ONE pause.
+    @Test func stopPlusRealGapYieldsExactlyOnePause() throws {
+        var path = replay(times: stride(from: 0.0, through: 60.0, by: 2.0).map { $0 },
+                          northAt: { $0 * 1.4 })
+        let standLat = path.last![0]
+        for t in stride(from: 62.0, through: 210.0, by: 2.0) {   // 150 s stop
+            let d = GpsIngest.decide(prev: path.last, lat: standLat, lon: -112.0,
+                                     tsMs: t * 1000, priorCount: path.count)
+            if d.keep { path.append([standLat, -112.0, t * 1000]) }
+        }
+        // 60 s with no fixes (no decide calls), then moving again.
+        let resume = replay(times: [270, 272, 274], northAt: { 84 + ($0 - 270) * 1.4 + 20 })
+        for p in resume {
+            let d = GpsIngest.decide(prev: path.last, lat: p[0], lon: p[1],
+                                     tsMs: p[2], priorCount: path.count)
+            if d.keep { path.append(p) }
+        }
+        let summary = try #require(GpsIngest.materialGapSummary(path))
+        #expect(summary.gapCount == 1)
+        #expect(abs(summary.longestMissingSeconds - 60) <= 2)
+        #expect(summary.totalMissingSeconds == summary.longestMissingSeconds)
+    }
+
+    @Test func twoRealGapsYieldTwoPausesAndTrueLongest() throws {
+        let path = [pt(0, 0), pt(3, 2_000), pt(6, 4_000),
+                    pt(100, 64_000), pt(103, 66_000),          // 60 s gap
+                    pt(300, 216_000), pt(303, 218_000)]        // 150 s gap
+        let s = try #require(GpsIngest.materialGapSummary(path))
+        #expect(s.gapCount == 2)
+        #expect(s.longestMissingSeconds == 150)
+        #expect(s.totalMissingSeconds == 210)
+    }
+
+    @Test func jitteryCadenceCreatesNoSpuriousPauses() {
+        var rng = SystemRandomNumberGeneratorSeeded(seed: 42)
+        var t = 0.0
+        var path: [GpsPoint] = []
+        var north = 0.0
+        for i in 0..<400 {
+            t += Double(1 + Int(rng.next() % 6))          // 1...6 s
+            let standing = (i / 50) % 2 == 1
+            if !standing { north += 1.4 * 3 }
+            let p = pt(north, t * 1000)
+            let d = GpsIngest.decide(prev: path.last, lat: p[0], lon: p[1],
+                                     tsMs: p[2], priorCount: path.count)
+            if d.keep { path.append(p) }
+        }
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+        #expect(GpsIngest.continuousRuns(path).count == 1)
+    }
+
+    /// Regression for the 17 fake pauses: a stationary fix every ~20.2 s.
+    @Test func repeatedTwentySecondStationaryFixesCreateNoGaps() {
+        var path = replay(times: stride(from: 0.0, through: 30.0, by: 2.0).map { $0 },
+                          northAt: { $0 * 1.4 })
+        let standLat = path.last![0]
+        var t = 32.0
+        while t < 400 {
+            let d = GpsIngest.decide(prev: path.last, lat: standLat, lon: -112.0,
+                                     tsMs: t * 1000, priorCount: path.count)
+            if d.keep { path.append([standLat, -112.0, t * 1000]) }
+            t += 2
+        }
+        #expect(GpsIngest.materialGapSummary(path) == nil)
+    }
+
+    @Test func gapResumeAtSameSpotStillBreaksRun() {
+        let d = GpsIngest.decide(prev: pt(0, 0), lat: pt(1, 60_000)[0], lon: -112.0,
+                                 tsMs: 60_000, priorCount: 10)
+        #expect(d.keep && d.startsNewRun && d.addMeters == 0)
     }
 
     #if DEBUG
@@ -241,5 +374,15 @@ struct GpsIngestTests {
         #expect(stats.totalAscentMeters < 10)
         // The post-gap samples belong to a later run.
         #expect(stats.samples.contains { $0.run == 1 })
+    }
+}
+
+/// Tiny deterministic generator for the jitter test (no sleeps, no flakiness).
+private struct SystemRandomNumberGeneratorSeeded {
+    var state: UInt64
+    init(seed: UInt64) { state = seed &+ 0x9E3779B97F4A7C15 }
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return state >> 33
     }
 }

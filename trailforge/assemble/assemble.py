@@ -1056,11 +1056,12 @@ def main(argv=None) -> int:
                     help="count forward/backward way members of route=hiking "
                          "relations as main-line members (registry "
                          "accept_directional_roles); dk-v3 exact Denmark only")
-    ap.add_argument("--dk-boundary-by-id", dest="dk_boundary_by_id",
-                    action="store_true",
+    ap.add_argument("--dk-boundary-by-id", "--boundary-by-id",
+                    dest="dk_boundary_by_id", action="store_true",
                     help="among several boundaries named like --only-area, use "
                          "the one with the expected relation/way id (registry "
-                         "boundary_by_id); dk-v3 exact Denmark only")
+                         "boundary_by_id); dk-v3 exact Denmark, or exact "
+                         "Canada (--region ca, legacy rules, relation id) only")
     ap.add_argument("--dk-container-by-id", dest="dk_container_by_id",
                     action="store_true",
                     help="use the existing forest/wood/nature-reserve polygon "
@@ -1103,7 +1104,17 @@ def main(argv=None) -> int:
             or model.member_safety.normalize(args.region) != "dk"):
         ap.error("--dk-accept-directional-roles requires --dk-rules dk-v3 "
                  "and exact Denmark assembly")
-    for flag, enabled in (("--dk-boundary-by-id", args.dk_boundary_by_id),
+    # Canada lane: boundary-by-id only, exact area pinned by RELATION id, legacy rules.
+    ca_boundary_by_id = (
+        args.dk_boundary_by_id and args.require_exact_area
+        and model.member_safety.normalize(args.region) == "ca"
+        and args.dk_rules == "legacy" and args.expected_area_way_id is None)
+    if (args.dk_boundary_by_id and not ca_boundary_by_id
+            and model.member_safety.normalize(args.region) == "ca"):
+        ap.error("--boundary-by-id with --region ca requires exact-area "
+                 "assembly by relation id with the legacy rules")
+    for flag, enabled in (("--dk-boundary-by-id",
+                           args.dk_boundary_by_id and not ca_boundary_by_id),
                           ("--dk-container-by-id", args.dk_container_by_id),
                           ("--dk-container-from-routes",
                            args.dk_container_from_routes)):

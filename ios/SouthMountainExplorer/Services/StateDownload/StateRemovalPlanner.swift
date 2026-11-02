@@ -26,6 +26,21 @@ enum StateRemovalPlanner {
         }
         return RemovalPlan(delete: delete.sorted(), keptProtected: kept.sorted())
     }
+    /// Areas of this scope that survive Remove. Pre-existing and user-protected
+    /// areas are never claimed (the feature did not write them), so counting
+    /// only claimed ids reported "Kept 0" while they stayed on the device.
+    static func survivorCount(
+        keptClaimed: [String],
+        members: [String],
+        preexisting: Set<String>,
+        protected: Set<String>,
+        isOnDisk: (String) -> Bool
+    ) -> Int {
+        let blocked = protected.union(preexisting)
+        var survivors = Set(keptClaimed)
+        for id in members where blocked.contains(id) && isOnDisk(id) { survivors.insert(id) }
+        return survivors.count
+    }
 }
 
 /// Everything the user has touched that Remove must never delete.

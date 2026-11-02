@@ -374,6 +374,12 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   opt-in that is not needed (the name is already unique) all exit 2. The report
   keeps `boundary_match_count` (the real number of same-name boundaries) and adds
   `boundary_selection`. Off by default: every other area is untouched.
+  Canada reuses the same selection (`--boundary-by-id`, alias of the flag above):
+  allowed only with `--region ca`, `--require-exact-area` by relation id and the
+  legacy rules (anything else exits 2). `scripts/ca-run-area.sh` passes it only
+  when the registry entry carries `boundary_by_id: true` (relation-backed);
+  `ca_publish.py check-boundary-unique` then requires the name collision and the
+  registry relation among the same-name boundaries.
 - **Container by id** (registry `container_by_id: {"reason": "..."}`,
   `--dk-container-by-id`, dk-v3 exact Denmark only, needs `include_trails`): for
   an area with no usable named boundary. The registry's `relation_id` / `way_id`

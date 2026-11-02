@@ -22,6 +22,13 @@ script builds. Ids are hand-set `<slug>-ca-<prov>` (never generated), single sta
   derive-areas / build-candidates   splice N areas onto LIVE R2 bytes
   rollback-decide   per shared file restore/skip (refuse on third-party bytes)
                     plus the exact 2N keys to delete
+  UPDATE mode (clone of the earlier country lane's reviewed update mode; republishes LIVE Canadian areas in place):
+  replace-index     replace ONLY the listed areas' rows in public/areas/index.json (row identity kept;
+                    registry `allow_rename` is the one opt-in for a name change)
+  live-ca-ids / derive-update-areas / build-update-candidates
+                    the update set = live Canadian areas whose repo files differ from live R2; shared
+                    files = LIVE bytes with only those areas' records replaced in place
+  rollback-decide-update   per overwritten object restore/skip (refuse on third-party bytes)
 """
 from __future__ import annotations
 
@@ -137,6 +144,25 @@ def _check_exclude_trails(aid: str, entry: dict[str, Any], field: str = "exclude
         seen.add(ident)
 
 
+def _check_allow_rename(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in for an update-mode display-name change: {"from": <exact live name>, "reason": text}.
+    The new name is the entry's display_name, so display_name is required."""
+    if "allow_rename" not in entry:
+        return
+    item = entry["allow_rename"]
+    if not isinstance(item, dict) or set(item) != {"from", "reason"}:
+        raise CaError(f"{aid}: allow_rename needs exactly from and reason")
+    for key in ("from", "reason"):
+        if not isinstance(item[key], str) or not item[key].strip():
+            raise CaError(f"{aid}: allow_rename.{key} must be non-empty text")
+    if item["from"] != unicodedata.normalize("NFC", item["from"]):
+        raise CaError(f"{aid}: allow_rename.from must be NFC text")
+    if entry.get("display_name") is None:
+        raise CaError(f"{aid}: allow_rename needs a display_name (the new name)")
+    if item["from"] == entry["display_name"]:
+        raise CaError(f"{aid}: allow_rename.from equals display_name; nothing to rename")
+
+
 def _check_keep_trails(aid: str, entry: dict[str, Any]) -> None:
     """Official-source waiver that keeps a trail the vocabulary or stub rules would drop."""
     if "keep_trails" not in entry:
@@ -189,6 +215,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         if shown is not None and (not isinstance(shown, str) or not shown.strip() or shown == name
                                   or shown != unicodedata.normalize("NFC", shown)):
             raise CaError(f"{aid}: display_name must be a non-empty NFC text different from name")
+        _check_allow_rename(aid, entry)
         bbox, center = entry.get("bbox"), entry.get("center")
         if (bbox is None) != (center is None):
             raise CaError(f"{aid}: bbox and center must both be set or both be null")
@@ -211,6 +238,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise CaError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
+        if "boundary_by_id" in entry:
+            # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
+            # polygons (assemble --boundary-by-id; check-boundary-unique then requires the collision).
+            if entry["boundary_by_id"] is not True:
+                raise CaError(f"{aid}: boundary_by_id must be true when present")
+            if "way_id" in entry:
+                raise CaError(f"{aid}: boundary_by_id needs a relation-backed entry (relation_id)")
         if "trail_name_fixes" in entry:
             try:
                 ca_trail_filter.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
@@ -294,10 +328,24 @@ def _index_ids(path: Path) -> set[str]:
 
 
 
+def check_update_eligible(registry: dict[str, Any], expected: dict[str, Any], published: set[str],
+                          ids: list[str]) -> None:
+    for aid in ids:
+        if aid not in registry["by_id"]:
+            raise CaError(f"update: {aid} is not in the registry")
+        if aid not in published:
+            raise CaError(f"update: {aid} is not in public/areas/index.json (update republishes existing "
+                          "areas only; new areas go through mode=publish)")
+        if aid not in expected:
+            raise CaError(f"update: {aid} is not in the blessed expected table (re-bless it first)")
+
+
 def select_areas(registry: dict[str, Any], published: set[str], areas: str, chunk_size: int,
-                 mode: str, province: str) -> list[str]:
-    if mode not in ("qualify", "publish"):
-        raise CaError("mode must be qualify or publish")
+                 mode: str, province: str, expected: dict[str, Any] | None = None) -> list[str]:
+    if mode not in ("qualify", "publish", "update"):
+        raise CaError("mode must be qualify, publish or update")
+    if mode == "update" and areas.startswith("batch="):
+        raise CaError("update takes an explicit id list, not batch=")
     if province not in PROVINCES:
         raise CaError(f"province must be one of {sorted(PROVINCES)}")
     if not 1 <= chunk_size <= HARD_MAX_CHUNK:
@@ -336,13 +384,17 @@ def select_areas(registry: dict[str, Any], published: set[str], areas: str, chun
         already = [i for i in chosen if i in published]
         if already:
             raise CaError(f"already in public/areas/index.json (publish appends new areas only): {already}")
+    if mode == "update":
+        check_update_eligible(registry, expected if expected is not None else load_expected(),
+                              published, chosen)
     return chosen
 
 
 def select_cmd(args: argparse.Namespace) -> int:
     registry = load_registry(args.registry)
+    expected = load_expected(args.expected) if args.mode == "update" else None
     chosen = select_areas(registry, _index_ids(args.index), args.areas, int(args.chunk_size), args.mode,
-                          args.province)
+                          args.province, expected)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text("\n".join(chosen) + "\n", encoding="utf-8")
     if args.github_output:
@@ -678,6 +730,14 @@ def check_boundary_unique_cmd(args: argparse.Namespace) -> int:
     kind, ident = (("way", entry["way_id"]) if "way_id" in entry else ("relation", entry["relation_id"]))
     # Way-backed areas have no --require-exact-area pin, so no other boundary may even contain the name.
     hits = boundary_name_matches(args.pbf, entry["name"], contains="way_id" in entry)
+    if entry.get("boundary_by_id") is True:
+        # Id-pinned opt-in: the name MUST collide (else the opt-in is stale) and the registry
+        # relation must be one of the same-name boundaries; assemble --boundary-by-id re-checks.
+        if len(hits) < 2 or hits.count((kind, ident)) != 1:
+            raise CaError(f"{args.area_id}: boundary_by_id needs several boundaries named "
+                          f"{entry['name']!r} including {kind} {ident} in the AOI, found {hits}")
+        print(f"{args.area_id}: boundary {kind} {ident} pinned by id among {len(hits)} same-name boundaries")
+        return 0
     if hits != [(kind, ident)]:
         raise CaError(f"{args.area_id}: expected exactly one boundary named {entry['name']!r} "
                       f"({kind} {ident}) in the AOI, found {hits}; hold it as name-collision")
@@ -1068,11 +1128,16 @@ def verify_cmd(args: argparse.Namespace) -> int:
     if not ids or len(ids) > HARD_MAX_CHUNK or len(set(ids)) != len(ids):
         raise CaError("areas must be 1..40 unique ids")
     staged = args.command == "verify-staged"
-    summary = _verify_delta(args.repo.resolve(), ids, staged=staged)
+    if args.mode == "update":
+        if len(ids) > MAX_UPDATE_AREAS:
+            raise CaError(f"update is capped at {MAX_UPDATE_AREAS} areas")
+        summary = _verify_update_delta(args.repo.resolve(), ids, staged=staged)
+    else:
+        summary = _verify_delta(args.repo.resolve(), ids, staged=staged)
     summary["receipt_sha256"] = contract.canonical_sha256(summary)
     if args.output:
         _write_json(args.output, summary)
-    print(f"verified publish delta for {len(ids)} area(s) ({len(summary.get('allowed_paths', []))} allowed paths) "
+    print(f"verified {args.mode} delta for {len(ids)} area(s) ({len(summary.get('allowed_paths', []))} allowed paths) "
           f"sha256={summary['receipt_sha256']}")
     return 0
 
@@ -1326,6 +1391,429 @@ def rollback_decide(args: argparse.Namespace) -> int:
     return 0
 
 
+# ------------------------------------------------------------ UPDATE mode ----
+# Republish EXISTING Canadian areas. Cloned from the earlier country lane's reviewed update mode. Everything above
+# (append-only publish, N-area sync) is untouched; these helpers only ever REPLACE the records of
+# the listed areas in place and prove every other record is byte-identical. Canada adds one proof
+# the earlier lane checked by hand: a trail that is still in the area keeps its id (retained ids are permanent).
+
+MAX_UPDATE_AREAS = HARD_MAX_CHUNK
+UPDATE_SCHEMA = "trekdex-ca-r2-update-plan-v1"
+
+
+def _split_records(live: bytes, as_dict: bool, context: str, sep: str = ",") -> list[tuple[Any, str]]:
+    """Top-level records of a JSON array/object WITH their exact raw text, so records can be kept
+    or replaced byte-for-byte. Refuses any framing it cannot reproduce exactly."""
+    try:
+        text = live.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise CaError(f"{context} is not UTF-8") from error
+    opener, closer = ("{", "}") if as_dict else ("[", "]")
+    if len(text) < 2 or not text.startswith(opener) or not text.endswith(closer):
+        raise CaError(f"{context} has unexpected framing")
+    decoder = json.JSONDecoder()
+    end = len(text) - 1
+    pos = 1
+    out: list[tuple[Any, str]] = []
+    while pos < end:
+        start = pos
+        if as_dict:
+            key, pos = decoder.raw_decode(text, pos)
+            if not isinstance(key, str) or text[pos:pos + 1] != ":":
+                raise CaError(f"{context} has an unexpected object entry")
+            value, pos = decoder.raw_decode(text, pos + 1)
+            rec: Any = [key, value]
+        else:
+            rec, pos = decoder.raw_decode(text, pos)
+        out.append((rec, text[start:pos]))
+        if pos == end:
+            break
+        if not text.startswith(sep, pos):
+            raise CaError(f"{context} has unexpected record separators")
+        pos += len(sep)
+    if opener + sep.join(raw for _, raw in out) + closer != text:
+        raise CaError(f"{context} framing cannot be reproduced exactly")
+    return out
+
+
+def _row_identity_kept(old: list[Any], new: list[Any], aid: str, entry: dict[str, Any] | None = None) -> None:
+    """Update mode keeps the index row identity (id, name, state, relation/way). The one exception is
+    an explicit registry opt-in `allow_rename: {from, reason}`: the live name must equal `from` exactly
+    and the new name must be the entry's display_name; id, state and relation stay equal. A row that
+    already carries the new name passes (idempotent re-run); anything else is refused."""
+    if (len(old) not in (7, 8) or len(old) != len(new)
+            or (old[0], old[2], *old[7:]) != (new[0], new[2], *new[7:])):
+        raise CaError(f"{aid}: update must keep the row identity (id, name, state, relation)")
+    if old[1] == new[1]:
+        return
+    rename = (entry or {}).get("allow_rename")
+    if rename is None:
+        raise CaError(f"{aid}: update must keep the row identity (id, name, state, relation)")
+    if old[1] != rename["from"] or new[1] != entry.get("display_name"):
+        raise CaError(f"{aid}: allow_rename needs the live name {rename['from']!r} and the registry "
+                      f"display_name as the new name (live {old[1]!r}, new {new[1]!r})")
+
+
+def trail_ids_retained(aid: str, old_geom: bytes, new_geom: bytes) -> dict[str, Any]:
+    """A trail that stays in the area keeps its id. Ids present in both geoms are retained. An id
+    that disappears while a NEW id carries the same trail name is a re-id of a retained trail and is
+    refused. Plain additions and plain removals are allowed (the blessed table gates those)."""
+    def trails(payload: bytes) -> dict[str, str]:
+        return {t["id"]: _norm_name(t.get("name")) for t in _area_geom_trails(payload, aid)}
+    old, new = trails(old_geom), trails(new_geom)
+    dropped = sorted(set(old) - set(new))
+    added = sorted(set(new) - set(old))
+    dropped_names = {old[i] for i in dropped}
+    reid = sorted(i for i in added if new[i] in dropped_names)
+    if reid:
+        raise CaError(f"{aid}: a retained trail changed id (same name, new id): {reid}; "
+                      "trail ids are permanent once live")
+    return {"area": aid, "retained": len(set(old) & set(new)), "dropped": dropped, "added": added}
+
+
+def replace_index(args: argparse.Namespace) -> int:
+    """Replace ONLY the listed areas' rows in public/areas/index.json, in place."""
+    registry = load_registry(args.registry)
+    target = args.target
+    if target.is_symlink() or not target.is_file():
+        raise CaError("index target is missing or unsafe")
+    before = target.read_bytes()
+    _rows(before, "canonical master index", compact=False)
+    pieces = _split_records(before, False, "canonical master index", sep=", ")
+    ids = [i for i in args.selected.read_text(encoding="utf-8").split() if i]
+    if not 1 <= len(ids) <= MAX_UPDATE_AREAS or len(set(ids)) != len(ids):
+        raise CaError(f"update needs 1..{MAX_UPDATE_AREAS} unique areas")
+    raws = [raw for _, raw in pieces]
+    for aid in ids:
+        if aid not in registry["by_id"]:
+            raise CaError(f"{aid} is not in the Canada registry")
+        src = _read_json(args.rows_dir / aid / "index.json", f"{aid} published row")
+        if not isinstance(src, list) or len(src) != 1:
+            raise CaError(f"{aid}: published index is not exactly one row")
+        geom = _read_json(args.geom_dir / f"{aid}.json", f"{aid} geom")
+        check_new_row(src[0], registry["by_id"][aid], geom, "published row")
+        spots = [n for n, (row, _) in enumerate(pieces) if row[0] == aid]
+        if len(spots) != 1:
+            raise CaError(f"{aid} is not in the canonical master index; update never adds areas")
+        _row_identity_kept(pieces[spots[0]][0], src[0], aid, registry["by_id"][aid])
+        raws[spots[0]] = _dumps_default([src[0]])[1:-1].decode("utf-8")
+    after = ("[" + ", ".join(raws) + "]").encode("utf-8")
+    after_rows = _rows(after, "updated master index", compact=False)
+    if [r[0] for r in after_rows] != [r[0] for r, _ in pieces]:
+        raise CaError("row order changed")
+    target.write_bytes(after)
+    print(f"replaced {len(ids)} row(s) in place in {target}")
+    return 0
+
+
+def _verify_update_delta(repo: Path, ids: list[str], *, staged: bool) -> dict[str, Any]:
+    registry = load_registry(repo / "trailforge/golden/ca-areas.json")
+    names_cmd = ["diff", "--cached"] if staged else ["diff"]
+    span = [] if staged else ["HEAD^", "HEAD"]
+
+    def names(flt: str) -> list[str]:
+        return [n for n in _git(repo, *names_cmd, "--name-only", f"--diff-filter={flt}", "-z", *span)
+                .decode("utf-8").split("\0") if n]
+
+    if names("D") or names("A") or names("R") or names("C") or names("T"):
+        raise CaError("update diff contains an added, deleted, renamed or type-changed path")
+    changed = names("M")
+    allowed = set(area_paths(ids))
+    if len(allowed) != 2 * len(ids) + 2 or set(changed) - allowed or len(changed) != len(set(changed)):
+        raise CaError(f"update diff is outside the 2N+2 allowlist: {changed}")
+    missing = [f"public/areas/geom/{a}.json" for a in ids if f"public/areas/geom/{a}.json" not in changed]
+    if missing:
+        raise CaError(f"update did not change these geoms: {missing}")
+    index_changed = [INDEX_REPO in changed, BUNDLE_REPO in changed]
+    if index_changed[0] != index_changed[1]:
+        raise CaError("only one of the two index files changed")
+
+    def show(path: str, new: bool) -> bytes:
+        return _git(repo, "show", (f":{path}" if staged else f"HEAD:{path}") if new else
+                    (f"HEAD:{path}" if staged else f"HEAD^:{path}"))
+
+    geoms = {}
+    retention = []
+    for aid in ids:
+        new_geom = show(f"public/areas/geom/{aid}.json", True)
+        geom = contract.strict_json_loads(new_geom.decode("utf-8"), f"{aid} geom")
+        if not isinstance(geom, dict) or geom.get("id") != aid or not geom.get("trails"):
+            raise CaError(f"{aid}: geom identity/trails are invalid")
+        retention.append(trail_ids_retained(aid, show(f"public/areas/geom/{aid}.json", False), new_geom))
+        sil = contract.strict_json_loads(show(f"public/areas/silhouettes/{aid}.json", True).decode("utf-8"),
+                                         f"{aid} silhouette")
+        if (not isinstance(sil, dict) or set(sil) != {"b", "l"} or not isinstance(sil["b"], list)
+                or len(sil["b"]) != 4 or not isinstance(sil["l"], list) or not sil["l"]):
+            raise CaError(f"{aid}: silhouette is malformed")
+        geoms[aid] = geom
+    transitions = []
+    for path, compact in ((INDEX_REPO, False), (BUNDLE_REPO, True)):
+        before, after = show(path, False), show(path, True)
+        _rows(before, f"baseline {path}", compact)
+        _rows(after, f"candidate {path}", compact)
+        sep = "," if compact else ", "
+        bp = _split_records(before, False, f"baseline {path}", sep)
+        ap = _split_records(after, False, f"candidate {path}", sep)
+        if [r[0] for r, _ in bp] != [r[0] for r, _ in ap]:
+            raise CaError(f"{path}: row ids or order changed (update replaces rows in place)")
+        dump = _dumps_compact if compact else _dumps_default
+        replaced = []
+        for (brow, braw), (arow, araw) in zip(bp, ap):
+            if arow[0] in geoms:
+                check_new_row(arow, registry["by_id"][arow[0]], geoms[arow[0]], path)
+                _row_identity_kept(brow, arow, arow[0], registry["by_id"][arow[0]])
+                if araw != dump([arow])[1:-1].decode("utf-8"):
+                    raise CaError(f"{path}: {arow[0]} row framing differs from the producer")
+                replaced.append(arow[0])
+            elif araw != braw:
+                raise CaError(f"{path}: row {arow[0]} is not one of the updated areas but its bytes changed")
+        if sorted(replaced) != sorted(ids):
+            raise CaError(f"{path}: an updated area has no row")
+        transitions.append({"path": path, "baseline_sha256": _sha(before), "candidate_sha256": _sha(after),
+                            "replaced_ids": sorted(replaced)})
+    return {"schema": "trekdex-ca-update-delta-v1", "area_ids": ids, "allowed_paths": sorted(allowed),
+            "changed_paths": changed, "index_transitions": transitions, "trail_id_retention": retention}
+
+
+def _owner_search(rec: Any) -> Any:
+    return rec[1] if isinstance(rec, list) and len(rec) > 1 else None
+
+
+def _owner_shapes(rec: Any) -> Any:
+    return rec[0].split("/", 1)[0] if isinstance(rec[0], str) and "/" in rec[0] else None
+
+
+def replace_area_records(live: bytes, key: str, new_records: dict[str, list[Any]]) -> bytes:
+    """LIVE bytes with each listed area's contiguous record block replaced IN PLACE by its
+    new records; every other record keeps its exact live bytes and position."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    pieces = _split_records(live, as_dict, f"live {key}")
+    out: list[str] = []
+    blocks: dict[int, str] = {}
+    skip: set[int] = set()
+    for aid, records in new_records.items():
+        idx = [n for n, (rec, _) in enumerate(pieces) if owner(rec) == aid]
+        if not idx or idx != list(range(idx[0], idx[-1] + 1)):
+            raise CaError(f"live {key} has no single contiguous block for {aid}; refusing to update in place")
+        if as_dict:
+            parts = [json.dumps({r[0]: r[1]}, separators=(",", ":"))[1:-1] for r in records]
+        else:
+            parts = [json.dumps(r, separators=(",", ":"), ensure_ascii=True) for r in records]
+        blocks[idx[0]] = ",".join(parts)
+        skip.update(idx)
+    for n, (_, raw) in enumerate(pieces):
+        if n in blocks:
+            out.append(blocks[n])
+        elif n not in skip:
+            out.append(raw)
+    opener, closer = ("{", "}") if as_dict else ("[", "]")
+    return (opener + ",".join(out) + closer).encode("utf-8")
+
+
+def prove_update_delta(key: str, before: bytes, after: bytes, geoms: dict[str, bytes]) -> dict[str, Any]:
+    """Only the listed areas' records changed (to the exact deterministic records), all in
+    their original position; every other record is byte-identical."""
+    as_dict = key == "trail-shapes.json"
+    owner = _owner_shapes if as_dict else _owner_search
+    strict = contract._strict_trail_shape_records if as_dict else contract._strict_trail_search_records
+    base = strict(before, f"baseline {key}")
+    cand = strict(after, f"candidate {key}")
+    bp = _split_records(before, as_dict, f"baseline {key}")
+    ap = _split_records(after, as_dict, f"candidate {key}")
+    others_b = [raw for rec, raw in bp if owner(rec) not in geoms]
+    others_a = [raw for rec, raw in ap if owner(rec) not in geoms]
+    if others_b != others_a:
+        raise CaError(f"candidate {key} changed a record outside the updated areas")
+    # list-level cross-check: same positions, blocks swapped for the deterministic records
+    expect: list[Any] = []
+    done: set[str] = set()
+    for rec in base:
+        aid = owner(rec)
+        if aid in geoms:
+            if aid not in done:
+                expect += expected_records(key, aid, geoms[aid])
+                done.add(aid)
+        else:
+            expect.append(rec)
+    if done != set(geoms):
+        raise CaError(f"live {key} is missing records for an updated area")
+    if cand != expect:
+        raise CaError(f"candidate {key} is not live records with the exact deterministic replacements")
+    old_n = sum(1 for r in base if owner(r) in geoms)
+    new_n = sum(1 for r in cand if owner(r) in geoms)
+    return {"key": key, "baseline_records": len(base), "candidate_records": len(cand),
+            "replaced_records_old": old_n, "replaced_records_new": new_n,
+            "other_records_byte_identical": len(others_b),
+            "baseline_sha256": _sha(before), "candidate_sha256": _sha(after)}
+
+
+def live_ca_ids(repo: Path, live_index: bytes) -> list[str]:
+    registry = load_registry(repo / "trailforge/golden/ca-areas.json")
+    return [r[0] for r in json.loads(live_index) if isinstance(r, list) and r and r[0] in registry["by_id"]]
+
+
+def live_ca_ids_cmd(args: argparse.Namespace) -> int:
+    ids = live_ca_ids(args.repo, args.live_index.read_bytes())
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("\n".join(ids) + "\n", encoding="utf-8")
+    print(f"{len(ids)} Canadian area(s) in the live index")
+    return 0
+
+
+def derive_update_ids(repo: Path, live_index: bytes, live_areas_dir: Path) -> list[str]:
+    """The update set = Canadian areas whose repo geom/silhouette (or index row) differ from
+    the LIVE R2 objects. The repo bundle must list exactly the live areas in the same order
+    (update never adds or removes an area), and any non-Canadian row must equal live."""
+    registry = load_registry(repo / "trailforge/golden/ca-areas.json")
+    expected = load_expected(repo / "trailforge/golden/ca-areas-expected.json")
+    live_rows = json.loads(live_index)
+    bundle_rows = _rows((repo / BUNDLE_REPO).read_bytes(), "repo bundle index", compact=True)
+    if [r[0] for r in live_rows] != [r[0] for r in bundle_rows]:
+        raise CaError("repo bundle index lists different areas (or order) than the live index; "
+                      "update replaces existing areas only, publish new ones first")
+    changed: set[str] = set()
+    for live_row, bundle_row in zip(live_rows, bundle_rows):
+        if live_row != bundle_row:
+            if bundle_row[0] not in registry["by_id"]:
+                raise CaError(f"non-Canadian index row {bundle_row[0]} differs from live; refusing")
+            changed.add(bundle_row[0])
+    for aid in live_ca_ids(repo, live_index):
+        for rel, live_path in ((f"public/areas/geom/{aid}.json", live_areas_dir / f"{aid}.json"),
+                               (f"public/areas/silhouettes/{aid}.json", live_areas_dir / "silhouettes" / f"{aid}.json")):
+            if not live_path.is_file():
+                raise CaError(f"live object for {rel} was not downloaded: the 2N keys must already exist")
+            repo_path = repo / rel
+            if not repo_path.is_file():
+                raise CaError(f"{rel} is missing from the repo")
+            if repo_path.read_bytes() != live_path.read_bytes():
+                changed.add(aid)
+    ids = sorted(changed)
+    if not 1 <= len(ids) <= MAX_UPDATE_AREAS:
+        raise CaError(f"{len(ids)} area(s) to update (need 1..{MAX_UPDATE_AREAS})")
+    check_update_eligible(registry, expected, {r[0] for r in live_rows}, ids)
+    return ids
+
+
+def derive_update_areas_cmd(args: argparse.Namespace) -> int:
+    ids = derive_update_ids(args.repo, args.live_index.read_bytes(), args.live_areas_dir)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text("\n".join(ids) + "\n", encoding="utf-8")
+    print(f"{len(ids)} area(s) to update from the repo vs live R2: {','.join(ids)}")
+    return 0
+
+
+def build_update_candidates(args: argparse.Namespace) -> int:
+    repo = args.repo
+    registry = load_registry(repo / "trailforge/golden/ca-areas.json")
+    expected = load_expected(repo / "trailforge/golden/ca-areas-expected.json")
+    live = {k: Path(v).read_bytes() for k, v in (("index.json", args.live_index),
+            ("trail-search.json", args.live_search), ("trail-shapes.json", args.live_shapes))}
+    ids = derive_update_ids(repo, live["index.json"], args.live_areas_dir)
+    if args.areas_file:
+        listed = [i for i in args.areas_file.read_text(encoding="utf-8").split() if i]
+        if listed != ids:
+            raise CaError("areas file differs from the repo-vs-live derivation")
+    geoms: dict[str, bytes] = {}
+    sils: dict[str, bytes] = {}
+    old: dict[str, bytes] = {}
+    retention = []
+    for aid in ids:
+        geoms[aid] = (repo / f"public/areas/geom/{aid}.json").read_bytes()
+        sils[aid] = (repo / f"public/areas/silhouettes/{aid}.json").read_bytes()
+        _area_geom_trails(geoms[aid], aid)
+        contract.strict_json_loads(sils[aid].decode("utf-8"), f"{aid} silhouette")
+        problems = expected_problems(json.loads(geoms[aid]), aid, expected[aid])
+        if problems:
+            raise CaError(f"{aid} is not the blessed result: " + "; ".join(problems))
+        old[f"{aid}.json"] = (args.live_areas_dir / f"{aid}.json").read_bytes()
+        old[f"silhouettes/{aid}.json"] = (args.live_areas_dir / "silhouettes" / f"{aid}.json").read_bytes()
+        retention.append(trail_ids_retained(aid, old[f"{aid}.json"], geoms[aid]))
+    # index.json: splice the new rows onto the LIVE bytes (live framing kept), then prove the
+    # result is exactly the repo bundle's rows.
+    bundle = (repo / BUNDLE_REPO).read_bytes()
+    bundle_rows = _rows(bundle, "repo bundle index", compact=True)
+    live_pieces = _split_records(live["index.json"], False, "live index.json")
+    by_id = {r[0]: r for r in bundle_rows}
+    raws = []
+    for row, raw in live_pieces:
+        if row[0] in geoms:
+            new_row = by_id[row[0]]
+            check_new_row(new_row, registry["by_id"][row[0]], json.loads(geoms[row[0]]), "repo bundle index")
+            _row_identity_kept(row, new_row, row[0], registry["by_id"][row[0]])
+            raws.append(_dumps_compact([new_row])[1:-1].decode("utf-8"))
+        else:
+            raws.append(raw)
+    index_after = ("[" + ",".join(raws) + "]").encode("utf-8")
+    if json.loads(index_after) != bundle_rows:
+        raise CaError("candidate index.json rows differ from the repo bundle index")
+    candidates: dict[str, bytes] = {"index.json": index_after}
+    proofs = [{"key": "index.json", "baseline_sha256": _sha(live["index.json"]),
+               "candidate_sha256": _sha(index_after), "replaced_ids": ids,
+               "other_rows_byte_identical": len(live_pieces) - len(ids)}]
+    for key in ("trail-search.json", "trail-shapes.json"):
+        new_records = {aid: expected_records(key, aid, geoms[aid]) for aid in ids}
+        after = replace_area_records(live[key], key, new_records)
+        proofs.append(prove_update_delta(key, live[key], after, geoms))
+        candidates[key] = after
+
+    out = args.out_dir
+    plan: dict[str, Any] = {"schema": UPDATE_SCHEMA, "mode": "update", "areas": ids,
+                            "writes": [], "baseline": {}, "old_objects": {}, "proofs": proofs,
+                            "trail_id_retention": retention}
+    order: list[tuple[str, str, bytes]] = []
+    order += [(f"{a}.json", f"geom/{a}.json", geoms[a]) for a in ids]
+    order += [(f"silhouettes/{a}.json", f"sil/{a}.json", sils[a]) for a in ids]
+    order += [("trail-shapes.json", "trail-shapes.json", candidates["trail-shapes.json"]),
+              ("trail-search.json", "trail-search.json", candidates["trail-search.json"]),
+              ("index.json", "index.json", candidates["index.json"])]
+    keys = [k for k, _, _ in order]
+    if len(keys) != 2 * len(ids) + 3 or len(set(keys)) != len(keys) or any("parking" in k for k in keys):
+        raise CaError("write set is not exactly 2N area keys + the three shared files")
+    for key, name, data in order:
+        (out / name).parent.mkdir(parents=True, exist_ok=True)
+        (out / name).write_bytes(data)
+        plan["writes"].append({"key": key, "file": name, "bytes": len(data), "sha256": _sha(data)})
+    for key, data in live.items():
+        plan["baseline"][key] = {"bytes": len(data), "sha256": _sha(data)}
+    for key, data in old.items():
+        plan["old_objects"][key] = {"file": f"areas/{key}", "bytes": len(data), "sha256": _sha(data)}
+    _write_json(out / "plan.json", plan)
+    print(json.dumps({"areas": ids, "writes": len(plan["writes"])}, indent=2))
+    return 0
+
+
+def rollback_update_actions(plan: dict[str, Any], live_dir: Path) -> list[tuple[str, str]]:
+    """Per overwritten object: 'restore' when live is the applied candidate, 'skip' when it
+    is already the old bytes, REFUSE for anything else (a third party wrote it).
+    Shared files first (index first so the app stops listing new data), then per-area."""
+    if plan.get("schema") != UPDATE_SCHEMA:
+        raise CaError("plan is not an update plan")
+    actions: list[tuple[str, str]] = []
+    shared = smp.rollback_actions(plan, live_dir)
+    actions += [(key, shared[key]) for key in SHARED_KEYS]
+    cand = {w["key"]: w["sha256"] for w in plan["writes"]}
+    for key, old in plan["old_objects"].items():
+        path = live_dir / key
+        if not path.is_file():
+            raise CaError(f"live {key} is missing; an update never removes objects, refusing to roll back over it")
+        now = _sha(path.read_bytes())
+        if now == cand[key] and now != old["sha256"]:
+            actions.append((key, "restore"))
+        elif now == old["sha256"]:
+            actions.append((key, "skip"))
+        else:
+            raise CaError(f"live {key} is neither the applied candidate nor the old bytes; refusing to roll back over it")
+    return actions
+
+
+def rollback_decide_update(args: argparse.Namespace) -> int:
+    plan = json.loads(args.plan.read_text(encoding="utf-8"))
+    for key, action in rollback_update_actions(plan, args.live_dir):
+        print(f"{key}\t{action}")
+    return 0
+
+
 # ----------------------------------------------------------------------- CLI --
 
 def main(argv: list[str] | None = None) -> int:
@@ -1339,6 +1827,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--province", required=True, choices=sorted(PROVINCES))
     s.add_argument("--chunk-size", default=str(DEFAULT_CHUNK))
     s.add_argument("--mode", required=True)
+    s.add_argument("--expected", type=Path, default=EXPECTED_PATH)
     s.add_argument("--out", required=True, type=Path)
     s.add_argument("--github-output", type=Path)
     a = sub.add_parser("prepare-areas")
@@ -1391,7 +1880,7 @@ def main(argv: list[str] | None = None) -> int:
         v = sub.add_parser(name)
         v.add_argument("--repo", type=Path, default=Path("."))
         v.add_argument("--areas", required=True)
-        v.add_argument("--mode", choices=["publish"], default="publish")
+        v.add_argument("--mode", choices=["publish", "update"], default="publish")
         v.add_argument("--output", type=Path)
     d = sub.add_parser("derive-areas")
     d.add_argument("--repo", type=Path, default=Path("."))
@@ -1417,6 +1906,30 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("--existing", required=True, type=Path)
     o.add_argument("--orphan-dir", required=True, type=Path)
     o.add_argument("--out", required=True, type=Path)
+    ri = sub.add_parser("replace-index")
+    ri.add_argument("--registry", type=Path, default=REGISTRY_PATH)
+    ri.add_argument("--selected", required=True, type=Path)
+    ri.add_argument("--rows-dir", required=True, type=Path)
+    ri.add_argument("--geom-dir", required=True, type=Path)
+    ri.add_argument("--target", required=True, type=Path)
+    ld = sub.add_parser("live-ca-ids")
+    ld.add_argument("--repo", type=Path, default=Path("."))
+    ld.add_argument("--live-index", required=True, type=Path)
+    ld.add_argument("--out", required=True, type=Path)
+    du = sub.add_parser("derive-update-areas")
+    du.add_argument("--repo", type=Path, default=Path("."))
+    du.add_argument("--live-index", required=True, type=Path)
+    du.add_argument("--live-areas-dir", required=True, type=Path)
+    du.add_argument("--out", required=True, type=Path)
+    bu = sub.add_parser("build-update-candidates")
+    bu.add_argument("--repo", type=Path, default=Path("."))
+    for name in ("live-index", "live-search", "live-shapes", "live-areas-dir"):
+        bu.add_argument(f"--{name}", required=True, type=Path)
+    bu.add_argument("--areas-file", type=Path)
+    bu.add_argument("--out-dir", required=True, type=Path)
+    ru = sub.add_parser("rollback-decide-update")
+    ru.add_argument("--plan", required=True, type=Path)
+    ru.add_argument("--live-dir", required=True, type=Path)
     args = p.parse_args(argv)
     handlers = {"select": select_cmd, "prepare-areas": prepare_areas,
                 "check-boundary-unique": check_boundary_unique_cmd,
@@ -1425,7 +1938,11 @@ def main(argv: list[str] | None = None) -> int:
                 "merge-index": merge_index, "verify-staged": verify_cmd, "verify-commit": verify_cmd,
                 "derive-areas": derive_areas_cmd, "build-candidates": build_candidates,
                 "rollback-decide": rollback_decide, "classify-orphans": classify_orphans,
-                "check-adopt-files": check_adopt_files}
+                "check-adopt-files": check_adopt_files,
+                "replace-index": replace_index, "live-ca-ids": live_ca_ids_cmd,
+                "derive-update-areas": derive_update_areas_cmd,
+                "build-update-candidates": build_update_candidates,
+                "rollback-decide-update": rollback_decide_update}
     try:
         return handlers[args.command](args)
     except (CaError, smp.SimpleError, contract.ManifestError, contract.InventoryError, OSError, ValueError,

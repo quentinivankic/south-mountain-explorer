@@ -181,3 +181,28 @@ struct StateDownloadStoreTests {
         #expect(StateCatalog.slug("District of Columbia") == "district-of-columbia")
     }
 }
+struct StateRemovalKeptCountTests {
+    @Test func countsUnclaimedPreexistingAndProtectedMembersStillOnDisk() {
+        // Arizona remove kept South Mountain (favorite + opened + pre-existing): never claimed.
+        let n = StateRemovalPlanner.survivorCount(
+            keptClaimed: [], members: ["south-mountain", "other"],
+            preexisting: ["south-mountain"], protected: ["south-mountain"],
+            isOnDisk: { _ in true })
+        #expect(n == 1)
+    }
+    @Test func doesNotDoubleCountClaimedAndIgnoresMissingFiles() {
+        let n = StateRemovalPlanner.survivorCount(
+            keptClaimed: ["a"], members: ["a", "b", "gone"],
+            preexisting: ["b", "gone"], protected: ["a"],
+            isOnDisk: { $0 != "gone" })
+        #expect(n == 2)
+    }
+    @Test func zeroWhenNothingSurvives() {
+        #expect(StateRemovalPlanner.survivorCount(keptClaimed: [], members: ["x"], preexisting: [], protected: [], isOnDisk: { _ in true }) == 0)
+    }
+    @Test func messagePluralizes() {
+        #expect(StateRemovalSummary(removed: 1, kept: 1).message == "Removed 1 area. Kept 1 saved or opened area.")
+        #expect(StateRemovalSummary(removed: 5, kept: 0).message == "Removed 5 areas. Kept 0 saved or opened areas.")
+        #expect(StateRemovalSummary(removed: 2, kept: 3).message == "Removed 2 areas. Kept 3 saved or opened areas.")
+    }
+}

@@ -97,3 +97,9 @@ if __name__ == "__main__":
         fn()
         print(f"ok  {fn.__name__}")
     print(f"\n{len(fns)} passed")
+def test_ca_slugify_folds_french_but_other_regions_are_unchanged():
+    n = "Parc national des Îles-de-Boucherville"
+    assert sc.slugify(n, "CA-QC") == "parc-national-des-iles-de-boucherville-ca-qc"
+    assert sc.slugify("Cœur de Forêt", "CA-QC") == "coeur-de-foret-ca-qc"
+    assert sc.slugify(n, "AZ") == "parc-national-des-les-de-boucherville-az"
+    assert sc.slugify(n, "DK") == "parc-national-des-les-de-boucherville-dk"

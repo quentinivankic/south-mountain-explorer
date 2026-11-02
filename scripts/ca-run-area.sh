@@ -16,6 +16,7 @@
 # The raw province PBF is trailforge/data/raw/canada-<prov>.osm.pbf (workflow download); this script only
 # reads the prefiltered file, so no hard-coded Denmark path or label is involved.
 set -euo pipefail
+ROOT_REGISTRY="$(pwd)/trailforge/golden/ca-areas.json"
 : "${AREA_ID:?}" "${AREA_NAME:?}" "${BBOX:?}" "${W:?}"
 RELATION_ID="${RELATION_ID:-}"
 WAY_ID="${WAY_ID:-}"
@@ -30,6 +31,17 @@ elif [ -z "$RELATION_ID" ] && [ -n "$WAY_ID" ]; then
 else
   echo "SAFETY BLOCK: exactly one of RELATION_ID and WAY_ID must be set" >&2
   exit 2
+fi
+# Optional id-pinned boundary (registry boundary_by_id: true; relation-backed only). Absent = no flag and
+# no --region, so every other area runs exactly as before. Validated by ca_publish.py and assemble.py.
+BOUNDARY_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("boundary_by_id") then (.boundary_by_id | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$BOUNDARY_BY_ID" ]; then
+  if [ "$BOUNDARY_BY_ID" != "true" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: boundary_by_id must be true on a relation-backed area" >&2
+    exit 2
+  fi
+  BOUNDARY_ARGS+=(--region ca --boundary-by-id)
 fi
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
 A="$W/$AREA_ID"

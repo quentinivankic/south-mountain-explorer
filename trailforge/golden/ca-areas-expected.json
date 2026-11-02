@@ -2,6 +2,177 @@
   "schema": "trekdex-ca-areas-expected-v1",
   "note": "Blessed per-area results for the Canada lane. Produced by the qualify run of trailforge-publish-ca.yml (artifact file ca-areas-expected.proposed.json) and approved once; publish refuses unless every selected area matches.",
   "areas": {
+    "blomidon-provincial-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 6.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Look-Off Loop",
+        "Wilcox Trail"
+      ]
+    },
+    "blue-mountain-birch-cove-lakes-wilderness-area-ca-ns": {
+      "trail_count": 5,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Ash Lake Portage",
+        "Blue Mountain trail",
+        "Charlies Lake Loop",
+        "Charlies Lake Trail",
+        "Crane Lake Portage",
+        "Hobsons Lake Loop",
+        "Kearney Lake Trail",
+        "Lakeshore Dr. Trail",
+        "Lookoff Trail",
+        "Maskwa Club Trail",
+        "Mike's Hike",
+        "Mike's Trail",
+        "Quarry Lake Trail",
+        "Susie & Crane Portage",
+        "Transmission Line Connector",
+        "Whicky-Whack"
+      ]
+    },
+    "cape-breton-highlands-national-park-ca-ns": {
+      "trail_count": 19,
+      "total_mi": 50.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bog Trail",
+        "Branch Pond Lookoff (CLOSED)",
+        "Coastal Trail",
+        "Franey",
+        "Le vieux chemin du Cap Rouge",
+        "Lone Shieling Trail",
+        "MacIntosh Brook Trail",
+        "Mica Hill Trail",
+        "Middle head",
+        "Old Cabot Trail (Abandoned)",
+        "Sentier Ruisseau des Maurice",
+        "Unmaintained Trail",
+        "Unmaintained Wilderness Trail"
+      ]
+    },
+    "cape-chignecto-provincial-park-ca-ns": {
+      "trail_count": 9,
+      "total_mi": 29.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Coastal Trail",
+        "Eatonville Trail",
+        "Fundy Ridge Trail",
+        "Refugee Cove Trail"
+      ],
+      "forbidden_names": [
+        "Beach Trail (low tide only)"
+      ]
+    },
+    "cape-split-provincial-park-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 7.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Amethyst Cove Trail",
+        "Little Split Cove trail"
+      ]
+    },
+    "cole-harbour-lawrencetown-coastal-heritage-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 3.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brook Trail",
+        "Cole Harbour Heritage Trails",
+        "Jersey Jack Trail",
+        "Panorama Trail"
+      ]
+    },
+    "five-bridge-lakes-wilderness-area-ca-ns": {
+      "trail_count": 5,
+      "total_mi": 19.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "The Bluff Wilderness Hiking Trail"
+      ]
+    },
+    "five-islands-provincial-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Dayuse Connector"
+      ]
+    },
+    "gully-lake-wilderness-area-ca-ns": {
+      "trail_count": 4,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Earltown Lake & Portage Trail",
+        "Yellow Birch Trail"
+      ]
+    },
+    "kejimkujik-national-park-and-national-historic-site-ca-ns": {
+      "trail_count": 10,
+      "total_mi": 49.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Channel Lake Loop",
+        "Liberty Lake Loop",
+        "West River Trail"
+      ],
+      "forbidden_names": [
+        "Flowing Waters",
+        "Grafton Woods Trail",
+        "Portage A",
+        "Portage C",
+        "Portage D",
+        "Portage E",
+        "Portage F",
+        "Portage G",
+        "Portage J",
+        "Portage K",
+        "Portage L",
+        "Portage N",
+        "Portage O",
+        "Portage P",
+        "Portage Q",
+        "Portage R",
+        "Portage U",
+        "Portage V",
+        "Portage W",
+        "Roger Brook Trail"
+      ]
+    },
+    "north-river-wilderness-area-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bald Mountain Lookoff",
+        "Path to Lookoff"
+      ]
+    },
+    "polletts-cove-aspy-fault-wilderness-area-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 16.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Theodore Fricker Mountain Trail",
+        "Trail to Lowland-Cove"
+      ]
+    },
     "prince-edward-island-national-park-ca-pe": {
       "trail_count": 10,
       "total_mi": 20.3,
@@ -27,6 +198,2217 @@
         "Old Feller (extension)",
         "Sentier International des Appalaches - International Appalachian Trail",
         "Winter River Hiking Trail"
+      ]
+    },
+    "taylor-head-provincial-park-ca-ns": {
+      "trail_count": 5,
+      "total_mi": 8.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Taylor Head Provincial Park"
+      ]
+    },
+    "terence-bay-wilderness-area-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 3.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bens Ct connector",
+        "E off Lynwood connector",
+        "Portage (Grand Lake-Ragged Lake)"
+      ]
+    },
+    "thomas-raddall-provincial-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 2.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Comfort Station Path",
+        "Herring Rock Trail",
+        "Scotch Point Trail",
+        "Semi Barren Trail",
+        "Shandy Bay Trail",
+        "Walk-In Sites 43-50"
+      ]
+    },
+    "waverley-salmon-river-long-lake-wilderness-area-ca-ns": {
+      "trail_count": 4,
+      "total_mi": 8.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Crowbar Lake Trails",
+        "Lake Williams Trail South",
+        "Lookoff Trail",
+        "Portage"
+      ]
+    },
+    "western-commons-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 3.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "McDonald Run"
+      ]
+    },
+    "white-lake-wilderness-area-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 7.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Musquodoboit Trailway",
+        "Portage"
+      ]
+    },
+    "whycocomagh-provincial-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 2.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Salt Mountain Trail",
+        "Scout Trail",
+        "The Highlander"
+      ],
+      "forbidden_names": []
+    },
+    "crystal-crescent-beach-provincial-park-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 6.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Pennant Point Lookoff"
+      ]
+    },
+    "fundy-national-park-ca-nb": {
+      "trail_count": 27,
+      "total_mi": 66.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Black Hole",
+        "Caribou Plain Boardwalk Trail",
+        "Dickson Falls Long Loop Trail",
+        "Dickson Falls Short Loop Trail",
+        "Fundy Footpath",
+        "Fundy Footpath Link",
+        "Moosehorn/The Forks",
+        "Trans Canada Trail (NB)",
+        "Trans Canada Trail (New Brunswick - Fundy Trail)",
+        "Upper Salmon",
+        "Wolfe Lake Lakeview campground trail"
+      ]
+    },
+    "fundy-trail-parkway-ca-nb": {
+      "trail_count": 5,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Big Salmon River Beach Loop & Stairs",
+        "Big Salmon River Cemetery Trail",
+        "Bradshaw Lookout Trail",
+        "Fundy Footpath",
+        "Fundy Trail Pathway",
+        "McCumber Brook Wetlands trail",
+        "McLeod Brook Falls Loop",
+        "Melvin Beach Access Trail",
+        "Trans Canada Trail (New Brunswick - Fundy Trail)",
+        "Walton Glenn Gorge Observation Deck Trail",
+        "Walton Glenn Gorge Trail to the Eye of the Needle",
+        "Walton Glenn Observation Deck Shortcut",
+        "Walton Glenn Observation Deck Trail"
+      ]
+    },
+    "herring-cove-provincial-park-ca-nb": {
+      "trail_count": 4,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Herring Cove"
+      ]
+    },
+    "kouchibouguac-national-park-ca-nb": {
+      "trail_count": 8,
+      "total_mi": 13.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Salt Marsh / Le Marias Sale"
+      ]
+    },
+    "mactaquac-provincial-park-ca-nb": {
+      "trail_count": 7,
+      "total_mi": 5.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Eagle Trail",
+        "Maple Sugar Trail"
+      ]
+    },
+    "mount-carleton-provincial-park-ca-nb": {
+      "trail_count": 9,
+      "total_mi": 29.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chutes Williams Falls",
+        "East View Point",
+        "Portage Trail",
+        "Sentier Nepisiguit Mi'gmaq Trail",
+        "View Point"
+      ]
+    },
+    "new-river-beach-provincial-park-ca-nb": {
+      "trail_count": 2,
+      "total_mi": 2.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "the-anchorage-provincial-park-ca-nb": {
+      "trail_count": 4,
+      "total_mi": 1.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Ox Head Trail"
+      ]
+    },
+    "butter-pot-provincial-park-ca-nl": {
+      "trail_count": 2,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "gros-morne-national-park-ca-nl": {
+      "trail_count": 11,
+      "total_mi": 28.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Green Gardens Trail",
+        "Gros Morne Mountain Trail",
+        "Tablelands Trail"
+      ],
+      "forbidden_names": [
+        "International Appalachian Trail (Newfoundland)",
+        "Long Range Traverse Trail",
+        "Lookout trail",
+        "Northern Traverse Trail",
+        "Rim Trail",
+        "Sentier International des Appalaches - International Appalachian Trail",
+        "Serpentine Loop",
+        "Snug Harbor Trail",
+        "Snug Harbour to North Rim",
+        "Stuckless Pont Trail (no. 12)",
+        "Tablelands - Off Trail Hike"
+      ]
+    },
+    "signal-hill-national-historic-site-ca-nl": {
+      "trail_count": 3,
+      "total_mi": 2.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "East Coast Trail",
+        "Lake to Lookout Walk"
+      ]
+    },
+    "terra-nova-national-park-ca-nl": {
+      "trail_count": 6,
+      "total_mi": 14.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Ochre Hill Lookout Loop",
+        "Trail 7 Terra Nova Park",
+        "Trail Access from Campground"
+      ]
+    },
+    "banff-national-park-ca-ab": {
+      "trail_count": 245,
+      "total_mi": 794.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Aylmer Ridge Route",
+        "Baker-Tilley Col Route",
+        "Beyond Alice Lake Route",
+        "Bow Hut Route",
+        "Butterhole Route",
+        "Crystal Ridge North Route",
+        "Crystal Ridge Route",
+        "Devon Lakes Route",
+        "Glacier Lake Route",
+        "Healy Ridge Route",
+        "Heather Ridge Route",
+        "Helen Ridge Route",
+        "Inglismaldie to Girouard Route",
+        "Little Bourgeau Route",
+        "Little Temple Route",
+        "Massive Mountain Route",
+        "Merlin Lake Route",
+        "Molar Pass Route",
+        "Molar Pass South to North Route",
+        "Mosquito Creek to Devon Lake Route",
+        "Mount Andromache Route",
+        "Mount Bell NE Route",
+        "Mount Cory Route",
+        "Mount Fortune to Fortulent Peaks Route",
+        "Mount Inglismaldie Route",
+        "Mount Lyell Route",
+        "Mount Norquay East Peak Route",
+        "Mount Peechee Shoulder Route",
+        "Mount Perren Route",
+        "Mount St. Piran Route",
+        "Mount Tyrrell Route",
+        "Natural Bridge Route",
+        "Nigel SE3 Route",
+        "Noseeum Peak Route",
+        "Observation Peak Route",
+        "Panorama Peak Route",
+        "Panorama Ridge East Route",
+        "Panorama Ridge Route",
+        "Protection Mountain Route",
+        "Skoki Passes Route",
+        "South Totem and Spreading Peak Route",
+        "Sundance Ridge Route",
+        "Survey Peak Route",
+        "Temple Lake Ridge Route",
+        "Tower of Babel Route",
+        "Trapper Peak Route",
+        "Warden Rock West Route",
+        "Wenkchemna Pass Route"
+      ],
+      "forbidden_names": [
+        "2240 Trail",
+        "Abbot Pass Trail",
+        "Assiniboine Pass Horse Trail",
+        "Aurora Creek-Marvel Pass",
+        "Balfour Wall Route",
+        "Ball Pass Trail",
+        "Banff Avenue",
+        "Bankside",
+        "Birdwood Pass Route",
+        "Black Brett Descent Route",
+        "Boom Mountain Trail",
+        "Boundary Lake trail",
+        "Buffa-Low-Gear",
+        "Burstall Pass Peak Trail",
+        "Carrot Peak Trail",
+        "Cascade Rock Trail",
+        "Cave Mountain Trail",
+        "Chickadee Peak Trail",
+        "Christian Peak Route",
+        "Christian Peak Trail",
+        "Cirrus Mountain Trail",
+        "Citadel Pass Tr",
+        "Citadel Peak Trail",
+        "Coastline",
+        "Conical Peak Descent Route",
+        "Constellation  Valley  Canyoning  Approach",
+        "Copper Lake trail",
+        "Cory Cap Trail",
+        "Costigan  Canyoning  Approach",
+        "Cross Ridge Trail",
+        "Divide Mountain Route",
+        "Divide Trails - North America",
+        "Don's Bypass",
+        "East End of Rundle Trail",
+        "Elk Summit",
+        "Eohippus Lake Trail",
+        "Eon Mountain Route",
+        "Fairview Lookout",
+        "Farbus Mountain Trail",
+        "Fearful  Symmetry - Aquarius  Canyoning  Approach",
+        "Fireweed Loops Trail",
+        "GDT ei - Section E",
+        "GDT eil",
+        "GDT eiq",
+        "GDT eiv",
+        "GDT ek - Section D",
+        "GDT ekc",
+        "GDT en - Section C",
+        "GDT enj",
+        "GDT enm"
+      ]
+    },
+    "waterton-lakes-national-park-ca-ab": {
+      "trail_count": 41,
+      "total_mi": 133.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Anderson Peak Route",
+        "Buchanan Ridge East Peak Route",
+        "Dunwey Route",
+        "Galwey to Bellevue Route",
+        "Hawkins Horseshoe Route",
+        "Lakeview Ridge Route",
+        "Lost Lake Route",
+        "Mount Glendowan Route",
+        "Mount Rowe Route",
+        "Ruby Ridge Route",
+        "Twin Lakes Route"
+      ],
+      "forbidden_names": [
+        "Akamina Lake Trail",
+        "Akamina Pass Trail",
+        "Bear's Backside",
+        "Bertha Peak Main Trail",
+        "Bison Paddock Overlook trail",
+        "Blakistan Falls Trail",
+        "CDT - Idaho & Montana Section",
+        "CDT fa- Montana Alternates",
+        "CDT fccCM - Chief Mountain Route to Canada",
+        "Continental Divide Trail Alternate Routes",
+        "Crypt Lake Trail",
+        "Divide Trails - North America",
+        "Festubert Mountain Route",
+        "Festubert Mountain Trail",
+        "GDT ew - Section A",
+        "GDT ewm",
+        "GDT ewr",
+        "GDT ewv",
+        "Great Divide Trail",
+        "Horse Trail",
+        "Lineham Ridge / Upper Rowe Lake Trail",
+        "Lower Rowe Lake Trail",
+        "Mount Alderson Alt Route",
+        "Mount Richards Alt Route",
+        "Newman Peak Trail",
+        "Pacific Northwest Trail 01 Montana",
+        "Rowe Lakes",
+        "Snowshoe Trail",
+        "Twin Lakes Route Horse Bypass",
+        "Twin Lakes Trail",
+        "Waterton Avenue"
+      ]
+    },
+    "elk-island-national-park-ca-ab": {
+      "trail_count": 11,
+      "total_mi": 51.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "#2 Simmons Trail",
+        "Moss Lake trail option"
+      ]
+    },
+    "peter-lougheed-provincial-park-ca-ab": {
+      "trail_count": 93,
+      "total_mi": 219.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Arethusa Cirque Route",
+        "Chester Lake to Rummel Lake Route",
+        "Galatea South Route",
+        "Gap Mountain Route",
+        "Kent South Knob Route",
+        "King Creek Opal Traverse Route",
+        "King Creek Ridge Route",
+        "King Creek Ridge Southeast Route",
+        "Marl Lake Loop Route",
+        "Mount Evan-Thomas W Ridge Route",
+        "Mount Nomad Route",
+        "Mount Wintour Route",
+        "Northover Ridge Route",
+        "Opal Traverse Route",
+        "Piggy Plus Route"
+      ],
+      "forbidden_names": [
+        "Arethusa Shortcut Route",
+        "Beatty Bump Trail",
+        "Beatty Lake Trail",
+        "Birdwood Pass Route",
+        "Blackshale Creek Suspension Bridge Trail",
+        "Cobra Verde Route",
+        "Commonwealth Lake Route",
+        "Divide Trails - North America",
+        "Elbow Pass/Lake Trail",
+        "Elk Pass Snowshoe Trail",
+        "Elpoca Mountain Trail",
+        "Fortress S Ridge Rt",
+        "Fortress SE Ridge Alt Rt",
+        "Fortress Southern Outlier Trail",
+        "Frozen Lake Trail",
+        "GDT en - Section C",
+        "GDT enq",
+        "GDT ent",
+        "GDT enw",
+        "GDT es - Section B",
+        "GDT esc",
+        "Great Divide Trail",
+        "Grizzly Ridge Route",
+        "Headwall Lakes Alt Trail",
+        "High Rockies",
+        "High Rockies Black Prince Connector",
+        "Highwood Meadows Trail",
+        "Highwood Ridge Route",
+        "Indefatigable Trail (decommissioned)",
+        "Kent Ridge Connector",
+        "King Creek Ridge Trail",
+        "Lost Lake Route",
+        "Mount Arethusa Route",
+        "Mount Fox Trail",
+        "Mount Galatea Trail",
+        "Mount Hood Alt Route",
+        "Mount Lawson Trail",
+        "Mount Northover Route",
+        "Mount Potts Trail",
+        "Mount Putnik Route",
+        "Mount Rae Trail",
+        "Mount Roberta Extension Route",
+        "Mount Robertson Trail",
+        "Mount Sir Douglas Trail",
+        "Mount Smuts Route",
+        "Mount Worthington Trail",
+        "Northover Ridge Rpute",
+        "Northover Ridge Tr",
+        "Northover Ridge Trail",
+        "Offender Mountain Route"
+      ]
+    },
+    "elbow-sheep-wildland-provincial-park-ca-ab": {
+      "trail_count": 62,
+      "total_mi": 181.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Lineham Peaks Route",
+        "Mackay Hills Route",
+        "Mount Baldy West Ridge Route",
+        "Nameless Ridge Route",
+        "North Storelk Cirque Route",
+        "Perdition Purgatory Route",
+        "Storelk Scramble Route",
+        "Upper Canyon Creek Drain Route",
+        "Upper Canyon Creek SE Ridge Route",
+        "Wasootch Tower Route",
+        "West Highwood Peak Route"
+      ],
+      "forbidden_names": [
+        "Baldy Pass Trail",
+        "Baldy West Ridge Descent Route",
+        "Banded Peak Trail",
+        "Barrier Mountain Climbing Crag Access",
+        "Belmore Browne",
+        "Big Elbow Tr",
+        "Bluerock Creek Trail",
+        "Boundary Peak Trail",
+        "Boundary Ridge Trail",
+        "Bryant Creek Route",
+        "Bryant Ridge Route",
+        "Canyon Creek Peaks Route",
+        "Delta Wall Trail",
+        "Divide Trails - North America",
+        "Elbow Pass/Lake Trail",
+        "Evan Thomas Creek Route",
+        "GDT en - Section C",
+        "GDT enw",
+        "GDT es - Section B",
+        "GDT esc",
+        "Great Divide Trail",
+        "Grizzly Ridge Route",
+        "Highwood Ridge Route",
+        "Limestone Ridge Route",
+        "Limestone Ridge Trail",
+        "Lineham North Twin Trail",
+        "Midnight Peak Route",
+        "Mist Mountain Hot Springs trail",
+        "Mist Trail Connector",
+        "Mount Arethusa Route",
+        "Mount Baldy Circuit Descent Route",
+        "Mount Baldy West Ridge Rt",
+        "Mount Baldy West Trail",
+        "Mount Burns East",
+        "Mount Burns Route",
+        "Mount Cornwall Trail",
+        "Mount Evan-Thomas Trail",
+        "Mount Glasgow North Trail",
+        "Mount Hood Trail",
+        "Mount Howard Trail",
+        "Mount Lorette Ponds",
+        "Mount Rae Trail",
+        "Mt Lipsett Trail",
+        "Nihahi Ridge Route",
+        "Nihahi Ridge Trail",
+        "Odlum Ridge Route",
+        "Old Baldy Peak Alt Route",
+        "Old Baldy Tr",
+        "Opal North Peak Trail",
+        "Opal Ridge"
+      ]
+    },
+    "don-getty-wildland-provincial-park-ca-ab": {
+      "trail_count": 20,
+      "total_mi": 48.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Astral Peak Route",
+        "Bolton / Armstrong Col Route",
+        "Hill of the Flowers West Route",
+        "Wendell East Route"
+      ],
+      "forbidden_names": [
+        "Association Peak Alt Route",
+        "Association Peak Approach Route",
+        "Association Peak Trail",
+        "Banded Peak Trail",
+        "Beowulf  Canyoning  Approach",
+        "Big Elbow Tr",
+        "Black Rock Mountain Trail",
+        "Bryant Ridge Route",
+        "Canyon Creek Peaks Route",
+        "Canyoning  Exit",
+        "Carnarvon Lake Trail",
+        "Carrot Peak Trail",
+        "Castle  Rock  Canyoning  Approach",
+        "Cat Creek Knob Route",
+        "Cat Creek Ridge Trail",
+        "Cataract Creek Trail",
+        "Claw  Creek  Canyoning  Approach",
+        "Coffin Mountain Trail",
+        "Coffin-Sheep-Horseshoe Traverse",
+        "Colonel Belcher Route",
+        "Compression Ridge Route",
+        "Constellation  Valley  Canyoning  Approach",
+        "Cross Peak Route",
+        "Devil's  Head  Valley  Canyoning  Approach",
+        "Divide Trails - North America",
+        "End Mountain Trail",
+        "Exshaw Pass Route",
+        "Fearful  Symmetry - Aquarius  Canyoning  Approach",
+        "Fording Pass Trail",
+        "Fording River Pass Trail",
+        "French  Technique  Canyoning  Approach",
+        "GDT en - Section C",
+        "GDT enq",
+        "GDT ent",
+        "GDT enw",
+        "GDT es - Section B",
+        "GDT esc",
+        "GDT esf",
+        "GDT esi",
+        "GDT esl",
+        "GTTSH  Canyoning  Approach",
+        "Galena Miracle Mine Tr",
+        "Gass NE1 Trail",
+        "Ghost Peak Trail",
+        "Great Divide Trail",
+        "Hell's Ridge Route",
+        "Holy Cross Mountain Approach Trail",
+        "House  of  Sky  Canyoning  Approach",
+        "House of Sky Decent",
+        "Johnson Lake Trail"
+      ]
+    },
+    "sheep-river-provincial-park-ca-ab": {
+      "trail_count": 7,
+      "total_mi": 16.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Green Mountain Route",
+        "Missinglink Mountain East Ridge Route"
+      ],
+      "forbidden_names": [
+        "Bluerock Creek Trail",
+        "Bluerock Knob Trail",
+        "Foran Grade Tr",
+        "Gleason Ridge Trail",
+        "Green Mnt Trail",
+        "Green Mountain Trail",
+        "Hoffman Hill Trail",
+        "Meadow Loop",
+        "Missinglink Mountain Alt Route",
+        "Missinglink Mtn SW Ridge Rt",
+        "Prairie Pine Macabee Ridges Route",
+        "Sandy McNabb Loop",
+        "Sheep River Trail",
+        "Sheep Trail",
+        "Tunnel O' Fun Route",
+        "Windy Point Ridge Trail",
+        "Windy Point Tr",
+        "Windy Point Trail"
+      ]
+    },
+    "bow-valley-provincial-park-ca-ab": {
+      "trail_count": 7,
+      "total_mi": 7.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Barrier Lake Trail",
+        "Grotto Canyon",
+        "Grotto Mountain Pond Path",
+        "Mary Barclay's Mountain Route",
+        "McConnell Ridge East Route",
+        "Moraine trail",
+        "Mount Lorette Ponds",
+        "Prairie View Trail (TCT)",
+        "Steve Canyon Route",
+        "Stoney Trail",
+        "Stoney Trail (TCT)",
+        "The Razor's Edge",
+        "The Uncharted Sea Trail",
+        "Whitefish"
+      ]
+    },
+    "castle-provincial-park-ca-ab": {
+      "trail_count": 4,
+      "total_mi": 12.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Clubs Peak Trail",
+        "Divide Trails - North America",
+        "GDT ew - Section A",
+        "GDT ewc",
+        "GDT ewj",
+        "GDT ewm",
+        "Great Divide Trail",
+        "Lynx Creek Campground to Lynx Creek Road Trail",
+        "Mount McGladrey Trail",
+        "New Southfork Lakes access trail",
+        "Poker Peak Trail",
+        "Spades Peak Route",
+        "St. Eloi Ridge Trail",
+        "Syncline Mountain Route",
+        "Syncline S1 Trail",
+        "Table Mountain Trail",
+        "The Amoeba Trail"
+      ]
+    },
+    "cypress-hills-provincial-park-ca-ab": {
+      "trail_count": 17,
+      "total_mi": 21.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Aspen Ridge Connector",
+        "Badger Grind",
+        "Beaver Creek - Nichol Springs Connector",
+        "Beaver Creek to Ferguson Hill Campground",
+        "Crocus Loop",
+        "Elkwater to Ferguson Hill Campground",
+        "Firerock Connector",
+        "Hidden Valley Connector",
+        "Kerfuffle",
+        "Lodgepole to Ferguson Hill Campgrounds",
+        "Lower Mystery Trail",
+        "Mitchell Creek Connector",
+        "Murray Hill",
+        "Plateau Trail",
+        "Reesor Hills TCT Trail",
+        "Reesor Lake TCT Connector",
+        "Trans Canada Trail"
+      ]
+    },
+    "dinosaur-provincial-park-ca-ab": {
+      "trail_count": 3,
+      "total_mi": 2.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Prairie Trail",
+        "Trail of the Fossil Hunters"
+      ]
+    },
+    "glenbow-ranch-provincial-park-ca-ab": {
+      "trail_count": 4,
+      "total_mi": 5.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bowbend Trail",
+        "Glenbow",
+        "McPherson Trail"
+      ]
+    },
+    "willmore-wilderness-park-ca-ab": {
+      "trail_count": 15,
+      "total_mi": 120.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cowlick Creek Trail",
+        "Divide Trails - North America",
+        "Eaton Falls Trail",
+        "GDT ec - Section G",
+        "GDT ecc",
+        "GDT ecg",
+        "GDT ecm",
+        "GDT ect",
+        "Great Divide Trail",
+        "Lightning Ridge Volcano Loop",
+        "Stearn South Approach",
+        "The OG Rim Trail",
+        "Willow Creek Trail"
+      ]
+    },
+    "jasper-national-park-ca-ab": {
+      "trail_count": 76,
+      "total_mi": 478.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Boundary Peak Route",
+        "Columbia Icefield Route",
+        "Indian Ridge Route",
+        "Mount Warren Route",
+        "Opal Peak Route",
+        "Poboktan Mountain Route",
+        "Stutfield Glacier Ice Cave Route"
+      ],
+      "forbidden_names": [
+        "11 Town trail",
+        "12a Wapiti Campground",
+        "2b (Pyramid Lake)",
+        "2b (Three Hump Beast)",
+        "2b Edge of the Bench",
+        "2k Lost Lands",
+        "2n Star Wars",
+        "3 Switchback",
+        "3c Saturday Night Lake",
+        "3f Fire Escape",
+        "5c Fast Track Upper",
+        "8 Town Trail",
+        "8c (Historic Route)",
+        "8f Razorback",
+        "8f Sidewinder",
+        "9a Valley of the 5 Lakes",
+        "Access To Rainy Day Slab",
+        "Approach 2 Route",
+        "Bighorn Alley #13",
+        "Bighorn Alley Trail # 13",
+        "Bighorn Alley Trail 13",
+        "Boundary Lake trail",
+        "Cardinal Pass route",
+        "Cataract and Cline Pass Route",
+        "Columbia Icefield Skywalk",
+        "Cottonwood Trail 8",
+        "Divide Trails - North America",
+        "Douche Bag",
+        "Edith Cavell Pond Trail",
+        "Evelyn Creek/Skyline Trail",
+        "Fasr Tracks Upper access",
+        "Fast Tracks Whistler road connector",
+        "Fiddle Peak Trail",
+        "GDT ec - Section G",
+        "GDT ecm",
+        "GDT ect",
+        "GDT ef - Section F",
+        "GDT efc",
+        "GDT efm",
+        "GDT ei - Section E",
+        "GDT eic",
+        "GDT eig",
+        "GDT eil",
+        "GDT eiq",
+        "GDT eiv",
+        "Ganges",
+        "Grand Trunk Pacific (abandoned)",
+        "Great Divide Trail",
+        "Hike to Toe of Athabasca Glacier",
+        "Hochimini"
+      ]
+    },
+    "spray-valley-provincial-park-ca-ab": {
+      "trail_count": 29,
+      "total_mi": 62.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Buller Pass Peak Route",
+        "Fortress Ridge Route",
+        "Limestone Mountain Route",
+        "Limestone Ridge Route",
+        "Lost Lake Route",
+        "Mount Engadine North Ridge Route",
+        "Spoon Needle Route",
+        "Tryst Lake and Mount Smutwood Route",
+        "Tryst Lake to Tent Ridge Route"
+      ],
+      "forbidden_names": [
+        "Buller North Ridge Route",
+        "Divide Trails - North America",
+        "East End of Rundle Trail",
+        "Evan Thomas Creek Route",
+        "Fortress Ridge Trail",
+        "GDT en - Section C",
+        "GDT enq",
+        "GDT ent",
+        "Goat Creek Trail (TCT)",
+        "Great Divide Trail",
+        "Guinn's Peak Trail",
+        "High Rockies",
+        "Karst Spring Trail",
+        "Limestone Ridge Trail",
+        "Middle Spray River Trail",
+        "Mount Bogart Route",
+        "Mount Buller Buttress #4 Climber's Route",
+        "Mount Galatea Trail",
+        "Mount Nestor Trail",
+        "Mount Shark Trail",
+        "Mount Smuts Route",
+        "Opal North Peak Trail",
+        "Opal Ridge",
+        "Red Peak Trail",
+        "Ribbon Peak Approximate Route",
+        "Rummel Lake Trail",
+        "Sinatra Falls Approach Trail",
+        "Smutwood Peak Trail",
+        "Terrace South",
+        "The Spoon Needle Route",
+        "The Wedge Trail",
+        "Tryst Lake Ridge Route"
+      ]
+    },
+    "castle-wildland-provincial-park-ca-ab": {
+      "trail_count": 29,
+      "total_mi": 100.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Drywood Mountain Shortcut Route",
+        "North Castle Route",
+        "Ptolemy Plateau Route",
+        "Spionkop Route",
+        "Windsor Mountain Route",
+        "Yarrow Ridge Route"
+      ],
+      "forbidden_names": [
+        "Andy Good Peak Traverse Route",
+        "Avion Ridge Trail",
+        "Centre Mountain N1 Trail",
+        "Chinook Peak North Route",
+        "Chinook Peak North Trail",
+        "Darrah S2 Trail",
+        "Divide Trails - North America",
+        "Drywood Climber's Trail",
+        "GDT es - Section B",
+        "GDT ess",
+        "GDT ew - Section A",
+        "GDT ewc",
+        "GDT ewj",
+        "GDT ewm",
+        "GDT ewr",
+        "Gargantua / Andy Good Plateau Route",
+        "Great Divide Trail",
+        "Haig S3 Route",
+        "Hollebeke Mountain Route",
+        "Knob Hill Climbing Trail",
+        "Loaf Mountain Alternate Route",
+        "Loaf Spionkop Connector Route",
+        "Mount Darrah S4 Route",
+        "Mount Darrah Trail",
+        "Mount Glendowan Route",
+        "Mount Haig Route",
+        "Mount Haig Trail",
+        "Mount Pengelly Traverse Route",
+        "Mount Ptolemy SE5 Route",
+        "Mount Ptolemy Trail",
+        "Newman Peak Trail",
+        "North York Creek Plane Crash Trail",
+        "Ostracized Peak Trail",
+        "Pincher Ridge Alternate Route",
+        "Prairie Bluff Route",
+        "Sage Pass to Castle Mtn Ski Resort Trail",
+        "St. Eloi Ridge Trail",
+        "St. Eloi S2 Trail",
+        "Syncline Mountain Route",
+        "Syncline S1 Trail",
+        "Table Mountain Alternate Ascent",
+        "Table Mountain Trail",
+        "Table Mountain Viewpoint Trail",
+        "Windsor Mountain Trail"
+      ]
+    },
+    "bow-valley-wildland-provincial-park-ca-ab": {
+      "trail_count": 57,
+      "total_mi": 135.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Bald Eagle Peak Route",
+        "Buller North Ridge Route",
+        "Cougar Creek Route",
+        "Fable to Mythic Route",
+        "Great Moraine Traverse Route",
+        "Mary Barclay's Mountain Route",
+        "McConnell Ridge Scrambling Route",
+        "McGillivray Canyon Route",
+        "Mount Charles Stewart Route",
+        "Mount Lorette Route",
+        "Mount Townsend Route",
+        "Queen's Tarn Route",
+        "Ribbon Peak Approximate Route"
+      ],
+      "forbidden_names": [
+        "Acephale Trail",
+        "Alpine Meadows (Closed December 1 - June 15)",
+        "Alternate Route",
+        "Association Peak Trail",
+        "Back Door (Closed December 1 - Jun 15)",
+        "Back Door (Closed December 1 - June 15)",
+        "Bald Eagle Peak Trail",
+        "Barrier Lookout Trail",
+        "Centennial Ridge Trail",
+        "Clubouse Cutoff",
+        "Divide Trails - North America",
+        "Door Jamb and Loder Peak Trail",
+        "Douglas Fir Bench (Closed Dec 1 - May 15)",
+        "East End of Rundle Trail",
+        "GDT en - Section C",
+        "GDT enq",
+        "GDT ent",
+        "Gap Peak Trail",
+        "Georgetown Climb",
+        "Georgetown Interpretive",
+        "Ghoster Coaster Route",
+        "Goat Wall Climber's Approach Route",
+        "Grassi Knob Trail",
+        "Grassi Lakes",
+        "Great Divide Trail",
+        "Grotto Mountain West Ridge Route",
+        "Ha Ling",
+        "Ha Ling Approach Route",
+        "Ha Ling North Bowl Scramble Route (Moderate/Difficult)",
+        "Ha Ling Slog Approach",
+        "Harvie Heights ridge traverse",
+        "Heart Creek Bunker Trail",
+        "Heart Creek Bunker Trail (TransCanada Trail)",
+        "Heart Creek Trail",
+        "High Rockies",
+        "Highline East Connector",
+        "Highline West Connector",
+        "Highline West End",
+        "Horse Meadows Connector",
+        "Horse-shoe loop",
+        "Horseshoe Loop",
+        "Horseshoe Loop Access",
+        "Horseshoe Slabs",
+        "Jewell Pass Tr (TCT)",
+        "Kid and Nanny Goat Access Trail",
+        "Killer Bees (Closed December 1 - June 15)",
+        "Little Mythic Trail",
+        "Little Sister Route",
+        "Loder Peak Trail",
+        "Matching Jerseys"
+      ]
+    },
+    "belcarra-regional-park-ca-bc": {
+      "trail_count": 9,
+      "total_mi": 11.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "1986 World Round Hill Loop",
+        "1990 World Round Hill",
+        "Bear Claw Trail",
+        "Bedwell Bay Bluffs Trail",
+        "Bedwell Bay Trail",
+        "Bob's Trail (Ridge Trail)",
+        "Boundary Trail North",
+        "Central Valley Greenway",
+        "Diez Vistas Trail",
+        "East Point Loop",
+        "Irish Mud Bog",
+        "Little Bear Trail",
+        "Lost Trail",
+        "Ted's Triple T",
+        "The Trans Canada Trail",
+        "WKR Push & Pack Uphill"
+      ]
+    },
+    "cape-scott-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 17.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "High Tide Bypass",
+        "North Coast Trail",
+        "Vancouver Island Trail"
+      ]
+    },
+    "cathedral-provincial-park-ca-bc": {
+      "trail_count": 11,
+      "total_mi": 42.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "(unmarked route)",
+        "(unmarked, faint trail only)",
+        "Ewart Creek Trail (Centennial Trail)",
+        "Ladyslipper Lake Trail",
+        "Lakeview Trail / Centennial Trail",
+        "Scout Lake Trail"
+      ]
+    },
+    "cypress-provincial-park-ca-bc": {
+      "trail_count": 8,
+      "total_mi": 9.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Baden Powell Trail",
+        "Blind Skier",
+        "Bowen Lookout Trail",
+        "Brunswick Mountain Trail",
+        "Christmas Gully",
+        "Coburg Peak Trail",
+        "Deeks / Windsor Trail",
+        "Deeks Lake Trail",
+        "East Cypress Creek Trail",
+        "First Lake Trail",
+        "Harvey Basin Route",
+        "Hat - Wettin Connector",
+        "Hat Mountain Trail",
+        "Hollyburn Backside Trail",
+        "Hollyburn Mountain Trail",
+        "Hollyburn Winter Access Trail",
+        "Howe Sound Crest Trail",
+        "Lions Binkert Trail",
+        "Lost Lake Trail",
+        "Magnesia Peak Route",
+        "Old Deeks Bypass",
+        "Old Mount Strachan Trail",
+        "SGS",
+        "The Lions",
+        "Unnecessary Mountain Trail",
+        "West Knob Access",
+        "West Lake Trail",
+        "Wettin Peak Trail"
+      ]
+    },
+    "e-c-manning-provincial-park-ca-bc": {
+      "trail_count": 28,
+      "total_mi": 118.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Boyd's Meadow Trail",
+        "Ghost Pass Trail",
+        "Lone Goat Mountain Trail",
+        "McDiarmid Meadows Trail",
+        "Memaloose Creek Trail (Under Construction)",
+        "Memaloose Trail (Under Construction)",
+        "PCT - Washington Section L",
+        "Pasayten River Trail",
+        "Skagit River Trail",
+        "Skyline II Trail",
+        "South Gibson Trail",
+        "Strawberry Flats Trail",
+        "Twenty Minute Lake Loop",
+        "Watcom Trail",
+        "Whitecloud Trail"
+      ]
+    },
+    "elk-lakes-provincial-park-ca-bc": {
+      "trail_count": 8,
+      "total_mi": 14.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Mount Foch Route",
+        "Upper Elk Basin Route"
+      ],
+      "forbidden_names": [
+        "Divide Trails - North America",
+        "Elk Pass Hydroline Trail",
+        "Frozen Lake Trail",
+        "GDT es - Section B",
+        "GDT esc",
+        "Great Divide Trail",
+        "Mount Fox Trail",
+        "Taiga Viewpoint Trail",
+        "Upper Elk Creek Trail",
+        "Upper Elk Falls Trail",
+        "Upper Elk Lake Viewpoint Trail"
+      ]
+    },
+    "glacier-national-park-ca-bc": {
+      "trail_count": 14,
+      "total_mi": 27.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Balu Pass Trail",
+        "Knee Grinder Ridge",
+        "Perley Rock Trail / Sir Donald Trail",
+        "Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')"
+      ]
+    },
+    "golden-ears-provincial-park-ca-bc": {
+      "trail_count": 22,
+      "total_mi": 51.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hanging Valley Route"
+      ],
+      "forbidden_names": [
+        "Allco Trail",
+        "Campers Beach Access",
+        "Donkey Spool",
+        "East / West Canyon Connector Trail",
+        "Fallen Giants Trail",
+        "Ford Trail",
+        "Gold Creek Viewpoint Trail",
+        "Hidden Trail",
+        "Hikers Beach Trail",
+        "Knee Saver",
+        "Lookout Trail",
+        "Lower Falls Connector Trail",
+        "Menzies Trail West Canyon",
+        "Mike Lake Loop Trail",
+        "Mill Creek Trail",
+        "Mount Nutt South Peak Trail",
+        "Ridge Trail",
+        "Robbie Reid Approach Trail",
+        "Spirea Nature Trail",
+        "Spirea Trail",
+        "Switchback Trail",
+        "Tiarella Nature Trail",
+        "Trapper Trail",
+        "Viking Creek Trail",
+        "West Canyon Falls Trail",
+        "Whisky Loop"
+      ]
+    },
+    "gulf-islands-national-park-reserve-ca-bc": {
+      "trail_count": 9,
+      "total_mi": 8.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brown Ridge Trail",
+        "D'Arcy Island east-west trail",
+        "East Point Trail",
+        "Echo Bay Trail",
+        "Heart Trail",
+        "Lagoon Trail",
+        "Lyall Creek Trail",
+        "North Trail (Unmarked)",
+        "Selby Cove Trail",
+        "Shoreline Trail",
+        "William Walker Trail"
+      ]
+    },
+    "kokanee-glacier-provincial-park-ca-bc": {
+      "trail_count": 10,
+      "total_mi": 26.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Lemon Creek Trail",
+        "Toe of the Glacier",
+        "Wheeler Lake Trail"
+      ]
+    },
+    "kootenay-national-park-ca-bc": {
+      "trail_count": 36,
+      "total_mi": 144.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hawk Ridge Route",
+        "Mount Ball to Beatrice Peak Route",
+        "Mount Wardle Route",
+        "Numa Mountain Route",
+        "Rockwall Trail",
+        "Storm North Ridge Route"
+      ],
+      "forbidden_names": [
+        "Ball Pass Trail",
+        "Bone Yard",
+        "Boom Mountain Trail",
+        "Divide Trails - North America",
+        "Foster Peak Scramble",
+        "GDT en - Section C",
+        "GDT enc",
+        "GDT eng",
+        "GDT enj",
+        "GDT enm",
+        "Great Divide Trail",
+        "Healy Pass (Trail Junction) Trail",
+        "Helmet/Tumbling Creek Trail",
+        "Helmet/Tumbling Trail",
+        "Marble Canyon/Ochre Paint Pots Connector Trail",
+        "Mount Ball Trail",
+        "Mount Bowlen Trail",
+        "Mount Little Trail",
+        "Mount Perren Route",
+        "Neil Colgan Hut Route",
+        "Redstreak Campground Trail",
+        "Simpson River Trail",
+        "Talc Lake Tr",
+        "The Monarch Trail",
+        "Tumbling Peak Trail",
+        "Vermilion Peak Route/The Burn Ski Trail Head",
+        "Wolverine Pass Trail"
+      ]
+    },
+    "lynn-headwaters-regional-park-ca-bc": {
+      "trail_count": 15,
+      "total_mi": 22.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alpine Trail",
+        "Baden Powell Trail",
+        "Crinkum Crankum",
+        "Crown Mountain Trail",
+        "Dam Mountain Loop",
+        "Doug's Trail",
+        "East Zinc Trail",
+        "Echo Peak Trail",
+        "Erik the Red Trail",
+        "Kirkford",
+        "Lynn Loop Trail",
+        "Lynn Peak Route",
+        "Lynn Ridge Trail",
+        "Norvan Falls Trail",
+        "Palisade Ridge Trail",
+        "Thunderbird Ridge Trail",
+        "Varley Trail"
+      ]
+    },
+    "mount-assiniboine-provincial-park-ca-bc": {
+      "trail_count": 17,
+      "total_mi": 33.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Mount Cautley Route",
+        "Naiset Peak Route"
+      ],
+      "forbidden_names": [
+        "Assiniboine Creek Trailhead Trail",
+        "Assiniboine Pass Trail",
+        "Cave Mountain Approx. Route",
+        "Cave Mountain Trail",
+        "Citadel Pass Tr",
+        "Divide Trails - North America",
+        "GDT en - Section C",
+        "GDT enj",
+        "GDT enm",
+        "GDT enq",
+        "Great Divide Trail",
+        "Hind Hut Headwall Approach",
+        "Lunette Lake",
+        "Mount Strom Trail",
+        "Nub to Assiniboine Lodge Connector",
+        "Og Mountain Route",
+        "Rock Lake Campground",
+        "Simpson River Trail",
+        "Sunburst Lake and The Nub",
+        "Sunshine Village Simpson Pass Trail",
+        "The Monarch Trail",
+        "The Towers Trail",
+        "Twin Cairns Meadow Park Trail",
+        "Wonder Pass / Marvel Lake Trail",
+        "Wonder Pass Trail"
+      ]
+    },
+    "mount-revelstoke-national-park-ca-bc": {
+      "trail_count": 9,
+      "total_mi": 21.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "23 Connector",
+        "Broken Bridge Trail",
+        "Eagle Knoll Trail",
+        "First Footsteps Trail",
+        "Koo Koo Sint Trail",
+        "Mount Revelstoke",
+        "Nels Nelson Ski Jump Trail",
+        "Sorensen Connector",
+        "Upper Summit Trail"
+      ]
+    },
+    "mount-robson-provincial-park-ca-bc": {
+      "trail_count": 9,
+      "total_mi": 47.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hargreaves Lake Route",
+        "Resplendent via Patterson Route"
+      ],
+      "forbidden_names": [
+        "Cinnamon Peak Route (bushwack, no trail)",
+        "Divide Trails - North America",
+        "GDT ec - Section G",
+        "GDT ecm",
+        "GDT ect",
+        "GDT ef - Section F",
+        "GDT efc",
+        "GDT efm",
+        "Great Divide Trail",
+        "Kinney Flats Trail",
+        "Moose River Route",
+        "Moose River West GDT Alternate Route",
+        "Overlander Falls Trail",
+        "Robson Pass Trail",
+        "Toboggan Falls Route"
+      ]
+    },
+    "mount-seymour-provincial-park-ca-bc": {
+      "trail_count": 12,
+      "total_mi": 17.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Upper Perimeter Route"
+      ],
+      "forbidden_names": [
+        "2 Cabins",
+        "2 Guys 1 Cut",
+        "8 Inches",
+        "8 Mile",
+        "Baden Powell Trail",
+        "Boundary Trail",
+        "C-Section",
+        "Cinnamon",
+        "Corkscrew",
+        "Cyndi Lopper",
+        "Dinky Peak Loop",
+        "Double D Trail",
+        "Fannin Traverse",
+        "Fern Gully",
+        "Franks Plank",
+        "Fred's Trail",
+        "Goldie Lake Loop Trail",
+        "Goldie Lake Trail",
+        "Hangman",
+        "Honey Badger",
+        "Indian Arm / Elsay Lake Access Route",
+        "LNV",
+        "Leecher",
+        "Loose Goose",
+        "Mad Girls Connector",
+        "Mount Bishop Trail",
+        "Mount Elsay / Mount Bishop Route",
+        "OG Pubes",
+        "Old Buck Access Trail",
+        "Old Cabin Trail",
+        "Old Elsay Lake Trail",
+        "Old Mount Seymour Trail",
+        "Pandemic",
+        "Paul's Trail",
+        "Percy",
+        "Potateiter",
+        "Powerlines Trail",
+        "Procrastination",
+        "Pubes",
+        "Ralpharoni's Treetop Adventure",
+        "Rehab",
+        "Roach Crossing",
+        "Runner Peak Connector",
+        "Runner Peak Trail",
+        "SAR Cabin Trail",
+        "Short Cut",
+        "Slippin Slide",
+        "Spineless (Leeker)",
+        "Theta Peak Trail",
+        "Tower Trail"
+      ]
+    },
+    "pacific-rim-national-park-reserve-of-canada-ca-bc": {
+      "trail_count": 8,
+      "total_mi": 53.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "West Coast Trail"
+      ],
+      "forbidden_names": [
+        "Ancient Cedars Loop",
+        "Cape Beale Trail / Tapaltos Beach Trail",
+        "Cape Beale-Keeha Trail",
+        "Cheewat Giant Trail",
+        "Cox Bay Trail (Unsanctioned by Parks Canada)",
+        "Green Point North Trail",
+        "Green Point South Trail",
+        "Halfmoon Bay Trail",
+        "Keeha Beach Trail",
+        "Keeha Trail",
+        "Radar Beach",
+        "South Beach Trail",
+        "West Coast Trail (Beach Option)",
+        "West Cost Trail (Beach Option)",
+        "Wild Pacific Trail",
+        "Willowbrae Trail"
+      ]
+    },
+    "pacific-spirit-regional-park-ca-bc": {
+      "trail_count": 17,
+      "total_mi": 21.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Acadia Trail",
+        "Aims",
+        "Camosun Bog | xʷməm̓qʷe:m Boardwalk",
+        "Camosun Trails",
+        "Chancellor Trail",
+        "Clinton Trail",
+        "Deer Fern Trail",
+        "Douglas Fir",
+        "Grand Fir Trail",
+        "Iron Knee Trail",
+        "Iva Mann Loop Walk",
+        "Long Trail",
+        "Newt Loop Trail",
+        "Powerline Trail",
+        "Salal Trail",
+        "Sherry Sakamoto",
+        "St. Georges Trail",
+        "Trail 3",
+        "Trail 4",
+        "Trail 6",
+        "Vine Maple Trail",
+        "West Canyon Trail"
+      ]
+    },
+    "stawamus-chief-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 2.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "A Scottish Tale Approach",
+        "Angel's Crest Trail",
+        "Apron Descent Trail",
+        "Barbarian Wall Approach",
+        "Bellygood Ledge Descent",
+        "Big Drop Valley",
+        "First Peak / Second Peak Trail",
+        "First Peak Trail",
+        "First/Second Peak Trail",
+        "Grand Wall Trail",
+        "Guys Trail",
+        "Hanging Gardens",
+        "Kelly's Connector",
+        "Kelly’s Connector",
+        "Longhouse Climbing",
+        "North North Gully Trail",
+        "Photophobia Buttress Approach",
+        "Poxy Crag Trail",
+        "RRRamble",
+        "Rogue",
+        "Sea to Summit",
+        "Second Peak Trail",
+        "Shannon Falls Connector",
+        "Sheriff's Badge Trail",
+        "Slhanay Trail",
+        "Stawamus Chief",
+        "Stawamus Chief / Sea to Summit",
+        "Stone in the Sky",
+        "Stubby on a Stick",
+        "The Watch Tower",
+        "Third Peak / Slhanay Trail"
+      ]
+    },
+    "strathcona-provincial-park-ca-bc": {
+      "trail_count": 30,
+      "total_mi": 108.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Albert Edward Route",
+        "Big Interior Mountain Route"
+      ],
+      "forbidden_names": [
+        "Ash 110D1",
+        "Ash 110D2",
+        "Ash 110H1",
+        "Ash Main",
+        "Ash Pond Trail",
+        "Ash River Trail",
+        "Augerpoint Mountain Trail",
+        "Beach Trail",
+        "Boston Ridge Trail",
+        "Buttle Lake View Trail",
+        "Century Sam Lake Trail",
+        "Circlet Campsite Trail",
+        "Comox Glacier Trail",
+        "Elk River Main",
+        "Golden Hinde Trail",
+        "Jutland Mountain Trail",
+        "Kings Peak Trail",
+        "Lady Falls Trail",
+        "Lake Trail",
+        "Lupin Falls Nature Walk",
+        "Marble Peak Route",
+        "Mercs 737",
+        "Mile 30 Main",
+        "Price Creek Trail",
+        "Three Ponds Loop Trail",
+        "Vancouver Island Trail",
+        "Wild ginger trail"
+      ]
+    },
+    "valhalla-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 14.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Drinnon Lake Trail",
+        "Evans Beach/Beatrice Lake Trail",
+        "Mulvey Basin Trail"
+      ]
+    },
+    "wells-gray-provincial-park-ca-bc": {
+      "trail_count": 25,
+      "total_mi": 77.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hobson Lake Route"
+      ],
+      "forbidden_names": [
+        "Azure Lake High Water Portage",
+        "Azure Lake High Water Portage/Hobson Lake Route",
+        "Azure Lake Portage",
+        "Baily's Loop Trail",
+        "C.W. Shook Trail to Dragon's Tongue",
+        "Fight Meadow via Phillip Lake and Fight Lake",
+        "Foot Lake Trail",
+        "Forest Loop",
+        "Norman's Eddy Trail",
+        "Osprey Loop",
+        "Silvertip Falls Trail",
+        "TRT012 Coulee Access Trail",
+        "Trophy Mountain Trail"
+      ]
+    },
+    "yoho-national-park-ca-bc": {
+      "trail_count": 63,
+      "total_mi": 174.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "All Souls Alpine Route",
+        "Cathedral Falls Route",
+        "Chancellor Peak Route",
+        "Consummation Peak Route",
+        "Divide Mountain Route",
+        "Emerald Peak Route",
+        "Lake Oesa Route",
+        "Linda Lake Route",
+        "Mount Bosworth Route",
+        "Mount Burgess Route",
+        "Mount Daly Route",
+        "Opabin Prospect Route",
+        "Takakkaw Lake Route",
+        "Wapta Mountain Route",
+        "Yukness Ledges Alpine Route"
+      ],
+      "forbidden_names": [
+        "Alpine Meadow",
+        "Alternative Route (easy)",
+        "Celeste Lake Connector",
+        "Crystal Cave Route",
+        "Divide Trails - North America",
+        "East Wiwaxy Peak Trail",
+        "GDT ek - Section D",
+        "GDT ekm",
+        "GDT ekw",
+        "GDT en - Section C",
+        "GDT enc",
+        "GDT eng",
+        "Grassi Ridge Descent Trail",
+        "Great Divide Trail",
+        "Hoodoo Creek Park",
+        "Kicking Horse Trail",
+        "Lake McArthur Cut Off",
+        "Lake McArthur Route",
+        "Lake O'Hara Side Trails",
+        "Marpole Lake Connector",
+        "McArthur Pass",
+        "Monica Lake Route",
+        "Morning Glory Lakes Trail",
+        "Mount Victoria North Peak",
+        "Mount Victoria Trail",
+        "Natural Bridge to Amiskwi Pass Trail",
+        "Odaray Grandview Trail",
+        "Opabin Highline Trail",
+        "Opabin Pass Trail",
+        "Opabin Plateau Trail",
+        "Ross Lake Trail",
+        "Sleeping Poet's Pool Trail",
+        "Takakkaw Falls Campground",
+        "Trail to Parking Lot",
+        "Walcott Quarry access",
+        "Wenkchemna Pass/Opabin Pass Route (Mountaineering)",
+        "Wenkchemna Peak Route",
+        "Wiwaxy Crag Route",
+        "Yukness Ledges Cut-Off"
+      ]
+    },
+    "arrowhead-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 4.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Homesteader Trail",
+        "Mayflower Lake Trail"
+      ],
+      "forbidden_names": []
+    },
+    "awenda-provincial-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 11.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brûlé Trail / Bluff Trail"
+      ]
+    },
+    "bon-echo-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Clutes Loop",
+        "Pet Exercise Trail"
+      ]
+    },
+    "bronte-creek-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Logging Trail",
+        "community connecting path",
+        "designated park path",
+        "leash free trail (campground side)"
+      ]
+    },
+    "charleston-lake-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 10.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bach's Lookout Trail",
+        "Blue Mountain Trail",
+        "Bob's Cove Trail",
+        "Painted Rocks Summit Route",
+        "Westside Trail"
+      ]
+    },
+    "forks-of-the-credit-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bruce Trail",
+        "Bruce Trail - Caledon Hills section",
+        "Bruce Trail - Caledon Hills section side trails",
+        "Dorothy Medhurst Side Trail",
+        "Trans Canada Trail"
+      ]
+    },
+    "frontenac-provincial-park-ca-on": {
+      "trail_count": 14,
+      "total_mi": 64.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Arkon Lake Loop / Little Salmon Lake Loop",
+        "Big Salmon Lake Loop / Cedar Lake Loop",
+        "Big Salmon Lake Loop / Little Clear Lake Loop",
+        "Big Salmon Lake Loop / Little Salmon Lake Loop",
+        "Big Salmon Lake Loop / Slide Lake Loop",
+        "Big Salmon Little Salmon Portage",
+        "Birch Lake Campsite Trail",
+        "Campsite 13 Trail",
+        "Campsite 7 trail / portage",
+        "Cedar Lake Loop / Rideau Trail",
+        "Corridor Trail / Cedar Lake Loop",
+        "Corridor Trail / Cedar Lake Loop / Arkon Lake Loop",
+        "Corridor Trail / Rideau Trail",
+        "Devil Lake Moulton Lake Portage",
+        "Hemlock Lake Loop / Gibson Lake Loop",
+        "Little Clear Lake Loop / Hemlock Lake Loop",
+        "Little Clear Lake Loop / Little Salmon Lake Loop",
+        "Lt Salmon Lake 6",
+        "Lt Salmon Lake Portage",
+        "Rideau Trail - Kingston Section",
+        "Rideau Trail Slide Lake Loop",
+        "Slide Lake Loop / Cedar Lake Loop",
+        "Slide Lake Loop / Rideau Trail",
+        "Slide Lake Loop / Small Slide Lake Loop / Rideau Trail",
+        "Small Slide Lake Loop",
+        "Small Slide Lake Loop / Rideau Trail",
+        "Tetsmine Lake Loop / Gibson Lake Loop",
+        "portage"
+      ]
+    },
+    "georgian-bay-islands-national-park-ca-on": {
+      "trail_count": 8,
+      "total_mi": 13.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chimney Bay Trail",
+        "Frying Pan Bay Trail",
+        "Oaks Path",
+        "Ojibway Path",
+        "Portage Trail"
+      ]
+    },
+    "kakabeka-falls-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 4.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Beaver Meadow Trail",
+        "River Terrace Trail",
+        "Village Trail"
+      ]
+    },
+    "killarney-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 51.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Freeland-Kakakise Lake Portage",
+        "H1 Side Trail",
+        "H16 Side Trail",
+        "H19 SideTrail",
+        "H2 Side Trail",
+        "H21 Side Trail",
+        "H31 Side Trail",
+        "H32 Side Trail",
+        "H33 Side Trail",
+        "H34 Side Trail",
+        "H35 Side Trail",
+        "H4 Side Trail",
+        "H45 Side Trail",
+        "H46 Side Trail",
+        "H48 Side Trail",
+        "H54 Side Trail",
+        "H59 Side Trail",
+        "H6 Side Trail",
+        "H7 Side Trail",
+        "Kakakise-Norway Lake Portage",
+        "Killarney-Freeland Lake Portage",
+        "Killarney-O.S.A. Lake Portage #1"
+      ]
+    },
+    "lake-superior-provincial-park-ca-on": {
+      "trail_count": 12,
+      "total_mi": 64.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Lake Superior Coastal Trail"
+      ],
+      "forbidden_names": [
+        "Noisy Bay Trail",
+        "Orphan Lake Lookout",
+        "Smokey Point Trail",
+        "Warp Bay to Devils Chair",
+        "portage"
+      ]
+    },
+    "macgregor-point-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 5.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Old Shore Road Trail",
+        "Sunset Point"
+      ]
+    },
+    "mono-cliffs-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 7.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bruce Trail",
+        "Bruce Trail - Dufferin Hi-Land section",
+        "Bruce Trail - Dufferin Hi-Land section side trails",
+        "Bruce Trail / Cliff-Top Trail",
+        "Bruce Trail / McCarsten's Lake Trail",
+        "McCarsten's Lake Side Trail",
+        "Mono Trail",
+        "Walter Tovell Side Trail (Bruce Trail)"
+      ]
+    },
+    "pinery-provincial-park-ca-on": {
+      "trail_count": 9,
+      "total_mi": 8.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Beach access trail",
+        "Dune Crossing",
+        "Fire brake trail",
+        "Huron ski / firebreak trail",
+        "Sassafras (1.0 km)",
+        "Sydney Walkway",
+        "fire break trail",
+        "firebreak trail"
+      ]
+    },
+    "presqu-ile-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Boucher Walk"
+      ]
+    },
+    "pukaskwa-national-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 44.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Pukaskwa Coastal Hiking Trail"
+      ],
+      "forbidden_names": [
+        "Chigamiwinigum Falls Trail",
+        "Coastal Route Option",
+        "Manito Miikana Trail"
+      ]
+    },
+    "sandbanks-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "rouge-national-urban-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 23.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Monarch Trail/Tallgrass Trek",
+        "Oak Ridges Trail Association side trail",
+        "Reesor Way",
+        "Reesor Way/Monarch Trail",
+        "Reesor Way/Tanglewood Trail",
+        "Tanglewood Trail",
+        "Tanglewood Trail/Monarch Trail"
+      ]
+    },
+    "sleeping-giant-provincial-park-ca-on": {
+      "trail_count": 18,
+      "total_mi": 45.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kabeyun Trail"
+      ],
+      "forbidden_names": [
+        "Joe Creek Nature Trail",
+        "Thunder Bay Bogs Nature Trail"
+      ]
+    },
+    "parc-national-de-lile-bonaventure-et-du-rocher-perce-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 8.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier du Rocher Precé à marée basse"
+      ]
+    },
+    "prince-albert-national-park-ca-sk": {
+      "trail_count": 21,
+      "total_mi": 52.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Kingsmere Lake – Clare Lake Portage",
+        "Lily Lake – Clare Lake Portage"
+      ]
+    },
+    "grasslands-national-park-ca-sk": {
+      "trail_count": 15,
+      "total_mi": 47.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Otter Basin Route"
+      ],
+      "forbidden_names": [
+        "Old Wagon trail"
+      ]
+    },
+    "cypress-hills-interprovincial-park-west-block-ca-sk": {
+      "trail_count": 6,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "La Barge Trail",
+        "South Benson Trail"
+      ]
+    },
+    "meadow-lake-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 78.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "duck-mountain-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Damselfly Trail",
+        "Fen Interpretive Trail",
+        "Fire Tower Trail",
+        "Trans Canada Trail"
+      ]
+    },
+    "greenwater-lake-provincial-park-ca-sk": {
+      "trail_count": 2,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "buffalo-pound-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "1/4 Mile",
+        "Barrels",
+        "Beaver Loop",
+        "Big Rock",
+        "Boat Launch",
+        "Bum Rap",
+        "C'ya!",
+        "Cabela's Buck Wild",
+        "Climb to Roots",
+        "Gup's Trail",
+        "Hawk's Hill",
+        "Heaven",
+        "Jackpot",
+        "Jackson's Hole",
+        "Joe's Loop",
+        "Junkyard",
+        "Lost Hi-way",
+        "Lower Chalet",
+        "Mus Nuckl",
+        "Noser",
+        "Noser 2",
+        "Pick-up Sticks",
+        "Prairie Downhill",
+        "Rankins",
+        "Roadside Attraction",
+        "Roots",
+        "Rutledge",
+        "Terminator",
+        "Thank You Nature",
+        "Third Floor",
+        "Third Floor Connection Prairie",
+        "Three Amigos",
+        "Tunnel",
+        "Twister",
+        "Upper Chalet",
+        "Upside Down",
+        "Weeping Fee",
+        "What Trail?"
+      ]
+    },
+    "spruce-woods-provincial-park-ca-mb": {
+      "trail_count": 3,
+      "total_mi": 6.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Dune Trail",
+        "Hogsback Trail"
+      ]
+    },
+    "hecla-grindstone-provincial-park-ca-mb": {
+      "trail_count": 3,
+      "total_mi": 9.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chorus Frog Trail",
+        "Madtom Trail",
+        "Trail to Wildlife Viewing Tower"
+      ]
+    },
+    "birds-hill-provincial-park-ca-mb": {
+      "trail_count": 12,
+      "total_mi": 33.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Birds Hill Provincial Park Cross-country Ski Trails"
+      ]
+    },
+    "riding-mountain-national-park-ca-mb": {
+      "trail_count": 34,
+      "total_mi": 185.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brûlé",
+        "Burls and Bittersweet",
+        "Cairn's Cabin",
+        "Clear Lake",
+        "Compound Long Loop",
+        "Compound Short Loop",
+        "East Gate Connector",
+        "Elk Creek Campsite",
+        "Hilton",
+        "Multi-Use",
+        "Ominnik Marsh Trail",
+        "Reeves Ravine (c)",
+        "South Lake Trail Winter Route"
+      ]
+    },
+    "douglas-provincial-park-ca-sk": {
+      "trail_count": 7,
+      "total_mi": 14.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cacti / Dune Loop",
+        "Juniper Nature Trail / Cacti Hiking Trail",
+        "Juniper Nature Trail / Dune Hiking Trail",
+        "Sand Dunes Interpretive Trail",
+        "Sunset Nature Trail / Trans Canada Trail",
+        "Trans Canada Trail",
+        "Wolf Willow Loop",
+        "Wolf Willow Loop / Trans Canada Trail"
+      ]
+    },
+    "goldstream-provincial-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Arbutus Ridge Trail",
+        "Arbutus Trail",
+        "Bridge Trail",
+        "FUBM",
+        "Finlayson Short Circuit",
+        "Gargamel",
+        "Hidden Springs Falls Trail",
+        "Skirt Mountain Trail"
+      ]
+    },
+    "tweedsmuir-provincial-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 43.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alexander Mackenzie Heritage Trail",
+        "Horsetail falls trail",
+        "Junker-Vista Portage",
+        "Kidney-Widgeon Portage",
+        "Turner-Cutthroat Portage",
+        "Tweedsmuir Lookout Trail",
+        "Tweedsmuir Trail",
+        "Valley Loop Trail",
+        "Vista-Cutthroat Portage"
+      ]
+    },
+    "neys-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 8.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "quetico-provincial-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 11.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Batchewaung Portage",
+        "Big Knife Portage",
+        "Black Robe Portage",
+        "Bonhomme Portage",
+        "Bottle Portage",
+        "Cedar Portage",
+        "Dead Man's Portage",
+        "Death March Portages",
+        "Deux Rivières Portage",
+        "Eat 'em Up Portage",
+        "Fisher Trail",
+        "French Portage",
+        "Have a Smoke Portage",
+        "Knife Portage",
+        "McAlpine Portage",
+        "Memory Lane Portage",
+        "Monument Portage",
+        "North Portage",
+        "Paul Kane Trail",
+        "Portage",
+        "Portage de gros Rocher",
+        "Portage des Morts",
+        "Portage des Petite Islette",
+        "Portage des Petite Rocher",
+        "Sauvage Portage",
+        "Silver Falls Portage",
+        "Wheelbarrow Portage"
+      ]
+    },
+    "restoule-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 4.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Angel's Point Trail",
+        "Grawbarger Trail",
+        "Rangers Point Trail"
+      ]
+    },
+    "rondeau-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 13.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Warbler Way"
+      ]
+    },
+    "whiteshell-provincial-park-ca-mb": {
+      "trail_count": 15,
+      "total_mi": 89.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Mantario Trail"
+      ],
+      "forbidden_names": [
+        "Alf Hole Winter Trail",
+        "Big Whiteshell Hiking Trail",
+        "Centennnial Trail",
+        "Chattermark",
+        "Dragon Fire Self-Guiding Trail",
+        "East Perimeter Trail",
+        "Falcon South Shore Trail",
+        "Hunt Lake Trail",
+        "Jean Lake Winter Trail",
+        "Marsh Trail",
+        "North Whiteshell Trail",
+        "North Whiteshell Trail (hikeable)",
+        "South Shore Trail",
+        "South Whiteshell Trail",
+        "Teagan's Connector"
       ]
     }
   }

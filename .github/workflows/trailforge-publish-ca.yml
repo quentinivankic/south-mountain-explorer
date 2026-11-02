@@ -14,6 +14,17 @@ name: Trailforge — publish Canadian areas (registry, N per run, one province p
 # mode=publish  main only. Needs trailforge/golden/ca-areas-expected.json (the blessed table) and a
 #               complete registry entry per area. Refuses unless EVERY selected area matches; one
 #               commit of exactly 2N+2 paths; NO R2 write (sync-ca-to-r2.yml is separate).
+# mode=update   main only. REPUBLISH areas that are already in public/areas/index.json (explicit id
+#               list, never batch=; each must also be in the registry and the blessed table).
+#               Re-runs the same pipeline, asserts the result against the (re-)blessed table,
+#               rewrites ONLY those areas' geom + silhouette and replaces ONLY their rows in both
+#               index files in place (row order kept; a name change needs the registry
+#               allow_rename opt-in). One commit, only modified paths: the 2N area files + the 2
+#               index files; every other index row byte-identical; retained trail ids kept. NO R2
+#               write; push it with sync-ca-to-r2.yml mode=plan-update / apply-update.
+#               To change an area's blessed entry first: run qualify, copy that area's entry from
+#               ca-areas-expected.proposed.json into trailforge/golden/ca-areas-expected.json on
+#               main, review, merge.
 #
 # areas: comma list of registry ids (all in the chosen province), or batch=<n> (n-th chunk,
 #        1-based, of the unheld registry entries of that province not yet in public/areas/index.json).
@@ -31,9 +42,9 @@ on:
         options: ["ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt"]
         default: pe
       mode:
-        description: "qualify (dry run, report only) | publish (main only, new areas)"
+        description: "qualify (dry run, report only) | publish (main only, new areas) | update (main only, republish existing areas)"
         type: choice
-        options: [qualify, publish]
+        options: [qualify, publish, update]
         default: qualify
       chunk_size:
         description: "Areas per run (default 25, hard max 40)"
@@ -61,7 +72,10 @@ jobs:
           set -euo pipefail
           [[ "$RAW_PROVINCE" =~ ^(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)$ ]]
           [[ "$RAW_AREAS" =~ ^(batch=[1-9][0-9]{0,3}|[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)(,[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt))*)$ ]]
-          [[ "$RAW_MODE" =~ ^(qualify|publish)$ ]]
+          [[ "$RAW_MODE" =~ ^(qualify|publish|update)$ ]]
+          if [ "$RAW_MODE" = "update" ]; then
+            [[ "$RAW_AREAS" != batch=* ]]
+          fi
           [[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]
           if [ "$RAW_MODE" != "qualify" ]; then
             test "$GITHUB_REF_TYPE" = "branch"
@@ -73,7 +87,7 @@ jobs:
           persist-credentials: false
 
       - name: Publish guard (main tip is this checkout)
-        if: ${{ inputs.mode == 'publish' }}
+        if: ${{ inputs.mode == 'publish' || inputs.mode == 'update' }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
@@ -115,7 +129,11 @@ jobs:
           # Way-backed boundaries (registry way_id) are only kept by the prefilter when their tags
           # happen to match. Add exactly the selected closed ways (plus their nodes) from the raw
           # file, and only when a way-backed area is selected: every other run keeps the prefilter bytes.
-          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E '^w[1-9][0-9]*$' || true)"
+          # Relation boundaries the prefilter drops (leisure=park, which prefilter.sh does not select) are
+          # re-added the same way, by explicit id only: every other relation run keeps the prefilter bytes.
+          # 4855708 = Crystal Crescent Beach Provincial Park.
+          PARK_RELS="r4855708"
+          WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E -x "w[1-9][0-9]*|$PARK_RELS" || true)"
           if [ -n "$WAY_IDS" ]; then
             # shellcheck disable=SC2086
             osmium getid -r --overwrite -o data/way-boundaries.osm.pbf "data/raw/canada-$PROVINCE.osm.pbf" $WAY_IDS
@@ -137,9 +155,11 @@ jobs:
           # One pass over the raw PBF for every selected boundary relation / way.
           # shellcheck disable=SC2086
           osmium getid -r --overwrite -o "$W/bounds.osm.pbf" "$SOURCE_PBF" $GETID_ARGS
+          # update re-runs prepare-areas with the strict (publish) bbox/centre checks.
+          PREP_MODE="$MODE"; [ "$MODE" = "update" ] && PREP_MODE=publish
           python3 scripts/ca_publish.py prepare-areas \
             --selected "$W/selected.txt" --bounds-pbf "$W/bounds.osm.pbf" \
-            --mode "$MODE" --out-dir "$W"
+            --mode "$PREP_MODE" --out-dir "$W"
 
       - name: Run the pipeline per area (fail closed per area)
         id: areas
@@ -186,7 +206,7 @@ jobs:
             echo "::endgroup::"
           done
           echo "failed=$FAILED" >> "$GITHUB_OUTPUT"
-          # publish: any failed area aborts before the repo is touched.
+          # publish/update: any failed area aborts before the repo is touched.
           if [ "$MODE" != "qualify" ] && [ "$FAILED" -ne 0 ]; then
             echo "REFUSED: at least one selected area is not the blessed result; nothing committed"
             exit 1
@@ -236,9 +256,26 @@ jobs:
           python3 scripts/silhouettes-from-geom.py
           python3 scripts/filter-ios-bundle.py
 
-      - name: Commit published data (exactly 2N+2 paths) and push to main
-        if: ${{ inputs.mode == 'publish' }}
+      - name: Install updated geoms, replace index rows in place, regenerate silhouettes + bundle
+        if: ${{ inputs.mode == 'update' }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/ca"
+          for ID in $(cat "$W/selected.txt"); do
+            test -f "public/areas/geom/$ID.json"
+            test -f "public/areas/silhouettes/$ID.json"
+            cp "$W/$ID/geom/$ID.json" "public/areas/geom/$ID.json"
+          done
+          python3 scripts/ca_publish.py replace-index \
+            --selected "$W/selected.txt" --rows-dir "$W" \
+            --geom-dir public/areas/geom --target public/areas/index.json
+          python3 scripts/silhouettes-from-geom.py
+          python3 scripts/filter-ios-bundle.py
+
+      - name: Commit published data (publish exactly 2N+2 paths; update only modified 2N+2 paths) and push to main
+        if: ${{ inputs.mode == 'publish' || inputs.mode == 'update' }}
         env:
+          MODE: ${{ inputs.mode }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_TERMINAL_PROMPT: "0"
           AREA_IDS: ${{ steps.select.outputs.area_ids }}
@@ -252,17 +289,21 @@ jobs:
           W="$RUNNER_TEMP/ca"
           git add public/areas ios/SouthMountainExplorer/Resources/areas-index.json
           python3 scripts/ca_publish.py verify-staged --repo "$GITHUB_WORKSPACE" \
-            --areas "$AREA_IDS" --mode publish --output "$W/staged-diff-receipt.json"
+            --areas "$AREA_IDS" --mode "$MODE" --output "$W/staged-diff-receipt.json"
           if git diff --cached --quiet; then
             echo "No data changes to commit."; exit 1
           fi
-          git commit -m "trailforge: publish ${AREA_COUNT} Canadian area(s) to app" -m "areas: ${AREA_IDS}"
+          if [ "$MODE" = "update" ]; then
+            git commit -m "trailforge: update ${AREA_COUNT} Canadian area(s) in app" -m "areas: ${AREA_IDS}"
+          else
+            git commit -m "trailforge: publish ${AREA_COUNT} Canadian area(s) to app" -m "areas: ${AREA_IDS}"
+          fi
           git config --local credential.https://github.com.helper '!gh auth git-credential'
           python3 scripts/ca_publish.py verify-commit --repo "$GITHUB_WORKSPACE" \
-            --areas "$AREA_IDS" --mode publish --output "$W/commit-diff-receipt.json"
+            --areas "$AREA_IDS" --mode "$MODE" --output "$W/commit-diff-receipt.json"
           git fetch --no-tags origin main
           test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"
           git push
           git config --local --unset-all credential.https://github.com.helper || true
           echo "pushed $(git rev-parse HEAD) tree $(git rev-parse 'HEAD^{tree}')"
-          echo "Commit pushed to main only. Dispatch sync-ca-to-r2.yml (mode=plan) separately."
+          echo "Commit pushed to main only. Dispatch sync-ca-to-r2.yml (mode=plan, or plan-update after an update) separately."

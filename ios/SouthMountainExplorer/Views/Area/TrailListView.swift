@@ -101,6 +101,23 @@ enum TrailRouteFilter: String, CaseIterable, Identifiable {
     }
 }
 
+/// Whether the trail list snaps row by row. At accessibility text sizes a
+/// single row (or the open profile card) is taller than the sheet viewport, so
+/// snapping would make it impossible to scroll one fully into view.
+enum TrailListSnapPolicy {
+    static func snapsToRows(isAccessibilitySize: Bool) -> Bool { !isAccessibilitySize }
+}
+
+/// `.viewAligned` when snapping is on; otherwise leaves the target untouched
+/// (free scrolling). Standard sizes delegate straight to `.viewAligned`.
+struct TrailListScrollTargetBehavior: ScrollTargetBehavior {
+    var snapsToRows: Bool
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        guard snapsToRows else { return }
+        ViewAlignedScrollTargetBehavior.viewAligned.updateTarget(&target, context: context)
+    }
+}
+
 struct TrailListView: View {
     let area: Area
     @Binding var selectedTrailId: String?
@@ -369,7 +386,7 @@ struct TrailListView: View {
                     }
                     // Marks each row-cell as a snap target for the behavior
                     // on the scroll view below.
-                    .scrollTargetLayout()
+                    .scrollTargetLayout(isEnabled: TrailListSnapPolicy.snapsToRows(isAccessibilitySize: dynamicTypeSize.isAccessibilitySize))
                 }
                 // ON THE SCROLL VIEW, which is what stops UIKit adding the
                 // home-indicator strip as a bottom CONTENT inset. It was on the
@@ -394,7 +411,7 @@ struct TrailListView: View {
                 // report. A three-row viewport cannot afford a half row at its
                 // top edge; the bottom edge runs under the home indicator,
                 // where a mid-scroll slice is how every stock list looks.
-                .scrollTargetBehavior(.viewAligned)
+                .scrollTargetBehavior(TrailListScrollTargetBehavior(snapsToRows: TrailListSnapPolicy.snapsToRows(isAccessibilitySize: dynamicTypeSize.isAccessibilitySize)))
                 .onChange(of: scrollToTopTick) { _, _ in
                     // DESELECT AT THE FIT STOP (AreaView's call — see
                     // `scrollToTopTick`). The row that was open just shrank by

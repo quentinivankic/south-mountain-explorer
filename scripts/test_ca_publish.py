@@ -166,7 +166,7 @@ def test_select_refuses_unknown_duplicate_malformed_published_and_oversized(tmp_
     with pytest.raises(ca.CaError, match="chunk_size"):
         ca.select_areas(reg, set(), ids[0], 41, "qualify", "ns")
     with pytest.raises(ca.CaError, match="mode must be"):
-        ca.select_areas(reg, set(), ids[0], 25, "update", "ns")
+        ca.select_areas(reg, set(), ids[0], 25, "remove", "ns")
     with pytest.raises(ca.CaError, match="province must be"):
         ca.select_areas(reg, set(), ids[0], 25, "qualify", "nt")
 

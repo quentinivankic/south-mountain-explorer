@@ -89,13 +89,14 @@ struct StateDownloadDetailView: View {
         ) {
             Button("Remove", role: .destructive) {
                 if let summary = manager.remove(stateKey) {
-                    removalResult = "Removed \(summary.removed) areas. Kept \(summary.kept) saved or opened areas."
+                    removalResult = summary.message
                 }
             }
             Button("Cancel", role: .cancel) { }
         } message: {
             let plan = manager.removalPreview(stateKey)
-            Text("Removes \(plan.delete.count) area\(plan.delete.count == 1 ? "" : "s"). Kept: \(plan.keptProtected.count) saved or opened area\(plan.keptProtected.count == 1 ? "" : "s").")
+            let keptCount = manager.removalPreviewKeptCount(stateKey)
+            Text("Removes \(plan.delete.count) area\(plan.delete.count == 1 ? "" : "s"). Kept: \(keptCount) saved or opened area\(keptCount == 1 ? "" : "s").")
         }
     }
 

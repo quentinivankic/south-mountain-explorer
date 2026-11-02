@@ -41,6 +41,12 @@ enum StateRowStatus: Equatable, Sendable {
 struct StateRemovalSummary: Equatable, Sendable {
     var removed: Int
     var kept: Int
+    /// Plain-English result line with correct singular/plural.
+    var message: String {
+        let r = "\(removed) area\(removed == 1 ? "" : "s")"
+        let k = "\(kept) saved or opened area\(kept == 1 ? "" : "s")"
+        return "Removed \(r). Kept \(k)."
+    }
 }
 
 /// Orchestrates state and country downloads on top of the verified per-area
@@ -608,6 +614,22 @@ final class StateDownloadManager {
         )
     }
 
+    /// Areas that would survive Remove, including unclaimed pre-existing ones.
+    func removalPreviewKeptCount(_ key: String) -> Int {
+        let ledger = ledgers[key] ?? store.load(stateKey: key)
+        let plan = removalPreview(key)
+        let downloader = AreaCDNDownloader(
+            session: AreaCDNDownloader.makeSession(allowCellular: false),
+            cacheDirectory: cacheDirectory()
+        )
+        return StateRemovalPlanner.survivorCount(
+            keptClaimed: plan.keptProtected,
+            members: ledger.record.memberIDs,
+            preexisting: ledger.record.preexistingIDs,
+            protected: currentProtectedIDs(),
+            isOnDisk: { downloader.isAvailable(id: $0) }
+        )
+    }
     @discardableResult
     func remove(_ key: String) -> StateRemovalSummary? {
         guard !isRunning else { return nil }
@@ -618,6 +640,8 @@ final class StateDownloadManager {
             preexisting: ledger.record.preexistingIDs,
             protected: currentProtectedIDs()
         )
+        let priorMembers = ledger.record.memberIDs
+        let priorPreexisting = ledger.record.preexistingIDs
         var removed: [String] = []
         var kept = plan.keptProtected
         for id in plan.delete {
@@ -637,7 +661,18 @@ final class StateDownloadManager {
         ledgers[key] = ledger
         updateSummaries[key] = nil
         refreshOnDiskCounts()
-        return StateRemovalSummary(removed: removed.count, kept: kept.count)
+        let downloader = AreaCDNDownloader(
+            session: AreaCDNDownloader.makeSession(allowCellular: false),
+            cacheDirectory: cacheDirectory()
+        )
+        let keptCount = StateRemovalPlanner.survivorCount(
+            keptClaimed: kept,
+            members: priorMembers,
+            preexisting: priorPreexisting,
+            protected: currentProtectedIDs(),
+            isOnDisk: { downloader.isAvailable(id: $0) }
+        )
+        return StateRemovalSummary(removed: removed.count, kept: keptCount)
     }
 
     /// After Reset All / Clear All Offline Trails removed the area files.

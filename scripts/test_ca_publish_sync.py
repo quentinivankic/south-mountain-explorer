@@ -139,6 +139,35 @@ def test_unique_boundary_check_fails_closed_on_same_name_or_contained_name(tmp_p
         ("relation", 1000)]
 
 
+def test_boundary_by_id_registry_validation(tmp_path):
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, boundary_by_id=True)]))
+    for bad in (False, "true", 1, None):
+        with pytest.raises(ca.CaError, match="boundary_by_id must be true"):
+            ca.load_registry(_registry(tmp_path, [_entry(0, boundary_by_id=bad)]))
+    way = _entry(0, bbox=None, center=None, boundary_by_id=True)
+    del way["relation_id"]
+    way["way_id"] = 10
+    with pytest.raises(ca.CaError, match="relation-backed"):
+        ca.load_registry(_registry(tmp_path, [way]))
+def test_boundary_by_id_check_requires_the_collision_and_the_registry_relation(tmp_path, capsys):
+    reg_id = _registry(tmp_path, [_entry(0, boundary_by_id=True)])
+    path = _osm(tmp_path)
+    argv = ["check-boundary-unique", "--registry", str(reg_id), "--area-id", "area-000-ca-ns", "--pbf", str(path)]
+    assert ca.main(argv) == 1                                   # unique name: the opt-in is stale
+    assert "boundary_by_id needs several boundaries" in capsys.readouterr().err
+    twin = path.read_text().replace("</osm>", '<relation id="2000"><member type="way" ref="10" role="outer"/>'
+                                    '<tag k="type" v="boundary"/><tag k="name" v="Area 0"/></relation></osm>')
+    path.write_text(twin, encoding="utf-8")
+    assert ca.main(argv) == 0                                   # collision + registry relation 1000 present
+    assert "pinned by id among 2" in capsys.readouterr().out
+    # control: the same collision WITHOUT the opt-in still holds as name-collision
+    reg_plain = _registry(tmp_path, [_entry(0)])
+    assert ca.main(["check-boundary-unique", "--registry", str(reg_plain), "--area-id", "area-000-ca-ns",
+                    "--pbf", str(path)]) == 1
+    # registry relation not among the same-name boundaries (renamed registry relation id) fails closed
+    other = _registry(tmp_path, [_entry(0, relation_id=3000, boundary_by_id=True)])
+    assert ca.main(["check-boundary-unique", "--registry", str(other), "--area-id", "area-000-ca-ns",
+                    "--pbf", str(path)]) == 1
 # ----------------------------------------------------- publish-row helpers ----
 def test_index_for_publish_and_finish_publish_keep_the_display_name_and_counts(tmp_path):
     d = tmp_path
@@ -416,7 +445,8 @@ def test_sync_workflow_wires_the_adopt_gate_if_match_and_orphan_restore():
     assert wf.index("classify-orphans") < wf.index("build-candidates")           # classified before candidates
     assert '--if-match' in wf and "restore-orphan" in wf and "--cur-dir" in wf
     assert wf.count("delete-object") == 1                                         # still only the plain-new rollback delete
-    assert wf.count("aws s3api put-object") == 3          # apply put_if + the two rollback restore forms
+    append = wf.split("UPDATE modes (overwrite existing Canadian areas)")[0]   # the update steps are covered in test_ca_publish_update.py
+    assert append.count("aws s3api put-object") == 3      # apply put_if + the two rollback restore forms
 
 def _wf():
     return (Path(__file__).resolve().parent.parent / ".github/workflows/sync-ca-to-r2.yml").read_text()

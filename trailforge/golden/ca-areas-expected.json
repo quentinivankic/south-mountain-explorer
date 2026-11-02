@@ -1,0 +1,5 @@
+{
+  "schema": "trekdex-ca-areas-expected-v1",
+  "note": "Blessed per-area results for the Canada lane. Produced by the qualify run of trailforge-publish-ca.yml (artifact file ca-areas-expected.proposed.json) and approved once; publish refuses unless every selected area matches.",
+  "areas": {}
+}

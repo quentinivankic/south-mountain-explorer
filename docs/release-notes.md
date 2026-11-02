@@ -62,10 +62,13 @@ IMPROVED
 - Areas open centered and fade in from an animated outline.
 - Explore no longer shows a stale "last location" notice.
 - Larger text and VoiceOver work better across Explore, the area sheet and recording.
+- With large text sizes, the trail list now scrolls smoothly, so a tall trail row can be scrolled fully into view.
+- Removing a state's downloads now reports correctly how many saved or opened areas were kept.
 - Settings: Offline Trails shows what is saved and verified.
 SAFER
 - A failed save no longer loses your hike, and a recording that cannot be recovered says so.
 - GPS gaps no longer draw a straight line or add distance.
+- GPS signal loss now shows as paused promptly.
 - Deleting hikes and loading trail links are more careful.
 - Backup import is removed; export is unchanged. TrekDex no longer uploads diagnostics automatically.
 ```

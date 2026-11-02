@@ -39,242 +39,6 @@
         "Kaløstien"
       ]
     },
-    "nationalpark-thy-dk": {
-      "trail_count": 26,
-      "total_mi": 67.4,
-      "total_mi_tolerance": 0.05,
-      "required_names": [
-        "Thy Blå rute"
-      ],
-      "forbidden_names": [
-        "Aggervej",
-        "Arkensvej",
-        "Blå sti",
-        "Bohn Jespersensvej",
-        "Boligvej",
-        "Bomvej",
-        "Bredevej",
-        "Bruhnsvej",
-        "Chr. Søndergårdsvej",
-        "Dyrehøj Linie",
-        "Egebaksandevej",
-        "Egevej",
-        "Enebærturen-Blå rute",
-        "Fayes Alle",
-        "Federspielvej",
-        "Fladikærsvej",
-        "Fladskærsvej",
-        "Fyrvej",
-        "Færgegårdvej",
-        "Førby Hedevej",
-        "Førby Linie",
-        "Gaffelbakke",
-        "Gamle Kommunevej",
-        "Gl. Lyngvej",
-        "Gl. Vangsåvej",
-        "Grusvejen",
-        "Grønnedalsvej",
-        "Grønnevej",
-        "Gul Sti",
-        "Gul rute",
-        "Gåsekærvej",
-        "Hanstholm Gul rute",
-        "Himmelstrups vej",
-        "Hindingvej",
-        "Hjortevej",
-        "Holdensøvej",
-        "Holger Madsens Vej",
-        "Hotelvej",
-        "Hovedrimmevej",
-        "Hovekærvej",
-        "Hovevej",
-        "Hovvej",
-        "Hvidbakken",
-        "Højensvej",
-        "Istrupvej",
-        "Jagtvej",
-        "Kalkværksvej",
-        "Kildevej",
-        "Klatmøllevej",
-        "Klitmøllervej"
-      ]
-    },
-    "nationalpark-vadehavet-dk": {
-      "trail_count": 17,
-      "total_mi": 59.8,
-      "total_mi_tolerance": 0.05,
-      "required_names": [
-        "Vadehavet Gul Sti"
-      ],
-      "forbidden_names": [
-        "Albuevej",
-        "Ardennevej",
-        "Badesti 1",
-        "Badesti 10",
-        "Badesti 11",
-        "Badesti 12",
-        "Badesti 13",
-        "Badesti 14",
-        "Badesti 15",
-        "Badesti 16",
-        "Badesti 17",
-        "Badesti 18",
-        "Badesti 19",
-        "Badesti 2",
-        "Badesti 20",
-        "Badesti 21",
-        "Badesti 3",
-        "Badesti 4",
-        "Badesti 5",
-        "Badesti 6",
-        "Badesti 8",
-        "Badesti 9",
-        "Bjerges Leje",
-        "Blødtondevej",
-        "Bolengvej",
-        "Bopladsvej",
-        "Borrebjergvej",
-        "Drivvejen alternativ Råhede",
-        "Fanø Strand",
-        "Fjordvej",
-        "Gl. Planteskolevej",
-        "Golfvejen",
-        "Grammarkvej",
-        "Grænsestien",
-        "Halevej",
-        "Halevejen",
-        "Hollænderstrædet",
-        "Hovedgaden",
-        "Hæsset",
-        "Høgesporet",
-        "Juvre Strandvej",
-        "Kanalhusvej",
-        "Kanalstien",
-        "Kilometervej",
-        "Klingebjergvej",
-        "Kongeåstien",
-        "Kyst til Kyst Stien",
-        "Langli",
-        "Langli Ebbevej",
-        "Mandø Toftevej"
-      ]
-    },
-    "nationalpark-skjoldungernes-land-dk": {
-      "trail_count": 4,
-      "total_mi": 19.1,
-      "total_mi_tolerance": 0.05,
-      "required_names": [],
-      "forbidden_names": [
-        "Abbetvedvej",
-        "Alabastvej",
-        "Algade",
-        "Aunserupvej",
-        "Avnsøvej",
-        "Bentsensvej",
-        "Blå Rute",
-        "Blæsbakkevej",
-        "Boerbjergvej",
-        "Bognæsvej",
-        "Boserupvej",
-        "Den Vilde Vej",
-        "Den danske Pilgrimsrute - Nordsjælland",
-        "Den danske Pilgrimsrute - Vestsjælland",
-        "Den danske Pilgrimsrute - Østsjælland",
-        "Det Hvide Spor",
-        "Domkirkepladsen",
-        "Farimagsvej",
-        "Fjordsti",
-        "Fjordstien",
-        "Fjordstien Vandresti",
-        "Gammel Tradshusvej",
-        "Glædebjergvej",
-        "Grusgravsvej",
-        "Grønnevej",
-        "Gul Rute",
-        "Hastrupvej",
-        "Helvigstrupvej",
-        "Hjulbækvej",
-        "Hundeklemmevej",
-        "Hundemosevej",
-        "Kedelvej",
-        "Kildevej",
-        "Kisserupgårdsvej",
-        "Kvandrupvej",
-        "Langdyssevej",
-        "Lerbjergvej",
-        "Linders Alle",
-        "Nordre Sanatorievej",
-        "Ny Tjørnehusvej",
-        "Orupskovvej",
-        "Overdrevsvej",
-        "P. Olsensvej",
-        "Ravnsholtevej",
-        "Sandvejen",
-        "Sankt Hans Sti",
-        "Savværksvej",
-        "Skindervænget",
-        "Skjoldungestien",
-        "Skomagergade"
-      ]
-    },
-    "nationalpark-kongernes-nordsjaelland-dk": {
-      "trail_count": 19,
-      "total_mi": 75.3,
-      "total_mi_tolerance": 0.05,
-      "required_names": [],
-      "forbidden_names": [
-        "1. Tangvej",
-        "2. Tangvej",
-        "5. Tangvej",
-        "Agernkulevej",
-        "Aggebovej",
-        "Albrectsvej",
-        "Alleen",
-        "Allèen ved Endrup vejen",
-        "Amaliesti",
-        "Anders Christensens Vej",
-        "Annasvej",
-        "Asserbolinie",
-        "Bakkehusvej",
-        "Bangs Vej",
-        "Baremosevej",
-        "Birkehavevej",
-        "Birkemosevej",
-        "Bjergegade",
-        "Bjørstrupvej",
-        "Blinde Vej",
-        "Bolandsvej",
-        "Boltevej",
-        "Bomvej",
-        "Bondedamsvej",
-        "Bonneviesvej",
-        "Bopladsvej",
-        "Boserupvej",
-        "Brantebjerglinie",
-        "Brede Åsti",
-        "Bremerholmsvej",
-        "Brillantvej",
-        "Broderbjergvej",
-        "Brændemosevej",
-        "Brænderisterlinje",
-        "Brændevinsstien",
-        "Brøndsporet",
-        "Buresøvej",
-        "Bådestedsvej",
-        "Bølleljungsvej",
-        "Bøssemagervej",
-        "Caroline Mathildes Vej",
-        "Damvej",
-        "De 1000 trappers sti",
-        "Den Enarmede Kongevej",
-        "Den Hængte Vej",
-        "Den Onde Opkørsel",
-        "Den Skrå Bomvej",
-        "Den danske Pilgrimsrute - Nordsjælland",
-        "Den krogede vej",
-        "Den navnløse vej"
-      ]
-    },
     "klosterhede-plantage-dk": {
       "trail_count": 10,
       "total_mi": 34.9,
@@ -475,15 +239,21 @@
       ]
     },
     "pamhule-skov-dk": {
-      "trail_count": 4,
-      "total_mi": 9.3,
+      "trail_count": 8,
+      "total_mi": 18.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Hjertestien, Hindemade"
+        "Dyrehaven - gul rute",
+        "Hindemade og Pamhule - rød rute",
+        "Pamhule - rød rute",
+        "Brunsbyttel og Christiansdal - rød rute",
+        "Hjertestien, Hindemade",
+        "Pamhule - gul rute",
+        "Sandkule Skov - rød rute",
+        "Dyrehaven - blå rute"
       ],
       "forbidden_names": [
         "Bakkevej",
-        "Brunsbyttel og Christiansdal - rød rute",
         "Damvej",
         "Egevej",
         "Granvej",
@@ -1072,16 +842,21 @@
       ]
     },
     "ro-plantage-dk": {
-      "trail_count": 8,
-      "total_mi": 27.5,
+      "trail_count": 2,
+      "total_mi": 9.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Cirkelstien"
+        "Døndal",
+        "Rø Plantage Bornholm"
       ],
       "forbidden_names": [
+        "Cirkelstien",
         "Donnemyrvej",
+        "Finnens fodspor",
         "Grånakkevej",
+        "Hammerknuden Rundt",
         "Høvej",
+        "Jons Kapel rundtur",
         "Langemyrvej",
         "Lundehusvej",
         "Lyngvej",
@@ -1089,7 +864,9 @@
         "Myrstribevej",
         "Nordvej",
         "Puggevej",
+        "Ringebakkerne",
         "Rævevej",
+        "Stenhuggerstien",
         "Søndrevej",
         "Tyvemyrvej",
         "Ædelgranvej"
@@ -1106,12 +883,17 @@
       ]
     },
     "harte-skov-dk": {
-      "trail_count": 4,
-      "total_mi": 6.0,
+      "trail_count": 7,
+      "total_mi": 10.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
+        "Lilla rute i Harte Skov",
+        "blå rute i Klintenborg Plantage",
+        "Rød rute i Harte Skov",
+        "Rød rute i Klintenborg Plantage",
         "Brændsmade",
-        "Lilla rute i Harte Skov"
+        "Gul rute i Klintenborg Plantage",
+        "Blå rute i Harte Skov"
       ],
       "forbidden_names": [
         "Gul rute - Harteskov",
@@ -1267,20 +1049,6 @@
         "Hærvejen",
         "Lavhedevej",
         "Ny Lavhedevej"
-      ]
-    },
-    "sandkule-skov-dk": {
-      "trail_count": 4,
-      "total_mi": 8.7,
-      "total_mi_tolerance": 0.05,
-      "required_names": [
-        "Dyrehaven - gul rute"
-      ],
-      "forbidden_names": [
-        "Den danske Pilgrimsrute-Sønderjylland",
-        "Hærvejen",
-        "Skråvej",
-        "Søvej"
       ]
     },
     "sogard-skov-dk": {
@@ -1491,18 +1259,6 @@
         "Den danske Pilgrimsrute - Midtjylland",
         "Hærvejen",
         "Inderø Ringvej"
-      ]
-    },
-    "klintenborg-plantage-dk": {
-      "trail_count": 3,
-      "total_mi": 4.3,
-      "total_mi_tolerance": 0.05,
-      "required_names": [
-        "Rød rute i Klintenborg Plantage"
-      ],
-      "forbidden_names": [
-        "Ferup - Holmsmindesti",
-        "Troldhedestien"
       ]
     },
     "soheden-plantage-dk": {
@@ -1871,6 +1627,645 @@
         "Jensen og Sørensens Plantage - Blå rute"
       ],
       "forbidden_names": []
+    },
+    "gribskov-dk": {
+      "trail_count": 6,
+      "total_mi": 24.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Søskoven og Esrum Møllegård og Kanal",
+        "Fønstrup Damme",
+        "Pibergården",
+        "Hvide- og Grønnekilder",
+        "Røde Dam",
+        "Store Gribsø"
+      ],
+      "forbidden_names": [
+        "Agernkulevej",
+        "Alleen",
+        "Amaliesti",
+        "Annasvej",
+        "Bakkehusvej",
+        "Baremosevej",
+        "Birkehavevej",
+        "Bolandsvej",
+        "Bomvej",
+        "Bopladsvej",
+        "Boserupvej",
+        "Brændemosevej",
+        "Buresøvej",
+        "Damvej",
+        "Den Enarmede Kongevej",
+        "Den Hængte Vej",
+        "Den Onde Opkørsel",
+        "Den danske Pilgrimsrute - Nordsjælland",
+        "Den krogede vej",
+        "Dr. Ingrids vej",
+        "Egevej",
+        "Eliasvej",
+        "Enghavevej",
+        "Eriksvej",
+        "Fabiansvej",
+        "Fabriksvej",
+        "Farimagsvej",
+        "Farlige Rødder",
+        "Feel & taste 2",
+        "Frederik VIIs Vej",
+        "Fregatvej",
+        "Fruebjergvej",
+        "Frøkenbøgevej",
+        "Fuglesangsvej",
+        "Fægyden",
+        "Gadeledsstien",
+        "Gammelvangsvej",
+        "Gederyggevej",
+        "Gl. Nødebovej",
+        "Gl. Præstevej",
+        "Glarborgvej",
+        "Gribsøvej",
+        "Grøftemosevej",
+        "Grønnevej",
+        "Gunnars Vej",
+        "Havrebakkevej",
+        "Hegnslinjen",
+        "Helledesvej",
+        "Hjorteljungsvej",
+        "Hjortesølevej"
+      ]
+    },
+    "tisvilde-hegn-dk": {
+      "trail_count": 3,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Tisvilde Hegn - Gul rute",
+        "Asserbo Golfklub Hjertesti",
+        "Arrenakke Bakker"
+      ],
+      "forbidden_names": [
+        "Asserbolinie",
+        "Brantebjerglinie",
+        "Bremerholmsvej",
+        "Brøndsporet",
+        "Bølleljungsvej",
+        "De 1000 trappers sti",
+        "Det grønne spor",
+        "Ellemosestien - Sort Kløversti Ramløse",
+        "Fynbolinien",
+        "Gærdevej",
+        "Harehøjslinie",
+        "Hillerød - Tisvilde",
+        "Hjortebjergvej",
+        "Horsekærlinie",
+        "Jydelinie",
+        "Kirkevej",
+        "Lars Andersens Linie",
+        "Lejevejen",
+        "Lerbjærglinie",
+        "Mellemvej",
+        "Myrelinie",
+        "Møllevej",
+        "Nordhuslinien",
+        "Nordhusvej",
+        "Nørrevej",
+        "Reinhard van Hauens Vej",
+        "Ridebrovej",
+        "Råbjerglinien",
+        "Skovkærsvej",
+        "Strandvejen",
+        "Stængehagevej",
+        "Stængehuslinie",
+        "Stængehusvej",
+        "Tisvildevejen",
+        "Toftebrovej",
+        "Triangelsporet",
+        "Troldeskovsporet"
+      ]
+    },
+    "frederiksvaerk-dk": {
+      "trail_count": 5,
+      "total_mi": 15.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Frederiksværk Rød historisk vandring",
+        "Frederiksværk Gul historisk vandring",
+        "Hjertesti ved Magleblik",
+        "Frederiksværk Grøn historisk vandring",
+        "Bakkestien"
+      ],
+      "forbidden_names": [
+        "Fjordstien Vandresti",
+        "Halsninoen",
+        "Hillerød - Frederiksværk",
+        "Smalle Åsti"
+      ]
+    },
+    "gurre-dk": {
+      "trail_count": 2,
+      "total_mi": 13.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Havreholm-turen",
+        "Gurre Sø rundt"
+      ],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Nordsjælland",
+        "Helsingør - Havreholm",
+        "Kong Valdemars Vej",
+        "Kællingemosevej",
+        "Langelandsvej",
+        "Pigernes vej",
+        "Søvej",
+        "Tørvegravej",
+        "Valdemars Fort",
+        "Ålekrogsvej"
+      ]
+    },
+    "boserup-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 7.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Bognæs Storskov",
+        "Boserup Rundt 5 km"
+      ],
+      "forbidden_names": [
+        "Blæsbakkevej",
+        "Boserupvej",
+        "Den danske Pilgrimsrute - Vestsjælland",
+        "Fjordstien Vandresti",
+        "Skjoldungestien",
+        "Strandvej"
+      ]
+    },
+    "bidstrup-skovene-dk": {
+      "trail_count": 2,
+      "total_mi": 12.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Bidstrupskovene Avnstrup",
+        "Skjoldnæsholm Sløjfe"
+      ],
+      "forbidden_names": [
+        "Alabastvej",
+        "Aunserupvej",
+        "Avnsøvej",
+        "Den danske Pilgrimsrute - Vestsjælland",
+        "Det Hvide Spor",
+        "Farimagsvej",
+        "Gammel Tradshusvej",
+        "Grusgravsvej",
+        "Grønnevej",
+        "Hastrupvej",
+        "Helvigstrupvej",
+        "Hjulbækvej",
+        "Hundeklemmevej",
+        "Hundemosevej",
+        "Kedelvej",
+        "Kildevej",
+        "Kvandrupvej",
+        "Lerbjergvej",
+        "Nordre Sanatorievej",
+        "Ny Tjørnehusvej",
+        "Overdrevsvej",
+        "P. Olsensvej",
+        "Ravnsholtevej",
+        "Savværksvej",
+        "Skjoldungestien",
+        "Skovvej",
+        "Skrå Lerbjergvej",
+        "Skrædderhusvej",
+        "Svellevej",
+        "Søndersøvej",
+        "Tjørnehusvej",
+        "Tradshusvej",
+        "Trykkebrændevej",
+        "Valdemarsvej",
+        "Vernersmindevej",
+        "Vestre Sanatorievej",
+        "Østrevej"
+      ]
+    },
+    "tvorup-klitplantage-dk": {
+      "trail_count": 3,
+      "total_mi": 6.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Tvorup Klitplantage Rød rute",
+        "Tvorup Klitplantage Gul rute",
+        "Tvorup Klitplantage Blå rute"
+      ],
+      "forbidden_names": [
+        "Boligvej",
+        "Egebaksandevej",
+        "Færgegårdvej",
+        "Grube Sti",
+        "Grønnevej",
+        "Gul rute",
+        "Hjortevej",
+        "Holger Madsens Vej",
+        "Hotelvej",
+        "Hovvej",
+        "Lervej",
+        "Lervejen",
+        "Lobelievej",
+        "Lyngvej",
+        "Per Højervej",
+        "Råbjergkærvej",
+        "Rød rute",
+        "Skibstedklitvej",
+        "Søvej",
+        "Tranevej",
+        "Vestkyststien",
+        "rød sti"
+      ]
+    },
+    "nystrup-klitplantage-dk": {
+      "trail_count": 8,
+      "total_mi": 22.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Nystrup Plantage Rød hjertesti",
+        "Vegebjergruten",
+        "Nystrup Plantage Blå hjertesti",
+        "Nystrupruten",
+        "Hoverimmeruten",
+        "Trøjborgruten",
+        "Kystskræntruten",
+        "Graves Bakker Ruten"
+      ],
+      "forbidden_names": [
+        "Bomvej",
+        "Bruhnsvej",
+        "Egevej",
+        "Gl. Vangsåvej",
+        "Hovedrimmevej",
+        "Hovekærvej",
+        "Kildevej",
+        "Rute 5 - blå",
+        "Rute 5 blå",
+        "Stavkærvej",
+        "Storevandsvej",
+        "Stougårdsvej",
+        "Søndervej",
+        "Søvej"
+      ]
+    },
+    "vandet-klitplantage-dk": {
+      "trail_count": 2,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Vandetruten",
+        "Rindbæk Ruten"
+      ],
+      "forbidden_names": [
+        "Klatmøllevej",
+        "Nord-Syd Vej",
+        "Rute 10 - Gul",
+        "Rute 11 - Rød",
+        "Rute 7 - Gul",
+        "Rute 8 - Gul",
+        "Rute 9 - Gul",
+        "Rute10 - Gul",
+        "Sundhedsspor",
+        "Søndervej",
+        "Vestvej",
+        "Øster Vandet Vej"
+      ]
+    },
+    "vilsbol-klitplantage-dk": {
+      "trail_count": 3,
+      "total_mi": 7.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Vilsbølruten",
+        "Nebelruten",
+        "Årbjergruten"
+      ],
+      "forbidden_names": [
+        "Fayes Alle",
+        "Grønnedalsvej",
+        "Hulvejruten",
+        "Niels Petersvej",
+        "Norsåvej",
+        "Rosenvej",
+        "Rute 14 - rød og 15 - Gul",
+        "Rute 14 rød",
+        "Rute 15 - Gul"
+      ]
+    },
+    "stenbjerg-klitplantage-dk": {
+      "trail_count": 3,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Embak rute",
+        "Bislet rute",
+        "Røde Bakker rute"
+      ],
+      "forbidden_names": [
+        "Bohn Jespersensvej",
+        "Chr. Søndergårdsvej",
+        "Dyrehøj Linie",
+        "Enebærturen-Blå rute",
+        "Førby Hedevej",
+        "Førby Linie",
+        "Gl. Lyngvej",
+        "Grønnevej",
+        "Gul Sti",
+        "Gåsekærvej",
+        "Hovevej",
+        "Istrupvej",
+        "Jagtvej",
+        "Kalkværksvej",
+        "Kildevej",
+        "Kærgårdsvej",
+        "Orkærvej",
+        "Plantørbolig",
+        "Saltkærvej",
+        "Skiftervej",
+        "Skydebanen",
+        "Smugen",
+        "Steffensvej",
+        "Stenbjergvej",
+        "Stenbjergvej - Karens Linie",
+        "Tværvejen",
+        "Tyskebakken"
+      ]
+    },
+    "flade-so-dk": {
+      "trail_count": 2,
+      "total_mi": 10.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Flade Sø Rundtur",
+        "Sorte næse rute"
+      ],
+      "forbidden_names": [
+        "Strandzugang",
+        "Vestkyststien"
+      ]
+    },
+    "hanstholm-dk": {
+      "trail_count": 3,
+      "total_mi": 14.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hanstholm Gul rute",
+        "Degnbjergruten",
+        "Hanstholm - rød rute"
+      ],
+      "forbidden_names": [
+        "Vestkyststien"
+      ]
+    },
+    "romo-dk": {
+      "trail_count": 4,
+      "total_mi": 8.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kirkeby Plantage - gul rute",
+        "Tvismark Plantage - gul rute",
+        "Vråby Plantage - gul rute",
+        "Kirkeby Plantage - rød rute"
+      ],
+      "forbidden_names": [
+        "Borrebjergvej",
+        "Grammarkvej",
+        "Hollænderstrædet",
+        "Juvre Strandvej",
+        "Lakolkstien",
+        "Rimmevej",
+        "Sneppevej",
+        "Thadesvej"
+      ]
+    },
+    "tondermarsken-dk": {
+      "trail_count": 6,
+      "total_mi": 25.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Sort stisløjfe, Højer, Klæggravene, Vidå",
+        "Rød stisløjfe, Gl. Frederikskog",
+        "Rød stisløjfe, Højer, Emmerlev Klev, Vidåslusen",
+        "Grøn stisløjfe, Højer, Højer Sluse, Højer Havn",
+        "Lyseblå stisløjfe, Vidå",
+        "Grøn stisløjfe, Rudbøl Sø, Lyst"
+      ],
+      "forbidden_names": [
+        "Ammerlandweg",
+        "Marskstien",
+        "Nord Süd Trail, Abschnitt Sylt - Flensburg"
+      ]
+    },
+    "vester-vedsted-dk": {
+      "trail_count": 2,
+      "total_mi": 14.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Landskabsgang",
+        "Grænsestien Rundtur Vester Vedsted"
+      ],
+      "forbidden_names": [
+        "Grænsestien",
+        "Ribe fløjdige",
+        "Vester Bjergvej",
+        "Yder Bjerrum Vej"
+      ]
+    },
+    "tonder-dk": {
+      "trail_count": 2,
+      "total_mi": 11.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Rød stisløjfe, Tønder, Nørresø",
+        "Tur på Papegøjestien"
+      ],
+      "forbidden_names": [
+        "Laurids Rudebecks Allé",
+        "Marskstien",
+        "Nord Süd Trail, Abschnitt Sylt - Flensburg",
+        "Tønderstier: Sort sti, Møgeltønderstien",
+        "Vestergade"
+      ]
+    },
+    "hammeren-dk": {
+      "trail_count": 6,
+      "total_mi": 17.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Hammerknuden Rundt",
+        "Finnens fodspor",
+        "Ringebakkerne",
+        "Stenhuggerstien",
+        "Jons Kapel rundtur",
+        "Cirkelstien"
+      ],
+      "forbidden_names": [
+        "Kyststien"
+      ]
+    },
+    "engelsholm-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 3.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Gul tur - Engelsholm Skov",
+        "Engelsholm - Vesterskov Rød sti"
+      ],
+      "forbidden_names": [
+        "Engvej",
+        "Møllevejen",
+        "Paradegangen",
+        "Ramsherredsvej",
+        "Rans togt",
+        "Schæferhusvej",
+        "Sortehøjevej"
+      ]
+    },
+    "fosdal-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 4.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Fosdalen Gul rute",
+        "Fosdalen Grøn rute"
+      ],
+      "forbidden_names": [
+        "Fosdalvej",
+        "Nygårdsvej"
+      ]
+    },
+    "ulvshale-nyord-dk": {
+      "trail_count": 2,
+      "total_mi": 8.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Ulvshale",
+        "Nyord"
+      ],
+      "forbidden_names": [
+        "Camønoen"
+      ]
+    },
+    "fur-dk": {
+      "trail_count": 4,
+      "total_mi": 9.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Rød Rute - Knudeklinterne",
+        "Grøn Rute - Gammelgård",
+        "Engelstør Odde",
+        "Gul Rute - Den Røde Sten"
+      ],
+      "forbidden_names": [
+        "Bjerregårdvej",
+        "Blegagervej",
+        "Enebærvej",
+        "Engelstskovvej",
+        "Engelstvej",
+        "Fur Bryghus-Campingpladsen",
+        "Fædammevej",
+        "Grøn Rute - Gammelhavn",
+        "Havtornvej",
+        "Hindkjærvej",
+        "Knudevej",
+        "Kønsborgvej",
+        "Porsevej",
+        "Stisagervej"
+      ]
+    },
+    "rude-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 12.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Forskerruten",
+        "Rude Skov"
+      ],
+      "forbidden_names": [
+        "Dilholmsvej",
+        "Ebberødvej",
+        "Egemosevej",
+        "Egevej",
+        "Grevemosevej",
+        "Grusgravvej",
+        "Horsekærvej",
+        "Højbjergvej",
+        "Jagtvej",
+        "Kastanievej",
+        "Krudtdamsvej",
+        "Landspergers vej",
+        "Langebakkevej",
+        "Lille Søvej",
+        "Lollikhusvej",
+        "Lysløjpe Rudeskov",
+        "Løjesøvej",
+        "Maglebjergvej",
+        "Mellemvej",
+        "Mirenevej",
+        "Møllevej",
+        "Mørkealle",
+        "Preusservej",
+        "Rudersdalruten",
+        "Skovfogedvej",
+        "Skovrødvej",
+        "Skårekildevej",
+        "Sortedamsvej",
+        "Stubbesøvej",
+        "Svinebjergvej",
+        "Søvej",
+        "Varmingsvej",
+        "Vedhavevej",
+        "Vildtfogedvej"
+      ]
+    },
+    "lille-vildmose-dk": {
+      "trail_count": 2,
+      "total_mi": 2.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kællingbjerg Klint",
+        "Plankestien i Portlandsmosen"
+      ],
+      "forbidden_names": [
+        "Birkesøvej",
+        "Plankesti på Tofte Mose",
+        "Skovridervej"
+      ]
+    },
+    "pedersker-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 5.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Pedersker Jagthus Rød rute",
+        "Pedersker Jagthus Gul rute"
+      ],
+      "forbidden_names": [
+        "Fårebakkevejen",
+        "Jagtvejen",
+        "Klokkerpiltvej",
+        "Rævebakkevej",
+        "Rømersvej",
+        "Tværvej"
+      ]
+    },
+    "ristinge-halvo-dk": {
+      "trail_count": 2,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Ristinge Halvø rundtur",
+        "Ristinge Halvø"
+      ],
+      "forbidden_names": [
+        "Bagenkop - Ristinge",
+        "Ristinge - Lindelse",
+        "Ristinge Fælled",
+        "Ristinge Nor"
+      ]
     }
   }
 }

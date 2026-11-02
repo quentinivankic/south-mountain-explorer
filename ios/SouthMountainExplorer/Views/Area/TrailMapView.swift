@@ -162,6 +162,13 @@ struct TrailMapView: View {
     /// end. A map tap then reports its coordinate here instead of selecting a
     /// trail. nil (the default) leaves the map exactly as it was.
     var onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
+    /// "Plan a Hike" route preview: drawn as its own overlay when non-nil.
+    /// `plannedRouteFitTick` asks for one fit of the camera to it (through
+    /// `selectedRouteRegion`, the same math selected-trail framing uses),
+    /// inside `plannedRouteFitInsets`. nil / 0 leave the map as it was.
+    var plannedRoute: PlannedRoute? = nil
+    var plannedRouteFitTick: Int = 0
+    var plannedRouteFitInsets: MapViewportInsets = .zero
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -274,7 +281,10 @@ struct TrailMapView: View {
         selectedViewportInsets: MapViewportInsets = .zero,
         selectedVisibleInsets: MapViewportInsets = .zero,
         trackingMode: Binding<MapTrackingMode>,
-        onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
+        onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil,
+        plannedRoute: PlannedRoute? = nil,
+        plannedRouteFitTick: Int = 0,
+        plannedRouteFitInsets: MapViewportInsets = .zero
     ) {
         self.area = area
         self.activeRecording = activeRecording
@@ -289,6 +299,9 @@ struct TrailMapView: View {
         self.selectedVisibleInsets = selectedVisibleInsets
         self._trackingMode = trackingMode
         self.onPickCoordinate = onPickCoordinate
+        self.plannedRoute = plannedRoute
+        self.plannedRouteFitTick = plannedRouteFitTick
+        self.plannedRouteFitInsets = plannedRouteFitInsets
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
         // default location before .onAppear fires.
@@ -322,6 +335,7 @@ struct TrailMapView: View {
                 selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
                 onPickCoordinate: onPickCoordinate,
+                plannedRoute: plannedRoute,
                 showAllParking: showAllParking,
                 // Read HERE, in a View body, so observation is registered and the
                 // map re-renders the moment the pool lands.
@@ -550,6 +564,9 @@ struct TrailMapView: View {
             allowsSelectedMarkerCorrection = true
             selectedMarkerAuditGeneration &+= 1
             centerOn(trail: trail)
+        }
+        .onChange(of: plannedRouteFitTick) { _, _ in
+            fitPlannedRoute()
         }
         .onChange(of: recenterTick) { _, _ in
             allowsSelectedMarkerCorrection = false
@@ -1082,6 +1099,21 @@ struct TrailMapView: View {
         setCameraTarget(target)
     }
 
+    /// One camera move that frames the planned route above the Plan card.
+    /// Uses the existing selected-route fit math and `setCameraTarget`; no
+    /// state of its own, and the user's next gesture owns the camera again.
+    private func fitPlannedRoute() {
+        guard let route = plannedRoute, !route.isEmpty,
+              let target = Self.selectedRouteRegion(
+                points: route.allCoords.map { (lat: $0.lat, lon: $0.lon) },
+                viewportInsets: plannedRouteFitInsets,
+                screenHeight: viewportSize.height,
+                screenWidth: viewportSize.width
+              ) else { return }
+        allowsSelectedMarkerCorrection = false
+        releaseOpeningFraming()
+        setCameraTarget(target)
+    }
     private func setCameraTarget(_ target: MapTarget) {
         cameraTarget = target
         cameraTick &+= 1

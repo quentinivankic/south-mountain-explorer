@@ -74,6 +74,19 @@ final class DemoUserDotAnnotation: MKPointAnnotation {}
 /// re-entering the coordinator's `recordingOverlayIds` while reconciliation
 /// holds that set as an `inout` value.
 final class RecordingPolyline: MKPolyline {}
+/// "Plan a Hike" route preview line. `isCasing` marks the wider white stroke
+/// drawn under the colored line. Type-identified, like `RecordingPolyline`,
+/// because MapKit asks for the renderer inside `addOverlay`.
+final class PlannedRoutePolyline: MKPolyline {
+    var kind: PlannedRoute.Kind = .trail
+    var isCasing = false
+}
+/// Start / end marker or "Off-trail" / "Unverified connection" tag of the
+/// planned route preview.
+final class PlannedRouteAnnotation: MKPointAnnotation {
+    enum Role { case start, end, tag(PlannedRoute.Kind) }
+    var role: Role = .start
+}
 
 /// A trailhead parking / access pin (see `Area.parking`). A distinct class lets
 /// the Coordinator's `viewFor` render it without touching other annotations
@@ -122,6 +135,9 @@ struct MapKitMapView: UIViewRepresentable {
     /// "Plan a Hike" pick mode. When set, a tap reports the tapped coordinate
     /// here and does not select a trail. nil = normal tap-to-select.
     var onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
+    /// "Plan a Hike" route preview, drawn above the trail lines and below the
+    /// recording line. nil draws nothing.
+    var plannedRoute: PlannedRoute? = nil
     /// Show every lot in the area rather than only the selected trail's few.
     /// Off by default — see StorageKeys.showAllParking for why the per-trail
     /// gate stays strict and this exists alongside it.
@@ -376,6 +392,11 @@ struct MapKitMapView: UIViewRepresentable {
             coord.lastHaloHashes = newHaloHashes
         }
 
+        // 2b) Planned route preview — only when the route itself changes.
+        if coord.lastPlannedRoute != plannedRoute {
+            coord.applyPlannedRoute(plannedRoute, on: mapView)
+            coord.lastPlannedRoute = plannedRoute
+        }
         // 3) Live halo — rebuild when the per-segment hash changes.
         // TrailMapView throttles recompute to ~1 Hz so this rebuild
         // is at most 1×/second during recording, free otherwise.
@@ -758,6 +779,62 @@ struct MapKitMapView: UIViewRepresentable {
         var hiddenTrailIds: Set<String> = []
 
         var haloOverlays: [MKPolyline] = []
+        // Planned route preview (Task 10). Casing + line per segment.
+        var plannedRouteOverlays: [PlannedRoutePolyline] = []
+        var plannedRouteAnnotations: [PlannedRouteAnnotation] = []
+        var lastPlannedRoute: PlannedRoute?
+        func applyPlannedRoute(_ route: PlannedRoute?, on mapView: MKMapView) {
+            mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
+            plannedRouteOverlays.removeAll(keepingCapacity: true)
+            mapView.removeAnnotations(plannedRouteAnnotations)
+            plannedRouteAnnotations.removeAll(keepingCapacity: true)
+            guard let route, !route.isEmpty else { return }
+            for casing in [true, false] {
+                for seg in route.segments {
+                    let pts = seg.coords.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+                    let pl = PlannedRoutePolyline(coordinates: pts, count: pts.count)
+                    pl.kind = seg.kind
+                    pl.isCasing = casing
+                    plannedRouteOverlays.append(pl)
+                }
+            }
+            mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
+            func note(_ c: PlannedRoute.Coord, _ role: PlannedRouteAnnotation.Role, _ title: String) {
+                let a = PlannedRouteAnnotation()
+                a.coordinate = CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon)
+                a.role = role
+                a.title = title
+                plannedRouteAnnotations.append(a)
+            }
+            for tag in route.tags { note(tag.coord, .tag(tag.kind), tag.text) }
+            if let s = route.start { note(s, .start, route.end == nil ? "Planned route start and finish" : "Planned route start") }
+            if let e = route.end { note(e, .end, "Planned route end") }
+            mapView.addAnnotations(plannedRouteAnnotations)
+        }
+        /// Trail overlays re-added by a filter change land above the route;
+        /// put the route back on top of them.
+        func bringPlannedRouteToFront(on mapView: MKMapView) {
+            guard !plannedRouteOverlays.isEmpty else { return }
+            mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
+            mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
+        }
+        static let plannedRouteColor = UIColor(red: 0.86, green: 0.0, blue: 0.52, alpha: 1)
+        static func plannedTagImage(_ text: String) -> UIImage {
+            let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
+            let size = (text as NSString).size(withAttributes: attrs)
+            let padX: CGFloat = 7, padY: CGFloat = 3
+            let rect = CGRect(x: 0, y: 0, width: ceil(size.width) + padX * 2, height: ceil(size.height) + padY * 2)
+            return UIGraphicsImageRenderer(size: rect.size).image { _ in
+                plannedRouteColor.setFill()
+                UIBezierPath(roundedRect: rect, cornerRadius: rect.height / 2).fill()
+                UIColor.white.setStroke()
+                let border = UIBezierPath(roundedRect: rect.insetBy(dx: 0.75, dy: 0.75), cornerRadius: rect.height / 2)
+                border.lineWidth = 1.5
+                border.stroke()
+                (text as NSString).draw(at: CGPoint(x: padX, y: padY), withAttributes: attrs)
+            }
+        }
         /// On-trail segments from the live recording. Tracked
         /// separately from `haloOverlays` because the renderer
         /// styles them brighter and at a different width to
@@ -1450,6 +1527,40 @@ struct MapKitMapView: UIViewRepresentable {
                 view.zPriority = .max
                 return view
             }
+            if let planned = annotation as? PlannedRouteAnnotation {
+                switch planned.role {
+                case .tag:
+                    let id = "planned-route-tag"
+                    let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                        ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    view.annotation = annotation
+                    view.image = Self.plannedTagImage(planned.title ?? "")
+                    view.canShowCallout = false
+                    view.displayPriority = .required
+                    view.collisionMode = .none
+                    // Sit beside the line, clear of the start pin.
+                    view.centerOffset = CGPoint(x: (view.image?.size.width ?? 0) / 2 + 10, y: 0)
+                    view.isAccessibilityElement = true
+                    view.accessibilityLabel = planned.title
+                    view.accessibilityIdentifier = "plan-route-tag"
+                    return view
+                case .start, .end:
+                    let isStart: Bool = { if case .start = planned.role { return true } else { return false } }()
+                    let id = isStart ? "planned-route-start" : "planned-route-end"
+                    let view = (mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView)
+                        ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    view.annotation = annotation
+                    view.markerTintColor = Self.plannedRouteColor
+                    view.glyphImage = UIImage(systemName: isStart ? "figure.hiking" : "flag.checkered")
+                    view.canShowCallout = false
+                    view.displayPriority = .required
+                    view.titleVisibility = .hidden
+                    view.isAccessibilityElement = true
+                    view.accessibilityLabel = planned.title
+                    view.accessibilityIdentifier = isStart ? "plan-route-start" : "plan-route-end"
+                    return view
+                }
+            }
             if let parking = annotation as? ParkingAnnotation {
                 // Reuse-id per style so a recycled trailhead view never keeps a
                 // parking glyph (or vice-versa) after MapKit dequeues it.
@@ -1577,6 +1688,21 @@ struct MapKitMapView: UIViewRepresentable {
                 if let trailId = trailIdByOverlay[ObjectIdentifier(multi)] {
                     trailRenderers[trailId] = r
                     applyTrailStyle(renderer: r, trailId: trailId)
+                }
+                return r
+            }
+            if let route = overlay as? PlannedRoutePolyline {
+                let r = MKPolylineRenderer(polyline: route)
+                let dashed = route.kind != .trail
+                r.lineJoin = .round
+                r.lineCap = dashed ? .butt : .round
+                if dashed { r.lineDashPattern = [9, 7] }
+                if route.isCasing {
+                    r.strokeColor = UIColor.white.withAlphaComponent(0.95)
+                    r.lineWidth = 8
+                } else {
+                    r.strokeColor = Self.plannedRouteColor
+                    r.lineWidth = 4
                 }
                 return r
             }

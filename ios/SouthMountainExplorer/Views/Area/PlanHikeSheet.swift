@@ -7,6 +7,8 @@ struct PlanHikeSheet: View {
     let controller: PlanHikeController
     /// Closes the sheet and lets the user tap the map for a start or end.
     let onDropPin: (PlanPinTarget) -> Void
+    /// Starts a normal recording (Task 10). The caller closes the sheet if it began.
+    let onStartHike: () -> Void
     let onClose: () -> Void
 
     @Environment(AreaDataService.self) private var areas
@@ -21,20 +23,20 @@ struct PlanHikeSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-                Form {
-                    startSection
-                    limitsSection
-                    paceSection
-                    shapeSection
-                    resultSection
-                }
-                // A finished plan lands below the inputs; bring it into view.
-                .onChange(of: controller.resultVersion) { _, _ in
-                    withAnimation { proxy.scrollTo(Self.resultAnchor, anchor: .top) }
+            Group {
+                if controller.preview.isShowing, case .planned(let outcome, let context) = controller.state {
+                    PlanRouteCard(
+                        controller: controller,
+                        display: PlanResultDisplay.make(outcome: outcome, context: context, units: units),
+                        gate: PlanStartGate.evaluate(
+                            hasActiveRecording: recording.activeRecording != nil,
+                            hasRecoveryIssue: recording.recoveryIssue != nil),
+                        onStart: onStartHike)
+                } else {
+                    formView
                 }
             }
-            .navigationTitle("Plan a Hike")
+            .navigationTitle(controller.preview.isShowing ? "Your route" : "Plan a Hike")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -43,11 +45,32 @@ struct PlanHikeSheet: View {
                         .accessibilityIdentifier("plan-done-button")
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) { runBar }
         }
         .task { await controller.prepare(area: area, recording: recording, units: units) }
         .onChange(of: controller.inputs) { _, _ in controller.inputsChanged() }
-        .onDisappear { controller.cancel() }
+        .onDisappear {
+            controller.cancel()
+            // Closing the plan removes the route, unless Start hike began a
+            // recording (then it stays as a passive guide).
+            if !controller.hikeStarted { controller.clearRoute() }
+        }
+    }
+
+    private var formView: some View {
+        ScrollViewReader { proxy in
+            Form {
+                startSection
+                limitsSection
+                paceSection
+                shapeSection
+                resultSection
+            }
+            // A finished plan lands below the inputs; bring it into view.
+            .onChange(of: controller.resultVersion) { _, _ in
+                withAnimation { proxy.scrollTo(Self.resultAnchor, anchor: .top) }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { runBar }
     }
 
     // MARK: - Start / end
@@ -298,6 +321,18 @@ struct PlanHikeSheet: View {
             }
             .buttonStyle(.bordered)
             .accessibilityIdentifier("plan-replan-button")
+        }
+
+        if d.kind == .planned, controller.preview.canShow {
+            Button {
+                controller.showOnMap()
+            } label: {
+                Label("Show on map", systemImage: "map")
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("plan-show-on-map")
+            .accessibilityHint("Draws the route on the map.")
         }
 
         if let route = d.route { routeView(route, showTitle: false) }

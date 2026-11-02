@@ -25,8 +25,19 @@ final class PlanHikeController {
 
     var inputs = PlanHikeInputs()
     private(set) var state = RunState.idle {
-        didSet { if case .planned = state { resultVersion &+= 1 } else if case .failed = state { resultVersion &+= 1 } }
+        didSet {
+            if case .planned = state { resultVersion &+= 1 } else if case .failed = state { resultVersion &+= 1 }
+            // Any new state drops the old route; `plan` loads the new one after.
+            preview = PlanPreview()
+            hikeStarted = false
+        }
     }
+    /// Which planned route is drawn on the map (Task 10).
+    private(set) var preview = PlanPreview()
+    /// Bumped when the camera should fit the drawn route.
+    private(set) var fitTick = 0
+    /// Set when Start hike began a recording; the route stays up as a passive guide.
+    private(set) var hikeStarted = false
     /// Bumped each time a result (or error) lands, so the sheet can scroll to it.
     private(set) var resultVersion = 0
     private(set) var spots: [PlanSpot] = []
@@ -73,6 +84,24 @@ final class PlanHikeController {
         state = .idle
     }
 
+    // MARK: Route preview
+
+    func showOnMap() {
+        preview.show()
+        if preview.isShowing { fitTick &+= 1 }
+    }
+
+    func selectRoute(id: String) {
+        if preview.select(id: id) { fitTick &+= 1 }
+    }
+
+    func clearRoute() {
+        preview.clear()
+        hikeStarted = false
+    }
+
+    func markHikeStarted() { hikeStarted = true }
+
     /// Closing the sheet stops a running plan; a finished result stays.
     func cancel() {
         run?.cancel()
@@ -112,7 +141,9 @@ final class PlanHikeController {
             let result = await Task.detached(priority: .userInitiated) { request.execute() }.value
             guard !Task.isCancelled else { return }
             switch result {
-            case .success(let done): self.state = .planned(done.outcome, done.context)
+            case .success(let done):
+                self.state = .planned(done.outcome, done.context)
+                self.preview.load(done.options)
             case .failure(let err): self.state = .failed(PlanHikeMessages.startError(err.error, isEnd: err.isEnd, units: units))
             }
             self.run = nil
@@ -125,6 +156,7 @@ private struct PlanRun: Sendable {
     struct Done: Sendable {
         let outcome: PlanOutcome
         let context: PlanResultContext
+        let options: [PlanPreview.Option]
     }
     struct Failure: Error, Sendable {
         let error: TrailNetworkStartError
@@ -164,6 +196,13 @@ private struct PlanRun: Sendable {
             startPart: .init(isLargest: part.isLargest, lengthMeters: part.lengthMeters, largestLengthMeters: largest),
             startOffTrailMeters: view.start.connectorMeters,
             endOffTrailMeters: view.end?.connectorMeters ?? 0)
-        return .success(Done(outcome: outcome, context: context))
+        var options: [PlanPreview.Option] = []
+        if case .planned(let best, let alts) = outcome {
+            let edges = view.network.edges
+            options = PlanPreview.options(
+                best: PlannedRouteBuilder.build(plan: best, edges: edges),
+                alternatives: alts.map { ($0.label.title, PlannedRouteBuilder.build(plan: $0.plan, edges: edges)) })
+        }
+        return .success(Done(outcome: outcome, context: context, options: options))
     }
 }

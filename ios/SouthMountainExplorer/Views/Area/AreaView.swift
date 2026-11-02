@@ -245,6 +245,7 @@ struct AreaView: View {
     @State private var showPlanHike = false
     @State private var planHike = PlanHikeController()
     @State private var planPickTarget: PlanPinTarget? = nil
+    @State private var planDetent: PresentationDetent = .medium
     /// Bumped by the toolbar search button before expanding to Browse. The
     /// list persists the request until its conditionally mounted field appears,
     /// so focus does not depend on a guessed animation delay.
@@ -514,7 +515,10 @@ struct AreaView: View {
                     selectedViewportInsets: selectedMapViewportInsets,
                     selectedVisibleInsets: selectedMapVisibleInsets,
                     trackingMode: $trackingMode,
-                    onPickCoordinate: planPickHandler
+                    onPickCoordinate: planPickHandler,
+                    plannedRoute: planHike.preview.selected?.route,
+                    plannedRouteFitTick: planHike.fitTick,
+                    plannedRouteFitInsets: planRouteFitInsets
                 )
                 .ignoresSafeArea()
                 .accessibilityHidden(loadingOverlayVisible)
@@ -524,6 +528,7 @@ struct AreaView: View {
                     .accessibilityHidden(loadingOverlayVisible)
 
                 planPickBanner
+                planRouteChip
 
                 // iOS 26 presents the native sheet as a floating card: its
                 // custom presentation background is opaque, but the host itself
@@ -1159,7 +1164,10 @@ struct AreaView: View {
                         trailing: bleed
                     ),
                     trackingMode: $trackingMode,
-                    onPickCoordinate: planPickHandler
+                    onPickCoordinate: planPickHandler,
+                    plannedRoute: planHike.preview.selected?.route,
+                    plannedRouteFitTick: planHike.fitTick,
+                    plannedRouteFitInsets: planRouteFitInsets
                 )
                 .ignoresSafeArea(edges: [.top, .bottom, .trailing])
                 .accessibilityHidden(loadingOverlayVisible)
@@ -1169,6 +1177,7 @@ struct AreaView: View {
                     .accessibilityHidden(loadingOverlayVisible)
 
                 planPickBanner
+                planRouteChip
             }
             .overlay(alignment: .top) { mapControlCluster }
         }
@@ -2146,10 +2155,23 @@ struct AreaView: View {
                 area: area,
                 controller: planHike,
                 onDropPin: { target in beginPlanPick(target) },
+                onStartHike: { startPlannedHike() },
                 onClose: { showPlanHike = false }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents(
+                planHike.preview.isShowing ? [planCardDetent, .medium, .large] : [.medium, .large],
+                selection: $planDetent)
+            .presentationBackgroundInteraction(
+                planHike.preview.isShowing ? .enabled(upThrough: planCardDetent) : .automatic)
             .presentationDragIndicator(.visible)
+            .onChange(of: planHike.preview.isShowing) { _, showing in
+                planDetent = showing ? planCardDetent : .medium
+            }
+        }
+        .onChange(of: isRecording) { _, nowRecording in
+            // The route is a passive guide for the recording it started; it
+            // goes when that recording ends.
+            if !nowRecording, planHike.hikeStarted { planHike.clearRoute() }
         }
         // Confirmation dialogs ALSO nest inside the sheet — same
         // one-presentation-per-ancestor rule that put the modal sheets
@@ -2202,6 +2224,65 @@ struct AreaView: View {
             }
         } message: {
             Text(recordingSaveFailureMessage ?? "The current recording is still safe, location observation resumed, and no new hike was started.")
+        }
+    }
+
+    /// Small stop for the route card. Accessibility sizes use the medium stop
+    /// so the card's buttons stay readable.
+    private var planCardDetent: PresentationDetent {
+        dynamicTypeSize.isAccessibilitySize ? .medium : .fraction(0.42)
+    }
+
+    /// Where the planned route should sit on screen: above the Plan card on a
+    /// phone, clear of the side panel on wide layouts.
+    private var planRouteFitInsets: MapViewportInsets {
+        if isWideLayout { return selectedMapViewportInsets }
+        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.5 : 0.42
+        return MapViewportInsets(
+            top: measuredMapControlsBottom + 40, leading: 20,
+            bottom: WindowMetrics.size.height * fraction + 24, trailing: 20)
+    }
+
+    /// Start hike: a normal roam recording through the usual guards. The
+    /// route stays on the map as a passive guide until that recording ends.
+    private func startPlannedHike() {
+        guard PlanStartGate.evaluate(
+            hasActiveRecording: recording.activeRecording != nil,
+            hasRecoveryIssue: recording.recoveryIssue != nil).isAllowed else { return }
+        tryStartRecording()
+        if isRecording {
+            planHike.markHikeStarted()
+            showPlanHike = false
+        }
+    }
+
+    /// Small chip with Clear while a planned route is drawn and the Plan sheet
+    /// is closed (that is, during the recording it started).
+    @ViewBuilder
+    private var planRouteChip: some View {
+        if planHike.preview.isShowing, !showPlanHike {
+            VStack {
+                HStack(spacing: 12) {
+                    Text("Planned route")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button("Clear") { planHike.clearRoute() }
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityIdentifier("plan-clear-route-chip")
+                        .accessibilityHint("Removes the planned route from the map.")
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 2)
+                .compatibleGlass(in: .rect(cornerRadius: 16))
+                .padding(.horizontal, 16)
+                .padding(.top, measuredMapControlsBottom + 8)
+                Spacer()
+            }
+            .ignoresSafeArea(edges: .top)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("plan-route-chip")
         }
     }
 

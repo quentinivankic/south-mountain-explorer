@@ -17,7 +17,8 @@ struct PlanningNetworkInput: Sendable {
 }
 
 /// Thin app adapter: picks neighbors, loads their areas (cache first), merges
-/// and builds the base network off the main actor. Not called from UI yet.
+/// and builds the base network off the main actor. Disk reads and decodes of
+/// cached areas also run off the main actor.
 @MainActor
 final class PlanningNetworkLoader {
     private let areas: AreaDataService
@@ -37,10 +38,25 @@ final class PlanningNetworkLoader {
         primary: Area, startLat: Double, startLon: Double,
         budgetSeconds: Double, shape: RoutePlanRequest.Shape, paceFactor: Double = 1.0
     ) async -> PlanningNetworkInput {
-        let candidates = areas.nearby(lat: startLat, lon: startLon, limit: Self.nearbyLimit).map { s in
+        let directory = areas.areaCacheDirectory
+        let nearby = areas.nearby(lat: startLat, lon: startLon, limit: Self.nearbyLimit)
+        // Memory hits are free; the rest is read and decoded off the main actor.
+        var bboxes: [String: [Double]] = [:]
+        var needDisk: [String] = []
+        for s in nearby {
+            if let area = areas.memoryArea(id: s.id) {
+                if let b = area.bbox { bboxes[s.id] = b }
+            } else {
+                needDisk.append(s.id)
+            }
+        }
+        let fromDisk = await Task.detached(priority: .userInitiated) {
+            Self.readAreas(ids: needDisk, directory: directory)
+        }.value
+        for (id, area) in fromDisk { if let b = area.bbox { bboxes[id] = b } }
+        let candidates = nearby.map { s in
             NeighborSelection.Candidate(
-                id: s.id, centerLat: s.centerLat, centerLon: s.centerLon,
-                bbox: areas.cachedArea(id: s.id)?.bbox)
+                id: s.id, centerLat: s.centerLat, centerLon: s.centerLon, bbox: bboxes[s.id])
         }
         let selection = NeighborSelection.select(
             primaryId: primary.id, startLat: startLat, startLon: startLon,
@@ -50,8 +66,12 @@ final class PlanningNetworkLoader {
         var loaded: [Area] = [primary]
         var notDownloaded: [String] = []
         var failed: [String] = []
+        let includedNeedDisk = selection.includedIds.filter { areas.memoryArea(id: $0) == nil }
+        let includedFromDisk = await Task.detached(priority: .userInitiated) {
+            Self.readAreas(ids: includedNeedDisk, directory: directory)
+        }.value
         for id in selection.includedIds {
-            if let cached = areas.cachedArea(id: id), !cached.trails.isEmpty {
+            if let cached = areas.memoryArea(id: id) ?? includedFromDisk[id], !cached.trails.isEmpty {
                 loaded.append(cached)
             } else if !isOnline() {
                 notDownloaded.append(id)
@@ -64,7 +84,7 @@ final class PlanningNetworkLoader {
 
         let key = Self.cacheKey(loaded)
         let sets = loaded.map { AreaTrailSet(areaId: $0.id, trails: $0.rawTrails ?? $0.trails) }
-        let canonicalMap = Dictionary(uniqueKeysWithValues: loaded.map { ($0.id, areas.canonicalId(for: $0.id)) })
+        let canonicalMap = Dictionary(loaded.map { ($0.id, areas.canonicalId(for: $0.id)) }, uniquingKeysWith: { first, _ in first })
         let hit = cache[key]
         let built: (merged: MergedTrails, network: TrailNetwork)
         if let hit {
@@ -85,6 +105,17 @@ final class PlanningNetworkLoader {
             networkWasCached: hit != nil)
     }
 
+    /// Reads and validates durable areas from `directory`. Pure file work, so it
+    /// is safe to call from a background task.
+    nonisolated static func readAreas(ids: [String], directory: URL) -> [String: Area] {
+        guard !ids.isEmpty else { return [:] }
+        let store = AreaCacheStore(cacheDirectory: directory)
+        var out: [String: Area] = [:]
+        for id in ids where out[id] == nil {
+            if let area = store.validArea(id: id) { out[id] = area }
+        }
+        return out
+    }
     /// Primary id (it wins dedupe ties), then sorted area ids with each copy's
     /// version (cachedAt and trail count).
     static func cacheKey(_ areas: [Area]) -> String {

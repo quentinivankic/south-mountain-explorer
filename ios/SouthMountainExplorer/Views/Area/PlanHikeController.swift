@@ -86,16 +86,33 @@ final class PlanHikeController {
 
     // MARK: Route preview
 
+    /// Wait before the second fit, so it lands after the sheet detent animation.
+    var settleDelay: Duration = .milliseconds(350)
+    private var settleFit: Task<Void, Never>?
     func showOnMap() {
         preview.show()
-        if preview.isShowing { fitTick &+= 1 }
+        guard preview.isShowing else { return }
+        fitTick &+= 1
+        // Insets assume the sheet's resting height; refit once it has settled.
+        settleFit?.cancel()
+        settleFit = Task { [weak self] in
+            guard let delay = self?.settleDelay else { return }
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, self.preview.isShowing else { return }
+            self.fitTick &+= 1
+        }
     }
 
     func selectRoute(id: String) {
         if preview.select(id: id) { fitTick &+= 1 }
     }
 
+    /// Test seam: load route options without running the planner.
+    func loadPreviewForTesting(_ options: [PlanPreview.Option]) { preview.load(options) }
+
     func clearRoute() {
+        settleFit?.cancel()
+        settleFit = nil
         preview.clear()
         hikeStarted = false
     }
@@ -130,8 +147,15 @@ final class PlanHikeController {
                 budgetSeconds: snapshot.timeLimitSeconds, shape: snapshot.shape, paceFactor: paceFactor)
             guard !Task.isCancelled, let self else { return }
             self.state = .planning("Planning your hike…")
-            let completion = input.merged.completion(
-                TrailCompletionLookup.progress(progress, trails: input.merged.allInputs))
+            // Cheap value copies on main; the fingerprint hashing runs off main.
+            let completions = progress.completions
+            let fingerprints = progress.completedFingerprints
+            let merged = input.merged
+            let completion = await Task.detached(priority: .userInitiated) {
+                merged.completion(TrailCompletionLookup.snapshot(
+                    completions: completions, fingerprints: fingerprints, trails: merged.allInputs))
+            }.value
+            guard !Task.isCancelled else { return }
             let request = PlanRun(
                 network: input.network, trails: input.merged.inputs, completion: completion,
                 start: start, end: snapshot.shape == .oneWay ? snapshot.end : nil,

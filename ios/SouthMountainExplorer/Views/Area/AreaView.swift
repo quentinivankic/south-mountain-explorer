@@ -2159,7 +2159,7 @@ struct AreaView: View {
                 onClose: { showPlanHike = false }
             )
             .presentationDetents(
-                planHike.preview.isShowing ? [planCardDetent, .medium, .large] : [.medium, .large],
+                [.medium, .large],
                 selection: $planDetent)
             .presentationBackgroundInteraction(
                 planHike.preview.isShowing ? .enabled(upThrough: planCardDetent) : .automatic)
@@ -2227,17 +2227,15 @@ struct AreaView: View {
         }
     }
 
-    /// Small stop for the route card. Accessibility sizes use the medium stop
-    /// so the card's buttons stay readable.
-    private var planCardDetent: PresentationDetent {
-        dynamicTypeSize.isAccessibilitySize ? .medium : .fraction(0.42)
-    }
+    /// Resting stop for the route card: half the screen, so the summary, the
+    /// trails list and the button bar fit. `planRouteFitInsets` uses the same half.
+    private var planCardDetent: PresentationDetent { .medium }
 
     /// Where the planned route should sit on screen: above the Plan card on a
     /// phone, clear of the side panel on wide layouts.
     private var planRouteFitInsets: MapViewportInsets {
         if isWideLayout { return selectedMapViewportInsets }
-        let fraction: CGFloat = dynamicTypeSize.isAccessibilitySize ? 0.5 : 0.42
+        let fraction: CGFloat = 0.5
         return MapViewportInsets(
             top: measuredMapControlsBottom + 40, leading: 20,
             bottom: WindowMetrics.size.height * fraction + 24, trailing: 20)

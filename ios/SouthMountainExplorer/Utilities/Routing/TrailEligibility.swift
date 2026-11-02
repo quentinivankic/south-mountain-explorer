@@ -138,6 +138,23 @@ struct TrailCompletionLookup: Sendable {
     }
 }
 
+extension TrailCompletionLookup {
+    /// Same answer as `progress` (id match first, then geometry fingerprint)
+    /// from plain value copies of the progress data, so the fingerprint hashing
+    /// can run off the main actor.
+    nonisolated static func snapshot(
+        completions: [String: [String: String]], fingerprints: Set<String>, trails: [TrailNetwork.Input]
+    ) -> TrailCompletionLookup {
+        var done = Set<TrailNetwork.TrailKey>()
+        for input in trails {
+            if completions[input.areaId]?[input.trail.id] != nil
+                || (!fingerprints.isEmpty && fingerprints.contains(input.trail.completionFingerprint)) {
+                done.insert(input.key)
+            }
+        }
+        return TrailCompletionLookup(completed: done)
+    }
+}
 extension TrailEligibility {
     /// Classifies every trail in `trails` (plus any trail key the network
     /// knows). `trails` supplies display names.

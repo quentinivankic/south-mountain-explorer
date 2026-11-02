@@ -51,6 +51,11 @@ struct TrailNetwork: Sendable {
         /// Synthetic connection across a small gap. Unverified: nothing in the
         /// data says it can be walked.
         case bridge
+        /// Straight-line off-trail walk from a start / end point to the nearest
+        /// trail ("Plan a Hike", Task 2). Only ever present in a network view
+        /// made by `TrailNetworkSnapper`; the cached base network has none.
+        /// Flat: no elevation is known, so gains are 0.
+        case connector
     }
 
     struct Coordinate: Sendable, Equatable {
@@ -86,6 +91,8 @@ struct TrailNetwork: Sendable {
         /// false when no owning trail had a usable `profileFt`; gains are 0.
         let elevationKnown: Bool
         var isUnverifiedConnection: Bool { kind == .bridge }
+        /// true for the dashed start / end connector.
+        var isOffTrail: Bool { kind == .connector }
     }
 
     struct Options: Sendable {
@@ -102,8 +109,10 @@ struct TrailNetwork: Sendable {
     let projector: TurnCueProjector
     let nodes: [Node]
     let edges: [Edge]
-    private let trailEdgeIds: [TrailKey: [Int]]
-    private let pieceGaps: [TrailKey: Double]
+    /// Internal (not private) so `TrailNetworkSnapper` can derive a view with a
+    /// start point spliced in without mutating this network.
+    let trailEdgeIds: [TrailKey: [Int]]
+    let pieceGaps: [TrailKey: Double]
 
     init(
         projector: TurnCueProjector,

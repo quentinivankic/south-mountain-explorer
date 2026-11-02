@@ -2111,6 +2111,15 @@
         "Joe Creek Nature Trail",
         "Thunder Bay Bogs Nature Trail"
       ]
+    },
+    "parc-national-de-lile-bonaventure-et-du-rocher-perce-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 8.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier du Rocher Precé à marée basse"
+      ]
     }
   }
 }

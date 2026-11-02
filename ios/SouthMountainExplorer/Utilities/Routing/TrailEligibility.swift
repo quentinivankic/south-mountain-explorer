@@ -242,13 +242,16 @@ extension TrailEligibility {
 
 extension TrailNetwork {
     /// Same graph with every edge flipped, so a forward Dijkstra from X gives
-    /// the cost of walking each node TO X in the original.
+    /// the cost of walking each node TO X in the original. Walking a flipped
+    /// edge "forward" stands for walking the original edge `from` to `to`, so
+    /// the gains are kept as they are (swapping them would cost the wrong
+    /// direction: X to node instead of node to X).
     fileprivate func reversedForRouting() -> TrailNetwork {
         let flipped = edges.map {
             Edge(id: $0.id, from: $0.to, to: $0.from, kind: $0.kind, trailKeys: $0.trailKeys,
                  polyline: $0.polyline.reversed(), coordinates: $0.coordinates.reversed(),
-                 lengthMeters: $0.lengthMeters, gainForwardFt: $0.gainBackwardFt,
-                 gainBackwardFt: $0.gainForwardFt, elevationKnown: $0.elevationKnown)
+                 lengthMeters: $0.lengthMeters, gainForwardFt: $0.gainForwardFt,
+                 gainBackwardFt: $0.gainBackwardFt, elevationKnown: $0.elevationKnown)
         }
         return TrailNetwork(projector: projector, nodes: nodes, edges: flipped,
                             trailEdgeIds: trailEdgeIds, pieceGaps: pieceGaps)

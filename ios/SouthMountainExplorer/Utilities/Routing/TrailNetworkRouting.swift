@@ -219,7 +219,7 @@ extension TrailNetwork {
 }
 
 /// Binary min-heap on (cost, node id).
-private struct MinHeap {
+struct MinHeap {
     private var items: [(cost: Double, node: Int)] = []
 
     private func less(_ a: (cost: Double, node: Int), _ b: (cost: Double, node: Int)) -> Bool {

@@ -119,7 +119,7 @@ struct TurnCueRouteBuilderTests {
     }
 
     @Test func gapsBeyondStitchToleranceStayApart() {
-        let t = F.trail("t", "T", segments: [[(0, 0), (0, 100)], [(0, 120), (0, 220)]])
+        let t = F.trail("t", "T", segments: [[(0, 0), (0, 100)], [(0, 320), (0, 420)]])
         let route = TurnCueRouteBuilder.build(selected: t, others: [])
         #expect(route.chains.count == 2)
         let near = F.trail("t", "T", segments: [[(0, 0), (0, 100)], [(0, 108), (0, 208)]])

@@ -7912,7 +7912,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix2 2026-11-02: pin kept (no trail point lies within the 0.1 deg gate of the extent midpoint); Floe Lake and Helmet Creek dropped (100% inside the Rockwall Trail, no double counting).",
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
       "exclude_trails": [
         {
           "id": "n:Ball Pass Trail",
@@ -8048,16 +8048,6 @@
           "id": "n:Vermilion Peak Trail",
           "name": "Vermilion Peak Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
-          "id": "n:Floe Lake Trail",
-          "name": "Floe Lake Trail",
-          "reason": "Contained 100% in the Rockwall Trail (kept whole, 32.8 mi); double counting removed (live-fix2, audit 2). Ticking the Rockwall covers it"
-        },
-        {
-          "id": "n:Helmet Creek and Falls Trail",
-          "name": "Helmet Creek and Falls Trail",
-          "reason": "Contained 100% in the Rockwall Trail (kept whole, 32.8 mi); double counting removed (live-fix2, audit 2). Ticking the Rockwall covers it"
         }
       ],
       "keep_trails": [

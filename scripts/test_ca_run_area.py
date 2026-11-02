@@ -33,7 +33,10 @@ def test_run_area_script_is_the_generic_path_with_no_denmark_machinery():
                    "serve/publish_areas.py", "--state Canada", "--no-boundary-fetch", "--no-elevation",
                    "index-for-publish", "finish-publish"):
         assert needle in code, needle
-    for forbidden in ("--region", "--dk-", "denmark", "Denmark", "validate_publish_pilot", "_pbf_discovery",
+    # The ONLY engine opt-in is the registry-gated id-pinned boundary: one --region, one flag, in one branch.
+    assert code.count("--region") == 1 and "--region ca --boundary-by-id" in code
+    assert "if [ -n \"$BOUNDARY_BY_ID\" ]" in code and "boundary_by_id" in code
+    for forbidden in ("--dk-", "denmark", "Denmark", "validate_publish_pilot", "_pbf_discovery",
                       "build_relation_slice", "export_relation_members", "relation-authority",
                       "prefilter-authority", "--exact-boundary", "--expected-area-way-id", "AOI_RECEIPT",
                       "AOI_RELATION_MEMBERS", "AOI_WAY_TOPOLOGY", "mols", "dk_", "dk-", "PREFILTER_DK",
@@ -57,6 +60,21 @@ def test_run_area_script_pins_exactly_one_boundary_id_and_way_backed_areas_skip_
     assert bad_id.returncode != 0 and "SAFETY" not in bad_id.stderr     # bare -ca (California) fails the id regex
 
 
+def test_run_area_boundary_by_id_is_registry_gated_and_relation_only(tmp_path):
+    reg = tmp_path / "trailforge/golden"
+    reg.mkdir(parents=True)
+    (reg / "ca-areas.json").write_text(json.dumps({"areas": [
+        {"id": "x-ca-ns", "boundary_by_id": True}, {"id": "y-ca-ns", "boundary_by_id": False}]}))
+    env = {**os.environ, "AREA_ID": "x-ca-ns", "AREA_NAME": "X", "BBOX": "-63,45,-62,46", "W": str(tmp_path / "w"),
+           "RELATION_ID": "", "WAY_ID": "5"}
+    run = lambda e: subprocess.run(["bash", str(ROOT / "scripts/ca-run-area.sh")], env=e, cwd=tmp_path,
+                                   capture_output=True, text=True)
+    way = run(env)                                                      # opt-in on a way-backed area
+    assert way.returncode == 2 and "boundary_by_id must be true on a relation-backed area" in way.stderr
+    false = run({**env, "AREA_ID": "y-ca-ns", "WAY_ID": "", "RELATION_ID": "7"})   # false is not an opt-in value
+    assert false.returncode == 2 and "boundary_by_id must be true" in false.stderr
+    plain = run({**env, "AREA_ID": "z-ca-ns", "WAY_ID": "", "RELATION_ID": "7"})    # no opt-in: proceeds past the gate
+    assert "SAFETY BLOCK" not in plain.stderr and "boundary_by_id must be" not in plain.stderr
 @pytest.mark.parametrize("name", ["trailforge-publish-ca.yml", "sync-ca-to-r2.yml"])
 def test_workflows_parse_and_are_dispatch_only(name):
     yaml = pytest.importorskip("yaml")

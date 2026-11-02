@@ -8720,6 +8720,710 @@
       "tier": 2,
       "hold": "needs-rescope",
       "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+    },
+    {
+      "id": "prince-albert-national-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 11032152,
+      "name": "Prince Albert National Park",
+      "bbox": [
+        -106.83,
+        53.52,
+        -105.95,
+        54.38
+      ],
+      "center": [
+        53.897,
+        -106.366
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine.",
+      "keep_trails": [
+        {
+          "name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+        },
+        {
+          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Blue Red Deer Trail",
+          "name": "Red Deer Trail Blue Loop",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Parks Canada lists Red Deer Trail - Blue Loop (word order)"
+        },
+        {
+          "osm_name": "Spruce River Highlands Trails",
+          "name": "Spruce River Highland Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Parks Canada lists Spruce River Highland Trail"
+        },
+        {
+          "osm_name": "Trailhead to Westwind Campsite",
+          "name": "Grey Owl Trail: Trailhead to Westwind Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail (20 km); official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "name": "Grey Owl Trail: Westwind Campsite to Chipewyan Portage Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "name": "Grey Owl Trail: Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Sandy Beach Campsite to Northend Campsite",
+          "name": "Grey Owl Trail: Sandy Beach Campsite to Northend Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Northend Campsite to Grey Owl's Cabin",
+          "name": "Grey Owl Trail: Northend Campsite to Grey Owl's Cabin",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        }
+      ]
+    },
+    {
+      "id": "grasslands-national-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14907573,
+      "name": "Grasslands National Park",
+      "bbox": [
+        -107.78,
+        48.95,
+        -106.46,
+        49.27
+      ],
+      "center": [
+        49.129,
+        -107.113
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Whole park, East and West Blocks (one relation). Compared with the Parks Canada Grasslands hiking page (https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking): all 14 listed trails and the Otter Basin route present (nine names corrected from the page, Top Dogtown waived at 0.45 mi). Old Wagon trail is not on the list and is excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Old Wagon trail",
+          "name": "Old Wagon trail",
+          "reason": "Not on the Parks Canada Grasslands trail list (14 trails and one route read); unverified historic path name, left out"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Top Dogtown Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada Grasslands list: Top Dogtown Trail, 750 m loop, easy; short official walk (0.45 mi mapped)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Bear Paw Sea",
+          "name": "Bearpaw Sea Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Bearpaw Sea Trail"
+        },
+        {
+          "osm_name": "70 Mile Bute",
+          "name": "70 Mile Butte Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: 70 Mile Butte Trail (OSM typo)"
+        },
+        {
+          "osm_name": "Eagle Bute",
+          "name": "Eagle Butte Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Eagle Butte Trail (OSM typo)"
+        },
+        {
+          "osm_name": "Larson Interpretive",
+          "name": "Larson Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Larson Trail"
+        },
+        {
+          "osm_name": "River Walk",
+          "name": "Riverwalk Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Riverwalk Trail"
+        },
+        {
+          "osm_name": "Timberguch Trail",
+          "name": "Timbergulch Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Timbergulch Trail (OSM typo)"
+        },
+        {
+          "osm_name": "Otter Bassin Route",
+          "name": "Otter Basin Route",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Otter Basin Route (OSM typo)"
+        },
+        {
+          "osm_name": "Red Butes Trail",
+          "name": "Red Buttes Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Red Buttes Trail (OSM typo)"
+        },
+        {
+          "osm_name": "Three Sisters",
+          "name": "Three Sisters Trail",
+          "source": "https://parks.canada.ca/pn-np/sk/grasslands/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada name: Three Sisters Trail"
+        }
+      ]
+    },
+    {
+      "id": "cypress-hills-interprovincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 15678445,
+      "name": "Cypress Hills Interprovincial Park (Centre Block)",
+      "bbox": [
+        -109.62,
+        49.59,
+        -109.39,
+        49.75
+      ],
+      "center": [
+        49.7,
+        -109.5
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "SK/MB curation 2026-11-02. Centre Block (the main Loch Leven / Elk Valley block). The relation (r15678445, nature_reserve) and its own outer ring way (w120623144, protected_area) carry the identical name. check-boundary-unique ignores ring members, the assembler counts both, so neither the plain row nor boundary_by_id passes in the unmodified Canada lane. Needs a Canada-lane code fix (follow-up), not a registry change.  The West Block is a separate polygon and ships as its own row."
+    },
+    {
+      "id": "cypress-hills-interprovincial-park-west-block-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14686172,
+      "name": "Cypress Hills Interprovincial Park (West Block)",
+      "bbox": [
+        -110.06,
+        49.5,
+        -109.74,
+        49.72
+      ],
+      "center": [
+        49.641,
+        -109.967
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. West Block only (the Centre Block row is held). Eight OSM-named trails inside the block polygon; Sask Parks trail list could not be read (site is JS-rendered), so the set is what OSM maps under the block polygon, unverified against the park's list. N1 (bare ref code) dropped by the engine. Cross-border duplicate check against live Alberta Cypress Hills runs in qualify.",
+      "exclude_trails": [
+        {
+          "id": "n:La Barge Trail",
+          "name": "La Barge Trail",
+          "reason": "Boundary-clipped: 3.0 of 4.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:South Benson Trail",
+          "name": "South Benson Trail",
+          "reason": "Boundary-clipped: 2.8 of 4.2 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "meadow-lake-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14577248,
+      "name": "Meadow Lake Provincial Park",
+      "bbox": [
+        -110.06,
+        54.3,
+        -108.22,
+        54.81
+      ],
+      "center": [
+        54.479,
+        -109.236
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Whole park. Boreal Trail (signed relation, 69.9 mi, wholly inside the park polygon), Gold Creek Trail, New Branch Hiking Trail. Sask Parks list not readable (JS-rendered); the set is what OSM maps, unverified against the park's list."
+    },
+    {
+      "id": "duck-mountain-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14470476,
+      "name": "Duck Mountain Provincial Park",
+      "bbox": [
+        -101.85,
+        51.49,
+        -101.52,
+        51.83
+      ],
+      "center": [
+        51.626,
+        -101.685
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Saskatchewan side only. Green Lake Trail, Moose Lake Trail, Pelly Point Trail (lwn). Fen Interpretive (0.18), Fire Tower (0.15) and Damselfly (0.48) are sub-0.6 mi stubs dropped with no official page to waive them; Trans Canada Trail leg dropped. Sask Parks list not readable."
+    },
+    {
+      "id": "moose-mountain-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 16528425,
+      "name": "Moose Mountain Provincial Park",
+      "bbox": [
+        -102.67,
+        49.68,
+        -102.11,
+        49.95
+      ],
+      "center": [
+        49.8,
+        -102.4
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Birch Forest 1.08 mi). Most named Moose Mountain trails (Beaver Lake, Academy, Peninsula, Stirrup Lake, White-tailed Deer and others) are tagged as ski pistes (piste:type) or foot=no and the Harmon, Boundary, Long Lake and Nixon Lake tracks carry motor_vehicle/atv tags, so the engine drops them as ski/motorised. Re-open if OSM gets summer hiking tags."
+    },
+    {
+      "id": "greenwater-lake-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "way_id": 377882414,
+      "name": "Greenwater Lake Provincial Park",
+      "bbox": [
+        -103.66,
+        52.41,
+        -103.18,
+        52.63
+      ],
+      "center": [
+        52.503,
+        -103.59
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Highbush Interpretive Trail and Klinger's Trail (the Marean Lake link, whole at 3.3 mi). Thin; Tourism Saskatchewan lists 125 km of park trails shared with ski and snowmobile use, which are excluded. Sask Parks list not readable (JS-rendered)."
+    },
+    {
+      "id": "saskatchewan-landing-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14687831,
+      "name": "Saskatchewan Landing Provincial Park",
+      "bbox": [
+        -108.16,
+        50.57,
+        -107.82,
+        50.75
+      ],
+      "center": [
+        50.7,
+        -108.0
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: the trail network is Leg 1 to Leg 6 plus composite 'Leg x / Prairie Vista Trail' names (horse=yes footways), generic numbered names that are not trail names a hiker would search. Only two named interpretive trails remain (Ridges and Ravines 0.90 mi, Ridges Ruts and Remnants 1.59 mi = 2.5 mi), under the 2.5 mi bar with no third. Official Sask Parks list not readable (JS-rendered). Needs OSM names for the legs."
+    },
+    {
+      "id": "buffalo-pound-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "way_id": 308117195,
+      "name": "Buffalo Pound Provincial Park",
+      "bbox": [
+        -105.51,
+        50.49,
+        -105.23,
+        50.67
+      ],
+      "center": [
+        50.572,
+        -105.302
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Nicolle Flats Trail, Dyke Trail, Bison View Trail. The remaining 10 named shipped candidates and 28 sub-0.6 mi pieces are mountain-bike singletrack (bicycle=yes, MTB difficulty tags) and are excluded; RGE RD and TWP RD codes dropped by the engine. Sask Parks list not readable.",
+      "exclude_trails": [
+        {
+          "id": "n:Barrels",
+          "name": "Barrels",
+          "reason": "Mountain-bike singletrack (bicycle=yes, MTB difficulty tags), not a hiking trail"
+        },
+        {
+          "id": "n:Beaver Loop",
+          "name": "Beaver Loop",
+          "reason": "Mountain-bike singletrack (bicycle=yes, novice MTB loop), not a hiking trail"
+        },
+        {
+          "id": "n:Boat Launch",
+          "name": "Boat Launch",
+          "reason": "Mountain-bike singletrack (bicycle=yes), not a hiking trail"
+        },
+        {
+          "id": "n:Joe's Loop",
+          "name": "Joe's Loop",
+          "reason": "Mountain-bike singletrack (bicycle=yes), not a hiking trail"
+        },
+        {
+          "id": "n:Noser",
+          "name": "Noser",
+          "reason": "Mountain-bike singletrack (bicycle=yes, MTB difficulty tags), not a hiking trail"
+        },
+        {
+          "id": "n:Roadside Attraction",
+          "name": "Roadside Attraction",
+          "reason": "Mountain-bike singletrack (bicycle=yes), not a hiking trail"
+        },
+        {
+          "id": "n:Terminator",
+          "name": "Terminator",
+          "reason": "Mountain-bike singletrack (bicycle=yes), not a hiking trail"
+        },
+        {
+          "id": "n:Twister",
+          "name": "Twister",
+          "reason": "Mountain-bike singletrack (bicycle=yes, MTB difficulty tags), not a hiking trail"
+        },
+        {
+          "id": "n:Upside Down",
+          "name": "Upside Down",
+          "reason": "Mountain-bike singletrack (bicycle=yes), not a hiking trail"
+        },
+        {
+          "id": "n:Weeping Fee",
+          "name": "Weeping Fee",
+          "reason": "Mountain-bike singletrack (bicycle=yes, MTB difficulty tags), not a hiking trail"
+        }
+      ]
+    },
+    {
+      "id": "douglas-provincial-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 14712794,
+      "name": "Douglas Provincial Park",
+      "bbox": [
+        -106.64,
+        50.91,
+        -106.36,
+        51.12
+      ],
+      "center": [
+        51.004,
+        -106.446
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Nine of nine Douglas trails (Wolf Willow loops, Cacti, Dune, Juniper, Sunset), Trans Canada Trail legs dropped by the engine, Cacti / Dune Loop and Wolf Willow Loop composites excluded as duplicates of their parts. Sask Parks list not readable (JS-rendered).",
+      "exclude_trails": [
+        {
+          "id": "n:Cacti / Dune Loop",
+          "name": "Cacti / Dune Loop",
+          "reason": "Composite of the Cacti Hiking Trail and Dune Hiking Trail (4.02 mi = 1.56 + 2.47 mi, same ground); the two named trails ship"
+        },
+        {
+          "id": "n:Wolf Willow Loop",
+          "name": "Wolf Willow Loop",
+          "reason": "Composite of the Wolf Willow Short, Middle and Far loops (every point of each is on this 7.99 mi line); the three named loops ship"
+        }
+      ]
+    },
+    {
+      "id": "riding-mountain-national-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 14488240,
+      "name": "Riding Mountain National Park",
+      "bbox": [
+        -101.14,
+        50.46,
+        -99.49,
+        51.07
+      ],
+      "center": [
+        50.83,
+        -100.225
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop).",
+      "exclude_trails": [
+        {
+          "id": "n:Brûlé",
+          "name": "Brûlé",
+          "reason": "Trail id would be the accent-mangled permanent id br-l; ids are permanent, so left out until the lane transliterates (Parks Canada 2026 guide lists Brûlé 4.2 km)"
+        },
+        {
+          "id": "n:Burls and Bittersweet",
+          "name": "Burls and Bittersweet",
+          "reason": "Not on the Parks Canada RMNP 2026 summer trail list; unverified local path name (the Gorge Creek trailhead road), left out"
+        },
+        {
+          "id": "n:Clear Lake",
+          "name": "Clear Lake",
+          "reason": "Asphalt lakeside promenade in Wasagaming townsite, not on the Parks Canada trail list"
+        },
+        {
+          "id": "n:Compound Long Loop",
+          "name": "Compound Long Loop",
+          "reason": "Ski-only in winter (OSM description and ski=designated), not a summer hiking trail"
+        },
+        {
+          "id": "n:Compound Short Loop",
+          "name": "Compound Short Loop",
+          "reason": "Ski-only in winter (ski=designated), not a summer hiking trail"
+        },
+        {
+          "id": "n:Hilton",
+          "name": "Hilton",
+          "reason": "Not on the Parks Canada RMNP 2026 summer trail list; unverified, left out"
+        }
+      ]
+    },
+    {
+      "id": "wapusk-national-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 9460240,
+      "name": "Wapusk National Park",
+      "bbox": [
+        -93.97,
+        57.05,
+        -92.28,
+        58.86
+      ],
+      "center": [
+        58.0,
+        -93.1
+      ],
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: no publishable trails after the Canada filter (SAFETY BLOCK). Wapusk is a roadless subarctic tundra park with no maintained hiking trails (Parks Canada offers guided polar bear tours only)."
+    },
+    {
+      "id": "whiteshell-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2027251,
+      "name": "Whiteshell Provincial Park",
+      "bbox": [
+        -96.01,
+        49.61,
+        -95.1,
+        50.43
+      ],
+      "center": [
+        49.838,
+        -95.462
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Manitoba Parks Whiteshell page (https://www.gov.mb.ca/sd/parks/park-maps-and-locations/eastern/whiteshell.html) and hiking page (https://gov.mb.ca/sd/parks/recreation-and-activities/hiking/index.html): Amisk, Falcon Creek, Forrester's Footsteps, McGillivray Falls and Pine Point self-guiding trails present; the Mantario Trail (60 km, multi-day) ships whole via a keep waiver, judged as a local expert would: it lives entirely inside Whiteshell and is the park's signature trail (OSM 37.95 mi = 61 km). Whiteshell River Self-guiding Trail not mapped by name. Hunt Lake Trail excluded as an OSM stub (3.97 of about 10 mi). North and South Whiteshell Trails (rwn multi-use regional networks, 47.4 and 16.9 mi) are long-distance legs and stay out. Several OSM trails (Centennial, Cabin Lake, Lost Lake, Jessica Lake, White Pine, High Lake, Top of the World, Bear Lake, Sturgeon Falls) are mapped hiking routes not on the pages read; kept as OSM-named hiking routes, unverified against Manitoba Parks. Held: Hunt Lake Trail (official 16 km per Manitoba Parks hiking page) is a 3.97 mi OSM stub and Whiteshell River Self-guiding Trail is unmapped; Canada lane cannot update live areas. Re-open when OSM completes Hunt Lake.",
+      "exclude_trails": [
+        {
+          "id": "n:Alf Hole Winter Trail",
+          "name": "Alf Hole Winter Trail",
+          "reason": "Winter trail (source: Manitoba Parks Winter Trails), not a summer hiking trail"
+        },
+        {
+          "id": "n:Big Whiteshell Hiking Trail",
+          "name": "Big Whiteshell Hiking Trail",
+          "reason": "0.80 mi unofficial path name, not on the Manitoba Parks Whiteshell trail list; possible Mantario access piece, left out"
+        },
+        {
+          "id": "n:Centennnial Trail",
+          "name": "Centennnial Trail",
+          "reason": "Misspelled duplicate piece of the Centennial Trail relation (same line)"
+        },
+        {
+          "id": "n:East Perimeter Trail",
+          "name": "East Perimeter Trail",
+          "reason": "Multi-use path (bicycle=yes, horse=unknown), perimeter trail of the Falcon Lake network, not a hiking trail"
+        },
+        {
+          "id": "n:Falcon South Shore Trail",
+          "name": "Falcon South Shore Trail",
+          "reason": "Multi-use track (bicycle=yes, vehicle access tags), not a hiking trail"
+        },
+        {
+          "id": "n:Hunt Lake Trail",
+          "name": "Hunt Lake Trail",
+          "reason": "OSM maps one 3.97 mi way of the 16 km (about 10 mi) official Hunt Lake Trail (Manitoba Parks hiking page); a stub would let a completionist finish it at 40 percent, so it is left out until OSM completes it"
+        },
+        {
+          "id": "n:Jean Lake Winter Trail",
+          "name": "Jean Lake Winter Trail",
+          "reason": "Winter trail (source: Manitoba Parks Winter Trails), not a summer hiking trail"
+        },
+        {
+          "id": "n:South Shore Trail",
+          "name": "South Shore Trail",
+          "reason": "highway=cycleway (bicycle path), not a hiking trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Mantario Trail",
+          "source": "https://www.gov.mb.ca/sd/parks/park-maps-and-locations/eastern/mantario-trail.html",
+          "reason": "Manitoba Parks: Mantario Trail, 60 km multi-day backcountry trail wholly inside Whiteshell (OSM 37.95 mi); network=rwn tag is regional, the trail lives in one park"
+        }
+      ]
+    },
+    {
+      "id": "nopiming-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2027252,
+      "name": "Nopiming Provincial Park",
+      "bbox": [
+        -95.78,
+        50.24,
+        -95.1,
+        51.03
+      ],
+      "center": [
+        50.6,
+        -95.4
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: no publishable trails (SAFETY BLOCK). Only Walking on Ancient Mountains Trail (0.55 mi, official Ancient Mountains Trail under 2 km) and canoe-portage / Snoman (snowmobile) names are mapped. Manitoba Parks hiking page lists Ancient Mountains Trail as the park's walk."
+    },
+    {
+      "id": "spruce-woods-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2027250,
+      "name": "Spruce Woods Provincial Park",
+      "bbox": [
+        -99.36,
+        49.57,
+        -98.96,
+        49.83
+      ],
+      "center": [
+        49.662,
+        -99.286
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Spirit Sands Trail, Devils Punch Bowl Trail and Oasis Trail make up the 10 km Spirit Sands and Devil's Punch Bowl loop (OSM 6.9 mi vs about 6.4 mi). Compared with the Manitoba Parks Spruce Woods page (https://www.gov.mb.ca/sd/parks/park-maps-and-locations/western/spruce.html) and hiking page (https://gov.mb.ca/sd/parks/recreation-and-activities/hiking/index.html). Dune (0.45) and Hogsback (0.34) are sub-0.6 mi pieces, not waived (no official page lists them). Known omissions: Epinette Creek Hiking Trail System and the 40 km Newfoundland Trail are not mapped as named trails in OSM."
+    },
+    {
+      "id": "duck-mountain-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2043934,
+      "name": "Duck Mountain Provincial Park",
+      "bbox": [
+        -101.4,
+        51.4,
+        -100.6,
+        51.93
+      ],
+      "center": [
+        51.7,
+        -101.0
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Blue Lakes Trail 3.0 mi). Under the 2-trail floor; other Duck Mountain MB walks are not mapped by name."
+    },
+    {
+      "id": "hecla-grindstone-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2043938,
+      "name": "Hecla/Grindstone Provincial Park",
+      "bbox": [
+        -96.95,
+        50.94,
+        -96.24,
+        51.45
+      ],
+      "center": [
+        51.185,
+        -96.655
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Hecla Island side of the park: Bittern Trail, Turtle Trail, West Quarry Trail (boundary_by_id: a tiny same-name way polygon also exists). Chorus Frog (0.40 mi), Madtom (0.17 mi) and Trail to Wildlife Viewing Tower (0.27 mi) are sub-0.6 mi pieces with no official page read to waive them; Black Island snowmobile trail dropped by the engine. Manitoba Parks trail list not read for this park, so the set is what OSM maps, unverified against it.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "pisew-falls-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "way_id": 150289195,
+      "name": "Pisew Falls Provincial Park",
+      "bbox": [
+        -98.45,
+        55.14,
+        -98.34,
+        55.25
+      ],
+      "center": [
+        55.2,
+        -98.4
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "SK/MB curation 2026-11-02. The OSM polygon (w150289195) is 0.015 x 0.009 deg, under the lane's 0.01 deg plausibility floor so prepare-areas refuses it. The park's hike is the 20 km round trip to Kwasitchewan Falls (Manitoba Parks hiking page). Needs a Canada-lane polygon rule (follow-up) or a larger container."
+    },
+    {
+      "id": "atikaki-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 2025519,
+      "name": "Atikaki Provincial Park",
+      "bbox": [
+        -96.69,
+        50.96,
+        -95.1,
+        52.08
+      ],
+      "center": [
+        51.5,
+        -95.9
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "SK/MB curation 2026-11-02. Replay: no publishable trails (SAFETY BLOCK). Atikaki is a roadless wilderness canoe park (Bloodvein River); no maintained hiking trails."
+    },
+    {
+      "id": "birds-hill-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 11938511,
+      "name": "Birds Hill Provincial Park",
+      "bbox": [
+        -97.0,
+        49.94,
+        -96.79,
+        50.11
+      ],
+      "center": [
+        50.028,
+        -96.909
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "SK/MB curation 2026-11-02. Whole park, 12 OSM-named hiking trails (seven lwn relations). Cross-country ski network and the snowmobile trail dropped by the engine. Manitoba Parks trail list not read for this park; the set is what OSM maps, unverified."
     }
   ]
 }

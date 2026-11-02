@@ -2530,12 +2530,17 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT.",
+      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT.",
       "exclude_trails": [
         {
           "id": "n:Lookout trail",
           "name": "Lookout trail",
           "reason": "Park boundary clips it to 0.81 of its 2.2 mi in OSM (official Lookout Trail is a 5.8 km loop); a stub is not the whole route, listed as a known omission"
+        },
+        {
+          "id": "n:Snug Harbour to North Rim",
+          "name": "Snug Harbour to North Rim",
+          "reason": "Not among Parks Canada's 18 trails (5.495 mi); same unmarked backcountry route family as the excluded Snug Harbor Trail"
         }
       ],
       "keep_trails": [
@@ -2610,12 +2615,27 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Parks Canada trail pages read: Outport, Goowiddy, Louil Hill, Ochre Hill (https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik/<slug>). Mount Stamford look-off is the official spur off Outport. Coastal, Sandy Pond, Malady Head, Dunphy's Pond and Heritage trails exist officially but are unnamed in OSM (known omissions). Mill Cove Lookout 0.49 mi and Ochre Hill Lookout Loop 0.17 mi stay under the fragment rule.",
+      "notes": "NL curation 2026-11-02. Parks Canada trail pages read: Outport, Goowiddy, Louil Hill, Ochre Hill (https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik/<slug>). Mount Stamford look-off is the official spur off Outport. Coastal, Sandy Pond, Malady Head, Dunphy's Pond and Heritage trails exist officially but are unnamed in OSM (known omissions). Mill Cove Lookout (0.49 mi, whole official route) is kept by waiver; Ochre Hill Lookout Loop 0.17 mi stays under the fragment rule. Known partial OSM lengths: Ochre Hill, Goowiddy, Outport. Campground and Southwest Arm trails omitted.",
       "exclude_trails": [
         {
           "id": "n:Trail 7 Terra Nova Park",
           "name": "Trail 7 Terra Nova Park",
           "reason": "Numbered OSM label, not on the Parks Canada trail list and no official name"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Mill Cove Lookout",
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Official Mill Cove Lookout Trail (1.5 km return); OSM 0.487 mi is the full route, dropped only by the fragment rule"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mill Cove Lookout",
+          "name": "Mill Cove Lookout Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Official name Mill Cove Lookout Trail"
         }
       ]
     },
@@ -2673,7 +2693,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. North Head, Burma Road and Ladies' Lookout are Parks Canada trails (pages under https://parks.canada.ca/lhn-nhs/nl/signalhill/activ/ran-hik/). The East Coast Trail legs inside the site are excluded as long-distance. Ladies' Lookout is 0.53 mi in OSM vs about 0.8 mi official (1.3 km): known omission of the top section. Lake to Lookout Walk 0.27 mi stays dropped.",
+      "notes": "NL curation 2026-11-02. North Head, Burma Road and Ladies' Lookout are Parks Canada trails (pages under https://parks.canada.ca/lhn-nhs/nl/signalhill/activ/ran-hik/). The East Coast Trail legs inside the site are excluded as long-distance. Ladies' Lookout is 0.53 mi in OSM vs about 0.8 mi official (1.3 km): known omission of the top section. Lake to Lookout Walk 0.27 mi stays dropped. Omissions: Centre to Summit, Gibbet Hill, Burma Road shortfall.",
       "exclude_trails": [
         {
           "id": "n:East Coast Trail",
@@ -2727,7 +2747,15 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Parks NL lists Pegwood Pond Trail, Peters Pond Trail and Butter Pot Hill Trail (https://www.parksnl.ca/plan-your-visit/hiking-and-walking/). OSM has Pegwood Pond and Butterpot Hill; Peters Pond is unmapped (known omission)."
+      "notes": "NL curation 2026-11-02. Parks NL lists Pegwood Pond Trail, Peters Pond Trail and Butter Pot Hill Trail (https://www.parksnl.ca/plan-your-visit/hiking-and-walking/). OSM has Pegwood Pond and Butterpot Hill; Peters Pond is unmapped (known omission). Pegwood Pond OSM length (1.91 mi) looks long vs 2.6 km return.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Butterpot Hill Trail",
+          "name": "Butter Pot Hill Trail",
+          "source": "https://www.parksnl.ca/plan-your-visit/hiking-and-walking/",
+          "reason": "Parks NL spelling"
+        }
+      ]
     },
     {
       "id": "la-manche-provincial-park-ca-nl",

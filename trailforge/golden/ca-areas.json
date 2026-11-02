@@ -1927,6 +1927,533 @@
       "tier": 2,
       "hold": null,
       "notes": "leisure=park boundary (not kept by prefilter.sh): trailforge-publish-ca.yml re-adds it from the raw PBF by relation id. Scratch replay 2026-11-02: Pennant Point Trail 4.75 mi + Spine Trail 1.76 mi."
+    },
+    {
+      "id": "fundy-national-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 6813178,
+      "name": "Fundy National Park",
+      "bbox": [
+        -65.2,
+        45.48,
+        -64.88,
+        45.76
+      ],
+      "center": [
+        45.611,
+        -65.035
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance.",
+      "exclude_trails": [
+        {
+          "id": "n:Upper Salmon",
+          "name": "Upper Salmon",
+          "reason": "Name-stitched ways duplicate the signed relation Upper Salmon River Trail (same trail, 71 shared points)"
+        },
+        {
+          "id": "n:Fundy Footpath Link",
+          "name": "Fundy Footpath Link",
+          "reason": "Link to the long-distance Fundy Footpath; not on the Parks Canada trail list"
+        },
+        {
+          "id": "n:Dickson Falls Long Loop Trail",
+          "name": "Dickson Falls Long Loop Trail",
+          "reason": "Duplicates the official Dickson Falls 1.5 km loop, kept as 'Dickson Falls' (the name on the Parks Canada list)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Shiphaven Trail",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
+          "reason": "Parks Canada trail list: Shiphaven, 1 km return, estuary views and covered bridge; short official walk"
+        },
+        {
+          "name": "Medicine Trail",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
+          "reason": "Parks Canada trail list: MacLaren Pond Medicine Trail, 1 km return; short official walk"
+        },
+        {
+          "name": "Herring Cove Beach",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
+          "reason": "Parks Canada trail list: Herring Cove Beach, 1 km return, stairs to the beach; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "kouchibouguac-national-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 2246702,
+      "name": "Parc national de Kouchibouguac",
+      "bbox": [
+        -65.09,
+        46.65,
+        -64.73,
+        47.01
+      ],
+      "center": [
+        46.807,
+        -64.961
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada hiking list (https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking): 10 trails. Kept: Kouchibouguac River (lwn), Osprey, Claire-Fontaine, Beaver, Tweedie, Bog, Pines, Mi'gmaq Cedar. Not shipped: Kellys Beach Boardwalk and Salt Marsh (OSM geometry far shorter than the official length). Major Kollock Creek is a mountain-bike trail (excluded). Osprey is ~60% of its official 5.3 km as mapped.",
+      "display_name": "Kouchibouguac National Park",
+      "keep_trails": [
+        {
+          "name": "Pines / Les Pins",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Parks Canada hiking list: Pines (loop) 0.9 km; short official loop, mapped 0.47 mi"
+        },
+        {
+          "name": "Migmag Cedars Trail",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Parks Canada hiking list: Mi'gmaq Cedar (loop) 0.9 km; short official loop"
+        },
+        {
+          "name": "Bog / La Tourbiere",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Parks Canada hiking list: Bog 1.8 km return; mapped 0.57 mi one way"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Migmag Cedars Trail",
+          "name": "Mi'gmaq Cedar",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Official Parks Canada spelling is Mi'gmaq Cedar; OSM has Migmag Cedars Trail"
+        }
+      ]
+    },
+    {
+      "id": "mount-carleton-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 2473644,
+      "name": "Mount Carleton Provincial Park",
+      "bbox": [
+        -67.02,
+        47.3,
+        -66.64,
+        47.51
+      ],
+      "center": [
+        47.388,
+        -66.863
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Official source: NB Parks https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park (the trail map is script-rendered, no trail list readable); trail names match the park's published hikes (Mount Carleton, Head, Bailey, Sagamook, Bald Mountain Brook, Big Brook, Dry Brook, Pine Point). Dropped: Nepisiguit Mi'gmaq Trail (rwn long-distance), Portage Trail (canoe portage), Ruisseau Caribou Brook (OSM access=no), Williams Falls 0.19 mi (fragment, no readable official source). Bilingual OSM names unchanged."
+    },
+    {
+      "id": "sugarloaf-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9583889,
+      "name": "Sugarloaf Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "mtb-centre",
+      "notes": "NB curation 2026-11-02. Sugarloaf is a lift-served mountain-bike park: nearly every way carries mtb:scale/bicycle=designated and Boom/Doom/Kodiak-style one-way MTB names. The flagship Terry Fox summit trail is tagged as a nordic piste and drops. No official hiking-only trail list found (NB Parks page covers winter and camping). Needs a hiking vs MTB split from the park map."
+    },
+    {
+      "id": "fundy-trail-parkway-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9581173,
+      "name": "Fundy Trail Provincial Park",
+      "bbox": [
+        -65.52,
+        45.33,
+        -65.24,
+        45.55
+      ],
+      "center": [
+        45.412,
+        -65.413
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Area = Fundy Trail Provincial Park (the Parkway); display name is the name locals use. Official list (https://www.nbparks.ca/en/parks/35/fundy-trail-provincial-park) has 13 trails. Kept: Hearst Lodge, Flower Pot Rock, Long Beach Brook Falls, Cranberry Brook Loop (lwn relation, not on the official page), Sea Captains Burial Ground. Excluded: Fundy Footpath (long-distance, 'separate from the Parkway' per NB Parks), Fundy Trail Pathway (multi-use path beside the road). Not shipped: McLeod Brook Falls Loop, McCumber Brook Wetlands, Walton Glen Observation Deck and Shortcut (OSM fragments far shorter than official), Eye of the Needle (sits in Little Salmon River PNA, 1 trail).",
+      "display_name": "Fundy Trail Parkway",
+      "exclude_trails": [
+        {
+          "id": "n:Fundy Footpath",
+          "name": "Fundy Footpath",
+          "reason": "Long-distance footpath; NB Parks lists it as separate from the Parkway"
+        },
+        {
+          "id": "n:Fundy Trail Pathway",
+          "name": "Fundy Trail Pathway",
+          "reason": "Multi-use walking/cycling path beside the Parkway road, not a signed hiking trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Sea Captains Burial Ground Trail",
+          "source": "https://www.nbparks.ca/en/parks/35/fundy-trail-provincial-park",
+          "reason": "NB Parks trail list #1 Sea Captain's Burial Ground Trail; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "new-river-beach-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9556343,
+      "name": "New River Beach Provincial Park",
+      "bbox": [
+        -66.6,
+        45.07,
+        -66.47,
+        45.23
+      ],
+      "center": [
+        45.124,
+        -66.523
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Official page (https://www.nbparks.ca/en/parks/13/new-river-beach-provincial-park) describes exactly two circuits of hiking trails (Barnaby Head, Chittick's Beach); both shipped, complete set."
+    },
+    {
+      "id": "herring-cove-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9579527,
+      "name": "Herring Cove Provincial Park",
+      "bbox": [
+        -67.01,
+        44.81,
+        -66.87,
+        44.94
+      ],
+      "center": [
+        44.871,
+        -66.942
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Campobello Island. Same-name twin boundary r9573586 (pinned by id). Official list (https://www.nbparks.ca/en/parks/6/herring-cove-provincial-park) has 8 trails: Rock of Gibraltar, Adams Estate Promenade, Herring Cove Loop, Herring Cove Beach, Carriage Road, Friars Bay, Lake Glensevern, Eastern Head Cove. Shipped the four mapped as named ways. Herring Cove Beach, Loop, Lake Glensevern, Eastern Head Cove not shipped (not mapped as named trails).",
+      "boundary_by_id": true,
+      "keep_trails": [
+        {
+          "name": "The Carriage Road",
+          "source": "https://www.nbparks.ca/en/parks/6/herring-cove-provincial-park",
+          "reason": "NB Parks trail list: Carriage Road, old carriage and logging road to Herring Cove Beach; a hiking trail, not a public road"
+        },
+        {
+          "name": "Adams Estate Promenade",
+          "source": "https://www.nbparks.ca/en/parks/6/herring-cove-provincial-park",
+          "reason": "NB Parks trail list: Adams Estate Promenade forest trail"
+        },
+        {
+          "name": "Friars Bay Trail",
+          "source": "https://www.nbparks.ca/en/parks/6/herring-cove-provincial-park",
+          "reason": "NB Parks trail list: Friars Bay short trail"
+        }
+      ]
+    },
+    {
+      "id": "mactaquac-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9338385,
+      "name": "Mactaquac Provincial Park",
+      "bbox": [
+        -66.98,
+        45.89,
+        -66.82,
+        46.03
+      ],
+      "center": [
+        45.958,
+        -66.905
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Official list (https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park) has 10 trails; 8 shipped. Maple Sugar and Eagle are marked Closed on the page (Eagle is mapped and kept, Maple Sugar 0.43 mi dropped). Beaver Pond to Alex Creek not mapped as a separate way.",
+      "keep_trails": [
+        {
+          "name": "Alex Creek to Murch Field Connecting Trail / Lien entre sentiers Ruisseau Alex et Champ Murch",
+          "source": "https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park",
+          "reason": "NB Parks trail list: Alex Creek to Murch Field; short official connector trail"
+        },
+        {
+          "name": "Porcupine Pass",
+          "source": "https://www.nbparks.ca/en/parks/10/mactaquac-provincial-park",
+          "reason": "NB Parks trail list: Porcupine Pass; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "parlee-beach-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 518705480,
+      "name": "Parlee Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. Beach park; no named hiking trails in OSM (0 after filter)"
+    },
+    {
+      "id": "the-hopewell-rocks-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 1523048773,
+      "name": "The Hopewell Rocks",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. Ocean-floor walk and shuttle route only; no named hiking trails (0 after filter)"
+    },
+    {
+      "id": "roosevelt-campobello-international-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "name": "Roosevelt Campobello International Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "NB curation 2026-11-02. International park: both OSM polygons (r14010450, w1049624489) cover only the Roosevelt cottage grounds (0.007 x 0.005 deg), so prepare-areas refuses the boundary size and the park's trail network has no containing polygon. State handling is not the blocker (Canadian side, state Canada). Needs a larger polygon (OSM edit, Quentin) or an area-without-polygon mechanism.",
+      "way_id": 1049624489
+    },
+    {
+      "id": "the-anchorage-provincial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9579538,
+      "name": "The Anchorage Provincial Park",
+      "bbox": [
+        -66.87,
+        44.6,
+        -66.73,
+        44.72
+      ],
+      "center": [
+        44.656,
+        -66.802
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NB curation 2026-11-02. Grand Manan. Official page (https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park) names four trails: Red Point (boardwalk), Long Pond, Great Pond, Bagley; all four shipped (complete set, small park). Ox Head Trail (lwn) is not on the park list and stays dropped.",
+      "keep_trails": [
+        {
+          "name": "Long Pond Trail",
+          "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
+          "reason": "NB Parks names Long Pond trail; short official walk"
+        },
+        {
+          "name": "Great Pond Trail",
+          "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
+          "reason": "NB Parks names Great Pond trail; short official walk"
+        },
+        {
+          "name": "Bagley Trail",
+          "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
+          "reason": "NB Parks names Bagley trail; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "cape-jourimain-national-wildlife-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 21602238,
+      "name": "Cape Jourimain National Wildlife Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. Lighthouse Trail 0.98 mi + Gunning Trail 0.57 mi: 2 trails, 1.5 mi, under the bar; no official trail page read"
+    },
+    {
+      "id": "jacquet-river-gorge-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 13108999,
+      "name": "Jacquet River Gorge Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No publishable trails in OSM (0 after filter)"
+    },
+    {
+      "id": "nepisiquit-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 185509043,
+      "name": "Nepisiquit Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. Only the Nepisiguit Mi'gmaq Trail (rwn long-distance) and a road; 0 after filter"
+    },
+    {
+      "id": "little-salmon-river-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 184955148,
+      "name": "Little Salmon River Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. 1 trail: Walton Glenn Gorge Trail to the Eye of the Needle (0.73 mi); official Eye of the Needle trail, but one trail only"
+    },
+    {
+      "id": "point-wolfe-river-gorge-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 1393281215,
+      "name": "Point Wolfe River Gorge Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No publishable trails (0 after filter)"
+    },
+    {
+      "id": "caledonia-gorge-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 185314325,
+      "name": "Caledonia Gorge Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No publishable trails (0 after filter)"
+    },
+    {
+      "id": "upper-salmon-river-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 19226557,
+      "name": "Upper Salmon River Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "NB curation 2026-11-02. Replay gives 3 trails but two are the upstream remainder of Fundy National Park trails (Upper Salmon River Trail / Upper Salmon, clipped at the park boundary) and Greensnake Trails has no official source. Not a standalone destination; would split one trail across two areas."
+    },
+    {
+      "id": "tay-river-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 1359381474,
+      "name": "Tay River Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No publishable trails (0 after filter)"
+    },
+    {
+      "id": "grand-lake-protected-natural-area-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 19393783,
+      "name": "Grand Lake Protected Natural Area",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No publishable trails (0 after filter)"
+    },
+    {
+      "id": "ministers-island-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 696507364,
+      "name": "Ministers Island",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. Replay: Perimeter 3.66, Central 1.27, Covenhoven Loop 1.10 mi (3 trails, 6.0 mi). Provincial historic site, tide-gated access, tier below parks/PNAs; no official trail list read. Candidate for a later tier pass."
+    },
+    {
+      "id": "irishtown-nature-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 71871835,
+      "name": "Irishtown Nature Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. Replay: 5 trails 4.6 mi (Dragonfly, John Howard, Spillway, Anguille, Malcom's Way). City of Moncton park shared with mountain biking; no official trail list read. Candidate for the municipal tier."
+    },
+    {
+      "id": "killarney-lake-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 9446828,
+      "name": "Parc Killarney Lake Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. City of Fredericton park; numbered MTB-style trails, 2 trails 2.4 mi after filter (Lake Loop stitched duplicate of the lwn relation). Municipal tier later."
+    },
+    {
+      "id": "sackville-waterfowl-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 720931552,
+      "name": "Sackville Waterfowl Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. Town park; one boardwalk walk; boundary (0.011 x 0.010 deg) fails prepare-areas size check. Municipal tier later."
+    },
+    {
+      "id": "cape-enrage-nature-preserve-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 200635031,
+      "name": "Cape Enrage Nature Preserve",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "NB curation 2026-11-02. No named trails (0 after filter)"
+    },
+    {
+      "id": "irving-nature-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 19244398,
+      "name": "Irving Nature Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. leisure=park relation: the Canada prefilter drops it, so it can only run after the Canada workflow re-add (today it re-adds only r4855708) is extended to this relation. Scratch count: Sheldon Point 2.2, Heron 1.5, Seal 1.0, Squirrel 0.9 mi (4+ trails). Saint John nature park; municipal/private tier later."
+    },
+    {
+      "id": "rockwood-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "relation_id": 6437442,
+      "name": "Rockwood Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NB curation 2026-11-02. leisure=park relation (needs the Canada workflow r<id> re-add extended to this relation). Saint John city park with many mountain-bike and exercise trails (Carnage, Moose Trax, Zoo Trail); municipal tier, MTB-heavy."
     }
   ]
 }

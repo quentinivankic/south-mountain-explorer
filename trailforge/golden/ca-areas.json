@@ -1721,8 +1721,8 @@
         -63.672
       ],
       "tier": 3,
-      "hold": null,
-      "notes": "Qualify 2026-11-02 (run q3): 4 trails, 5.6 mi, pre/post clip 93>13.",
+      "hold": "few-trails",
+      "notes": "Qualify 2026-11-02 (run 41371842464): 2 trails, 1.7 mi after removing umbrella system and duplicate; below the >=2.5 mi or >=3 trails bar.",
       "exclude_trails": [
         {
           "id": "n:Hemlock Ravine Park Trail System",

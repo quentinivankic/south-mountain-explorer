@@ -240,6 +240,11 @@ struct AreaView: View {
     @State private var minHeightCommit: Task<Void, Never>? = nil
     /// Collection is a deliberate secondary destination, not a hidden page.
     @State private var showCollection = false
+    /// "Plan a Hike" sheet, its controller (inputs survive the sheet closing),
+    /// and the start/end a map tap is currently choosing.
+    @State private var showPlanHike = false
+    @State private var planHike = PlanHikeController()
+    @State private var planPickTarget: PlanPinTarget? = nil
     /// Bumped by the toolbar search button before expanding to Browse. The
     /// list persists the request until its conditionally mounted field appears,
     /// so focus does not depend on a guessed animation delay.
@@ -508,7 +513,8 @@ struct AreaView: View {
                     bottomInset: effectiveBottomInset,
                     selectedViewportInsets: selectedMapViewportInsets,
                     selectedVisibleInsets: selectedMapVisibleInsets,
-                    trackingMode: $trackingMode
+                    trackingMode: $trackingMode,
+                    onPickCoordinate: planPickHandler
                 )
                 .ignoresSafeArea()
                 .accessibilityHidden(loadingOverlayVisible)
@@ -516,6 +522,8 @@ struct AreaView: View {
                 floatingRetargetBanner(area: area)
                     .animation(.easeInOut(duration: 0.25), value: selectedTrailId)
                     .accessibilityHidden(loadingOverlayVisible)
+
+                planPickBanner
 
                 // iOS 26 presents the native sheet as a floating card: its
                 // custom presentation background is opaque, but the host itself
@@ -1150,7 +1158,8 @@ struct AreaView: View {
                         bottom: 0,
                         trailing: bleed
                     ),
-                    trackingMode: $trackingMode
+                    trackingMode: $trackingMode,
+                    onPickCoordinate: planPickHandler
                 )
                 .ignoresSafeArea(edges: [.top, .bottom, .trailing])
                 .accessibilityHidden(loadingOverlayVisible)
@@ -1158,6 +1167,8 @@ struct AreaView: View {
                 floatingRetargetBanner(area: area)
                     .animation(.easeInOut(duration: 0.25), value: selectedTrailId)
                     .accessibilityHidden(loadingOverlayVisible)
+
+                planPickBanner
             }
             .overlay(alignment: .top) { mapControlCluster }
         }
@@ -1797,6 +1808,7 @@ struct AreaView: View {
                     if atMinStopForChrome {
                         areaSearchButton
                     }
+                    areaPlanButton
                     areaCollectionButton
                 }
             } else {
@@ -1873,6 +1885,33 @@ struct AreaView: View {
                             : "Search trails")
     }
 
+    private var areaPlanButton: some View {
+        Button {
+            showPlanHike = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                    .font(.body.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text("Plan a Hike")
+                        .font(.caption2.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Plan a Hike")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, minHeight: 44)
+            .padding(.horizontal, dynamicTypeSize.isAccessibilitySize ? 10 : 14)
+            .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 6 : 0)
+            .compatibleGlass(in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("area-plan-button")
+        .accessibilityLabel("Plan a hike")
+        .accessibilityHint("Finds a hike that fits your time.")
+    }
     private var areaCollectionButton: some View {
         Button {
             showCollection = true
@@ -2102,6 +2141,16 @@ struct AreaView: View {
                 AnalyticsService.shared.capture(.dexOpened(areaId: area.id))
             }
         }
+        .sheet(isPresented: $showPlanHike) {
+            PlanHikeSheet(
+                area: area,
+                controller: planHike,
+                onDropPin: { target in beginPlanPick(target) },
+                onClose: { showPlanHike = false }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         // Confirmation dialogs ALSO nest inside the sheet — same
         // one-presentation-per-ancestor rule that put the modal sheets
         // here. With them attached to AreaView's body, tapping "Record
@@ -2156,6 +2205,54 @@ struct AreaView: View {
         }
     }
 
+    /// Tap handler handed to the map only while a Plan a Hike start/end is
+    /// being picked; nil otherwise, so normal map taps are untouched.
+    private var planPickHandler: ((CLLocationCoordinate2D) -> Void)? {
+        guard let target = planPickTarget else { return nil }
+        return { coordinate in
+            planHike.setPin(target, lat: coordinate.latitude, lon: coordinate.longitude)
+            planPickTarget = nil
+            showPlanHike = true
+        }
+    }
+    /// Closes the Plan sheet and waits for one map tap. The area sheet drops to
+    /// its fit stop first so there is map to tap.
+    private func beginPlanPick(_ target: PlanPinTarget) {
+        showPlanHike = false
+        planPickTarget = target
+        if !isWideLayout, !isRecording { sheetDetent = .height(committedMinHeight) }
+    }
+    @ViewBuilder
+    private var planPickBanner: some View {
+        if let target = planPickTarget {
+            VStack {
+                HStack(spacing: 12) {
+                    Text(target == .start ? "Tap the map to place your start" : "Tap the map to place your end")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button("Cancel") {
+                        planPickTarget = nil
+                        showPlanHike = true
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityIdentifier("plan-pick-cancel")
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .compatibleGlass(in: .rect(cornerRadius: 16))
+                .padding(.horizontal, 16)
+                // Below the measured top map controls (global points), so the
+                // close / more / favorite buttons never cover the banner.
+                .padding(.top, measuredMapControlsBottom + 8)
+                Spacer()
+            }
+            .ignoresSafeArea(edges: .top)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("plan-pick-banner")
+        }
+    }
     /// Retarget vs suggestion banner, only shown while a recording is
     /// active. Extracted so `sheetContent` reads cleanly — the
     /// inline form has ~70 lines of logging / dismiss closures that
@@ -2266,7 +2363,13 @@ struct AreaView: View {
 
             // Map-camera controls only. Starting a hike and opening the
             // Collection live on the labeled action row rendered beneath this
-            // bar in the idle context.
+            // bar in the idle context. "Plan a Hike" uses the free space on the
+            // right at standard text sizes: a fourth pill on the action row
+            // truncated "Collection". At accessibility sizes it is a full-width
+            // row in the action stack instead. Never shown mid-hike.
+            if !isRecording, !dynamicTypeSize.isAccessibilitySize {
+                areaPlanButton
+            }
         }
         .padding(.horizontal, 20)
     }

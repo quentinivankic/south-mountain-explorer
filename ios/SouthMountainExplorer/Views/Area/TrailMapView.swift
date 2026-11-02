@@ -158,6 +158,10 @@ struct TrailMapView: View {
     /// the new mode (and to update the camera as live location /
     /// heading samples arrive).
     @Binding var trackingMode: MapTrackingMode
+    /// "Plan a Hike" pick mode: non-nil while the user is choosing a start or
+    /// end. A map tap then reports its coordinate here instead of selecting a
+    /// trail. nil (the default) leaves the map exactly as it was.
+    var onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -269,7 +273,8 @@ struct TrailMapView: View {
         bottomInset: CGFloat = 0,
         selectedViewportInsets: MapViewportInsets = .zero,
         selectedVisibleInsets: MapViewportInsets = .zero,
-        trackingMode: Binding<MapTrackingMode>
+        trackingMode: Binding<MapTrackingMode>,
+        onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
     ) {
         self.area = area
         self.activeRecording = activeRecording
@@ -283,6 +288,7 @@ struct TrailMapView: View {
         self.selectedViewportInsets = selectedViewportInsets
         self.selectedVisibleInsets = selectedVisibleInsets
         self._trackingMode = trackingMode
+        self.onPickCoordinate = onPickCoordinate
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
         // default location before .onAppear fires.
@@ -315,6 +321,7 @@ struct TrailMapView: View {
                 liveHaloSegments: liveHaloSegments,
                 selectedTrailWalkedSegments: selectedTrailWalkedSegments,
                 selectedTrailId: $selectedTrailId,
+                onPickCoordinate: onPickCoordinate,
                 showAllParking: showAllParking,
                 // Read HERE, in a View body, so observation is registered and the
                 // map re-renders the moment the pool lands.

@@ -119,6 +119,9 @@ struct MapKitMapView: UIViewRepresentable {
     /// since its last completion).
     let selectedTrailWalkedSegments: [[CLLocationCoordinate2D]]
     @Binding var selectedTrailId: String?
+    /// "Plan a Hike" pick mode. When set, a tap reports the tapped coordinate
+    /// here and does not select a trail. nil = normal tap-to-select.
+    var onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil
     /// Show every lot in the area rather than only the selected trail's few.
     /// Off by default — see StorageKeys.showAllParking for why the per-trail
     /// gate stays strict and this exists alongside it.
@@ -1629,6 +1632,11 @@ struct MapKitMapView: UIViewRepresentable {
             guard let mapView = self.mapView else { return }
             let pt = gesture.location(in: mapView)
             let tapCoord = mapView.convert(pt, toCoordinateFrom: mapView)
+
+            if let pick = parent.onPickCoordinate {
+                pick(tapCoord)
+                return
+            }
 
             // Convert a 22pt screen radius into a meters tolerance at
             // the tap location's latitude — same scale the user sees,

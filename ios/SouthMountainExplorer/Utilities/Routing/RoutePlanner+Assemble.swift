@@ -24,7 +24,8 @@ extension RoutePlanEngine {
         guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: request.paceFactor,
                                          completed: completedKeys),
               metrics.isContinuous,
-              metrics.seconds <= limit + 1e-3
+              metrics.seconds <= limit + 1e-3,
+              maxGain.map({ metrics.gainFt <= $0 + 1e-3 }) ?? true
         else { return nil }
         if let first = steps.first, startOf(first) != startNode { return nil }
         if let f = finishNode, let last = steps.last, endOf(last) != f { return nil }

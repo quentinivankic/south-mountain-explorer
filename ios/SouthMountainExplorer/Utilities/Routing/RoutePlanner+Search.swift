@@ -38,6 +38,7 @@ extension RoutePlanEngine {
     static let polishedSeeds = 3
 
     func run() -> RoutePlan? {
+        if PlanCancellation.isCancelled { return nil }
         prepare()
         guard !jobs.isEmpty, let empty = makeState(order: []) else { return nil }
         // Seeds: three greedy scorings, plus "this trail first, then greedy"
@@ -46,6 +47,7 @@ extension RoutePlanEngine {
         var seeds: [PlanState] = []
         for mode in 0..<3 { seeds.append(greedyFill(empty, mode: mode)) }
         for j in promising(jobs.indices.map { $0 }).prefix(Self.forcedSeeds) {
+            if PlanCancellation.isCancelled { return nil }
             if let first = makeState(order: [j]) { seeds.append(greedyFill(first, mode: 0)) }
         }
         var unique: [PlanState] = []
@@ -58,6 +60,7 @@ extension RoutePlanEngine {
         }
         var best: PlanState?
         for i in ranked.prefix(Self.polishedSeeds) {
+            if PlanCancellation.isCancelled { return nil }
             let polished = localSearch(unique[i])
             if best == nil || better(polished, best!) { best = polished }
             if best!.eval.finished.count == singleCount { break }
@@ -240,7 +243,7 @@ extension RoutePlanEngine {
     func greedyFill(_ start: PlanState, mode: Int) -> PlanState {
         var cur = start
         var blocked = Set<Int>()
-        while true {
+        while !PlanCancellation.isCancelled {
             let inOrder = Set(cur.order)
             let inOrderMembers = Set(cur.order.flatMap { jobs[$0].members })
             let done = Set(cur.eval.finished)
@@ -307,7 +310,7 @@ extension RoutePlanEngine {
         var cur = initial
         var pass = 0
         let workStart = work
-        func spent() -> Bool { work - workStart >= Self.maxWork }
+        func spent() -> Bool { work - workStart >= Self.maxWork || PlanCancellation.isCancelled }
         while pass < Self.maxPasses, !spent() {
             pass += 1
             var best = cur

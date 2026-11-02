@@ -16,7 +16,7 @@ import Foundation
 /// 3. `.splitTooFar(gap)`: its own pieces are more than `maxSplitGapMeters`
 ///    (0.25 mi) apart. Approved rule: "can't be finished in one route".
 /// 4. `.piecesNotConnected(gap)`: pieces closer than that, but the network has
-///    no path joining them (Task 1 only bridges gaps up to 30 m). The planner
+///    no path joining them (Task 1 bridges gaps up to 30 m, and up to 180 m between pieces of the same trail, so only wider gaps land here). The planner
 ///    walks network edges only, and an off-network hop between pieces is not
 ///    allowed in Release A, so the trail is excluded and the gap reported.
 ///    A trail whose pieces are joined through other trails is NOT flagged: the

@@ -146,13 +146,44 @@ struct TrailNetworkTests {
         let near = Self.trail("N", [Self.line(0, 0, 100, 0), Self.line(112, 0, 200, 0)])
         let far = Self.trail("F", [Self.line(0, 500, 100, 500), Self.line(140, 500, 200, 500)])
         let n = Self.network([near, far])
-        #expect(n.bridgeEdges.count == 1)
-        #expect(n.bridgeEdges[0].trailKeys == [Self.key("N")])
+        // Both gaps are same-trail, so both are bridged (40 m is over the
+        // general 30 m rule but under the same-trail 180 m rule).
+        #expect(n.bridgeEdges.count == 2)
+        #expect(n.bridgeEdges.allSatisfy { $0.isUnverifiedConnection })
         #expect(abs((n.maxPieceGapMeters(of: Self.key("N")) ?? -1) - 12) < 0.5)
         #expect(abs((n.maxPieceGapMeters(of: Self.key("F")) ?? -1) - 40) < 0.5)
         #expect(n.maxPieceGapMeters(of: Self.key("nope")) == nil)
     }
 
+    @Test(arguments: [(170.0, true), (179.0, true), (185.0, false)])
+    func sameTrailBridgeReachIs180Metres(gap: Double, bridged: Bool) {
+        let t = Self.trail("T", [Self.line(0, 0, 100, 0), Self.line(100 + gap, 0, 200 + gap, 0)])
+        let n = Self.network([t])
+        #expect(n.bridgeEdges.count == (bridged ? 1 : 0))
+        if bridged {
+            #expect(n.bridgeEdges[0].isUnverifiedConnection)
+            #expect(n.bridgeEdges[0].trailKeys == [Self.key("T")])
+            #expect(abs(n.bridgeEdges[0].lengthMeters - gap) < 0.5)
+            #expect(n.edgeIds(of: Self.key("T")).count == 2)   // bridge is not part of the trail
+        }
+    }
+    @Test func differentTrailGapOver30MetresIsStillNotBridged() {
+        // Control: the wider reach applies only within one trail.
+        let a = Self.trail("A", [Self.line(0, 0, 100, 0)])
+        let b = Self.trail("B", [Self.line(170, 0, 270, 0)])
+        let n = Self.network([a, b])
+        #expect(n.bridgeEdges.isEmpty)
+    }
+    @Test func sameTrailBridgeIsNeverASnapTarget() throws {
+        let t = Self.trail("T", [Self.line(0, 0, 100, 0), Self.line(250, 0, 350, 0)])
+        let n = Self.network([t])
+        #expect(n.bridgeEdges.count == 1)
+        let pin = StartPoint.pin(lat: Self.ll(175, 3)[0], lon: Self.ll(175, 3)[1])
+        let snap = try TrailNetworkSnapper(network: n).snap(pin)
+        #expect(n.edges[snap.edgeId].kind == .trail)
+        // Mid-gap pin lands at a piece end (about 75 m away), not on the bridge.
+        #expect(snap.coordinate.lon != Self.ll(175, 0)[1])
+    }
     @Test func singlePieceTrailHasNoGap() {
         let n = Self.network([Self.trail("A", [Self.line(0, 0, 100, 0)])])
         #expect(n.maxPieceGapMeters(of: Self.key("A")) == 0)
@@ -367,7 +398,10 @@ struct TrailNetworkTests {
             }
         }
         let bridgeLen = net.bridgeEdges.reduce(0.0) { $0 + $1.lengthMeters }
-        #expect(net.bridgeEdges.allSatisfy { $0.lengthMeters <= 30.001 })
+        #expect(net.bridgeEdges.allSatisfy { e in
+            e.lengthMeters <= 30.001
+                || (e.trailKeys.count == 1 && e.lengthMeters <= TrailNetwork.Options().sameTrailBridgeMeters + 0.001)
+        })
         #expect(ms < 2000, "build took \(ms) ms")
 
         print("TRAILNETWORK stats: nodes=\(net.nodes.count) edges=\(net.edges.count) "
@@ -406,6 +440,32 @@ struct TrailNetworkTests {
         print("TRAILNETWORK elevationUnknownEdges=\(unknown)")
     }
 
+    @Test func southMountainNationalTrailGapIsBridgedIntoOneComponent() throws {
+        let geom = try Self.loadSouthMountain()
+        let net = TrailNetwork(trails: geom.trails.map { .init(areaId: geom.id, trail: $0) })
+        var parent = Array(0..<net.nodes.count)
+        func find(_ x: Int) -> Int {
+            var r = x
+            while parent[r] != r { r = parent[r] }
+            return r
+        }
+        for e in net.edges { parent[find(e.from)] = find(e.to) }
+        let comps = TrailNetworkSnapper(network: net).components
+        // One connected park (>99% of trail length) plus two tiny islands.
+        let total = comps.reduce(0) { $0 + $1.lengthMeters }
+        #expect((comps.map(\.lengthMeters).max() ?? 0) / total > 0.99)
+        let national = Key(areaId: geom.id, trailId: "national-trail")
+        let gap = try #require(net.maxPieceGapMeters(of: national))
+        #expect(gap > 170 && gap < 180)
+        let bridge = net.bridgeEdges.filter { $0.trailKeys == [national] && $0.lengthMeters > 170 }
+        #expect(bridge.count == 1)
+        #expect(bridge.first?.isUnverifiedConnection == true)
+        // The bridge joins the National Trail's two pieces: both ends of the
+        // bridge sit on the same connected component as the whole trail.
+        let nodeComp = Dictionary(uniqueKeysWithValues: net.nodes.indices.map { ($0, find($0)) })
+        let nationalComps = Set(net.edgeIds(of: national).flatMap { [net.edges[$0].from, net.edges[$0].to] }.map { nodeComp[$0]! })
+        #expect(nationalComps.count == 1)
+    }
     @Test func southMountainJunctionsOfNamedTrails() throws {
         let geom = try Self.loadSouthMountain()
         let net = TrailNetwork(trails: geom.trails.map { .init(areaId: geom.id, trail: $0) })

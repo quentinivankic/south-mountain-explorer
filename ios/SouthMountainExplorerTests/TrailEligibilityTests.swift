@@ -43,7 +43,7 @@ struct TrailEligibilityTests {
     /// The scene most tests share. Start is at (0,0), the west end of A.
     ///   A: (0,0)-(500,0)        B: (500,0)-(500,500)     C: (0,0)-(0,-300)
     ///   K: (0,-300)-(400,-300)  Q: two pieces off K, ~200 m apart, joined only through K
-    ///   S: two pieces 600 m apart (split far)   P: two pieces 100 m apart, no path
+    ///   S: two pieces 600 m apart (split far)   P: two pieces 250 m apart, no path (over the 180 m same-trail bridge)
     ///   Z: far island    L: (500,500)-(500,5500), 5 km beyond B
     private static func scene() -> [Trail] {
         [
@@ -53,7 +53,7 @@ struct TrailEligibilityTests {
             trail("K", [[(0, -300), (400, -300)]]),
             trail("Q", [[(100, -300), (100, -350)], [(300, -300), (300, -350)]]),
             trail("S", [[(1000, 1000), (1100, 1000)], [(1700, 1000), (1800, 1000)]]),
-            trail("P", [[(2000, 0), (2100, 0)], [(2200, 0), (2300, 0)]]),
+            trail("P", [[(2000, 0), (2100, 0)], [(2350, 0), (2450, 0)]]),
             trail("Z", [[(3000, 3000), (3500, 3000)]]),
             trail("L", [[(500, 500), (500, 5500)]]),
         ]
@@ -131,9 +131,22 @@ struct TrailEligibilityTests {
         guard case .piecesNotConnected(let gap)? = reason(r, "P") else {
             Issue.record("expected piecesNotConnected, got \(String(describing: reason(r, "P")))"); return
         }
-        #expect(gap > 95 && gap < 105)
+        #expect(gap > 245 && gap < 255)
     }
 
+    @Test func sameTrailPiecesWithinBridgeReachAreConnectedAndEligible() throws {
+        // 100 m apart used to be piecesNotConnected; the same-trail bridge now joins them.
+        var trails = Self.scene()
+        trails.append(Self.trail("J", [[(0, 400), (100, 400)], [(200, 400), (300, 400)]]))
+        trails.append(Self.trail("JL", [[(0, 400), (0, 100)], [(0, 100), (0, 0)]]))
+        let r = try Self.run(trails, budget: 7200)
+        #expect(reason(r, "J") == nil)
+        #expect(candidate(r, "J") != nil)
+        // Control: 250 m apart is still not connected.
+        guard case .piecesNotConnected? = reason(r, "P") else {
+            Issue.record("P should stay piecesNotConnected"); return
+        }
+    }
     @Test func piecesJoinedThroughOtherTrailsAreAllowed() throws {
         let trails = Self.scene()
         let net = TrailNetwork(trails: Self.inputs(trails))
@@ -321,9 +334,11 @@ struct TrailEligibilityTests {
                 let e = try #require(r.excluded.first(where: { $0.key.trailId == id }))
                 if case .splitTooFar = e.reason {} else { Issue.record("\(id): \(e.reason)") }
             }
-            let nat = try #require(r.excluded.first(where: { $0.key.trailId == "national-trail" }))
-            if case .piecesNotConnected(let gap) = nat.reason { #expect(gap > 150 && gap < 200) }
-            else { Issue.record("national-trail: \(nat.reason)") }
+            // The 177 m internal gap is now closed by the same-trail bridge, so
+            // National Trail is no longer excluded as piecesNotConnected.
+            if let nat = r.excluded.first(where: { $0.key.trailId == "national-trail" }) {
+                if case .piecesNotConnected = nat.reason { Issue.record("national-trail still not connected") }
+            }
         }
         // Walk-through-completed: mark the 10 cheapest done.
         #expect(cheapest.count == 10)

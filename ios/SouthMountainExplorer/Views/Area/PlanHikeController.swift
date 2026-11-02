@@ -34,6 +34,15 @@ final class PlanHikeController {
     }
     /// Which planned route is drawn on the map (Task 10).
     private(set) var preview = PlanPreview()
+    /// The Plan sheet's frame in window coordinates, measured by the sheet.
+    /// Drives the camera fit insets; nil until the sheet reports it.
+    private(set) var cardFrame: CGRect?
+    func updateCardFrame(_ frame: CGRect) {
+        guard frame.width > 1, frame.height > 1 else { return }
+        if let c = cardFrame, abs(c.minX - frame.minX) < 1, abs(c.minY - frame.minY) < 1,
+           abs(c.width - frame.width) < 1, abs(c.height - frame.height) < 1 { return }
+        cardFrame = frame
+    }
     /// Bumped when the camera should fit the drawn route.
     private(set) var fitTick = 0
     /// Set when Start hike began a recording; the route stays up as a passive guide.
@@ -87,7 +96,7 @@ final class PlanHikeController {
     // MARK: Route preview
 
     /// Wait before the second fit, so it lands after the sheet detent animation.
-    var settleDelay: Duration = .milliseconds(350)
+    var settleDelay: Duration = .milliseconds(700)
     private var settleFit: Task<Void, Never>?
     func showOnMap() {
         preview.show()
@@ -162,8 +171,9 @@ final class PlanHikeController {
                 limit: snapshot.timeLimitSeconds, maxGainFt: snapshot.maxGainFt(units: units),
                 paceFactor: paceFactor, shape: snapshot.shape,
                 notDownloaded: input.notDownloaded.count, failed: input.failed.count)
-            let result = await Task.detached(priority: .userInitiated) { request.execute() }.value
-            guard !Task.isCancelled else { return }
+            // Cancel flips the token so the planner loops stop; a cancelled run yields nil.
+            guard let result = await PlanCancellation.runDetached({ request.execute() }),
+                  !Task.isCancelled else { return }
             switch result {
             case .success(let done):
                 self.state = .planned(done.outcome, done.context)

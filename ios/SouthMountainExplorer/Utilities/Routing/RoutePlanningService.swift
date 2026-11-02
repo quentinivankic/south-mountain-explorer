@@ -25,17 +25,19 @@ enum RoutePlanningService {
         let wide = TrailEligibility.evaluate(
             network: request.network, trails: request.trails, completion: request.completion,
             options: .init(budgetSeconds: maxClosestSeconds, paceFactor: request.paceFactor, trip: trip))
-        if wide.candidates.isEmpty { return .noCandidates(summary(wide)) }
+        if wide.candidates.isEmpty || PlanCancellation.isCancelled { return .noCandidates(summary(wide)) }
 
         let inLimit = wide.candidates.filter { $0.estimatedSeconds <= limit }
         let base = RoutePlanRequest(
             network: request.network, candidates: inLimit, completion: request.completion,
             timeLimitSeconds: limit, maxGainFt: request.maxGainFt,
             paceFactor: request.paceFactor, shape: request.shape)
-        if !inLimit.isEmpty, let best = RoutePlanner.plan(base) {
+        if !inLimit.isEmpty, let best = RoutePlanner.plan(base), !PlanCancellation.isCancelled {
             let alts = RouteAlternatives.build(best: best, base: base, request: request, credit: inLimit)
             return .planned(best: best, alternatives: alts)
         }
+        // Cancelled mid-search: skip the extra planning below, the caller discards this.
+        if PlanCancellation.isCancelled { return .noCandidates(summary(wide)) }
         return .nothingFits(nothingFits(request, wide: wide, credit: inLimit))
     }
 

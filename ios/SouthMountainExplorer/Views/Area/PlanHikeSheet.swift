@@ -46,6 +46,7 @@ struct PlanHikeSheet: View {
                 }
             }
         }
+        .background(WindowFrameReader { controller.updateCardFrame($0) })
         .task { await controller.prepare(area: area, recording: recording, units: units) }
         .onChange(of: controller.inputs) { _, _ in controller.inputsChanged() }
         .onDisappear {
@@ -411,5 +412,49 @@ struct PlanHikeSheet: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(a.title). \(a.why). \(a.route.spoken)")
         .accessibilityIdentifier("plan-alternative-row")
+    }
+}
+
+/// Reports its view's frame in WINDOW coordinates. SwiftUI's `.global` space is
+/// relative to the sheet's own container, so it cannot say where the sheet sits
+/// on screen; converting the hosting view's bounds to the window can. A display
+/// link polls while the view is on screen so a detent animation is followed.
+struct WindowFrameReader: UIViewRepresentable {
+    let onChange: (CGRect) -> Void
+
+    func makeUIView(context: Context) -> ProbeView {
+        let v = ProbeView()
+        v.isUserInteractionEnabled = false
+        v.onChange = onChange
+        return v
+    }
+
+    func updateUIView(_ view: ProbeView, context: Context) { view.onChange = onChange }
+
+    final class ProbeView: UIView {
+        var onChange: ((CGRect) -> Void)?
+        private var link: CADisplayLink?
+        private var last: CGRect = .null
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            link?.invalidate()
+            link = nil
+            guard window != nil else { return }
+            let l = CADisplayLink(target: self, selector: #selector(poll))
+            l.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30)
+            l.add(to: .main, forMode: .common)
+            link = l
+            poll()
+        }
+
+        @objc private func poll() {
+            guard window != nil else { return }
+            let r = convert(bounds, to: nil)
+            guard r != last, r.width > 1, r.height > 1 else { return }
+            last = r
+            onChange?(r)
+        }
+
     }
 }

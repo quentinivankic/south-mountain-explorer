@@ -346,9 +346,13 @@ struct MapKitMapView: UIViewRepresentable {
         // and delegate methods see the latest closures and bindings.
         coord.parent = self
 
+        // Layers that are (re)added below land above the planned route; the
+        // route is moved back to the front once, after step 5.
+        var layersReAdded = false
         // 1) Trail overlays — only rebuild when the area itself changes.
         // (Trail set within an area is stable for the area's lifetime.)
         if coord.lastAreaId != area.id {
+            layersReAdded = true
             coord.rebuildTrailOverlays(on: mapView, from: area)
             coord.lastAreaId = area.id
             // Force re-style on next pass since renderer dict was reset.
@@ -388,6 +392,7 @@ struct MapKitMapView: UIViewRepresentable {
         // change (count change, or a new hike replaced one).
         let newHaloHashes = Self.haloHashes(haloSegments)
         if newHaloHashes != coord.lastHaloHashes {
+            layersReAdded = true
             coord.rebuildHaloOverlays(on: mapView, segments: haloSegments)
             coord.lastHaloHashes = newHaloHashes
         }
@@ -468,6 +473,7 @@ struct MapKitMapView: UIViewRepresentable {
         // 5) Filter changes — show / hide overlays based on
         // `visibleTrailIds`. Exempt selected / recording trails.
         if coord.lastVisibleTrailIds != visibleTrailIds {
+            layersReAdded = true
             coord.applyVisibleTrailFilter(
                 on: mapView,
                 allowed: visibleTrailIds,
@@ -475,6 +481,9 @@ struct MapKitMapView: UIViewRepresentable {
             )
             coord.lastVisibleTrailIds = visibleTrailIds
         }
+        // Trail, halo and filter overlays added after the route would draw over
+        // it, so move the route back to the front.
+        if layersReAdded { coord.bringPlannedRouteToFront(on: mapView) }
 
         // 6) Camera moves. Only animate when the caller bumps the
         // tick — we don't want stale view-state updates to re-frame

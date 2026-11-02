@@ -16,7 +16,9 @@ import Foundation
 ///   both trail keys, so its length is counted once.
 /// - Gaps up to `bridgeMeters` between a trail endpoint and the nearest other
 ///   trail become `.bridge` edges, flagged as an unverified connection. Wider
-///   gaps are never bridged.
+///   gaps are never bridged, except a gap between two pieces of the SAME trail,
+///   which is bridged up to `sameTrailBridgeMeters` (about 180 m, so South
+///   Mountain National Trail's 177 m internal gap is closed).
 ///
 /// Pure, deterministic value types. Input order does not matter (trails are
 /// sorted by key); the same input always yields the same ids.
@@ -100,6 +102,10 @@ struct TrailNetwork: Sendable {
         var contactMeters = 6.0
         /// Largest gap that is bridged. Never exceeded.
         var bridgeMeters = 30.0
+        /// Largest gap bridged between two pieces of the SAME trail (a trail
+        /// stored in separate pieces with a hole between them). Flagged
+        /// unverified like any bridge. Never exceeded.
+        var sameTrailBridgeMeters = 180.0
         /// Mid-trail vertices this close to another trail are merged onto it,
         /// and cut points this close to an existing vertex reuse it.
         var vertexMergeMeters = 1.0

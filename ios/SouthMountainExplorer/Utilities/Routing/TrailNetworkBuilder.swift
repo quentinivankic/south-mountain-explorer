@@ -22,6 +22,15 @@ struct TrailNetworkBuilder {
         var chainTotal = 0.0
         var elevationMapped = false
         var maxGap = 0.0
+        /// Gaps between chain-consecutive pieces (exit vertex to next entry vertex).
+        var joins: [Join] = []
+    }
+    struct Join {
+        let fromPiece: Int
+        let fromVertex: Int
+        let toPiece: Int
+        let toVertex: Int
+        let gap: Double
     }
 
     struct Piece {
@@ -149,7 +158,16 @@ struct TrailNetworkBuilder {
         let tails = info.pieces.map { pieces[$0].pts.last! }
         let result = TrailNetworkChain.order(heads: heads, tails: tails)
         var offset = 0.0
-        for link in result.links {
+        var exit: (piece: Int, vertex: Int)?
+        for (n, link) in result.links.enumerated() {
+            let idx0 = info.pieces[link.piece]
+            let last = pieces[idx0].pts.count - 1
+            let entry = link.flipped ? last : 0
+            if let e = exit, n > 0 {
+                info.joins.append(Join(fromPiece: e.piece, fromVertex: e.vertex,
+                                       toPiece: idx0, toVertex: entry, gap: result.gaps[n - 1]))
+            }
+            exit = (idx0, link.flipped ? 0 : last)
             let idx = info.pieces[link.piece]
             pieces[idx].chainOffset = offset
             pieces[idx].flipped = link.flipped

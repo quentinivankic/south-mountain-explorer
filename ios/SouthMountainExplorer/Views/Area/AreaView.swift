@@ -2232,15 +2232,12 @@ struct AreaView: View {
     private var planCardDetent: PresentationDetent { .medium }
 
     /// Where the planned route should sit on screen: above the Plan card on a
-    /// phone, clear of the side panel on wide layouts.
+    /// phone, clear of the side panel on wide layouts (from the card's measured frame).
     private var planRouteFitInsets: MapViewportInsets {
-        if isWideLayout { return selectedMapViewportInsets }
-        let fraction: CGFloat = 0.5
-        return MapViewportInsets(
-            top: measuredMapControlsBottom + 40, leading: 20,
-            bottom: WindowMetrics.size.height * fraction + 24, trailing: 20)
+        PlanFitInsets.insets(
+            cardFrame: planHike.cardFrame, window: WindowMetrics.size,
+            controlsBottom: measuredMapControlsBottom)
     }
-
     /// Start hike: a normal roam recording through the usual guards. The
     /// route stays on the map as a passive guide until that recording ends.
     private func startPlannedHike() {

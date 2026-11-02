@@ -453,7 +453,7 @@ struct TrailNetworkStartTests {
         let net = TrailNetwork(trails: geom.trails.map { .init(areaId: geom.id, trail: $0) })
         let snapper = TrailNetworkSnapper(network: net)
         let before = fingerprint(net)
-        #expect(snapper.components.count == 4)   // with bridges (Task 1: 6 without)
+        #expect(snapper.components.count == 3)   // with bridges (6 without; 4 before the same-trail bridge)
         let names = Dictionary(uniqueKeysWithValues: geom.trails.map { ($0.id, $0.name) })
         var rows: [String] = []
         for lot in lots {

@@ -15,6 +15,7 @@ extension TrailNetworkBuilder {
         }
         stamps = [Int32](repeating: 0, count: segPiece.count)
         findVertexContacts()
+        findSameTrailBridges()
         findCrossings()
     }
 
@@ -40,6 +41,34 @@ extension TrailNetworkBuilder {
         }
     }
 
+    /// Same-trail rule: a trail stored in pieces with a hole between them is
+    /// bridged across the hole when the hole is wider than the general
+    /// `bridgeMeters` but at most `sameTrailBridgeMeters`. Only the gaps between
+    /// pieces consecutive in the trail's chain order are considered (each
+    /// piece's end to the next piece's start), so a dead end is never joined
+    /// to some other part of its own trail. The bridge is flagged like any
+    /// other and is never a snap target.
+    private mutating func findSameTrailBridges() {
+        // An end that already touches (or bridges to) another piece of the SAME
+        // trail is not a hole: a spur meeting its own trail, for example.
+        func trailOf(_ r: VRef) -> Int {
+            switch r {
+            case .orig(let p, _): return pieces[p].trail
+            case .cut(let c): return pieces[cuts[c].piece].trail
+            }
+        }
+        var joinedToOwn = Set<VRef>()
+        for (x, y) in unions + bridges where trailOf(x) == trailOf(y) {
+            joinedToOwn.insert(x); joinedToOwn.insert(y)
+        }
+        for info in trails where info.joins.count > 0 {
+            for j in info.joins where j.gap > options.bridgeMeters && j.gap <= options.sameTrailBridgeMeters {
+                let a = VRef.orig(j.fromPiece, j.fromVertex), b = VRef.orig(j.toPiece, j.toVertex)
+                if joinedToOwn.contains(a) || joinedToOwn.contains(b) { continue }
+                bridges.append((a, b))
+            }
+        }
+    }
     /// Intersections between segments of different pieces (or non-adjacent
     /// segments of one piece). Includes a line passing exactly through the
     /// other's vertex; `resolve` then reuses that vertex and cuts the other.

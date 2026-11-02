@@ -194,3 +194,11 @@ def test_areas_loop_publish_refuses_when_any_area_failed(tmp_path):
     proc, calls, output = _run_areas_step(tmp_path, "publish")
     assert proc.returncode == 1 and "REFUSED" in proc.stdout
     assert "pipeline c-ca-ns" in calls and "failed=1" in output
+
+
+def test_publish_workflow_readds_only_way_boundaries_and_the_leisure_park_relation():
+    line = [ln for ln in PUBLISH.splitlines() if "WAY_IDS=" in ln][0]
+    assert 'PARK_RELS="r4855708"' in PUBLISH
+    assert "w[1-9][0-9]*|$PARK_RELS" in line
+    # no generic relation pattern: other relation runs keep the prefilter bytes
+    assert "[wr]" not in line and "r[1-9]" not in line

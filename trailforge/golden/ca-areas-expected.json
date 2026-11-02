@@ -264,6 +264,26 @@
         "Musquodoboit Trailway",
         "Portage"
       ]
+    },
+    "whycocomagh-provincial-park-ca-ns": {
+      "trail_count": 3,
+      "total_mi": 2.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Salt Mountain Trail",
+        "Scout Trail",
+        "The Highlander"
+      ],
+      "forbidden_names": []
+    },
+    "crystal-crescent-beach-provincial-park-ca-ns": {
+      "trail_count": 2,
+      "total_mi": 6.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Pennant Point Lookoff"
+      ]
     }
   }
 }

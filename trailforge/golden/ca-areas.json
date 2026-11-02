@@ -2037,7 +2037,7 @@
           "reason": "Official Parks Canada spelling is Mi'gmaq Cedar; OSM has Migmag Cedars Trail"
         },
         {
-          "osm_name": "Sentier de la rivi\u00e8re Kouchibouguac",
+          "osm_name": "Sentier de la rivière Kouchibouguac",
           "name": "Kouchibouguac River",
           "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
           "reason": "Official Parks Canada name is Kouchibouguac River; OSM carries the French-only name"
@@ -2560,7 +2560,7 @@
           "reason": "Parks Canada trail #17 Green Gardens. OSM tags the relation rwn."
         },
         {
-          "name": "Steve\u2019s Trail",
+          "name": "Steve’s Trail",
           "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
           "reason": "Parks Canada trail #2 Steve's Trail (1 km return = the whole 0.32 mi route); dropped only by the fragment rule."
         },
@@ -2656,7 +2656,7 @@
       "province": "nl",
       "state": "Canada",
       "relation_id": 13426029,
-      "name": "L\u2019Anse aux Meadows National Historic Site",
+      "name": "L’Anse aux Meadows National Historic Site",
       "bbox": null,
       "center": null,
       "tier": 1,
@@ -3104,6 +3104,2418 @@
       "tier": 2,
       "hold": "needs-rescope",
       "notes": "NL curation 2026-11-02. leisure=park relation (r1983232): needs the explicit-id relation re-add in the workflow (code), and boundary is 0.011 x 0.004 deg. No named trails found."
+    },
+    {
+      "id": "banff-national-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6365995,
+      "name": "Banff National Park",
+      "bbox": [
+        -117.37,
+        50.66,
+        -115.11,
+        52.32
+      ],
+      "center": [
+        51.271,
+        -115.37
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance.",
+      "exclude_trails": [
+        {
+          "id": "n:2240 Trail",
+          "name": "2240 Trail",
+          "reason": "Numeric road-style name, not a named hiking trail"
+        },
+        {
+          "id": "n:Assiniboine Pass Horse Trail",
+          "name": "Assiniboine Pass Horse Trail",
+          "reason": "horse/equestrian-use trail"
+        },
+        {
+          "id": "n:Aurora Creek-Marvel Pass",
+          "name": "Aurora Creek-Marvel Pass",
+          "reason": "Boundary-clipped: 2.9 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ball Pass Trail",
+          "name": "Ball Pass Trail",
+          "reason": "Boundary-clipped: 1.5 of 6.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bankside",
+          "name": "Bankside",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Birdwood Pass Route",
+          "name": "Birdwood Pass Route",
+          "reason": "Boundary-clipped: 1.3 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Black Brett Descent Route",
+          "name": "Black Brett Descent Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Boom Mountain Trail",
+          "name": "Boom Mountain Trail",
+          "reason": "Boundary-clipped: 0.6 of 4.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Carrot Peak Trail",
+          "name": "Carrot Peak Trail",
+          "reason": "Boundary-clipped: 0.8 of 8.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Cirrus Mountain Trail",
+          "name": "Cirrus Mountain Trail",
+          "reason": "Boundary-clipped: 2.5 of 5.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Citadel Pass Tr",
+          "name": "Citadel Pass Tr",
+          "reason": "Boundary-clipped: 4.3 of 5.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Coastline",
+          "name": "Coastline",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Conical Peak Descent Route",
+          "name": "Conical Peak Descent Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Costigan  Canyoning  Approach",
+          "name": "Costigan  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:East End of Rundle Trail",
+          "name": "East End of Rundle Trail",
+          "reason": "Boundary-clipped: 3.2 of 4.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Farbus Mountain Trail",
+          "name": "Farbus Mountain Trail",
+          "reason": "Boundary-clipped: 1.1 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Glacier Lake Trail",
+          "name": "Glacier Lake Trail",
+          "reason": "Duplicate/variant of 'Glacier Lake Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Goat Creek Tr (TCT)",
+          "name": "Goat Creek Tr (TCT)",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:Goat Creek Trail (TCT)",
+          "name": "Goat Creek Trail (TCT)",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:Head-to-Toe",
+          "name": "Head-to-Toe",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Healy Pass (Trail Junction) Trail",
+          "name": "Healy Pass (Trail Junction) Trail",
+          "reason": "Boundary-clipped: 3.2 of 4.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lake Louis Tram Line",
+          "name": "Lake Louis Tram Line",
+          "reason": "Misspelt duplicate of Lake Louise Tram Line Trail (Parks Canada: Tramline Trail)"
+        },
+        {
+          "id": "n:Marmota Peak Trail",
+          "name": "Marmota Peak Trail",
+          "reason": "Boundary-clipped: 3.8 of 11.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Minnewanka Tr",
+          "name": "Minnewanka Tr",
+          "reason": "Duplicate stitched piece of Minnewanka Trail"
+        },
+        {
+          "id": "n:Mount Aylmer Trail",
+          "name": "Mount Aylmer Trail",
+          "reason": "Boundary-clipped: 1.3 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Ball Trail",
+          "name": "Mount Ball Trail",
+          "reason": "Boundary-clipped: 0.6 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Columbia Route",
+          "name": "Mount Columbia Route",
+          "reason": "Boundary-clipped: 0.7 of 8.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Cory West Face Approach Trail",
+          "name": "Mount Cory West Face Approach Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Nestor Trail",
+          "name": "Mount Nestor Trail",
+          "reason": "Boundary-clipped: 0.7 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Sir Douglas Trail",
+          "name": "Mount Sir Douglas Trail",
+          "reason": "Boundary-clipped: 2.9 of 4.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Victoria North Peak",
+          "name": "Mount Victoria North Peak",
+          "reason": "Boundary-clipped: 1.9 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Neil Colgan Hut Route",
+          "name": "Neil Colgan Hut Route",
+          "reason": "Boundary-clipped: 2.6 of 3.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Return of the Jedi",
+          "name": "Return of the Jedi",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Ross Lake Trail",
+          "name": "Ross Lake Trail",
+          "reason": "Boundary-clipped: 3.8 of 4.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Spray Quarry",
+          "name": "Spray Quarry",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Star Wars",
+          "name": "Star Wars",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Stenton Peak Scramble",
+          "name": "Stenton Peak Scramble",
+          "reason": "Boundary-clipped: 3.0 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Stinky D",
+          "name": "Stinky D",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Subpeak 2 Trail",
+          "name": "Subpeak 2 Trail",
+          "reason": "Boundary-clipped: 2.6 of 6.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sunset Pass Trail",
+          "name": "Sunset Pass Trail",
+          "reason": "Boundary-clipped: 4.9 of 8.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Super G",
+          "name": "Super G",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Teddy Bear's Picnic",
+          "name": "Teddy Bear's Picnic",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:The Shoulder",
+          "name": "The Shoulder",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:The Spine",
+          "name": "The Spine",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Topp Notch",
+          "name": "Topp Notch",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Twin Cairns Meadow Park Trail",
+          "name": "Twin Cairns Meadow Park Trail",
+          "reason": "Boundary-clipped: 1.9 of 2.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Valleyview",
+          "name": "Valleyview",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Wagon Trail",
+          "name": "Wagon Trail",
+          "reason": "Unclear informal name; not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Wolf Skat Alley",
+          "name": "Wolf Skat Alley",
+          "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
+        },
+        {
+          "id": "n:Wonder Pass - Marvel Lake",
+          "name": "Wonder Pass - Marvel Lake",
+          "reason": "Duplicate stitched piece of Wonder Pass Trail / Wonder Pass-Marvel Lake route"
+        },
+        {
+          "id": "n:Wonder Pass / Marvel Lake Trail",
+          "name": "Wonder Pass / Marvel Lake Trail",
+          "reason": "Boundary-clipped: 4.9 of 6.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:equestrian trail",
+          "name": "equestrian trail",
+          "reason": "horse/equestrian-use trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Eiffel Lake Tr",
+          "name": "Eiffel Lake Trail",
+          "source": "https://www.openstreetmap.org/way/24830042",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Harvey Pass Tr",
+          "name": "Harvey Pass Trail",
+          "source": "https://www.openstreetmap.org/way/24831434",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Mt Bourgeau Rt",
+          "name": "Mt Bourgeau Route",
+          "source": "https://www.openstreetmap.org/way/24831437",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Mt Fortune to Fortulent Peaks Route",
+          "name": "Mount Fortune to Fortulent Peaks Route",
+          "source": "https://www.openstreetmap.org/way/264946260",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Owen Creek Tail",
+          "name": "Owen Creek Trail",
+          "source": "https://www.openstreetmap.org/way/348819017",
+          "reason": "Typo/numeric-name fix to the official spelling; same trail"
+        },
+        {
+          "osm_name": "Sulphur Moutain Trail",
+          "name": "Sulphur Mountain Trail",
+          "source": "https://www.openstreetmap.org/way/24836629",
+          "reason": "Typo/numeric-name fix to the official spelling; same trail"
+        },
+        {
+          "osm_name": "Talc Lake Tr",
+          "name": "Talc Lake Trail",
+          "source": "https://www.openstreetmap.org/way/24831442",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "jasper-national-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395738,
+      "name": "Jasper National Park",
+      "bbox": [
+        -119.59,
+        52.08,
+        -116.75,
+        53.53
+      ],
+      "center": [
+        52.734,
+        -117.158
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:12a Wapiti Campground",
+          "name": "12a Wapiti Campground",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:2b (Pyramid Lake)",
+          "name": "2b (Pyramid Lake)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:2b (Three Hump Beast)",
+          "name": "2b (Three Hump Beast)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:2b Edge of the Bench",
+          "name": "2b Edge of the Bench",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:2k Lost Lands",
+          "name": "2k Lost Lands",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:2n Star Wars",
+          "name": "2n Star Wars",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:3 Switchback",
+          "name": "3 Switchback",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:3f Fire Escape",
+          "name": "3f Fire Escape",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:8 Town Trail",
+          "name": "8 Town Trail",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:8f Razorback",
+          "name": "8f Razorback",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Access To Rainy Day Slab",
+          "name": "Access To Rainy Day Slab",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Approach 2 Route",
+          "name": "Approach 2 Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Bighorn Alley Trail # 13",
+          "name": "Bighorn Alley Trail # 13",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Bighorn Alley Trail 13",
+          "name": "Bighorn Alley Trail 13",
+          "reason": "Case/numbering duplicate of Bighorn Alley Trail # 13 (Jasper MTB network)"
+        },
+        {
+          "id": "n:Cardinal Pass route",
+          "name": "Cardinal Pass route",
+          "reason": "Boundary-clipped: 2.6 of 5.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Cataract and Cline Pass Route",
+          "name": "Cataract and Cline Pass Route",
+          "reason": "Boundary-clipped: 3.2 of 6.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Cottonwood Trail 8",
+          "name": "Cottonwood Trail 8",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Edith Cavell Pond Trail",
+          "name": "Edith Cavell Pond Trail",
+          "reason": "Mis-stitched composite: 7.19 mi running ~4 mi east-west is not the 1 km pond walk; the Path of the Glacier Trail and Cavell Meadows Trail ship"
+        },
+        {
+          "id": "n:Evelyn Creek/Skyline Trail",
+          "name": "Evelyn Creek/Skyline Trail",
+          "reason": "Duplicate/variant piece of the Skyline Trail route (Skyline Trail ships); not a standalone named trail"
+        },
+        {
+          "id": "n:Fiddle Peak Trail",
+          "name": "Fiddle Peak Trail",
+          "reason": "Boundary-clipped: 2.5 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ganges",
+          "name": "Ganges",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Hochimini",
+          "name": "Hochimini",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Lost Boys Sport Climbing Path",
+          "name": "Lost Boys Sport Climbing Path",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Lost Lands",
+          "name": "Lost Lands",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Majic Ridge",
+          "name": "Majic Ridge",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Miette alternate",
+          "name": "Miette alternate",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Miette alternative",
+          "name": "Miette alternative",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Moose River Route",
+          "name": "Moose River Route",
+          "reason": "Boundary-clipped: 8.7 of 21.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Columbia Trail",
+          "name": "Mount Columbia Trail",
+          "reason": "Boundary-clipped: 2.6 of 8.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Kitchener Trail",
+          "name": "Mount Kitchener Trail",
+          "reason": "Boundary-clipped: 3.8 of 5.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:No Goat Canyon",
+          "name": "No Goat Canyon",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Rche Miette via Shredder's Creek",
+          "name": "Rche Miette via Shredder's Creek",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Robson Pass Trail",
+          "name": "Robson Pass Trail",
+          "reason": "Boundary-clipped: 3.3 of 4.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Shore Trail",
+          "name": "Shore Trail",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Shredders Reef",
+          "name": "Shredders Reef",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Sidewinder 8f",
+          "name": "Sidewinder 8f",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Sleepy Hollow",
+          "name": "Sleepy Hollow",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Swamp Rider 5B",
+          "name": "Swamp Rider 5B",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 12 Wapiti",
+          "name": "Trail 12 Wapiti",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 15",
+          "name": "Trail 15",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 1a",
+          "name": "Trail 1a",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2 (Horseland)",
+          "name": "Trail 2 (Horseland)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2 Church Trail",
+          "name": "Trail 2 Church Trail",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2a",
+          "name": "Trail 2a",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2d Powerline",
+          "name": "Trail 2d Powerline",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2g",
+          "name": "Trail 2g",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 2j",
+          "name": "Trail 2j",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 3",
+          "name": "Trail 3",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 3 (Town to 3a)",
+          "name": "Trail 3 (Town to 3a)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 4",
+          "name": "Trail 4",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 4d",
+          "name": "Trail 4d",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 5 to 12a",
+          "name": "Trail 5 to 12a",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 5d Fastracks lower",
+          "name": "Trail 5d Fastracks lower",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 6",
+          "name": "Trail 6",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7",
+          "name": "Trail 7",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 (7e to 7a)",
+          "name": "Trail 7 (7e to 7a)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 (OFP to JPL)",
+          "name": "Trail 7 (OFP to JPL)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 (UPL to Moberlyn Bridge)",
+          "name": "Trail 7 (UPL to Moberlyn Bridge)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 5to 6th Bridge",
+          "name": "Trail 7 5to 6th Bridge",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 Andretti's",
+          "name": "Trail 7 Andretti's",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 Loni's",
+          "name": "Trail 7 Loni's",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 7 Moberly Bride to 6th Bridge",
+          "name": "Trail 7 Moberly Bride to 6th Bridge",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 8 (Backside)",
+          "name": "Trail 8 (Backside)",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 8c",
+          "name": "Trail 8c",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 8c Historic Route",
+          "name": "Trail 8c Historic Route",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 9a5th Lake",
+          "name": "Trail 9a5th Lake",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail 9b",
+          "name": "Trail 9b",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Trail Trail 7 Andretti's",
+          "name": "Trail Trail 7 Andretti's",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Traill 18 Woodpecker",
+          "name": "Traill 18 Woodpecker",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Traill 9",
+          "name": "Traill 9",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Valley of the 5 Lakes Trail",
+          "name": "Valley of the 5 Lakes Trail",
+          "reason": "Duplicate/variant of 'Valley of the Five Lakes Trail' (2.0 mi stitched piece; the 3.44 mi trail ships)"
+        },
+        {
+          "id": "n:Water tower",
+          "name": "Water tower",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        },
+        {
+          "id": "n:Willow Creek Trail",
+          "name": "Willow Creek Trail",
+          "reason": "Boundary-clipped: 2.2 of 4.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Youth Lagoon Sport Climbing Trail",
+          "name": "Youth Lagoon Sport Climbing Trail",
+          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Roche Miete",
+          "name": "Roche Miette",
+          "source": "https://www.openstreetmap.org/way/1184916601",
+          "reason": "Typo/numeric-name fix to the official spelling; same trail"
+        },
+        {
+          "osm_name": "Valley of the 5 Lakes - Trail 9",
+          "name": "Valley of the Five Lakes Trail",
+          "source": "https://www.openstreetmap.org/way/24828516",
+          "reason": "Typo/numeric-name fix to the official spelling; same trail"
+        },
+        {
+          "osm_name": "Trail 9 Wabaso Lake",
+          "name": "Wabasso Lake Trail",
+          "source": "https://www.openstreetmap.org/way/253265124",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Trail 8 (MinaLake)",
+          "name": "Mina Lake Trail",
+          "source": "https://www.openstreetmap.org/way/1122817749",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Curator Lake",
+          "name": "Curator Lake Trail",
+          "source": "https://www.openstreetmap.org/way/253088513",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "3 Saturday Night Lake",
+          "name": "Saturday Night Lake Trail",
+          "source": "https://www.openstreetmap.org/way/155369038",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "3 High Lakes",
+          "name": "High Lakes Trail",
+          "source": "https://www.openstreetmap.org/way/155368984",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Trail 3 Minnow Lake",
+          "name": "Minnow Lake Trail",
+          "source": "https://www.openstreetmap.org/way/155368936",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        }
+      ]
+    },
+    {
+      "id": "waterton-lakes-national-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395476,
+      "name": "Waterton Lakes National Park",
+      "bbox": [
+        -114.22,
+        48.95,
+        -113.6,
+        49.25
+      ],
+      "center": [
+        49.085,
+        -114.125
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here.",
+      "exclude_trails": [
+        {
+          "id": "n:Akamina Pass Trail",
+          "name": "Akamina Pass Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bertha Peak Main Trail",
+          "name": "Bertha Peak Main Trail",
+          "reason": "Duplicate stitched piece of Bertha Peak Trail"
+        },
+        {
+          "id": "n:Crypt Lake Trail",
+          "name": "Crypt Lake Trail",
+          "reason": "Already published whole in the live US areas waterton-lakes-national-park-mt and waterton-glacier-international-peace-park-mt (qualify duplicate gate); one trail, one area. The US rows are not touched here."
+        },
+        {
+          "id": "n:Festubert Mountain Route",
+          "name": "Festubert Mountain Route",
+          "reason": "Boundary-clipped: 1.6 of 6.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Festubert Mountain Trail",
+          "name": "Festubert Mountain Trail",
+          "reason": "Boundary-clipped: 1.0 of 4.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lineham Ridge / Upper Rowe Lake Trail",
+          "name": "Lineham Ridge / Upper Rowe Lake Trail",
+          "reason": "Composite of Lineham Ridge Trail and Upper Rowe Lake Trail (both kept separately)"
+        },
+        {
+          "id": "n:Mount Richards Alt Route",
+          "name": "Mount Richards Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Newman Peak Trail",
+          "name": "Newman Peak Trail",
+          "reason": "Boundary-clipped: 3.8 of 4.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Twin Lakes Trail",
+          "name": "Twin Lakes Trail",
+          "reason": "Duplicate/variant of 'Twin Lakes Route' (same trail, shorter stitched piece or abbreviated name)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Red Rock Canyon Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada Waterton trail table: Red Rock Canyon Loop, 0.7 km (0.4 mi), interpretive loop; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "elk-island-national-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 13131508,
+      "name": "Elk Island National Park",
+      "bbox": [
+        -113.0,
+        53.46,
+        -112.73,
+        53.77
+      ],
+      "center": [
+        53.594,
+        -112.911
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Whole park. Parks Canada Elk Island hiking page (https://parks.canada.ca/pn-np/ab/elkisland/activ/experiences/randonee-hiking) lists Shirley Lake, Moss Lake, Amisk Wuche, Hayburger, Wood Bison, Tawayik Lake, Simmons, Lakeview, Beaver Pond, Shoreline and the Living Waters Boardwalk; all 11 are present (boardwalk kept by waiver, 400 m official). Numbered '#2 Simmons Trail' excluded as a duplicate.",
+      "exclude_trails": [
+        {
+          "id": "n:#2 Simmons Trail",
+          "name": "#2 Simmons Trail",
+          "reason": "Numbered duplicate of the Simmons Trail (Parks Canada lists one Simmons Trail)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Living Waters Boardwalk",
+          "source": "https://parks.canada.ca/pn-np/ab/elkisland/activ/experiences/randonee-hiking",
+          "reason": "Parks Canada Elk Island hiking page: Living Waters Boardwalk, about 400 m floating boardwalk loop; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "peter-lougheed-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6365008,
+      "name": "Peter Lougheed Provincial Park",
+      "bbox": [
+        -115.45,
+        50.48,
+        -114.87,
+        50.88
+      ],
+      "center": [
+        50.634,
+        -115.219
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Kananaskis component park (patchwork split). Named hikes and named scrambles/backcountry routes kept; boundary-clipped stubs, alt/variant pieces, abbreviated duplicates, paved path and decommissioned trail excluded. Alberta Parks trail list not parsed trail-by-trail (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Birdwood Pass Route",
+          "name": "Birdwood Pass Route",
+          "reason": "Boundary-clipped: 0.9 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Elbow Pass/Lake Trail",
+          "name": "Elbow Pass/Lake Trail",
+          "reason": "Boundary-clipped: 1.2 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Fortress SE Ridge Alt Rt",
+          "name": "Fortress SE Ridge Alt Rt",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Fortress Southern Outlier Trail",
+          "name": "Fortress Southern Outlier Trail",
+          "reason": "Boundary-clipped: 0.8 of 1.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Grizzly Ridge Route",
+          "name": "Grizzly Ridge Route",
+          "reason": "Boundary-clipped: 0.9 of 2.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Headwall Lakes Alt Trail",
+          "name": "Headwall Lakes Alt Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:High Rockies",
+          "name": "High Rockies",
+          "reason": "Boundary-clipped: 2.8 of 6.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Highwood Ridge Route",
+          "name": "Highwood Ridge Route",
+          "reason": "Boundary-clipped: 2.2 of 3.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Indefatigable Trail (decommissioned)",
+          "name": "Indefatigable Trail (decommissioned)",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Kent Ridge Connector",
+          "name": "Kent Ridge Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Arethusa Route",
+          "name": "Mount Arethusa Route",
+          "reason": "Boundary-clipped: 1.3 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Fox Trail",
+          "name": "Mount Fox Trail",
+          "reason": "Boundary-clipped: 0.8 of 1.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Galatea Trail",
+          "name": "Mount Galatea Trail",
+          "reason": "Boundary-clipped: 1.1 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Hood Alt Route",
+          "name": "Mount Hood Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Northover Route",
+          "name": "Mount Northover Route",
+          "reason": "Boundary-clipped: 1.2 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Rae Trail",
+          "name": "Mount Rae Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Roberta Extension Route",
+          "name": "Mount Roberta Extension Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Sir Douglas Trail",
+          "name": "Mount Sir Douglas Trail",
+          "reason": "Boundary-clipped: 1.0 of 4.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Smuts Route",
+          "name": "Mount Smuts Route",
+          "reason": "Boundary-clipped: 1.5 of 2.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Worthington Trail",
+          "name": "Mount Worthington Trail",
+          "reason": "Boundary-clipped: 1.1 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Northover Ridge Rpute",
+          "name": "Northover Ridge Rpute",
+          "reason": "Duplicate/variant of 'Northover Ridge Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Northover Ridge Tr",
+          "name": "Northover Ridge Tr",
+          "reason": "Duplicate/variant of 'Northover Ridge Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Northover Ridge Trail",
+          "name": "Northover Ridge Trail",
+          "reason": "Boundary-clipped: 2.8 of 4.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Rummel Lake Trail",
+          "name": "Rummel Lake Trail",
+          "reason": "Boundary-clipped: 1.2 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Snow Peak Trail",
+          "name": "Snow Peak Trail",
+          "reason": "Boundary-clipped: 0.6 of 1.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Storm Mountain Route",
+          "name": "Storm Mountain Route",
+          "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Tryst Lake Ridge Route",
+          "name": "Tryst Lake Ridge Route",
+          "reason": "Boundary-clipped: 0.9 of 1.3 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Chester/Headwall Col Rt",
+          "name": "Chester/Headwall Col Route",
+          "source": "https://www.openstreetmap.org/way/24836759",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Headwall Lakes Tr",
+          "name": "Headwall Lakes Trail",
+          "source": "https://www.openstreetmap.org/way/24836761",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "S Kananaskis Pass Tr",
+          "name": "S Kananaskis Pass Trail",
+          "source": "https://www.openstreetmap.org/way/24836193",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Three Lakes Valley Tr",
+          "name": "Three Lakes Valley Trail",
+          "source": "https://www.openstreetmap.org/way/24836773",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "spray-valley-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364994,
+      "name": "Spray Valley Provincial Park",
+      "bbox": [
+        -115.5,
+        50.71,
+        -115.07,
+        51.13
+      ],
+      "center": [
+        51.042,
+        -115.426
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Kananaskis component park. Named hikes and scrambles kept; clipped, alt and duplicate pieces excluded. High Rockies Trail (long-distance, clipped) dropped. Alberta Parks list not parsed (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:East End of Rundle Trail",
+          "name": "East End of Rundle Trail",
+          "reason": "Boundary-clipped: 1.2 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Fortress Ridge Trail",
+          "name": "Fortress Ridge Trail",
+          "reason": "Boundary-clipped: 1.2 of 5.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Galatea Lakes Trail",
+          "name": "Galatea Lakes Trail",
+          "reason": "Duplicate/variant of 'Galatea Lakes Tr' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:High Rockies",
+          "name": "High Rockies",
+          "reason": "Boundary-clipped: 12.0 of 15.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Middle Spray River Trail",
+          "name": "Middle Spray River Trail",
+          "reason": "Boundary-clipped: 0.9 of 16.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Bogart Route",
+          "name": "Mount Bogart Route",
+          "reason": "Boundary-clipped: 2.9 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Buller Buttress #4 Climber's Route",
+          "name": "Mount Buller Buttress #4 Climber's Route",
+          "reason": "Climbing access route, not a hiking trail"
+        },
+        {
+          "id": "n:Mount Nestor Trail",
+          "name": "Mount Nestor Trail",
+          "reason": "Boundary-clipped: 1.5 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Shark Trail",
+          "name": "Mount Shark Trail",
+          "reason": "Boundary-clipped: 2.4 of 2.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Opal North Peak Trail",
+          "name": "Opal North Peak Trail",
+          "reason": "Boundary-clipped: 0.9 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Red Peak Trail",
+          "name": "Red Peak Trail",
+          "reason": "Boundary-clipped: 0.7 of 1.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Rummel Lake Trail",
+          "name": "Rummel Lake Trail",
+          "reason": "Boundary-clipped: 0.6 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Terrace South",
+          "name": "Terrace South",
+          "reason": "Boundary-clipped: 3.1 of 4.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:The Spoon Needle Route",
+          "name": "The Spoon Needle Route",
+          "reason": "Boundary-clipped: 1.9 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:The Wedge Trail",
+          "name": "The Wedge Trail",
+          "reason": "Boundary-clipped: 0.9 of 2.4 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Galatea Lakes Tr",
+          "name": "Galatea Lakes Trail",
+          "source": "https://www.openstreetmap.org/way/24851694",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "bow-valley-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364530,
+      "name": "Bow Valley Wildland Provincial Park",
+      "bbox": [
+        -115.52,
+        50.84,
+        -114.99,
+        51.22
+      ],
+      "center": [
+        50.954,
+        -115.292
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Kananaskis component park (Canmore/Exshaw side). Named hikes and scrambles kept; Trans Canada Trail legs, clipped stubs, approach and alt pieces excluded. Alberta Parks list not parsed (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Bald Eagle Peak Trail",
+          "name": "Bald Eagle Peak Trail",
+          "reason": "Duplicate/variant of 'Bald Eagle Peak Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Centennial Ridge Trail",
+          "name": "Centennial Ridge Trail",
+          "reason": "Boundary-clipped: 7.8 of 10.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:East End of Rundle Trail",
+          "name": "East End of Rundle Trail",
+          "reason": "Boundary-clipped: 0.8 of 4.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Goat Wall Climber's Approach Route",
+          "name": "Goat Wall Climber's Approach Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Grassi Knob Trail",
+          "name": "Grassi Knob Trail",
+          "reason": "Boundary-clipped: 2.1 of 2.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Grotto Mountain West Ridge Route",
+          "name": "Grotto Mountain West Ridge Route",
+          "reason": "Boundary-clipped: 1.2 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ha Ling",
+          "name": "Ha Ling",
+          "reason": "Boundary-clipped: 2.3 of 4.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ha Ling Approach Route",
+          "name": "Ha Ling Approach Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Ha Ling Slog Approach",
+          "name": "Ha Ling Slog Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Harvie Heights ridge traverse",
+          "name": "Harvie Heights ridge traverse",
+          "reason": "Informal lower-case name, unofficial route"
+        },
+        {
+          "id": "n:High Rockies",
+          "name": "High Rockies",
+          "reason": "Boundary-clipped: 1.1 of 15.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Highline East Connector",
+          "name": "Highline East Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Horseshoe Loop",
+          "name": "Horseshoe Loop",
+          "reason": "Boundary-clipped: 1.6 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Horseshoe Slabs",
+          "name": "Horseshoe Slabs",
+          "reason": "Climbing slab, not a hiking trail"
+        },
+        {
+          "id": "n:Jewell Pass Tr (TCT)",
+          "name": "Jewell Pass Tr (TCT)",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:Little Sister Route",
+          "name": "Little Sister Route",
+          "reason": "Boundary-clipped: 2.6 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Loder Peak Trail",
+          "name": "Loder Peak Trail",
+          "reason": "Boundary-clipped: 1.4 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:McConnell Ridge East Route",
+          "name": "McConnell Ridge East Route",
+          "reason": "Boundary-clipped: 0.8 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Montane Traverse",
+          "name": "Montane Traverse",
+          "reason": "Boundary-clipped: 1.8 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Allan Trail",
+          "name": "Mount Allan Trail",
+          "reason": "Boundary-clipped: 4.8 of 7.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Bogart Route",
+          "name": "Mount Bogart Route",
+          "reason": "Boundary-clipped: 4.1 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Quaite Creek Trail (TCT)",
+          "name": "Quaite Creek Trail (TCT)",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:Red Peak Bowl Descent Route",
+          "name": "Red Peak Bowl Descent Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Scree Slope Descent",
+          "name": "Scree Slope Descent",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Stoney Trail",
+          "name": "Stoney Trail",
+          "reason": "Boundary-clipped: 4.8 of 7.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Stoney Trail (TCT)",
+          "name": "Stoney Trail (TCT)",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:The Razor's Edge",
+          "name": "The Razor's Edge",
+          "reason": "Boundary-clipped: 1.8 of 3.5 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Pigeon Mtn Tr",
+          "name": "Pigeon Mountain Trail",
+          "source": "https://www.openstreetmap.org/way/24851721",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Wind Ridge Tr",
+          "name": "Wind Ridge Trail",
+          "source": "https://www.openstreetmap.org/way/24851688",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "elbow-sheep-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364868,
+      "name": "Elbow-Sheep Wildland Provincial Park",
+      "bbox": [
+        -115.21,
+        50.41,
+        -114.6,
+        51.07
+      ],
+      "center": [
+        50.686,
+        -114.877
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Kananaskis component park. Named hikes and scrambles kept; clipped stubs, alt and duplicate pieces excluded. Alberta Parks list not parsed (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Baldy Pass Trail",
+          "name": "Baldy Pass Trail",
+          "reason": "Boundary-clipped: 2.5 of 8.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Baldy West Ridge Descent Route",
+          "name": "Baldy West Ridge Descent Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Banded Peak Trail",
+          "name": "Banded Peak Trail",
+          "reason": "Boundary-clipped: 2.5 of 2.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Big Elbow Tr",
+          "name": "Big Elbow Tr",
+          "reason": "Boundary-clipped: 1.7 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Boundary Ridge Trail",
+          "name": "Boundary Ridge Trail",
+          "reason": "Boundary-clipped: 0.8 of 1.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bryant Ridge Route",
+          "name": "Bryant Ridge Route",
+          "reason": "Boundary-clipped: 5.8 of 7.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Canyon Creek Peaks Route",
+          "name": "Canyon Creek Peaks Route",
+          "reason": "Boundary-clipped: 2.0 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Elbow Pass/Lake Trail",
+          "name": "Elbow Pass/Lake Trail",
+          "reason": "Boundary-clipped: 2.0 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Evan Thomas Creek Route",
+          "name": "Evan Thomas Creek Route",
+          "reason": "Boundary-clipped: 1.1 of 1.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Grizzly Ridge Route",
+          "name": "Grizzly Ridge Route",
+          "reason": "Boundary-clipped: 1.6 of 2.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Highwood Ridge Route",
+          "name": "Highwood Ridge Route",
+          "reason": "Boundary-clipped: 1.5 of 3.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lineham North Twin Trail",
+          "name": "Lineham North Twin Trail",
+          "reason": "Boundary-clipped: 1.7 of 3.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Midnight Peak Route",
+          "name": "Midnight Peak Route",
+          "reason": "Duplicate/variant of 'Midnight Peak Trail' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Mist Ridge Trail",
+          "name": "Mist Ridge Trail",
+          "reason": "Duplicate/variant of 'Mist Ridge Tr' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Mount Arethusa Route",
+          "name": "Mount Arethusa Route",
+          "reason": "Boundary-clipped: 0.7 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Baldy Circuit Descent Route",
+          "name": "Mount Baldy Circuit Descent Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Baldy West Ridge Rt",
+          "name": "Mount Baldy West Ridge Rt",
+          "reason": "Duplicate/variant of 'Mount Baldy West Ridge Route' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Mount Baldy West Trail",
+          "name": "Mount Baldy West Trail",
+          "reason": "Boundary-clipped: 0.7 of 1.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Burns East",
+          "name": "Mount Burns East",
+          "reason": "Boundary-clipped: 2.1 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Burns Route",
+          "name": "Mount Burns Route",
+          "reason": "Boundary-clipped: 1.3 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Howard Trail",
+          "name": "Mount Howard Trail",
+          "reason": "Boundary-clipped: 4.4 of 7.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mt Lipsett Trail",
+          "name": "Mt Lipsett Trail",
+          "reason": "Duplicate/variant of 'Mount Lipsett Trail' (same trail, shorter stitched piece or abbreviated name)"
+        },
+        {
+          "id": "n:Nihahi Ridge Route",
+          "name": "Nihahi Ridge Route",
+          "reason": "Boundary-clipped: 3.0 of 5.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Nihahi Ridge Trail",
+          "name": "Nihahi Ridge Trail",
+          "reason": "Boundary-clipped: 1.2 of 5.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Odlum Ridge Route",
+          "name": "Odlum Ridge Route",
+          "reason": "Boundary-clipped: 2.7 of 12.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Old Baldy Peak Alt Route",
+          "name": "Old Baldy Peak Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Old Baldy Tr",
+          "name": "Old Baldy Tr",
+          "reason": "Boundary-clipped: 2.1 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Opal North Peak Trail",
+          "name": "Opal North Peak Trail",
+          "reason": "Boundary-clipped: 1.3 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Outlaw Peak Trail",
+          "name": "Outlaw Peak Trail",
+          "reason": "Boundary-clipped: 0.8 of 7.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Picklejar Lakes Tr",
+          "name": "Picklejar Lakes Tr",
+          "reason": "Boundary-clipped: 2.8 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Porcupine Ridge Extension",
+          "name": "Porcupine Ridge Extension",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Sheep River",
+          "name": "Sheep River",
+          "reason": "Boundary-clipped: 5.3 of 7.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sheep River Trail",
+          "name": "Sheep River Trail",
+          "reason": "Boundary-clipped: 0.9 of 2.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Storm Mountain Route",
+          "name": "Storm Mountain Route",
+          "reason": "Boundary-clipped: 1.3 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:The Wedge Trail",
+          "name": "The Wedge Trail",
+          "reason": "Boundary-clipped: 1.5 of 2.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Threepoint and Rose Route",
+          "name": "Threepoint and Rose Route",
+          "reason": "Boundary-clipped: 5.4 of 8.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Tiara Peak Trail",
+          "name": "Tiara Peak Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Upper Canyon Alt. Route",
+          "name": "Upper Canyon Alt. Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mist Creek Tr",
+          "name": "Mist Creek Trail",
+          "source": "https://www.openstreetmap.org/way/24836080",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Mist Ridge Tr",
+          "name": "Mist Ridge Trail",
+          "source": "https://www.openstreetmap.org/way/24836029",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "bow-valley-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364810,
+      "name": "Bow Valley Provincial Park",
+      "bbox": [
+        -115.37,
+        50.92,
+        -114.96,
+        51.15
+      ],
+      "center": [
+        51.058,
+        -115.015
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Kananaskis component park (Bow Valley PP, Many Springs, Middle Lake). Grotto Canyon and Stoney Trail are boundary-clipped and excluded (they belong to Bow Valley Wildland PP).",
+      "exclude_trails": [
+        {
+          "id": "n:Grotto Canyon",
+          "name": "Grotto Canyon",
+          "reason": "Boundary-clipped: 2.1 of 7.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Stoney Trail",
+          "name": "Stoney Trail",
+          "reason": "Boundary-clipped: 3.9 of 5.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:The Razor's Edge",
+          "name": "The Razor's Edge",
+          "reason": "Boundary-clipped: 1.0 of 3.5 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "sheep-river-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364870,
+      "name": "Sheep River Provincial Park",
+      "bbox": [
+        -114.81,
+        50.55,
+        -114.45,
+        50.74
+      ],
+      "center": [
+        50.654,
+        -114.579
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Sheep River PP: most OSM routes are clipped by the polygon and excluded; the whole routes remain (Indian Oils, South Gorge Creek, Missinglink Mountain, Green Mountain).",
+      "exclude_trails": [
+        {
+          "id": "n:Bluerock Knob Trail",
+          "name": "Bluerock Knob Trail",
+          "reason": "Boundary-clipped: 0.9 of 2.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Foran Grade Tr",
+          "name": "Foran Grade Tr",
+          "reason": "Boundary-clipped: 1.1 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Gleason Ridge Trail",
+          "name": "Gleason Ridge Trail",
+          "reason": "Boundary-clipped: 4.8 of 8.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Green Mountain Trail",
+          "name": "Green Mountain Trail",
+          "reason": "Boundary-clipped: 1.9 of 3.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Missinglink Mountain Alt Route",
+          "name": "Missinglink Mountain Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Sandy McNabb Loop",
+          "name": "Sandy McNabb Loop",
+          "reason": "Boundary-clipped: 1.1 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sheep Trail",
+          "name": "Sheep Trail",
+          "reason": "Boundary-clipped: 2.8 of 4.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Windy Point Tr",
+          "name": "Windy Point Tr",
+          "reason": "Boundary-clipped: 0.7 of 3.3 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Missinglink Mtn S Ridge Rt",
+          "name": "Missinglink Mtn S Ridge Route",
+          "source": "https://www.openstreetmap.org/way/24834909",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "bragg-creek-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6365016,
+      "name": "Bragg Creek Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "AB curation 2026-11-02. Polygon 0.023 x 0.008 deg fails the 0.01 deg size gate (prepare-areas). Held, not shipped."
+    },
+    {
+      "id": "castle-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7214660,
+      "name": "Castle Provincial Park",
+      "bbox": [
+        -114.6,
+        49.29,
+        -114.22,
+        49.6
+      ],
+      "center": [
+        49.391,
+        -114.406
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Castle Provincial Park (adjoins Castle Wildland PP). Four named trails; St. Eloi Ridge and Syncline are clipped stubs and excluded (shipped whole in Castle Wildland).",
+      "exclude_trails": [
+        {
+          "id": "n:St. Eloi Ridge Trail",
+          "name": "St. Eloi Ridge Trail",
+          "reason": "Boundary-clipped: 0.7 of 11.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Syncline Mountain Route",
+          "name": "Syncline Mountain Route",
+          "reason": "Boundary-clipped: 2.3 of 7.9 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Castle Mtn to Lynx Creek Trail",
+          "name": "Castle Mountain to Lynx Creek Trail",
+          "source": "https://www.openstreetmap.org/way/449627379",
+          "reason": "Abbreviation expanded; same trail"
+        }
+      ]
+    },
+    {
+      "id": "castle-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7214661,
+      "name": "Castle Wildland Provincial Park",
+      "bbox": [
+        -114.75,
+        49.11,
+        -113.92,
+        49.68
+      ],
+      "center": [
+        49.226,
+        -114.325
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Castle Wildland PP: named hikes and scrambles (Barnaby Ridge, Castle Peak, Windsor, Table Mountain, Yarrow Creek). Clipped stubs and alt routes excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Andy Good Peak Traverse Route",
+          "name": "Andy Good Peak Traverse Route",
+          "reason": "Boundary-clipped: 1.8 of 2.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Chinook Peak North Route",
+          "name": "Chinook Peak North Route",
+          "reason": "Boundary-clipped: 0.6 of 1.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Chinook Peak North Trail",
+          "name": "Chinook Peak North Trail",
+          "reason": "Boundary-clipped: 1.0 of 2.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Drywood Climber's Trail",
+          "name": "Drywood Climber's Trail",
+          "reason": "Climbing access route, not a hiking trail"
+        },
+        {
+          "id": "n:Gargantua / Andy Good Plateau Route",
+          "name": "Gargantua / Andy Good Plateau Route",
+          "reason": "Boundary-clipped: 0.6 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Haig S3 Route",
+          "name": "Haig S3 Route",
+          "reason": "Boundary-clipped: 1.0 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hollebeke Mountain Route",
+          "name": "Hollebeke Mountain Route",
+          "reason": "Boundary-clipped: 1.8 of 3.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Loaf Mountain Alternate Route",
+          "name": "Loaf Mountain Alternate Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Darrah S4 Route",
+          "name": "Mount Darrah S4 Route",
+          "reason": "Boundary-clipped: 2.9 of 4.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Darrah Trail",
+          "name": "Mount Darrah Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Newman Peak Trail",
+          "name": "Newman Peak Trail",
+          "reason": "Boundary-clipped: 1.1 of 4.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:North York Creek Plane Crash Trail",
+          "name": "North York Creek Plane Crash Trail",
+          "reason": "Boundary-clipped: 0.9 of 9.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ostracized Peak Trail",
+          "name": "Ostracized Peak Trail",
+          "reason": "Boundary-clipped: 5.5 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Pincher Ridge Alternate Route",
+          "name": "Pincher Ridge Alternate Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Prairie Bluff Route",
+          "name": "Prairie Bluff Route",
+          "reason": "Boundary-clipped: 2.3 of 3.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:St. Eloi Ridge Trail",
+          "name": "St. Eloi Ridge Trail",
+          "reason": "Boundary-clipped: 9.2 of 11.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Syncline Mountain Route",
+          "name": "Syncline Mountain Route",
+          "reason": "Boundary-clipped: 5.5 of 7.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Syncline S1 Trail",
+          "name": "Syncline S1 Trail",
+          "reason": "Boundary-clipped: 8.3 of 12.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Table Mountain Alternate Ascent",
+          "name": "Table Mountain Alternate Ascent",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Table Mountain Trail",
+          "name": "Table Mountain Trail",
+          "reason": "Boundary-clipped: 2.3 of 2.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Windsor Mountain Trail",
+          "name": "Windsor Mountain Trail",
+          "reason": "Duplicate/variant of 'Windsor Mountain Route' (same trail, shorter stitched piece or abbreviated name)"
+        }
+      ]
+    },
+    {
+      "id": "writing-on-stone-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6367819,
+      "name": "Writing-on-Stone Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. 1 named trail (Hoodo Trail 0.83 mi). Alberta Parks lists several (Hoodoo, Battle Scene, Milk River); OSM names only Hoodo."
+    },
+    {
+      "id": "dinosaur-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6423610,
+      "name": "Dinosaur Provincial Park",
+      "bbox": [
+        -111.66,
+        50.67,
+        -111.3,
+        50.89
+      ],
+      "center": [
+        50.769,
+        -111.51
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Dinosaur PP (UNESCO). OSM has three named trails (Badlands, Cottonwood Flats, Coulee Viewpoint); the Alberta Parks list (https://www.albertaparks.ca/parks/south/dinosaur-pp/information-facilities/trails/) names about 25 interpretive trails, mostly unnamed or differently named in OSM (known omissions). Thin but complete-as-mapped set."
+    },
+    {
+      "id": "cypress-hills-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6423602,
+      "name": "Cypress Hills Provincial Park",
+      "bbox": [
+        -110.46,
+        49.53,
+        -109.96,
+        49.73
+      ],
+      "center": [
+        49.668,
+        -110.069
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Alberta side of Cypress Hills Interprovincial Park (OSM relation r6423602 'Cypress Hills Provincial Park', Alberta Parks name). Compared with the Alberta Parks trail list (https://www.albertaparks.ca/parks/south/cypress-hills-pp/information-facilities/trails/): Beaver Creek, Cobble Miner, Cougar Ridge, Firerock, Mazama Drop, Mitchell Creek, Mystery, Upper Mystery, Old Baldy, Plateau, Rangers, Ruttentuke, Sorry, Spruce Coulee, Tower, Turkey Trott present. Reesor Hills TCT (Trans Canada Trail) excluded; Murray Hill not on the list. Saskatchewan side is a separate SK lane.",
+      "exclude_trails": [
+        {
+          "id": "n:Murray Hill",
+          "name": "Murray Hill",
+          "reason": "Not on the Alberta Parks Cypress Hills trail list (Nordic/other use)"
+        },
+        {
+          "id": "n:Plateau Trail",
+          "name": "Plateau Trail",
+          "reason": "Boundary-clipped: 1.2 of 1.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Reesor Hills TCT Trail",
+          "name": "Reesor Hills TCT Trail",
+          "reason": "Trans Canada Trail leg (long-distance)"
+        }
+      ]
+    },
+    {
+      "id": "fish-creek-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6367733,
+      "name": "Fish Creek Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. No publishable named trails after the Canada filter (only unnamed paved paths plus 3 fragments: No More path, Ice Caves, Pioneer Trail). Alberta Parks lists ~100 km of named pathways, none named in OSM."
+    },
+    {
+      "id": "glenbow-ranch-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6367690,
+      "name": "Glenbow Ranch Provincial Park",
+      "bbox": [
+        -114.48,
+        51.08,
+        -114.25,
+        51.23
+      ],
+      "center": [
+        51.156,
+        -114.389
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Glenbow Ranch PP: Bow River Loop, Tiger Lilly Loop, Yodel Loop, Badger Bowl. Alberta Parks list not parsed (unverified)."
+    },
+    {
+      "id": "cold-lake-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6057547,
+      "name": "Cold Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. 3 candidates (Campground Trail, Lakeshore Trail, Main Road Trail) are campground/road-style names with no official source; not a hiking set."
+    },
+    {
+      "id": "lesser-slave-lake-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6410995,
+      "name": "Lesser Slave Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. No publishable trails after the Canada filter (no named hiking ways)."
+    },
+    {
+      "id": "whitehorse-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 402007532,
+      "name": "Whitehorse Wildland Provincial Park",
+      "bbox": [
+        -117.61,
+        52.83,
+        -117.08,
+        53.09
+      ],
+      "center": [
+        52.991,
+        -117.402
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble.",
+      "exclude_trails": [
+        {
+          "id": "n:Whitehorse Creek Trails",
+          "name": "Whitehorse Creek Trails",
+          "reason": "Boundary-clipped: 15.5 of 23.9 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "willmore-wilderness-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395491,
+      "name": "Willmore Wilderness Park",
+      "bbox": [
+        -120.05,
+        53.3,
+        -118.1,
+        54.07
+      ],
+      "center": [
+        53.495,
+        -118.537
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names.",
+      "exclude_trails": [
+        {
+          "id": "n:Cowlick Creek Trail",
+          "name": "Cowlick Creek Trail",
+          "reason": "Boundary-clipped: 9.3 of 16.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Stearn South Approach",
+          "name": "Stearn South Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:The OG Rim Trail",
+          "name": "The OG Rim Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Willow Creek Trail",
+          "name": "Willow Creek Trail",
+          "reason": "Boundary-clipped: 2.4 of 4.6 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "don-getty-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364381,
+      "name": "Don Getty Wildland Provincial Park",
+      "bbox": [
+        -115.56,
+        50.04,
+        -114.29,
+        51.52
+      ],
+      "center": [
+        51.233,
+        -115.153
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "AB curation 2026-11-02. Don Getty Wildland PP (patchwork backcountry, ex-Ghost/Sheep). Most OSM routes straddle the polygon edge and are excluded as boundary-clipped; the 20 whole named routes/scrambles remain.",
+      "exclude_trails": [
+        {
+          "id": "n:Association Peak Alt Route",
+          "name": "Association Peak Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Association Peak Trail",
+          "name": "Association Peak Trail",
+          "reason": "Boundary-clipped: 2.9 of 6.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Beowulf  Canyoning  Approach",
+          "name": "Beowulf  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Big Elbow Tr",
+          "name": "Big Elbow Tr",
+          "reason": "Boundary-clipped: 1.5 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Black Rock Mountain Trail",
+          "name": "Black Rock Mountain Trail",
+          "reason": "Boundary-clipped: 2.0 of 3.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bryant Ridge Route",
+          "name": "Bryant Ridge Route",
+          "reason": "Boundary-clipped: 0.9 of 7.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Carnarvon Lake Trail",
+          "name": "Carnarvon Lake Trail",
+          "reason": "Boundary-clipped: 1.6 of 4.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Carrot Peak Trail",
+          "name": "Carrot Peak Trail",
+          "reason": "Boundary-clipped: 4.1 of 8.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Castle  Rock  Canyoning  Approach",
+          "name": "Castle  Rock  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Cat Creek Knob Route",
+          "name": "Cat Creek Knob Route",
+          "reason": "Boundary-clipped: 0.7 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Cat Creek Ridge Trail",
+          "name": "Cat Creek Ridge Trail",
+          "reason": "Boundary-clipped: 1.1 of 4.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Claw  Creek  Canyoning  Approach",
+          "name": "Claw  Creek  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Coffin Mountain Trail",
+          "name": "Coffin Mountain Trail",
+          "reason": "Boundary-clipped: 1.0 of 1.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Coffin-Sheep-Horseshoe Traverse",
+          "name": "Coffin-Sheep-Horseshoe Traverse",
+          "reason": "Boundary-clipped: 0.8 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Colonel Belcher Route",
+          "name": "Colonel Belcher Route",
+          "reason": "Boundary-clipped: 1.6 of 2.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Compression Ridge Route",
+          "name": "Compression Ridge Route",
+          "reason": "Boundary-clipped: 1.3 of 3.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Constellation  Valley  Canyoning  Approach",
+          "name": "Constellation  Valley  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Devil's  Head  Valley  Canyoning  Approach",
+          "name": "Devil's  Head  Valley  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:End Mountain Trail",
+          "name": "End Mountain Trail",
+          "reason": "Boundary-clipped: 6.8 of 11.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Exshaw Pass Route",
+          "name": "Exshaw Pass Route",
+          "reason": "Boundary-clipped: 1.0 of 3.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Fording River Pass Trail",
+          "name": "Fording River Pass Trail",
+          "reason": "Boundary-clipped: 3.0 of 4.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:French  Technique  Canyoning  Approach",
+          "name": "French  Technique  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:GTTSH  Canyoning  Approach",
+          "name": "GTTSH  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Galena Miracle Mine Tr",
+          "name": "Galena Miracle Mine Tr",
+          "reason": "Boundary-clipped: 0.9 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ghost Peak Trail",
+          "name": "Ghost Peak Trail",
+          "reason": "Boundary-clipped: 2.5 of 5.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hell's Ridge Route",
+          "name": "Hell's Ridge Route",
+          "reason": "Boundary-clipped: 1.3 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:House  of  Sky  Canyoning  Approach",
+          "name": "House  of  Sky  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:House of Sky Decent",
+          "name": "House of Sky Decent",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Johnson Lake Trail",
+          "name": "Johnson Lake Trail",
+          "reason": "Boundary-clipped: 2.7 of 3.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Junction Mountain Fire Lookout trail",
+          "name": "Junction Mountain Fire Lookout trail",
+          "reason": "Boundary-clipped: 0.6 of 5.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lineham North Twin Trail",
+          "name": "Lineham North Twin Trail",
+          "reason": "Boundary-clipped: 1.7 of 3.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Loomis Creek Trail",
+          "name": "Loomis Creek Trail",
+          "reason": "Boundary-clipped: 1.1 of 5.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Armstrong True Summit Trail",
+          "name": "Mount Armstrong True Summit Trail",
+          "reason": "Boundary-clipped: 1.2 of 2.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Bishop Trail",
+          "name": "Mount Bishop Trail",
+          "reason": "Boundary-clipped: 3.2 of 4.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Bishop W1 Trail",
+          "name": "Mount Bishop W1 Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Burke Trail",
+          "name": "Mount Burke Trail",
+          "reason": "Boundary-clipped: 2.3 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Cornwall Trail",
+          "name": "Mount Cornwall Trail",
+          "reason": "Boundary-clipped: 4.0 of 5.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Etherington Trail",
+          "name": "Mount Etherington Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Glasgow North Trail",
+          "name": "Mount Glasgow North Trail",
+          "reason": "Boundary-clipped: 0.6 of 3.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Glasgow Trail",
+          "name": "Mount Glasgow Trail",
+          "reason": "Boundary-clipped: 2.6 of 4.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Hornecker Trail",
+          "name": "Mount Hornecker Trail",
+          "reason": "Boundary-clipped: 1.8 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Howard Trail",
+          "name": "Mount Howard Trail",
+          "reason": "Boundary-clipped: 3.2 of 7.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Livingstone Trail",
+          "name": "Mount Livingstone Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Loomis Trail",
+          "name": "Mount Loomis Trail",
+          "reason": "Boundary-clipped: 1.5 of 2.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Mann Alt Route",
+          "name": "Mount Mann Alt Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount O'Rourke Route",
+          "name": "Mount O'Rourke Route",
+          "reason": "Boundary-clipped: 1.5 of 6.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Oliver Trail",
+          "name": "Mount Oliver Trail",
+          "reason": "Boundary-clipped: 3.9 of 8.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mt Head East Ascent",
+          "name": "Mt Head East Ascent",
+          "reason": "Boundary-clipped: 1.7 of 2.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mt Head SE Descent",
+          "name": "Mt Head SE Descent",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Nihahi Ridge Route",
+          "name": "Nihahi Ridge Route",
+          "reason": "Boundary-clipped: 1.1 of 5.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Nihahi Ridge Trail",
+          "name": "Nihahi Ridge Trail",
+          "reason": "Boundary-clipped: 3.3 of 5.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Odlum Ridge Route",
+          "name": "Odlum Ridge Route",
+          "reason": "Boundary-clipped: 0.7 of 12.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Outlaw Peak Trail",
+          "name": "Outlaw Peak Trail",
+          "reason": "Boundary-clipped: 5.9 of 7.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Phantom Crag Route",
+          "name": "Phantom Crag Route",
+          "reason": "Boundary-clipped: 1.3 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Saddle Mountain Trail",
+          "name": "Saddle Mountain Trail",
+          "reason": "Boundary-clipped: 2.0 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Serendipity Peak Trail",
+          "name": "Serendipity Peak Trail",
+          "reason": "Boundary-clipped: 0.8 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sheep Mountain Trail",
+          "name": "Sheep Mountain Trail",
+          "reason": "Boundary-clipped: 1.4 of 4.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:South Ghost Peak Trail",
+          "name": "South Ghost Peak Trail",
+          "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Stenton Peak Scramble",
+          "name": "Stenton Peak Scramble",
+          "reason": "Boundary-clipped: 0.8 of 3.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sullivan Pass & High Rock Ridge",
+          "name": "Sullivan Pass & High Rock Ridge",
+          "reason": "Boundary-clipped: 1.6 of 6.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Threepoint and Rose Route",
+          "name": "Threepoint and Rose Route",
+          "reason": "Boundary-clipped: 2.6 of 8.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Valley  of  the  Sun  Canyoning  Approach",
+          "name": "Valley  of  the  Sun  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Waiparous  Creek  Canyoning  Approach",
+          "name": "Waiparous  Creek  Canyoning  Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Waiparous Creek Trail",
+          "name": "Waiparous Creek Trail",
+          "reason": "Boundary-clipped: 0.7 of 4.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Windy Peak to Saddle Mountain Route",
+          "name": "Windy Peak to Saddle Mountain Route",
+          "reason": "Boundary-clipped: 2.7 of 7.5 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "kakwa-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395509,
+      "name": "Kakwa Wildland Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. Deadhorse Meadows Tote Trail is boundary-clipped (4.0 of 16.8 mi); only Kakwa Falls Viewpoint Trail (0.65 mi) remains."
+    },
+    {
+      "id": "beauvais-lake-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 428126248,
+      "name": "Beauvais Lake Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. One connector stub (Mt Baldy to Mt Albert connector, 0.75 mi, boundary-clipped); no whole named trails."
     }
   ]
 }

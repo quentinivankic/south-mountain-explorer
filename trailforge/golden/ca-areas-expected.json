@@ -1841,6 +1841,276 @@
         "Wiwaxy Crag Route",
         "Yukness Ledges Cut-Off"
       ]
+    },
+    "arrowhead-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 4.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Homesteader Trail",
+        "Mayflower Lake Trail"
+      ],
+      "forbidden_names": []
+    },
+    "awenda-provincial-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 11.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brûlé Trail / Bluff Trail"
+      ]
+    },
+    "bon-echo-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Clutes Loop",
+        "Pet Exercise Trail"
+      ]
+    },
+    "bronte-creek-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Logging Trail",
+        "community connecting path",
+        "designated park path",
+        "leash free trail (campground side)"
+      ]
+    },
+    "charleston-lake-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 10.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bach's Lookout Trail",
+        "Blue Mountain Trail",
+        "Bob's Cove Trail",
+        "Painted Rocks Summit Route",
+        "Westside Trail"
+      ]
+    },
+    "forks-of-the-credit-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bruce Trail",
+        "Bruce Trail - Caledon Hills section",
+        "Bruce Trail - Caledon Hills section side trails",
+        "Dorothy Medhurst Side Trail",
+        "Trans Canada Trail"
+      ]
+    },
+    "frontenac-provincial-park-ca-on": {
+      "trail_count": 14,
+      "total_mi": 64.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Arkon Lake Loop / Little Salmon Lake Loop",
+        "Big Salmon Lake Loop / Cedar Lake Loop",
+        "Big Salmon Lake Loop / Little Clear Lake Loop",
+        "Big Salmon Lake Loop / Little Salmon Lake Loop",
+        "Big Salmon Lake Loop / Slide Lake Loop",
+        "Big Salmon Little Salmon Portage",
+        "Birch Lake Campsite Trail",
+        "Campsite 13 Trail",
+        "Campsite 7 trail / portage",
+        "Cedar Lake Loop / Rideau Trail",
+        "Corridor Trail / Cedar Lake Loop",
+        "Corridor Trail / Cedar Lake Loop / Arkon Lake Loop",
+        "Corridor Trail / Rideau Trail",
+        "Devil Lake Moulton Lake Portage",
+        "Hemlock Lake Loop / Gibson Lake Loop",
+        "Little Clear Lake Loop / Hemlock Lake Loop",
+        "Little Clear Lake Loop / Little Salmon Lake Loop",
+        "Lt Salmon Lake 6",
+        "Lt Salmon Lake Portage",
+        "Rideau Trail - Kingston Section",
+        "Rideau Trail Slide Lake Loop",
+        "Slide Lake Loop / Cedar Lake Loop",
+        "Slide Lake Loop / Rideau Trail",
+        "Slide Lake Loop / Small Slide Lake Loop / Rideau Trail",
+        "Small Slide Lake Loop",
+        "Small Slide Lake Loop / Rideau Trail",
+        "Tetsmine Lake Loop / Gibson Lake Loop",
+        "portage"
+      ]
+    },
+    "georgian-bay-islands-national-park-ca-on": {
+      "trail_count": 8,
+      "total_mi": 13.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chimney Bay Trail",
+        "Frying Pan Bay Trail",
+        "Oaks Path",
+        "Ojibway Path",
+        "Portage Trail"
+      ]
+    },
+    "kakabeka-falls-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 4.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Beaver Meadow Trail",
+        "River Terrace Trail",
+        "Village Trail"
+      ]
+    },
+    "killarney-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 51.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Freeland-Kakakise Lake Portage",
+        "H1 Side Trail",
+        "H16 Side Trail",
+        "H19 SideTrail",
+        "H2 Side Trail",
+        "H21 Side Trail",
+        "H31 Side Trail",
+        "H32 Side Trail",
+        "H33 Side Trail",
+        "H34 Side Trail",
+        "H35 Side Trail",
+        "H4 Side Trail",
+        "H45 Side Trail",
+        "H46 Side Trail",
+        "H48 Side Trail",
+        "H54 Side Trail",
+        "H59 Side Trail",
+        "H6 Side Trail",
+        "H7 Side Trail",
+        "Kakakise-Norway Lake Portage",
+        "Killarney-Freeland Lake Portage",
+        "Killarney-O.S.A. Lake Portage #1"
+      ]
+    },
+    "lake-superior-provincial-park-ca-on": {
+      "trail_count": 12,
+      "total_mi": 64.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Lake Superior Coastal Trail"
+      ],
+      "forbidden_names": [
+        "Noisy Bay Trail",
+        "Orphan Lake Lookout",
+        "Smokey Point Trail",
+        "Warp Bay to Devils Chair",
+        "portage"
+      ]
+    },
+    "macgregor-point-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 5.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Old Shore Road Trail",
+        "Sunset Point"
+      ]
+    },
+    "mono-cliffs-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 7.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bruce Trail",
+        "Bruce Trail - Dufferin Hi-Land section",
+        "Bruce Trail - Dufferin Hi-Land section side trails",
+        "Bruce Trail / Cliff-Top Trail",
+        "Bruce Trail / McCarsten's Lake Trail",
+        "McCarsten's Lake Side Trail",
+        "Mono Trail",
+        "Walter Tovell Side Trail (Bruce Trail)"
+      ]
+    },
+    "pinery-provincial-park-ca-on": {
+      "trail_count": 9,
+      "total_mi": 8.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Beach access trail",
+        "Dune Crossing",
+        "Fire brake trail",
+        "Huron ski / firebreak trail",
+        "Sassafras (1.0 km)",
+        "Sydney Walkway",
+        "fire break trail",
+        "firebreak trail"
+      ]
+    },
+    "presqu-ile-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Boucher Walk"
+      ]
+    },
+    "pukaskwa-national-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 44.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Pukaskwa Coastal Hiking Trail"
+      ],
+      "forbidden_names": [
+        "Chigamiwinigum Falls Trail",
+        "Coastal Route Option",
+        "Manito Miikana Trail"
+      ]
+    },
+    "sandbanks-provincial-park-ca-on": {
+      "trail_count": 5,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "rouge-national-urban-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 23.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Monarch Trail/Tallgrass Trek",
+        "Oak Ridges Trail Association side trail",
+        "Reesor Way",
+        "Reesor Way/Monarch Trail",
+        "Reesor Way/Tanglewood Trail",
+        "Tanglewood Trail",
+        "Tanglewood Trail/Monarch Trail"
+      ]
+    },
+    "sleeping-giant-provincial-park-ca-on": {
+      "trail_count": 18,
+      "total_mi": 45.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kabeyun Trail"
+      ],
+      "forbidden_names": [
+        "Joe Creek Nature Trail",
+        "Thunder Bay Bogs Nature Trail"
+      ]
     }
   }
 }

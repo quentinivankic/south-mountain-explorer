@@ -7884,8 +7884,8 @@
         49.04
       ],
       "center": [
-        48.923,
-        -64.442
+        48.855,
+        -64.322
       ],
       "tier": 1,
       "hold": null,
@@ -7926,8 +7926,8 @@
         46.97
       ],
       "center": [
-        46.751,
-        -72.833
+        46.72,
+        -72.966
       ],
       "tier": 1,
       "hold": null,
@@ -7985,6 +7985,14 @@
           "source": "https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking",
           "reason": "Parks Canada Mauricie hiking maps list Ruisseau-Brodeur; short official walk (0.41 mi)"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier Lac-du-Pimbina (#15)",
+          "name": "Sentier Lac-du-Pimbina",
+          "source": "https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
       ]
     },
     {
@@ -8020,8 +8028,8 @@
         46.69
       ],
       "center": [
-        46.456,
-        -74.208
+        46.34,
+        -74.322
       ],
       "tier": 2,
       "hold": null,
@@ -8046,6 +8054,14 @@
           "id": "n:Sentier du Mont Nixon",
           "name": "Sentier du Mont Nixon",
           "reason": "Boundary-clipped: 1.6 of 4.5 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Les Grandes Valléees",
+          "name": "Les Grandes Vallées",
+          "source": "https://www.sepaq.com/pq/mot/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
         }
       ]
     },
@@ -8130,6 +8146,11 @@
           "id": "n:Sentier du Hibou Nord",
           "name": "Sentier du Hibou Nord",
           "reason": "Boundary-clipped: 1.2 of 6.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lac Cook",
+          "name": "Lac Cook",
+          "reason": "Not on the 17-trail Sépaq hiking list; no source cited, left out"
         }
       ],
       "trail_name_fixes": [
@@ -8426,7 +8447,15 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Le litoral",
+          "name": "Le Littoral",
+          "source": "https://www.sepaq.com/pq/fro/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
+      ]
     },
     {
       "id": "parc-national-du-fjord-du-saguenay-ca-qc",
@@ -8687,8 +8716,8 @@
         47.16
       ],
       "center": [
-        47.062,
-        -79.313
+        46.958,
+        -79.283
       ],
       "tier": 2,
       "hold": null,
@@ -8719,12 +8748,20 @@
         49.75
       ],
       "center": [
-        49.589,
-        -62.641
+        49.509,
+        -62.747
       ],
       "tier": 2,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier Les Téégraphes",
+          "name": "Sentier Les Télégraphes",
+          "source": "https://www.sepaq.com/pq/ant/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
+      ]
     },
     {
       "id": "prince-albert-national-park-ca-sk",

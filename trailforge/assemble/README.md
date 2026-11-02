@@ -380,6 +380,36 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   when the registry entry carries `boundary_by_id: true` (relation-backed);
   `ca_publish.py check-boundary-unique` then requires the name collision and the
   registry relation among the same-name boundaries.
+- **Canada engine rules** (`ca_rules.py`; registry `accept_gap` / `keep_superroute`,
+  flags `--ca-accept-gap` / `--ca-keep-superroute`). Both are per relation, off by
+  default, and only allowed with `--region ca`, `--require-exact-area` by relation
+  id and the legacy rules (anything else exits 2; `model.assemble` raises outside
+  region ca). `scripts/ca-run-area.sh` passes them only when the registry entry
+  lists them (relation-backed). Neither synthesizes geometry. Each fails closed
+  (exit 2, `ca_rules.failures` in the report) and publishes its evidence under
+  `ca_rules` in the assembly report.
+  - `accept_gap` `[{relation: "r<id>", max_gap_m, reason}]`: a signed hiking route is
+    short because some of its own member ways are dropped at ingest for a ski-piste
+    tag alone (`piste:type`, e.g. `skitour`) while carrying hiking evidence (a
+    positive `foot` or a `sac_scale`). The listed relation gets exactly those ways
+    back (Joffre Lakes Trail: 9 of 17 members). The widest gap needed to join the
+    pieces before the restore, and any gap left after it, must be at most
+    `max_gap_m` (hard cap 1000 m in `ca_rules.py`; the registry cannot raise it).
+    Parts stay parts. Fails closed on an unknown relation, nothing restorable,
+    walkable members that were not split, a gap over the limit, missing member
+    ways, or a restored way that is not published. `foot=no`, motor, road,
+    bike-only, mtb and every other drop reason keep a member out.
+  - `keep_superroute` `[{relation: "r<id>", reason}]`: the shared assembler drops
+    every super-relation (a route relation holding route relations) and its
+    children as `thru-hike`. A listed super-relation is emitted as ONE trail
+    (Algonquin's Western Uplands, 60 mi); its children stay `thru-hike` removals
+    (their ways are in it; the removal reason names the kept parent). Fails closed
+    when it is not a super-relation, is a child of a larger route relation, it or
+    any relation under it carries `network` rwn/nwn/iwn or a recognised
+    long-distance name (Trans Canada/Great Trail, Bruce, Rideau, Great Divide,
+    International Appalachian, Eastern Continental, ...), any part of its geometry
+    leaves the registry area polygon (tolerance 0.0002 degrees, about 20 m), or
+    the trail is not in the published population.
 - **Container by id** (registry `container_by_id: {"reason": "..."}`,
   `--dk-container-by-id`, dk-v3 exact Denmark only, needs `include_trails`): for
   an area with no usable named boundary. The registry's `relation_id` / `way_id`

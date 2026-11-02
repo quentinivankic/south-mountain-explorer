@@ -149,6 +149,42 @@ def test_boundary_by_id_registry_validation(tmp_path):
     way["way_id"] = 10
     with pytest.raises(ca.CaError, match="relation-backed"):
         ca.load_registry(_registry(tmp_path, [way]))
+GAP_ENTRY = {"relation": "r6035636", "max_gap_m": 250, "reason": "reviewed ski-tour tagged members"}
+KEEP_ENTRY = {"relation": "r11851829", "reason": "reviewed single-park super-relation"}
+def test_engine_rule_registry_validation_accepts_good_lists(tmp_path):
+    reg = ca.load_registry(_registry(tmp_path, [_entry(0, accept_gap=[GAP_ENTRY], keep_superroute=[KEEP_ENTRY])]))
+    assert reg["areas"][0]["accept_gap"] == [GAP_ENTRY] and reg["areas"][0]["keep_superroute"] == [KEEP_ENTRY]
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, accept_gap=[{**GAP_ENTRY, "max_gap_m": 1000}])]))
+    assert ca.load_registry(_registry(tmp_path, [_entry(0)]))          # no key: nothing to validate
+@pytest.mark.parametrize("key,entry,bad", [
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "max_gap_m": 1001}]),         # the registry cannot raise the cap
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "max_gap_m": 0}]),
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "max_gap_m": True}]),
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "reason": " "}]),
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "relation": "6035636"}]),
+    ("accept_gap", GAP_ENTRY, [{**GAP_ENTRY, "extra": 1}]),
+    ("accept_gap", GAP_ENTRY, [GAP_ENTRY, GAP_ENTRY]),
+    ("accept_gap", GAP_ENTRY, []),
+    ("accept_gap", GAP_ENTRY, "r6035636"),
+    ("keep_superroute", KEEP_ENTRY, [{**KEEP_ENTRY, "reason": ""}]),
+    ("keep_superroute", KEEP_ENTRY, [{**KEEP_ENTRY, "max_gap_m": 5}]),
+    ("keep_superroute", KEEP_ENTRY, [{"relation": "r0", "reason": "x"}]),
+    ("keep_superroute", KEEP_ENTRY, [KEEP_ENTRY, KEEP_ENTRY]),
+    ("keep_superroute", KEEP_ENTRY, {}),
+])
+def test_engine_rule_registry_validation_rejects_bad_lists(tmp_path, key, entry, bad):
+    with pytest.raises(ca.CaError, match=key):
+        ca.load_registry(_registry(tmp_path, [_entry(0, **{key: bad})]))
+@pytest.mark.parametrize("key,items", [("accept_gap", [GAP_ENTRY]), ("keep_superroute", [KEEP_ENTRY])])
+def test_engine_rules_need_a_relation_backed_area(tmp_path, key, items):
+    way = _entry(0, bbox=None, center=None, **{key: items})
+    del way["relation_id"]
+    way["way_id"] = 10
+    with pytest.raises(ca.CaError, match="relation-backed"):
+        ca.load_registry(_registry(tmp_path, [way]))
+def test_report_area_carries_the_engine_rule_evidence(tmp_path):
+    src = Path(ca.__file__).read_text()
+    assert 'assembly.get("ca_rules")' in src and 'rec["ca_rules"]' in src
 def test_boundary_by_id_check_requires_the_collision_and_the_registry_relation(tmp_path, capsys):
     reg_id = _registry(tmp_path, [_entry(0, boundary_by_id=True)])
     path = _osm(tmp_path)

@@ -1789,8 +1789,16 @@
       "state": "Canada",
       "relation_id": 4855753,
       "name": "Whycocomagh Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -61.16,
+        45.91,
+        -61.04,
+        46.03
+      ],
+      "center": [
+        46.0,
+        -61.1
+      ],
       "tier": 2,
       "hold": null,
       "notes": "Actions qualify 2026-11-02: no publishable trails after the Canada filter.",
@@ -1906,8 +1914,16 @@
       "state": "Canada",
       "relation_id": 4855708,
       "name": "Crystal Crescent Beach Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -63.7,
+        44.38,
+        -63.57,
+        44.52
+      ],
+      "center": [
+        44.5,
+        -63.6
+      ],
       "tier": 2,
       "hold": null,
       "notes": "leisure=park boundary (not kept by prefilter.sh): trailforge-publish-ca.yml re-adds it from the raw PBF by relation id. Scratch replay 2026-11-02: Pennant Point Trail 4.75 mi + Spine Trail 1.76 mi."

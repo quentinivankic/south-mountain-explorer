@@ -3168,7 +3168,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored Fairview Mountain Trail, Simpson Pass Healy Pass Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:2240 Trail",
@@ -3603,11 +3603,6 @@
         {
           "id": "n:Eiffel Peak Trail",
           "name": "Eiffel Peak Trail",
-          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
-          "id": "n:Fairview Mountain Trail",
-          "name": "Fairview Mountain Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         },
         {
@@ -4076,11 +4071,6 @@
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         },
         {
-          "id": "n:Simpson Pass Healy Pass Trail",
-          "name": "Simpson Pass Healy Pass Trail",
-          "reason": "Fragment, connector or approach; not a standalone signed trail (Quentin bar 2026-11-02)"
-        },
-        {
           "id": "n:Sira Peak Scramble",
           "name": "Sira Peak Scramble",
           "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
@@ -4223,7 +4213,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded. live-fix1 2026-11-02: pin moved from [52.804, -117.634] (3.37 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded. live-fix1 2026-11-02: pin moved from [52.804, -117.634] (3.37 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored The Whistlers Summit Trail, Pyramid Mountain Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:12a Wapiti Campground",
@@ -4716,11 +4706,6 @@
           "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
         },
         {
-          "id": "n:Pyramid Mountain Trail",
-          "name": "Pyramid Mountain Trail",
-          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
           "id": "n:Replica Peak Trail",
           "name": "Replica Peak Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
@@ -4753,11 +4738,6 @@
         {
           "id": "n:Tangle Ridge Trail",
           "name": "Tangle Ridge Trail",
-          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
-          "id": "n:The Whistlers Summit Trail",
-          "name": "The Whistlers Summit Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         },
         {
@@ -5120,7 +5100,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Kananaskis component park (patchwork split). Named hikes and named scrambles/backcountry routes kept; boundary-clipped stubs, alt/variant pieces, abbreviated duplicates, paved path and decommissioned trail excluded. Alberta Parks trail list not parsed trail-by-trail (unverified).",
+      "notes": "AB curation 2026-11-02. Kananaskis component park (patchwork split). Named hikes and named scrambles/backcountry routes kept; boundary-clipped stubs, alt/variant pieces, abbreviated duplicates, paved path and decommissioned trail excluded. Alberta Parks trail list not parsed trail-by-trail (unverified). live-fix1 remediation (review #717): restored Chester Lake to Rummel Lake Route (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:Birdwood Pass Route",
@@ -5266,11 +5246,6 @@
           "id": "n:Burstall Pass Peak Trail",
           "name": "Burstall Pass Peak Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
-          "id": "n:Chester Lake to Rummel Lake Route",
-          "name": "Chester Lake to Rummel Lake Route",
-          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
         },
         {
           "id": "n:Chester/Headwall Col Rt",
@@ -7656,7 +7631,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names.",
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names. live-fix1 remediation (review #717): restored Paget Peak North Trail (agency-listed or only link to a listed trail).",
       "exclude_trails": [
         {
           "id": "n:Celeste Lake Connector",
@@ -7821,11 +7796,6 @@
         {
           "id": "n:Narao Peak Trail",
           "name": "Narao Peak Trail",
-          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
-        },
-        {
-          "id": "n:Paget Peak North Trail",
-          "name": "Paget Peak North Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         },
         {
@@ -11139,7 +11109,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine. live-fix1 2026-11-02: the five Grey Owl Trail campsite legs and the Kingsmere River connector dropped as stage legs. The Grey Owl Trail itself needs a merge of its legs or one OSM relation (follow-up). live-fix1 2026-11-02: pin moved from [53.897, -106.366] (6.64 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine. live-fix1 2026-11-02: the five Grey Owl Trail campsite legs and the Kingsmere River connector dropped as stage legs. The Grey Owl Trail itself needs a merge of its legs or one OSM relation (follow-up). live-fix1 2026-11-02: pin moved from [53.897, -106.366] (6.64 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): the five Grey Owl Trail legs restored until a merged Grey Owl Trail exists.",
       "trail_name_fixes": [
         {
           "osm_name": "Blue Red Deer Trail",
@@ -11152,38 +11122,55 @@
           "name": "Spruce River Highland Trail",
           "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
           "reason": "Parks Canada lists Spruce River Highland Trail"
+        },
+        {
+          "osm_name": "Trailhead to Westwind Campsite",
+          "name": "Grey Owl Trail: Trailhead to Westwind Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail (20 km); official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "name": "Grey Owl Trail: Westwind Campsite to Chipewyan Portage Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "name": "Grey Owl Trail: Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Sandy Beach Campsite to Northend Campsite",
+          "name": "Grey Owl Trail: Sandy Beach Campsite to Northend Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
+        },
+        {
+          "osm_name": "Northend Campsite to Grey Owl's Cabin",
+          "name": "Grey Owl Trail: Northend Campsite to Grey Owl's Cabin",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
         }
       ],
       "exclude_trails": [
         {
-          "id": "n:Trailhead to Westwind Campsite",
-          "name": "Trailhead to Westwind Campsite",
-          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
-        },
-        {
-          "id": "n:Westwind Campsite to Chipewyan Portage Campsite",
-          "name": "Westwind Campsite to Chipewyan Portage Campsite",
-          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
-        },
-        {
-          "id": "n:Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
-        },
-        {
-          "id": "n:Sandy Beach Campsite to Northend Campsite",
-          "name": "Sandy Beach Campsite to Northend Campsite",
-          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
-        },
-        {
-          "id": "n:Northend Campsite to Grey Owl's Cabin",
-          "name": "Northend Campsite to Grey Owl's Cabin",
-          "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
-        },
-        {
           "id": "n:Kingsmere River to Northend Campsite",
           "name": "Kingsmere River to Northend Campsite",
           "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+        },
+        {
+          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
+          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
         }
       ]
     },

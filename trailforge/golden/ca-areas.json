@@ -1,0 +1,9 @@
+{
+  "schema": "trekdex-ca-areas-v1",
+  "extract_base": "north-america/canada",
+  "state": "Canada",
+  "bbox_order": "lon_min,lat_min,lon_max,lat_max",
+  "center_order": "lat,lon",
+  "note": "Canada lane registry. Ids are hand-set <slug>-ca-<prov> (ASCII, lower-case, letters folded by hand, never dropped); permanent once live. Tier: 1 national, 2 provincial/territorial park or reserve, 3 regional. Scripts: scripts/ca_publish.py, scripts/ca_trail_filter.py, scripts/ca-run-area.sh.",
+  "areas": []
+}

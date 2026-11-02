@@ -481,7 +481,8 @@ def test_sync_workflow_wires_the_adopt_gate_if_match_and_orphan_restore():
     assert wf.index("classify-orphans") < wf.index("build-candidates")           # classified before candidates
     assert '--if-match' in wf and "restore-orphan" in wf and "--cur-dir" in wf
     assert wf.count("delete-object") == 1                                         # still only the plain-new rollback delete
-    assert wf.count("aws s3api put-object") == 3          # apply put_if + the two rollback restore forms
+    append = wf.split("UPDATE modes (overwrite existing Canadian areas)")[0]   # the update steps are covered in test_ca_publish_update.py
+    assert append.count("aws s3api put-object") == 3      # apply put_if + the two rollback restore forms
 
 def _wf():
     return (Path(__file__).resolve().parent.parent / ".github/workflows/sync-ca-to-r2.yml").read_text()

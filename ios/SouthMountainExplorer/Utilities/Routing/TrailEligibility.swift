@@ -246,7 +246,7 @@ extension TrailNetwork {
     /// edge "forward" stands for walking the original edge `from` to `to`, so
     /// the gains are kept as they are (swapping them would cost the wrong
     /// direction: X to node instead of node to X).
-    fileprivate func reversedForRouting() -> TrailNetwork {
+    func reversedForRouting() -> TrailNetwork {
         let flipped = edges.map {
             Edge(id: $0.id, from: $0.to, to: $0.from, kind: $0.kind, trailKeys: $0.trailKeys,
                  polyline: $0.polyline.reversed(), coordinates: $0.coordinates.reversed(),

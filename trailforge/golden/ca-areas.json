@@ -5516,6 +5516,1346 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "AB curation 2026-11-02. One connector stub (Mt Baldy to Mt Albert connector, 0.75 mi, boundary-clipped); no whole named trails."
+    },
+    {
+      "id": "yoho-national-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 9368703,
+      "name": "Yoho National Park",
+      "bbox": [
+        -116.84,
+        51.05,
+        -116.21,
+        51.69
+      ],
+      "center": [
+        51.408,
+        -116.483
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names.",
+      "exclude_trails": [
+        {
+          "id": "n:Celeste Lake Connector",
+          "name": "Celeste Lake Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Hoodoo Creek Park",
+          "name": "Hoodoo Creek Park",
+          "reason": "Duplicate of Hoodoo Creek Trail (same route, name variant)"
+        },
+        {
+          "id": "n:Kicking Horse Trail",
+          "name": "Kicking Horse Trail",
+          "reason": "horse/equestrian-use trail"
+        },
+        {
+          "id": "n:Lake O'Hara Side Trails",
+          "name": "Lake O'Hara Side Trails",
+          "reason": "Generic bag of Lake O'Hara side trails, not one named trail"
+        },
+        {
+          "id": "n:Marpole Lake Connector",
+          "name": "Marpole Lake Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Victoria Trail",
+          "name": "Mount Victoria Trail",
+          "reason": "Boundary-clipped: 1.0 of 1.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Natural Bridge to Amiskwi Pass Trail",
+          "name": "Natural Bridge to Amiskwi Pass Trail",
+          "reason": "Composite duplicate of Kicking Horse Trail plus Amiskwi Pass Trail (both shipped separately)"
+        },
+        {
+          "id": "n:Opabin Pass Trail",
+          "name": "Opabin Pass Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ross Lake Trail",
+          "name": "Ross Lake Trail",
+          "reason": "Boundary-clipped: 3.4 of 7.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Wenkchemna Pass/Opabin Pass Route (Mountaineering)",
+          "name": "Wenkchemna Pass/Opabin Pass Route (Mountaineering)",
+          "reason": "Mountaineering composite of Wenkchemna Pass and Opabin Pass routes; not a standalone hiking trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Hamilton Lake trail",
+          "name": "Hamilton Lake Trail",
+          "source": "https://www.openstreetmap.org/way/226856142",
+          "reason": "Capitalisation only; same trail"
+        },
+        {
+          "osm_name": "Mt. Hunter Lookout Trail",
+          "name": "Mount Hunter Lookout Trail",
+          "source": "https://www.openstreetmap.org/way/542322936",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Otterhead trail",
+          "name": "Otterhead Trail",
+          "source": "https://www.openstreetmap.org/way/429413713",
+          "reason": "Capitalisation only; same trail"
+        },
+        {
+          "osm_name": "Spiral Tunnel Viewpoint (Upper tunnel) Trail",
+          "name": "Spiral Tunnel Viewpoint Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
+        }
+      ]
+    },
+    {
+      "id": "kootenay-national-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 673733022,
+      "name": "Kootenay National Park",
+      "bbox": [
+        -116.41,
+        50.53,
+        -115.75,
+        51.36
+      ],
+      "center": [
+        50.942,
+        -116.093
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas).",
+      "exclude_trails": [
+        {
+          "id": "n:Ball Pass Trail",
+          "name": "Ball Pass Trail",
+          "reason": "Boundary-clipped: 5.4 of 6.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Bone Yard",
+          "name": "Bone Yard",
+          "reason": "Boundary-clipped: 0.9 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Boom Mountain Trail",
+          "name": "Boom Mountain Trail",
+          "reason": "Boundary-clipped: 3.3 of 4.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Helmet/Tumbling Creek Trail",
+          "name": "Helmet/Tumbling Creek Trail",
+          "reason": "Composite of Helmet Creek Trail and Tumbling Creek Trail (both shipped separately)"
+        },
+        {
+          "id": "n:Marble Canyon/Ochre Paint Pots Connector Trail",
+          "name": "Marble Canyon/Ochre Paint Pots Connector Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Mount Ball Trail",
+          "name": "Mount Ball Trail",
+          "reason": "Boundary-clipped: 1.1 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Redstreak Campground Trail",
+          "name": "Redstreak Campground Trail",
+          "reason": "Campground path, not a hiking trail"
+        },
+        {
+          "id": "n:Simpson River Trail",
+          "name": "Simpson River Trail",
+          "reason": "Boundary-clipped: 5.5 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:The Monarch Trail",
+          "name": "The Monarch Trail",
+          "reason": "Boundary-clipped: 1.4 of 2.7 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Rockwall Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day",
+          "reason": "Parks Canada Kootenay hiking page: Rockwall Trail, 54.1 km, 3-5 days. Signature backpacking route lying wholly inside the park (rwn relation, 32.8 mi mapped); not a long-distance leg of a national trail"
+        },
+        {
+          "name": "Fireweed Loops Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day",
+          "reason": "Parks Canada Kootenay hiking page: Fireweed Loop, 0.2 km interpretive loop; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "glacier-national-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 3961485,
+      "name": "Glacier National Park",
+      "bbox": [
+        -117.97,
+        50.99,
+        -117.15,
+        51.54
+      ],
+      "center": [
+        51.344,
+        -117.417
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Glacier day-hike and short-hike pages (https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day): Abbott Ridge, Asulkan Valley, Avalanche Crest, Perley Rock, Sir Donald, Hermit, Lower Beaver Valley (Beaver Valley Trail), Loop Brook present; Rockgarden, Bear Creek Falls and Hemlock Grove Boardwalk added by waiver. Missing in OSM as named whole trails: Great Glacier, Marion Lake, Balu Pass (0.14 mi stub), Bostock Creek, Glacier Crest, Meeting of the Waters, 1885 Trail, Abandoned Rails.",
+      "exclude_trails": [
+        {
+          "id": "n:Perley Rock Trail / Sir Donald Trail",
+          "name": "Perley Rock Trail / Sir Donald Trail",
+          "reason": "Composite of Perley Rock Trail and Sir Donald Trail (both shipped separately)"
+        },
+        {
+          "id": "n:Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')",
+          "name": "Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')",
+          "reason": "Parks Canada: the Upper Beaver Valley Trail beyond Grizzly Creek is no longer maintained and not recommended"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Rockgarden Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
+          "reason": "Parks Canada Glacier short hikes page: Rockgarden, 430 m loop; short official walk"
+        },
+        {
+          "name": "Bear Creek Falls Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
+          "reason": "Parks Canada Glacier short hikes page: Bear Creek Falls, 1 km return; short official walk"
+        },
+        {
+          "name": "Hemlock grove boardwalk",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
+          "reason": "Parks Canada Glacier short hikes page: Hemlock Grove Boardwalk, 350 m loop; short official walk"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Hemlock grove boardwalk",
+          "name": "Hemlock Grove Boardwalk",
+          "source": "https://www.openstreetmap.org/way/30606524",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "mount-revelstoke-national-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 3961479,
+      "name": "Mount Revelstoke National Park",
+      "bbox": [
+        -118.26,
+        50.95,
+        -117.84,
+        51.24
+      ],
+      "center": [
+        51.047,
+        -118.061
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Parks Canada Mount Revelstoke pages (https://parks.canada.ca/pn-np/bc/revelstoke/activ/randonee-hiking/autoroute-highway) list Eva, Miller and Jade Lakes (present), the Summit Trail (present), Skunk Cabbage Boardwalk (waiver) and Giant Cedars Boardwalk (not mapped as a named trail in OSM). Soren Sorensen loops, Lindmark and Inspiration Woods ship as mapped (not compared name by name). Nels Nelson Ski Jump Trail is winter-only and dropped.",
+      "exclude_trails": [
+        {
+          "id": "n:23 Connector",
+          "name": "23 Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Skunk Cabbage Boardwalk",
+          "source": "https://parks.canada.ca/pn-np/bc/revelstoke/activ/randonee-hiking/autoroute-highway",
+          "reason": "Parks Canada Mount Revelstoke roadside attractions page: Skunk Cabbage Boardwalk, 1.2 km out and back; short official walk"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Lindmark trail",
+          "name": "Lindmark Trail",
+          "source": "https://www.openstreetmap.org/way/506772829",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "pacific-rim-national-park-reserve-of-canada-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2017391,
+      "name": "Pacific Rim National Park Reserve of Canada",
+      "bbox": [
+        -125.96,
+        48.49,
+        -124.34,
+        49.17
+      ],
+      "center": [
+        48.818,
+        -125.119
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole reserve (Long Beach, West Coast Trail and Broken Group units). Compared with the Parks Canada Pacific Rim hiking page (https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking). West Coast Trail ships whole (75 km official, 45.3 mi inside the polygon) as a signature multi-day trail by waiver; its 'Beach Option' pieces are excluded as variants. Long Beach Unit short walks (Rainforest B, Shorepine Bog, Combers Beach) added by waiver; Willowbrae and South Beach are 65% / 78% inside the unit polygon and stay out as clipped; Rainforest A, Nuu-chah-nulth, Canso Bomber Ruins, Cape Beale Lighthouse and Keeha Beach present. Halfmoon Bay Trail (0.14 mi stub), Radar Hill and the paved ʔapsčiik t̓ašii multi-use pathway are not shipped (stub / paved cycle path).",
+      "exclude_trails": [
+        {
+          "id": "n:Cape Beale Trail / Tapaltos Beach Trail",
+          "name": "Cape Beale Trail / Tapaltos Beach Trail",
+          "reason": "Composite of the Cape Beale Lighthouse Trail start and the Topaltos Beach access; Cape Beale Lighthouse Trail is shipped"
+        },
+        {
+          "id": "n:Keeha Beach Trail",
+          "name": "Keeha Beach Trail",
+          "reason": "Boundary-clipped: 1.6 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:West Coast Trail (Beach Option)",
+          "name": "West Coast Trail (Beach Option)",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:West Cost Trail (Beach Option)",
+          "name": "West Cost Trail (Beach Option)",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "West Coast Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking",
+          "reason": "Parks Canada Pacific Rim hiking page: West Coast Trail, 75 km multi-day signature trail of the West Coast Trail Unit (rwn relation, 45.3 of 48.0 mapped mi inside the polygon, 94%); not a long-distance leg of a national trail"
+        },
+        {
+          "name": "Rainforest Trail Loop B",
+          "source": "https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking",
+          "reason": "Parks Canada Pacific Rim hiking page: Rainforest Trail B, 1 km loop; short official walk"
+        },
+        {
+          "name": "Shorepine Bog Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking",
+          "reason": "Parks Canada Pacific Rim hiking page: Shorepine Bog Trail, 800 m loop; short official walk"
+        },
+        {
+          "name": "Combers Beach Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking",
+          "reason": "Parks Canada Pacific Rim hiking page: Combers Beach Trail, 500 m; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "gulf-islands-national-park-reserve-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2100175,
+      "name": "Gulf Islands National Park Reserve",
+      "bbox": [
+        -123.48,
+        48.51,
+        -122.99,
+        48.92
+      ],
+      "center": [
+        48.758,
+        -123.249
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole reserve. Compared with the Parks Canada Gulf Islands trails page (https://parks.canada.ca/pn-np/bc/gulf/activ/randonnee-hiking/sentiers-trails): Sidney Spit (Sktamen, Lagoon), Beaumont, Mount Norman, Roe Lake, Narvaez Bay, Monarch Head present; Campbell Point added by waiver. Lyall Creek, Winter Cove, Princess Margaret perimeter and Tumbo are only fragments in OSM and are not shipped.",
+      "exclude_trails": [
+        {
+          "id": "n:Lagoon Trail",
+          "name": "Lagoon Trail",
+          "reason": "Boundary-clipped: 0.6 of 1.1 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Campbell Point Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/gulf/activ/randonnee-hiking/sentiers-trails",
+          "reason": "Parks Canada Gulf Islands trails page: Bennett Bay / Campbell Point, 1.5 km; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "garibaldi-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226817,
+      "name": "Garibaldi Provincial Park",
+      "bbox": [
+        -123.19,
+        49.69,
+        -122.32,
+        50.28
+      ],
+      "center": [
+        50.0,
+        -122.992
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "BC curation 2026-11-02. Whole park. BC Parks lists Diamond Head (Elfin Lakes), Black Tusk / Garibaldi Lake (Rubble Creek, Taylor Meadows), Cheakamus Lake, Singing Pass, Russet Lake and Wedgemount Lake (https://bcparks.ca/garibaldi-park/). Present: Black Tusk, Panorama Ridge, Garibaldi Lake, Elfin Lakes, Cheakamus Lake, Helm Creek, Mamquam Lake and named scrambles. Wedgemount Lake, High Note and Overlord are boundary-clipped and excluded. Whistler-side mountain-bike names are all sub-0.6 mi stubs and dropped. OSM splits the main trails into partly unnamed ways, so several distances are shorter than the official ones. HELD 2026-11-02 (review #707): Garibaldi Lake 1.31 mi, Elfin Lakes 2.21, Black Tusk 1.49 and Panorama Ridge 1.68 are disjoint OSM stubs of 5.6-9 mi routes and Wedgemount is clipped; same defect as Joffre. Needs OSM completion before shipping. Known omission (review #707): Wedgemount Lake.",
+      "exclude_trails": [
+        {
+          "id": "n:Black Tusk/Cinder Flats Trail",
+          "name": "Black Tusk/Cinder Flats Trail",
+          "reason": "Composite duplicate of the Black Tusk route (Black Tusk Trail shipped)"
+        },
+        {
+          "id": "n:Columnar / Gargoyles Route",
+          "name": "Columnar / Gargoyles Route",
+          "reason": "Composite of two scramble routes"
+        },
+        {
+          "id": "n:High Note Trail",
+          "name": "High Note Trail",
+          "reason": "Boundary-clipped: 1.8 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Overlord Trail",
+          "name": "Overlord Trail",
+          "reason": "Boundary-clipped: 0.9 of 2.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Wedgemont Glacier Approach",
+          "name": "Wedgemont Glacier Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Wedgemount Lake Trail",
+          "name": "Wedgemount Lake Trail",
+          "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "joffre-lakes-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238477,
+      "name": "Pipi7íyekw / Joffre Lakes Provincial Park",
+      "bbox": [
+        -122.56,
+        50.27,
+        -122.39,
+        50.42
+      ],
+      "center": [
+        50.3,
+        -122.5
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "BC curation 2026-11-02. Only 2 whole named trails: Joffre Lakes Trail (OSM maps 0.84 mi of the official 5 km one-way route) and Slalok Mountain Trail; Tszil Mountain Trail is boundary-clipped (0.7 of 1.1 mi). 2.0 mi total is under the 2.5 mi / 3 trail bar and the flagship distance would be understated by a factor of three. OSM mapping gap; Quentin's call whether to complete the OSM trail. Known omission (review #707): Joffre Lakes Trail (held)."
+    },
+    {
+      "id": "golden-ears-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230596,
+      "name": "Golden Ears Provincial Park",
+      "bbox": [
+        -122.67,
+        49.19,
+        -122.22,
+        49.79
+      ],
+      "center": [
+        49.391,
+        -122.459
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. West/East Canyon, Lower Falls, Golden Ears, Alouette Mountain, Menzies, Hector Ferguson Lake, Mike Lake, Evans Peak and beach trails present. BC Parks trail list (https://bcparks.ca/golden-ears-park) not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Robbie Reid Approach Trail",
+          "name": "Robbie Reid Approach Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        }
+      ]
+    },
+    {
+      "id": "mount-robson-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2235398,
+      "name": "Mount Robson Provincial Park",
+      "bbox": [
+        -119.48,
+        52.46,
+        -118.22,
+        53.35
+      ],
+      "center": [
+        53.002,
+        -118.833
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (Mount Robson Provincial Park relation only; the Corridor protected area is separate). Berg Lake Trail 15.2 mi, Snowbird Pass, Fitzwilliam, Resplendent routes present. Moose River Route, Robson Pass and Overlander Falls cross the park edge and are excluded as boundary-clipped; the Great Divide alternate is excluded. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Moose River Route",
+          "name": "Moose River Route",
+          "reason": "Boundary-clipped: 30.2 of 38.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Moose River West GDT Alternate Route",
+          "name": "Moose River West GDT Alternate Route",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Overlander Falls Trail",
+          "name": "Overlander Falls Trail",
+          "reason": "Boundary-clipped: 1.4 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Robson Pass Trail",
+          "name": "Robson Pass Trail",
+          "reason": "Boundary-clipped: 1.4 of 4.7 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Resplendent via Patterson route",
+          "name": "Resplendent via Patterson Route",
+          "source": "https://www.openstreetmap.org/way/718984584",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "strathcona-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227855,
+      "name": "Strathcona Provincial Park",
+      "bbox": [
+        -126.31,
+        49.33,
+        -125.14,
+        50.07
+      ],
+      "center": [
+        49.697,
+        -125.587
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the BC Parks Strathcona hiking pages (https://bcparks.ca/strathcona-park/hiking) by name: Della Falls, Flower Ridge, Crest Mountain, Elk River Trail, Marble Meadows, Bedwell Lakes, Mount Albert Edward route, Elkhorn, Mount Frink, King's Peak, Augerpoint, Karst Creek, Plateau trails present. Golden Hinde, Boston Ridge, Comox Glacier and Price Creek are boundary-clipped and excluded; the Vancouver Island Trail is long-distance and dropped by the filter. Ash River forest-road names excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Ash 110D1",
+          "name": "Ash 110D1",
+          "reason": "Forest-road designator (Ash River logging road), not a BC Parks hiking trail"
+        },
+        {
+          "id": "n:Ash 110D2",
+          "name": "Ash 110D2",
+          "reason": "Forest-road designator (Ash River logging road), not a BC Parks hiking trail"
+        },
+        {
+          "id": "n:Ash 110H1",
+          "name": "Ash 110H1",
+          "reason": "Forest-road designator (Ash River logging road), not a BC Parks hiking trail"
+        },
+        {
+          "id": "n:Ash Main",
+          "name": "Ash Main",
+          "reason": "Forest-road designator (Ash River logging road), not a BC Parks hiking trail"
+        },
+        {
+          "id": "n:Ash Pond Trail",
+          "name": "Ash Pond Trail",
+          "reason": "Ash River forest-road area; not on the BC Parks Strathcona hiking list"
+        },
+        {
+          "id": "n:Ash River Trail",
+          "name": "Ash River Trail",
+          "reason": "Ash River forest-road area; not on the BC Parks Strathcona hiking list"
+        },
+        {
+          "id": "n:Boston Ridge Trail",
+          "name": "Boston Ridge Trail",
+          "reason": "Boundary-clipped: 0.9 of 4.3 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Century Sam Lake Trail",
+          "name": "Century Sam Lake Trail",
+          "reason": "Boundary-clipped: 1.4 of 1.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Comox Glacier Trail",
+          "name": "Comox Glacier Trail",
+          "reason": "Boundary-clipped: 4.3 of 5.4 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Elk River Main",
+          "name": "Elk River Main",
+          "reason": "Forest-road style name; the Elk River Trail is shipped"
+        },
+        {
+          "id": "n:Golden Hinde Trail",
+          "name": "Golden Hinde Trail",
+          "reason": "Boundary-clipped: 17.2 of 23.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Jutland Mountain Trail",
+          "name": "Jutland Mountain Trail",
+          "reason": "Boundary-clipped: 1.0 of 2.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Kings Peak Trail",
+          "name": "Kings Peak Trail",
+          "reason": "Shorter duplicate of King's Peak Trail (same trail, apostrophe variant)"
+        },
+        {
+          "id": "n:Lake Trail",
+          "name": "Lake Trail",
+          "reason": "Generic one-word-plus-Trail name that cannot be matched to a BC Parks trail"
+        },
+        {
+          "id": "n:Price Creek Trail",
+          "name": "Price Creek Trail",
+          "reason": "Boundary-clipped: 5.5 of 7.2 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mt Myra Trail",
+          "name": "Mount Myra Trail",
+          "source": "https://www.openstreetmap.org/way/971400068",
+          "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Bedwell River Trail (Oimintis)",
+          "name": "Bedwell River Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
+        },
+        {
+          "osm_name": "Mckenzie Meadows Trail",
+          "name": "McKenzie Meadows Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "e-c-manning-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230176,
+      "name": "E.C. Manning Provincial Park",
+      "bbox": [
+        -121.25,
+        48.95,
+        -120.55,
+        49.4
+      ],
+      "center": [
+        49.177,
+        -120.852
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the BC Parks E.C. Manning trail list (https://bcparks.ca/ec-manning-park/, read in full): Lightning Lake loop and chain, Frosty Mountain, Heather, Bonnevier, Dewdney, Grainger Creek, Hope Pass, Hozameen Ridge, Nicomen Lake, Poland Lake, Skagit Bluffs, Skyline I, Warburton Loop, Whatcom, Three Falls, Paintbrush, Strawberry Flats present; six short official walks added by waiver. Pacific Crest Trail (long-distance, mostly US) and Skyline II (clipped) excluded. Not in OSM as named trails: Little Muddy, West Similkameen, Gibson, Monument 78/83, Mount Outram, Windy Joe.",
+      "exclude_trails": [
+        {
+          "id": "n:Ghost Pass Trail",
+          "name": "Ghost Pass Trail",
+          "reason": "Boundary-clipped: 0.8 of 5.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Memaloose Trail (Under Construction)",
+          "name": "Memaloose Trail (Under Construction)",
+          "reason": "Under construction; not a current BC Parks trail"
+        },
+        {
+          "id": "n:Skyline II Trail",
+          "name": "Skyline II Trail",
+          "reason": "Boundary-clipped: 9.6 of 11.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Watcom Trail",
+          "name": "Watcom Trail",
+          "reason": "OSM misspelling of Whatcom; second segment of the same trail (BC Parks lists one Whatcom Trail, 9.5 km)"
+        },
+        {
+          "id": "n:Whitecloud Trail",
+          "name": "Whitecloud Trail",
+          "reason": "Boundary-clipped: 1.5 of 2.8 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Beaver Pond Trail",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Beaver Pond, 500 m loop; short official walk"
+        },
+        {
+          "name": "Rein Orchid Trail",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Rein Orchid, 500 m loop; short official walk"
+        },
+        {
+          "name": "Sumallo Grove Loop",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Sumallo Grove, 500 m loop; short official walk"
+        },
+        {
+          "name": "Viewpoint Loop",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Viewpoint Loop, 600 m loop; short official walk"
+        },
+        {
+          "name": "Rhododendron Flats Nature Trail",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Rhododendron Flats, 500 m loop; short official walk"
+        },
+        {
+          "name": "Dry Ridge Trail",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks E.C. Manning page: Dry Ridge, 300 m one way; short official walk"
+        }
+      ]
+    },
+    {
+      "id": "cathedral-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2229875,
+      "name": "Cathedral Provincial Park",
+      "bbox": [
+        -120.38,
+        48.95,
+        -119.96,
+        49.2
+      ],
+      "center": [
+        49.08,
+        -120.176
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Cathedral Rim, Lakeview, Haystack Lakes, Goat Lake, Diamond, Lake of the Woods, Twin Butes and Centennial (Wall Creek) trails present; unnamed placeholders and duplicates excluded. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:(unmarked route)",
+          "name": "(unmarked route)",
+          "reason": "Unnamed OSM placeholder, not a named trail"
+        },
+        {
+          "id": "n:(unmarked, faint trail only)",
+          "name": "(unmarked, faint trail only)",
+          "reason": "Unnamed OSM placeholder, not a named trail"
+        },
+        {
+          "id": "n:Centennial Trail",
+          "name": "Centennial Trail",
+          "reason": "Shorter duplicate of Centennial trail (Wall Creek trail), same trail"
+        },
+        {
+          "id": "n:Ewart Creek Trail (Centennial Trail)",
+          "name": "Ewart Creek Trail (Centennial Trail)",
+          "reason": "Boundary-clipped: 2.5 of 4.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ladyslipper Lake Trail",
+          "name": "Ladyslipper Lake Trail",
+          "reason": "Shorter duplicate of Ladyslipper Trail (same trail, name variant)"
+        },
+        {
+          "id": "n:Lakeview Trail / Centennial Trail",
+          "name": "Lakeview Trail / Centennial Trail",
+          "reason": "Composite of Lakeview Trail and Centennial trail (both shipped)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Centennial trail (Wall Creek trail)",
+          "name": "Centennial Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
+        }
+      ]
+    },
+    {
+      "id": "wells-gray-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2233392,
+      "name": "Wells Gray Provincial Park",
+      "bbox": [
+        -120.68,
+        51.61,
+        -119.42,
+        52.93
+      ],
+      "center": [
+        52.129,
+        -119.946
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Table Mountain, Battle Mountain, Pyramid Mountain, Chain Meadows, Blackwater, Marathon, McDougall Falls, Smith Lake, Placid Lake, Murtle River/Lake trails present. Azure Lake portages excluded (canoe circuit). Trophy Mountain is boundary-clipped (excluded). BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Baily's Loop Trail",
+          "name": "Baily's Loop Trail",
+          "reason": "Misspelt shorter duplicate of Bailey's Chute Loop Trail"
+        },
+        {
+          "id": "n:Fight Meadow via Phillip Lake and Fight Lake",
+          "name": "Fight Meadow via Phillip Lake and Fight Lake",
+          "reason": "Descriptive 'via' composite of Phillip Lake and Fight Lake routes"
+        },
+        {
+          "id": "n:Trophy Mountain Trail",
+          "name": "Trophy Mountain Trail",
+          "reason": "Boundary-clipped: 3.1 of 3.8 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "mount-assiniboine-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 167123033,
+      "name": "Mount Assiniboine Provincial Park",
+      "bbox": [
+        -115.97,
+        50.77,
+        -115.51,
+        51.14
+      ],
+      "center": [
+        50.93,
+        -115.715
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w167123033). Core-area routes ship as mapped, including OSM's descriptive names 'Rock Lake Campground to the Core Area' and 'Surprise Creek Cabin to Rock Lake Campground'. The classic approaches Assiniboine Pass, Wonder Pass, Citadel Pass, Simpson River and Twin Cairns cross into Banff / Kootenay and are excluded as boundary-clipped. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Assiniboine Pass Trail",
+          "name": "Assiniboine Pass Trail",
+          "reason": "Boundary-clipped: 1.1 of 6.8 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Cave Mountain Trail",
+          "name": "Cave Mountain Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.1 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Citadel Pass Tr",
+          "name": "Citadel Pass Tr",
+          "reason": "Boundary-clipped: 1.3 of 5.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hind Hut Headwall Approach",
+          "name": "Hind Hut Headwall Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Nub to Assiniboine Lodge Connector",
+          "name": "Nub to Assiniboine Lodge Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Simpson River Trail",
+          "name": "Simpson River Trail",
+          "reason": "Boundary-clipped: 1.4 of 7.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Sunburst Lake and The Nub",
+          "name": "Sunburst Lake and The Nub",
+          "reason": "Composite of Sunburst Lake and The Nub routes"
+        },
+        {
+          "id": "n:The Monarch Trail",
+          "name": "The Monarch Trail",
+          "reason": "Boundary-clipped: 1.3 of 2.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Twin Cairns Meadow Park Trail",
+          "name": "Twin Cairns Meadow Park Trail",
+          "reason": "Boundary-clipped: 0.7 of 2.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Wonder Pass / Marvel Lake Trail",
+          "name": "Wonder Pass / Marvel Lake Trail",
+          "reason": "Boundary-clipped: 1.3 of 6.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Wonder Pass Trail",
+          "name": "Wonder Pass Trail",
+          "reason": "Boundary-clipped: 3.7 of 6.3 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "cypress-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227369,
+      "name": "Cypress Provincial Park",
+      "bbox": [
+        -123.31,
+        49.31,
+        -123.11,
+        49.57
+      ],
+      "center": [
+        49.504,
+        -123.2
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (relation r2227369; same-name way twin w61586047 handled by boundary_by_id). Black Mountain, Mount Strachan, Mount Hanover, Yew Lake, Sunset Trail present. Howe Sound Crest Trail (10.5 of 16.6 mi inside) and Baden Powell (long-distance, clipped) excluded. Winter-only access trail excluded. BC Parks Cypress page (https://bcparks.ca/cypress-park/) lists Baden Powell and day-hike / backcountry trails (not compared name by name). Known omission (review #707): Hollyburn Peak.",
+      "boundary_by_id": true,
+      "exclude_trails": [
+        {
+          "id": "n:Baden Powell Trail",
+          "name": "Baden Powell Trail",
+          "reason": "Boundary-clipped: 5.1 of 10.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hollyburn Mountain Trail",
+          "name": "Hollyburn Mountain Trail",
+          "reason": "Boundary-clipped: 0.7 of 1.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hollyburn Winter Access Trail",
+          "name": "Hollyburn Winter Access Trail",
+          "reason": "Winter (snowshoe / ski) access trail, not a summer hiking trail"
+        },
+        {
+          "id": "n:Howe Sound Crest Trail",
+          "name": "Howe Sound Crest Trail",
+          "reason": "Boundary-clipped: 10.5 of 16.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lost Lake Trail",
+          "name": "Lost Lake Trail",
+          "reason": "Boundary-clipped: 0.6 of 0.8 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "mount-seymour-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230599,
+      "name": "Mount Seymour Provincial Park",
+      "bbox": [
+        -123.03,
+        49.27,
+        -122.84,
+        49.49
+      ],
+      "center": [
+        49.4,
+        -122.923
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Elsay Lake, Mystery Lake, Mount Elsay, Flower Lake Loop, Old Buck, Bishop Bump, Canadian Pass, De Pencier Bluff present; Mount Seymour Trail restored (81% inside). About 60 mountain-bike trail names are sub-0.6 mi stubs and dropped; Baden Powell is long-distance / clipped. BC Parks Mount Seymour page (https://bcparks.ca/mount-seymour-park/) read for the winter routes only (trail list unverified). Restored despite the clip rule: Mount Seymour Trail (Flagship summit trail; 1.4 of 1.7 mi (81%) inside the polygon, the rest is the lot-side start at the polygon edge; no neighbouring BC area contains it). Review #707: Mount Seymour Trail (1.37 mi, 2 pieces) accepted as a known fragment. Known omission (review #707): Dog Mountain.",
+      "exclude_trails": [
+        {
+          "id": "n:Baden Powell Trail",
+          "name": "Baden Powell Trail",
+          "reason": "Boundary-clipped: 0.6 of 8.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Boundary Trail",
+          "name": "Boundary Trail",
+          "reason": "Boundary-clipped: 0.7 of 0.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Hangman",
+          "name": "Hangman",
+          "reason": "One-word name that matches the Seymour mountain-bike network; no hiking source"
+        },
+        {
+          "id": "n:Indian Arm / Elsay Lake Access Route",
+          "name": "Indian Arm / Elsay Lake Access Route",
+          "reason": "Boundary-clipped: 2.2 of 3.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Old Buck Access Trail",
+          "name": "Old Buck Access Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Percy",
+          "name": "Percy",
+          "reason": "Boundary-clipped: 1.2 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Vicar Ridge Trail",
+          "name": "Vicar Ridge Trail",
+          "reason": "Boundary-clipped: 1.0 of 2.8 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "stawamus-chief-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8634840,
+      "name": "Stawamus Chief Provincial Park",
+      "bbox": [
+        -123.21,
+        49.61,
+        -123.05,
+        49.76
+      ],
+      "center": [
+        49.668,
+        -123.154
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Three trails: Third Peak Trail, Chief Backside Trail and The Climb (Skatshn). First Peak and Second Peak trails are 0.3 and 0.6 mi OSM stubs below the fragment floor and no BC Parks list page was readable to waive them. Sea to Summit and Slhanay (clipped) and ~25 climbing-approach names excluded. Known omission (review #707): First Peak and Second Peak.",
+      "exclude_trails": [
+        {
+          "id": "n:A Scottish Tale Approach",
+          "name": "A Scottish Tale Approach",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Kelly’s Connector",
+          "name": "Kelly’s Connector",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        },
+        {
+          "id": "n:Sea to Summit",
+          "name": "Sea to Summit",
+          "reason": "Boundary-clipped: 1.9 of 3.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Slhanay Trail",
+          "name": "Slhanay Trail",
+          "reason": "Boundary-clipped: 1.7 of 2.9 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "juan-de-fuca-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227664,
+      "name": "Juan de Fuca Provincial Park",
+      "bbox": [
+        -124.51,
+        48.37,
+        -124.02,
+        48.6
+      ],
+      "center": [
+        48.5,
+        -124.3
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "BC curation 2026-11-02. The signature Juan de Fuca Marine Trail is a 25.1 mi OSM route but only 19.9 mi (79%) lies inside the park polygon, so it fails the whole-route rule; without it only the Botanical Beach Loop remains (1 trail). The other BC Parks trails (China Beach, Second Beach, Mill Bay, Sombrio) are sub-0.6 mi stubs. Needs a whole-route-to-main-park rule or a polygon fix (engine / OSM work, not built)."
+    },
+    {
+      "id": "cape-scott-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227988,
+      "name": "Cape Scott Provincial Park",
+      "bbox": [
+        -128.5,
+        50.6,
+        -127.8,
+        50.93
+      ],
+      "center": [
+        50.729,
+        -128.34
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Cape Scott Trail 13.3 mi, San Josef Bay, Lowrie Bay and Mount Saint Patrick present. North Coast Trail (19.3 of 29.2 mi inside the polygon) is boundary-clipped and excluded; the Vancouver Island Trail is long-distance and dropped. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:North Coast Trail",
+          "name": "North Coast Trail",
+          "reason": "Boundary-clipped: 19.3 of 29.2 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Lowrie Bay trail",
+          "name": "Lowrie Bay Trail",
+          "source": "https://www.openstreetmap.org/way/242899629",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "valhalla-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228281,
+      "name": "Valhalla Provincial Park",
+      "bbox": [
+        -117.81,
+        49.68,
+        -117.34,
+        50.07
+      ],
+      "center": [
+        49.851,
+        -117.523
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Evans Creek, Sharp Creek, Sandy Creek, Nemo Creek and Evans Beach / Beatrice Lake trails present; Drinnon Lake and Mulvey Basin (clipped) excluded. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Drinnon Lake Trail",
+          "name": "Drinnon Lake Trail",
+          "reason": "Boundary-clipped: 2.5 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Evans Beach/Beatrice Lake Trail",
+          "name": "Evans Beach/Beatrice Lake Trail",
+          "reason": "Composite of two trails (slash name); composite-exclusion rule"
+        },
+        {
+          "id": "n:Mulvey Basin Trail",
+          "name": "Mulvey Basin Trail",
+          "reason": "Boundary-clipped: 0.7 of 2.7 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "kokanee-glacier-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2241031,
+      "name": "Kokanee Glacier Provincial Park",
+      "bbox": [
+        -117.33,
+        49.63,
+        -116.95,
+        49.93
+      ],
+      "center": [
+        49.741,
+        -117.165
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Gibson Lake, Enterprise Creek, Silver Spray, Woodbury, Sapphire Lake, Helen Deane, Blue Grouse Basin, Keyhole, Sunset Lake trails present; Lemon Creek and Wheeler Lake (clipped) excluded. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Lemon Creek Trail",
+          "name": "Lemon Creek Trail",
+          "reason": "Boundary-clipped: 4.7 of 5.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Wheeler Lake Trail",
+          "name": "Wheeler Lake Trail",
+          "reason": "Boundary-clipped: 1.1 of 2.0 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "elk-lakes-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228048,
+      "name": "Elk Lakes Provincial Park",
+      "bbox": [
+        -115.26,
+        50.32,
+        -114.94,
+        50.64
+      ],
+      "center": [
+        50.547,
+        -115.166
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park. Fox Lake, Lower Elk Lake, West Elk Pass, Mount Castelnau, Mount Foch and Upper Elk Basin routes present. Great Divide Trail is long-distance and dropped by the filter; Frozen Lake (clipped) excluded. BC Parks list not compared name by name (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Frozen Lake Trail",
+          "name": "Frozen Lake Trail",
+          "reason": "Boundary-clipped: 0.8 of 1.1 mi lie inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "top-of-the-world-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 11349700,
+      "name": "Top of the World Provincial Park",
+      "bbox": [
+        -115.53,
+        49.74,
+        -115.27,
+        49.94
+      ],
+      "center": [
+        49.8,
+        -115.4
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "BC curation 2026-11-02. No publishable trails after the Canada filter: OSM has no named hiking trails inside the polygon (the Great Divide Trail is long-distance and unnamed access roads are not trails)."
+    },
+    {
+      "id": "lynn-headwaters-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 14318886,
+      "name": "Lynn Headwaters Regional Park",
+      "bbox": [
+        -123.14,
+        49.31,
+        -122.95,
+        49.5
+      ],
+      "center": [
+        49.394,
+        -123.034
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (Metro Vancouver). Compared with the Metro Vancouver Lynn Headwaters brochure (https://metrovancouver.org/services/regional-parks/Documents/lynn-headwaters-regional-park-brochure.pdf) only at park level (not name by name): Lynn Lake, Hanes Valley, Coliseum Mountain, Headwaters, Cedar Mill, Kennedy Falls, Goat Mountain / Ridge present. Several backcountry routes beyond Norvan Falls were closed at survey time (not a data issue). Baden Powell (long-distance) and clipped routes excluded. Known omission (review #707): Lynn Peak and Norvan Falls.",
+      "exclude_trails": [
+        {
+          "id": "n:Erik the Red Trail",
+          "name": "Erik the Red Trail",
+          "reason": "Boundary-clipped: 0.7 of 1.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lynn Loop Trail",
+          "name": "Lynn Loop Trail",
+          "reason": "Boundary-clipped: 1.3 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lynn Peak Route",
+          "name": "Lynn Peak Route",
+          "reason": "Boundary-clipped: 0.7 of 1.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lynn Ridge Trail",
+          "name": "Lynn Ridge Trail",
+          "reason": "Boundary-clipped: 1.0 of 1.6 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Palisade Ridge Trail",
+          "name": "Palisade Ridge Trail",
+          "reason": "Boundary-clipped: 1.0 of 1.2 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Crown N1 (Godmother Peak) Trail",
+          "name": "Crown N1 Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
+        }
+      ]
+    },
+    {
+      "id": "pacific-spirit-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 11683817,
+      "name": "Pacific Spirit Regional Park",
+      "bbox": [
+        -123.32,
+        49.19,
+        -123.14,
+        49.33
+      ],
+      "center": [
+        49.271,
+        -123.238
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (Metro Vancouver). Trail names agree with the Metro Vancouver Pacific Spirit map (https://metrovancouver.org/services/regional-parks/Documents/pacific-spirit-regional-park-map.pdf): Salish, Imperial, Council, Sword Fern, Foreshore, Heron, Hemlock, Pioneer, Spanish, Sasamat, Top, Admiralty, Cleveland, Southwest Marine and others. Numbered Trail 3-6 and sub-0.6 mi stubs dropped; two unverified entries excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Iva Mann Loop Walk",
+          "name": "Iva Mann Loop Walk",
+          "reason": "Long composite 'walk' name not on the Metro Vancouver Pacific Spirit map; unverified"
+        },
+        {
+          "id": "n:Sherry Sakamoto",
+          "name": "Sherry Sakamoto",
+          "reason": "Personal-name entry not on the Metro Vancouver Pacific Spirit map; unverified"
+        }
+      ]
+    },
+    {
+      "id": "belcarra-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 14558710,
+      "name": "təmtəmíxʷtən/Belcarra Regional Park",
+      "bbox": [
+        -122.98,
+        49.24,
+        -122.81,
+        49.39
+      ],
+      "center": [
+        49.322,
+        -122.875
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "BC curation 2026-11-02. Whole park (Metro Vancouver). Admiralty Point, Jug Island Beach, Sasamat Lake Loop, Woodhaven and Woodhaven Swamp Loop, Sugar Mountain trails present (consistent with the Metro Vancouver brochure https://metrovancouver.org/services/regional-parks/documents/regional-parks-brochure.pdf); three informal names excluded as unverified; Diez Vistas (clipped, mostly Buntzen) excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:1986 World Round Hill Loop",
+          "name": "1986 World Round Hill Loop",
+          "reason": "Informal named loop, no Metro Vancouver source; unverified"
+        },
+        {
+          "id": "n:Bob's Trail (Ridge Trail)",
+          "name": "Bob's Trail (Ridge Trail)",
+          "reason": "Informal alias name, no Metro Vancouver source; unverified"
+        },
+        {
+          "id": "n:Diez Vistas Trail",
+          "name": "Diez Vistas Trail",
+          "reason": "Boundary-clipped: 1.2 of 4.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Ted's Triple T",
+          "name": "Ted's Triple T",
+          "reason": "Informal personal-name trail, no Metro Vancouver source; unverified"
+        }
+      ]
     }
   ]
 }

@@ -6856,6 +6856,1006 @@
           "reason": "Informal personal-name trail, no Metro Vancouver source; unverified"
         }
       ]
+    },
+    {
+      "id": "bruce-peninsula-national-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 13080574,
+      "name": "Bruce Peninsula National Park",
+      "bbox": [
+        -81.68,
+        45.02,
+        -81.29,
+        45.3
+      ],
+      "center": [
+        45.228,
+        -81.547
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance.",
+      "keep_trails": [
+        {
+          "name": "Marr Lake Trail",
+          "source": "https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails",
+          "reason": "Parks Canada lists the Marr Lake route as part of the Georgian Bay - Marr Lake loop"
+        },
+        {
+          "name": "Halfway Log Dump Side Trail",
+          "source": "https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails",
+          "reason": "Parks Canada lists Halfway Log Dump as a 1 km trail from the parking lot"
+        }
+      ]
+    },
+    {
+      "id": "pukaskwa-national-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 10729894,
+      "name": "Pukaskwa National Park",
+      "bbox": [
+        -86.38,
+        47.94,
+        -85.47,
+        48.66
+      ],
+      "center": [
+        48.566,
+        -86.266
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Coastal Hiking Trail (60 km, Parks Canada trail-conditions page https://parks.canada.ca/pn-np/on/pukaskwa/activ/experience/randonnees-hiking/etat-sentiers-trail-conditions) ships whole via keep_trails: it lies inside the park and is the signature multi-day trail. Beach, Bimose Kinoomagewnan, Mdaabii Miikna, Southern Headland present; Boardwalk Beach waived. Manito Miikana and Chigamiwinigum Falls are sub-0.6 mi pieces not confirmed on the page; left out. Coastal Route Option excluded as a variant.",
+      "exclude_trails": [
+        {
+          "id": "n:Coastal Route Option",
+          "name": "Coastal Route Option",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Pukaskwa Coastal Hiking Trail",
+          "source": "https://parks.canada.ca/pn-np/on/pukaskwa/activ/experience/randonnees-hiking/etat-sentiers-trail-conditions",
+          "reason": "Parks Canada Coastal Hiking Trail (60 km, entirely inside the park); signature multi-day trail, not a leg of a national trail"
+        },
+        {
+          "name": "Boardwalk Beach Trail",
+          "source": "https://parks.canada.ca/pn-np/on/pukaskwa/activ/experience/randonnees-hiking/etat-sentiers-trail-conditions",
+          "reason": "Parks Canada trail-conditions page lists the Boardwalk Beach Trail (easy)"
+        }
+      ]
+    },
+    {
+      "id": "georgian-bay-islands-national-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11022070,
+      "name": "Georgian Bay Islands National Park",
+      "bbox": [
+        -80.19,
+        44.78,
+        -79.74,
+        45.16
+      ],
+      "center": [
+        44.837,
+        -79.879
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park (all trails on Beausoleil Island). Parks Canada trail list read (https://parks.canada.ca/pn-np/on/georg/activ/hike-randonne): Rockview, Dossyonshing, Massassauga, Fairy, Cambrian, Treasure, Georgian present; Lookout waived. Not mapped as named trails (known omissions): Huron, Christian, Heritage Loop. Portage trail (0.25 mi) and unlisted Oaks/Ojibway/Chimney Bay/Frying Pan Bay paths left out.",
+      "keep_trails": [
+        {
+          "name": "Lookout Trail",
+          "source": "https://parks.canada.ca/pn-np/on/georg/activ/hike-randonne",
+          "reason": "Parks Canada lists the Lookout trail (1.5 km) on Beausoleil Island"
+        }
+      ]
+    },
+    {
+      "id": "point-pelee-national-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 1462031,
+      "name": "Point Pelee National Park",
+      "bbox": [
+        -82.74,
+        41.63,
+        -82.45,
+        42.04
+      ],
+      "center": [
+        41.927,
+        -82.508
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail page read (https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking): Marsh Boardwalk, DeLaurier, Woodland Nature, West Beach Footpath present; Tilden Woods, Tip Trail and three footpaths (Cactus Field, Redbud, Sparrow Field) waived as official standalone walks. Not mapped by name (known omissions): Chinquapin Oak Trail, Shuster Trail.",
+      "keep_trails": [
+        {
+          "name": "Tilden Woods Trail",
+          "source": "https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Tilden Woods Trail"
+        },
+        {
+          "name": "Tip Trail",
+          "source": "https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Tip Trail"
+        },
+        {
+          "name": "Cactus Field Footpath",
+          "source": "https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Cactus Field Footpath"
+        },
+        {
+          "name": "Redbud Footpath",
+          "source": "https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Redbud Footpath"
+        },
+        {
+          "name": "Sparrow Field Footpath",
+          "source": "https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking",
+          "reason": "Parks Canada lists Sparrow Field Footpath"
+        }
+      ]
+    },
+    {
+      "id": "thousand-islands-national-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11664332,
+      "name": "Thousand Islands National Park",
+      "bbox": [
+        -76.69,
+        43.87,
+        -75.66,
+        44.61
+      ],
+      "center": [
+        44.2,
+        -76.2
+      ],
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "ON curation 2026-11-02. Only one whole trail: Donevan Trail (2.4 mi) at Landons Bay. Fitzsimmons Trail is 64% inside the polygon (2.2 of 3.4 mi), so it fails the whole-route rule; the other Parks Canada trails (Jones Creek loops, Mallorytown Landing Smoky Fire and Six Nations) are not in this polygon or not mapped by name. Mallorytown Landing is a separate polygon (w689808006). Needs a rescope or OSM completion. Source: https://parks.canada.ca/pn-np/on/1000/activ/randon-hike"
+    },
+    {
+      "id": "rouge-national-urban-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 6997160,
+      "name": "Rouge National Urban Park",
+      "bbox": [
+        -79.32,
+        43.74,
+        -79.06,
+        44.05
+      ],
+      "center": [
+        43.909,
+        -79.219
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail list read (https://parks.canada.ca/pn-np/on/rouge/activ/sentiers-trails): Cedar, Mast, Orchard, Vista, Monarch, Tallgrass Trek present. 'Rouge National Park Trail' (16.3 mi) is the OSM name of the park's north-south spine (official Northeast, Harvest, Central and South Central trails, about 28 km). Not mapped by name (known omissions): Woodland, Glen Eagles Vista, Reesor Way (0.5 mi piece only), Beare Wetlands loop. Oak Ridges Trail Association side trail excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Oak Ridges Trail Association side trail",
+          "name": "Oak Ridges Trail Association side trail",
+          "reason": "Oak Ridges Trail Association side trail (long-distance trail network); not a Parks Canada trail"
+        }
+      ]
+    },
+    {
+      "id": "algonquin-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 910784,
+      "name": "Algonquin Provincial Park",
+      "bbox": [
+        -79.21,
+        45.11,
+        -77.45,
+        46.2
+      ],
+      "center": [
+        45.519,
+        -78.535
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. KNOWN OMISSION: Western Uplands Backpacking Trail (60 mi super-relation r11851829) is dropped by the engine as a thru-hike super-relation; it is not registry-waivable (code follow-up). Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified).",
+      "exclude_trails": [
+        {
+          "id": "n:Arowhon Pine trail",
+          "name": "Arowhon Pine trail",
+          "reason": "Not on the Ontario Parks Algonquin hiking list; trail at the Arowhon Pines private lodge"
+        },
+        {
+          "id": "n:Brent Crater Trail",
+          "name": "Brent Crater Trail",
+          "reason": "Not on the Ontario Parks Algonquin hiking list; backcountry canoe-access trail"
+        },
+        {
+          "id": "n:CN Alderdale Subdivision",
+          "name": "CN Alderdale Subdivision",
+          "reason": "Railway corridor (Subdivision), 7.2 mi clipped; not a hiking trail"
+        },
+        {
+          "id": "n:Cart Path",
+          "name": "Cart Path",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        },
+        {
+          "id": "n:Florence Lake - Louisa Lake",
+          "name": "Florence Lake - Louisa Lake",
+          "reason": "Lake-to-lake canoe-route link (portage), not a hiking trail"
+        },
+        {
+          "id": "n:High Falls Cheater Trail",
+          "name": "High Falls Cheater Trail",
+          "reason": "Variant (cheater route) of the High Falls Trail, not a standalone trail"
+        },
+        {
+          "id": "n:Hogan - Big Crow Cart Path",
+          "name": "Hogan - Big Crow Cart Path",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        },
+        {
+          "id": "n:Little McCraney - Rain Cart Path",
+          "name": "Little McCraney - Rain Cart Path",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        },
+        {
+          "id": "n:Lost Coin Lake Cart Trail",
+          "name": "Lost Coin Lake Cart Trail",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        },
+        {
+          "id": "n:McCraney Lake to Hood Lake",
+          "name": "McCraney Lake to Hood Lake",
+          "reason": "Lake-to-lake canoe-route link (portage), not a hiking trail"
+        },
+        {
+          "id": "n:Opeongo - Dickson Cart Trail",
+          "name": "Opeongo - Dickson Cart Trail",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        },
+        {
+          "id": "n:Owl - Linda",
+          "name": "Owl - Linda",
+          "reason": "Lake-to-lake canoe-route link (portage), not a hiking trail"
+        },
+        {
+          "id": "n:Short Cut",
+          "name": "Short Cut",
+          "reason": "Generic connector name, not a standalone named trail"
+        },
+        {
+          "id": "n:Smoke Lake - Ouse Lake",
+          "name": "Smoke Lake - Ouse Lake",
+          "reason": "Lake-to-lake canoe-route link (portage), not a hiking trail"
+        },
+        {
+          "id": "n:Thunder Lake - Tonakela Lake",
+          "name": "Thunder Lake - Tonakela Lake",
+          "reason": "Lake-to-lake canoe-route link (portage), not a hiking trail"
+        },
+        {
+          "id": "n:White Partridge - Travers Cart Path",
+          "name": "White Partridge - Travers Cart Path",
+          "reason": "Canoe-route cart path/portage between lakes (canoe routes and portages are out)"
+        }
+      ]
+    },
+    {
+      "id": "killarney-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14107244,
+      "name": "Killarney Provincial Park",
+      "bbox": [
+        -81.68,
+        45.94,
+        -81.13,
+        46.25
+      ],
+      "center": [
+        46.128,
+        -81.293
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Killarney Provincial Park polygon (r14107244), not the Lakelands and Headwaters addition. Ontario Parks list read (https://www.ontarioparks.ca/park/killarney/activities): Chikanishing, Cranberry Bog, Granite Ridge, The Crack, La Cloche Silhouette Trail present. La Cloche Silhouette (44.7 mi mapped, 80 km official loop) ships whole as the park's signature multi-day trail; it lies inside the park and is not a leg of a national trail. Lake of the Woods Trail is not mapped (only a 0.1 mi lookout stub). H## campsite side trails and portages dropped.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "The \"Crack\" Trail",
+          "name": "The Crack",
+          "source": "https://www.ontarioparks.ca/park/killarney/activities",
+          "reason": "Official name is The Crack (stray quotes in OSM)"
+        }
+      ]
+    },
+    {
+      "id": "lake-superior-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 1116914,
+      "name": "Lake Superior Provincial Park",
+      "bbox": [
+        -85.11,
+        47.05,
+        -84.43,
+        47.93
+      ],
+      "center": [
+        47.376,
+        -84.593
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list of 11 trails read (https://www.ontarioparks.ca/park/lakesuperior/activities): Nokomis, South Old Woman River, Peat Mountain, Trapper's, Orphan Lake, Pinguisibi, Awausee, Towab, Crescent Lake and Coastal present (Orphan Lake ships as two OSM pieces); Agawa Rock Pictographs waived. The Coastal Trail (60 km mapped, 65 km official, entirely inside the park) ships whole via keep_trails; Warp Bay to Devils Chair, Noisy Bay and Smokey Point are Coastal sections and excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Noisy Bay Trail",
+          "name": "Noisy Bay Trail",
+          "reason": "Coastal Trail section, not on the Ontario Parks list of the park's 11 trails"
+        },
+        {
+          "id": "n:Smokey Point Trail",
+          "name": "Smokey Point Trail",
+          "reason": "Coastal Trail section (clipped), not on the Ontario Parks list of the park's 11 trails"
+        },
+        {
+          "id": "n:Warp Bay to Devils Chair",
+          "name": "Warp Bay to Devils Chair",
+          "reason": "Section of the Coastal Trail (Gargantua to Warp Bay / Chair Island); the Coastal Trail ships whole"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Lake Superior Coastal Trail",
+          "source": "https://www.ontarioparks.ca/park/lakesuperior/activities",
+          "reason": "Ontario Parks: the 65 km Coastal Trail is the park's signature multi-day trail, entirely inside the park"
+        },
+        {
+          "name": "Agawa Rock Pictographs Trail",
+          "source": "https://www.ontarioparks.ca/park/lakesuperior/activities",
+          "reason": "Agawa Rock pictographs short walk (park's best-known stop); official Ontario Parks activities page"
+        }
+      ]
+    },
+    {
+      "id": "frontenac-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 540578708,
+      "name": "Frontenac Provincial Park",
+      "bbox": [
+        -76.61,
+        44.45,
+        -76.41,
+        44.63
+      ],
+      "center": [
+        44.523,
+        -76.481
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks trail list read (https://www.ontarioparks.ca/park/frontenac/activities): Arab Lake Gorge, Doe Lake Loop, Arkon, Bufflehead, Cedar Lake, Big Salmon, Little Salmon, Little Clear, Hemlock, Tetsmine, Gibson, Slide Lake Loop and Corridor present. Rideau Trail names dropped as long-distance; 10 junction-stitch names ('A / B'), Campsite 13 spur, portages and Small Slide Lake Loop (84% inside) excluded. Dedication Trail is not on the official page and ships as mapped.",
+      "exclude_trails": [
+        {
+          "id": "n:Arkon Lake Loop / Little Salmon Lake Loop",
+          "name": "Arkon Lake Loop / Little Salmon Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Big Salmon Lake Loop / Cedar Lake Loop",
+          "name": "Big Salmon Lake Loop / Cedar Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Big Salmon Lake Loop / Little Clear Lake Loop",
+          "name": "Big Salmon Lake Loop / Little Clear Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Big Salmon Lake Loop / Little Salmon Lake Loop",
+          "name": "Big Salmon Lake Loop / Little Salmon Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Big Salmon Lake Loop / Slide Lake Loop",
+          "name": "Big Salmon Lake Loop / Slide Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Campsite 13 Trail",
+          "name": "Campsite 13 Trail",
+          "reason": "Campsite access spur, not a standalone trail"
+        },
+        {
+          "id": "n:Corridor Trail / Cedar Lake Loop",
+          "name": "Corridor Trail / Cedar Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Hemlock Lake Loop / Gibson Lake Loop",
+          "name": "Hemlock Lake Loop / Gibson Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Little Clear Lake Loop / Hemlock Lake Loop",
+          "name": "Little Clear Lake Loop / Hemlock Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Slide Lake Loop / Cedar Lake Loop",
+          "name": "Slide Lake Loop / Cedar Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        },
+        {
+          "id": "n:Small Slide Lake Loop",
+          "name": "Small Slide Lake Loop",
+          "reason": "Boundary-clipped: 4.6 of 5.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Tetsmine Lake Loop / Gibson Lake Loop",
+          "name": "Tetsmine Lake Loop / Gibson Lake Loop",
+          "reason": "Junction stitch of two loops (shared connector), not a standalone trail; both loops ship whole"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Doe Lake Trail",
+          "name": "Doe Lake Loop",
+          "source": "https://www.ontarioparks.ca/park/frontenac/activities",
+          "reason": "Ontario Parks names it Doe Lake Loop"
+        }
+      ]
+    },
+    {
+      "id": "bon-echo-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 903798,
+      "name": "Bon Echo Provincial Park",
+      "bbox": [
+        -77.39,
+        44.81,
+        -77.06,
+        45.0
+      ],
+      "center": [
+        44.935,
+        -77.265
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/bonecho/activities): Abes and Essens (OSM stitch), Bon Echo Creek, High Pines, Shield present; Cliff Top Trail waived. Pet Exercise Trail excluded (off-leash exercise loop). Clutes Loop (0.1 mi piece of Abes and Essens) left out.",
+      "exclude_trails": [
+        {
+          "id": "n:Pet Exercise Trail",
+          "name": "Pet Exercise Trail",
+          "reason": "Designated off-leash pet exercise loop (exercise track, not a hike)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Cliff Top Trail",
+          "source": "https://www.ontarioparks.ca/park/bonecho/activities",
+          "reason": "Ontario Parks lists the 1.5 km Cliff Top Trail (water access)"
+        }
+      ]
+    },
+    {
+      "id": "arrowhead-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14401541,
+      "name": "Arrowhead Provincial Park",
+      "bbox": [
+        -79.28,
+        45.32,
+        -79.12,
+        45.46
+      ],
+      "center": [
+        45.409,
+        -79.21
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Arrowhead Provincial Park (r14401541); the Arrowhead Peninsula PP twin (r11325388) is not used. Ontario Parks list read (https://www.ontarioparks.ca/park/arrowhead/activities): Beaver Meadow, Stubb's Falls present; Mayflower Lake and Homesteaders waived (the engine marks them long-distance). Arrowhead Lake Trail, Lookout Trail (MTB/ski) and Big Bend Lookout are not mapped as hiking trails by name. Thin: 4 trails, 4.7 mi.",
+      "keep_trails": [
+        {
+          "name": "Mayflower Lake Trail",
+          "source": "https://www.ontarioparks.ca/park/arrowhead/activities",
+          "reason": "Ontario Parks lists the 2.1 km Mayflower Lake Trail"
+        },
+        {
+          "name": "Homesteader Trail",
+          "source": "https://www.ontarioparks.ca/park/arrowhead/activities",
+          "reason": "Ontario Parks lists the 2.8 km Homesteaders Trail"
+        }
+      ]
+    },
+    {
+      "id": "sleeping-giant-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11801920,
+      "name": "Sleeping Giant Provincial Park",
+      "bbox": [
+        -88.99,
+        48.26,
+        -88.63,
+        48.61
+      ],
+      "center": [
+        48.343,
+        -88.893
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks trail list read (https://www.ontarioparks.ca/park/sleepinggiant/activities): Kabeyun (37 km backbone, ships whole via keep_trails), Talus Lake, Top of the Giant, Head, Sawyer Bay, Middlebrun Bay, Twinpine Lake, Sawbill Lake, Ravine Lake, Piney Wood Hills present; Sea Lion, Pass Lake Overlook and Plantain Lane waived. 'Chest Trail' (0.5 mi, probably the official Nanabosho Lookout Trail) is not confirmed and left out. Burma, Pickerel Lake (ski) and Bay's End Lookout (TCT) not shipped.",
+      "keep_trails": [
+        {
+          "name": "Kabeyun Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks: the 37 km Kabeyun Trail is the backbone of the park trail network"
+        },
+        {
+          "name": "Sea Lion Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the 0.4 km Sea Lion Trail"
+        },
+        {
+          "name": "Pass Lake Overlook Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the 0.5 km Pass Lake Overlook Trail"
+        },
+        {
+          "name": "Plantain Lane Nature Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the 0.3 km Plantain Lane Nature Trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Piney Wookds Hills Nature Trail",
+          "name": "Piney Wood Hills Nature Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Typo in OSM; Ontario Parks spells Piney Wood Hills Nature Trail"
+        }
+      ]
+    },
+    {
+      "id": "ouimet-canyon-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 6196151,
+      "name": "Ouimet Canyon Provincial Park",
+      "bbox": [
+        -88.73,
+        48.72,
+        -88.61,
+        48.86
+      ],
+      "center": [
+        48.8,
+        -88.7
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ON curation 2026-11-02. No named hiking trails in OSM (the canyon lookout loop is not mapped by name): no publishable trails after the Canada filter. Needs OSM naming."
+    },
+    {
+      "id": "kakabeka-falls-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 6422774,
+      "name": "Kakabeka Falls Provincial Park",
+      "bbox": [
+        -89.69,
+        48.33,
+        -89.56,
+        48.46
+      ],
+      "center": [
+        48.386,
+        -89.615
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/kakabekafalls/activities): Boardwalk, Mountain Portage, Little Falls, Poplar Point present; Boardwalk and Mountain Portage waived (the Mountain Portage Trail is an official hiking loop past the falls, not a canoe portage). Beaver Meadows and River Terrace excluded: ski trails not maintained in summer.",
+      "exclude_trails": [
+        {
+          "id": "n:Beaver Meadow Trail",
+          "name": "Beaver Meadow Trail",
+          "reason": "Ontario Parks: primarily a ski trail, not maintained in summer"
+        },
+        {
+          "id": "n:River Terrace Trail",
+          "name": "River Terrace Trail",
+          "reason": "Boundary-clipped: 1.4 of 2.1 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Boardwalk Trail",
+          "source": "https://www.ontarioparks.ca/park/kakabekafalls/activities",
+          "reason": "Ontario Parks lists the 750 m Boardwalk Trail (the falls viewing walk)"
+        },
+        {
+          "name": "Mountain Portage Trail",
+          "source": "https://www.ontarioparks.ca/park/kakabekafalls/activities",
+          "reason": "Ontario Parks lists the 1.25 km Mountain Portage Trail as a hiking loop (historic portage walk past the falls, not a canoe portage)"
+        }
+      ]
+    },
+    {
+      "id": "pinery-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 13757327,
+      "name": "Pinery Provincial Park",
+      "bbox": [
+        -81.94,
+        43.17,
+        -81.73,
+        43.34
+      ],
+      "center": [
+        43.249,
+        -81.85
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/pinery/activities): Bittersweet, Carolinian, Cedar, Heritage, Hickory, Nipissing, Pine, Riverside, Wilderness present (length suffixes like '(2.3 km)' removed by trail_name_fixes). Lookout Trail not mapped by name. Firebreak/ski tracks, Sassafras and other unlisted pieces dropped.",
+      "exclude_trails": [
+        {
+          "id": "n:Fire brake trail",
+          "name": "Fire brake trail",
+          "reason": "Firebreak/ski track, not on the Ontario Parks Pinery hiking list"
+        },
+        {
+          "id": "n:firebreak trail",
+          "name": "firebreak trail",
+          "reason": "Firebreak/ski track (duplicate of Fire brake trail), not on the Ontario Parks list"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Pine Trail (0.8 km)",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Ontario Parks lists the 0.8 km Pine Trail"
+        },
+        {
+          "name": "Riverside Trail (1.0 km)",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Ontario Parks lists the 1 km Riverside Trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Cedar Trail (2.3 km)",
+          "name": "Cedar Trail",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Length suffix removed; Ontario Parks name is Cedar Trail"
+        },
+        {
+          "osm_name": "Wilderness Trail (2.6 km)",
+          "name": "Wilderness Trail",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Length suffix removed; Ontario Parks name is Wilderness Trail"
+        },
+        {
+          "osm_name": "Pine Trail (0.8 km)",
+          "name": "Pine Trail",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Length suffix removed; Ontario Parks name is Pine Trail"
+        },
+        {
+          "osm_name": "Riverside Trail (1.0 km)",
+          "name": "Riverside Trail",
+          "source": "https://www.ontarioparks.ca/park/pinery/activities",
+          "reason": "Length suffix removed; Ontario Parks name is Riverside Trail"
+        }
+      ]
+    },
+    {
+      "id": "sandbanks-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 2582425,
+      "name": "Sandbanks Provincial Park",
+      "bbox": [
+        -77.39,
+        43.83,
+        -77.16,
+        44.0
+      ],
+      "center": [
+        43.896,
+        -77.27
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/sandbanks/activities): Cedar Sands, Sandbanks Dunes, Woodlands (OSM 'Sandbanks Woodland Trail'), Lakeview, Richardson present. MacDonald Trail (connector) not mapped by name."
+    },
+    {
+      "id": "macgregor-point-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14194427,
+      "name": "MacGregor Point Provincial Park",
+      "bbox": [
+        -81.56,
+        44.34,
+        -81.38,
+        44.48
+      ],
+      "center": [
+        44.418,
+        -81.472
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/macgregorpoint/activities): Lake Ridge, Tower, Huron Fringe, Kempf's present (last two waived). Old Shore Road Trail excluded: 68% inside the polygon (2.6 of 3.8 mi), not whole. Deer Run (multi-use) not mapped as hiking. Thin: 4 trails.",
+      "exclude_trails": [
+        {
+          "id": "n:Old Shore Road Trail",
+          "name": "Old Shore Road Trail",
+          "reason": "Boundary-clipped: 2.6 of 3.8 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Huron Fringe Trail",
+          "source": "https://www.ontarioparks.ca/park/macgregorpoint/activities",
+          "reason": "Ontario Parks lists the 1.2 km Huron Fringe Trail"
+        },
+        {
+          "name": "Kempf's Trail",
+          "source": "https://www.ontarioparks.ca/park/macgregorpoint/activities",
+          "reason": "Ontario Parks lists the 0.8 km Kempf's Trail"
+        }
+      ]
+    },
+    {
+      "id": "awenda-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14397953,
+      "name": "Awenda Provincial Park",
+      "bbox": [
+        -80.09,
+        44.76,
+        -79.9,
+        44.97
+      ],
+      "center": [
+        44.85,
+        -79.993
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/awenda/activities): Beach, Bluff, Brule, Wendat present; Robitaille Homestead, Nipissing and Beaver Pond waived. Bluff Trail maps 5.6 mi vs 13 km official (OSM gap).",
+      "keep_trails": [
+        {
+          "name": "Robitaille Homestead Trail",
+          "source": "https://www.ontarioparks.ca/park/awenda/activities",
+          "reason": "Ontario Parks lists the Robitaille Homestead Trail"
+        },
+        {
+          "name": "Nipissing Trail",
+          "source": "https://www.ontarioparks.ca/park/awenda/activities",
+          "reason": "Ontario Parks lists the Nipissing Trail"
+        },
+        {
+          "name": "Beaver Pond Trail",
+          "source": "https://www.ontarioparks.ca/park/awenda/activities",
+          "reason": "Ontario Parks lists the 700 m Beaver Pond Trail"
+        }
+      ]
+    },
+    {
+      "id": "silent-lake-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58242262,
+      "name": "Silent Lake Provincial Park",
+      "bbox": [
+        -78.13,
+        44.84,
+        -77.97,
+        45.0
+      ],
+      "center": [
+        44.9,
+        -78.0
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ON curation 2026-11-02. Only Bonnie's Pond hiking trail (1.2 mi) is a named hiking trail. The lwn relation r6345079 is named 'Silent Lake Provicial Park' (a park-wide network, 17 mi, about the 11+17 km mountain-bike loops), not a named hike, and is excluded. Ontario Parks lists Lakehead Loop, Bonnie's Pond and the 15 km Lakeshore Hiking Trail; Lakehead and Lakeshore are not mapped by name. Source: https://www.ontarioparks.ca/park/silentlake/activities"
+    },
+    {
+      "id": "mono-cliffs-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58242246,
+      "name": "Mono Cliffs Provincial Park",
+      "bbox": [
+        -80.14,
+        43.98,
+        -80.01,
+        44.12
+      ],
+      "center": [
+        44.05,
+        -80.078
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Park polygon w58242246. Ontario Parks list read (https://www.ontarioparks.ca/park/monocliffs/activities): Carriage, Spillway, South Outlier, Lookout, Walter Tovell present as side trails. Bruce Trail main legs excluded. Cliff-Top Side Trail and McCarston's Trail exist only as Bruce Trail composites / a 0.4 mi piece (known omissions). 'Mono Trail' stub excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:Mono Trail",
+          "name": "Mono Trail",
+          "reason": "Not on the Ontario Parks Mono Cliffs trail list (0.7 mi stub of the Bruce Trail corridor)"
+        }
+      ]
+    },
+    {
+      "id": "forks-of-the-credit-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58242259,
+      "name": "Forks of the Credit Provincial Park",
+      "bbox": [
+        -80.07,
+        43.75,
+        -79.94,
+        43.88
+      ],
+      "center": [
+        43.819,
+        -80.022
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Park polygon w58242259. Ontario Parks page read (https://www.ontarioparks.ca/park/forksofthecredit/activities): Dominion, Meadow, Kettle (waived) present. Bruce Trail and Trans Canada Trail legs excluded. Thin: 3 trails, 3.8 mi; the complete set of signed park walks.",
+      "keep_trails": [
+        {
+          "name": "Kettle Trail",
+          "source": "https://www.ontarioparks.ca/park/forksofthecredit/activities",
+          "reason": "Ontario Parks lists the Kettle Trail"
+        }
+      ]
+    },
+    {
+      "id": "bronte-creek-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14183961,
+      "name": "Bronte Creek Provincial Park",
+      "bbox": [
+        -79.85,
+        43.35,
+        -79.69,
+        43.48
+      ],
+      "center": [
+        43.413,
+        -79.787
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/brontecreek/activities): Maiden's Blush, Trillium, Gateway, Ravine (OSM East and West Ravine) present. Half Moon Valley Trail not mapped by name. Field and Forest Trail ships as mapped (unlisted). Generic 'designated park path' and the leash-free pet track excluded.",
+      "exclude_trails": [
+        {
+          "id": "n:designated park path",
+          "name": "designated park path",
+          "reason": "Generic placeholder name, not a named trail"
+        },
+        {
+          "id": "n:leash free trail (campground side)",
+          "name": "leash free trail (campground side)",
+          "reason": "Off-leash pet area track, not a hike"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "East ravine",
+          "name": "East Ravine",
+          "source": "https://www.openstreetmap.org/way/314199515",
+          "reason": "Capitalisation only; same trail"
+        }
+      ]
+    },
+    {
+      "id": "presqu-ile-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 1697115,
+      "name": "Presqu'ile Provincial Park",
+      "bbox": [
+        -77.8,
+        43.92,
+        -77.62,
+        44.07
+      ],
+      "center": [
+        43.995,
+        -77.689
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/presquile/activities): Jobes' Woods, Owen Point (waived), Marsh (OSM 'Marsh Boardwalk Trail'), Pioneer, Newcastle present. Lighthouse Foot Path and Cemetery Trail (0.2 mi) not mapped by name. Id uses 'presqu-ile'.",
+      "keep_trails": [
+        {
+          "name": "Owen Point Trail",
+          "source": "https://www.ontarioparks.ca/park/presquile/activities",
+          "reason": "Ontario Parks lists the 1.6 km Owen Point Trail"
+        }
+      ]
+    },
+    {
+      "id": "petroglyphs-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58242224,
+      "name": "Petroglyphs Provincial Park",
+      "bbox": [
+        -78.13,
+        44.54,
+        -77.97,
+        44.7
+      ],
+      "center": [
+        44.6,
+        -78.0
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ON curation 2026-11-02. No publishable trails: the OSM ways are access=private snowshoe/MUT tracks and one generic 'loop trail'. The park's walking trails are not mapped by name. Needs OSM naming."
+    },
+    {
+      "id": "charleston-lake-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 8328521,
+      "name": "Charleston Lake Provincial Park",
+      "bbox": [
+        -76.15,
+        44.43,
+        -75.9,
+        44.62
+      ],
+      "center": [
+        44.538,
+        -76.039
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/charlestonlake/activities): Sandstone Island, Shoreline (Centennial), Beech Woods, Hemlock Ridge, Tallow Rock Bay (East and West loops) present. Blue Mountain Trail (27% inside the polygon) and Painted Rocks Summit Route (79%) excluded as clipped; Quiddity Trail not mapped by name (known omissions).",
+      "exclude_trails": [
+        {
+          "id": "n:Blue Mountain Trail",
+          "name": "Blue Mountain Trail",
+          "reason": "Boundary-clipped: 0.8 of 2.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Painted Rocks Summit Route",
+          "name": "Painted Rocks Summit Route",
+          "reason": "Boundary-clipped: 1.4 of 1.8 mi lie inside the polygon; not a whole route"
+        }
+      ]
     }
   ]
 }

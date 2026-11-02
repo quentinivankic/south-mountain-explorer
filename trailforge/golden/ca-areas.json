@@ -1768,7 +1768,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.5 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar."
+      "notes": "Actions qualify 2026-11-02: 1 trail(s), 1.5 mi; below the >=2 trails and (>=2.5 mi or >=3 trails) bar. ca-new3 2026-11-02: Re-replay: 1 trail / 1.5 mi (Polly Cove Trail area); hold stands."
     },
     {
       "id": "west-mabou-beach-provincial-park-ca-ns",
@@ -1876,7 +1876,7 @@
       ],
       "tier": 3,
       "hold": "few-trails",
-      "notes": "Qualify 2026-11-02 (run 41371842464): 2 trails, 1.7 mi after removing umbrella system and duplicate; below the >=2.5 mi or >=3 trails bar.",
+      "notes": "Qualify 2026-11-02 (run 41371842464): 2 trails, 1.7 mi after removing umbrella system and duplicate; below the >=2.5 mi or >=3 trails bar. ca-new3 2026-11-02: Re-replay: 2 trails / 1.7 mi (Cabin Lake 1.08, Rockingham Loop 0.61); hold stands.",
       "exclude_trails": [
         {
           "id": "n:Hemlock Ravine Park Trail System",
@@ -2139,7 +2139,7 @@
       "center": null,
       "tier": 2,
       "hold": "mtb-centre",
-      "notes": "NB curation 2026-11-02. Sugarloaf is a lift-served mountain-bike park: nearly every way carries mtb:scale/bicycle=designated and Boom/Doom/Kodiak-style one-way MTB names. The flagship Terry Fox summit trail is tagged as a nordic piste and drops. No official hiking-only trail list found (NB Parks page covers winter and camping). Needs a hiking vs MTB split from the park map."
+      "notes": "NB curation 2026-11-02. Sugarloaf is a lift-served mountain-bike park: nearly every way carries mtb:scale/bicycle=designated and Boom/Doom/Kodiak-style one-way MTB names. The flagship Terry Fox summit trail is tagged as a nordic piste and drops. No official hiking-only trail list found (NB Parks page covers winter and camping). Needs a hiking vs MTB split from the park map. ca-new3 2026-11-02: Re-replay: 14 trails / 21.2 mi, lift-served mountain-bike park names; hold stands."
     },
     {
       "id": "fundy-trail-parkway-ca-nb",
@@ -2308,7 +2308,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "NB curation 2026-11-02. Ocean-floor walk and shuttle route only; no named hiking trails (0 after filter)"
+      "notes": "NB curation 2026-11-02. Ocean-floor walk and shuttle route only; no named hiking trails (0 after filter) ca-new3 2026-11-02: Re-replay: SAFETY BLOCK; hold stands."
     },
     {
       "id": "roosevelt-campobello-international-park-ca-nb",
@@ -2772,7 +2772,7 @@
       "center": null,
       "tier": 1,
       "hold": "needs-rescope",
-      "notes": "NL curation 2026-11-02. OSM polygon 0.013 x 0.009 deg fails prepare-areas size gate; Cape Spear Path (2.34 mi) lies mostly outside it and the other paths are East Coast Trail legs or unnamed."
+      "notes": "NL curation 2026-11-02. OSM polygon 0.013 x 0.009 deg fails prepare-areas size gate; Cape Spear Path (2.34 mi) lies mostly outside it and the other paths are East Coast Trail legs or unnamed. ca-new3 2026-11-02: Re-replay: fails the size gate (0.013 x 0.009); hold stands."
     },
     {
       "id": "butter-pot-provincial-park-ca-nl",
@@ -2812,7 +2812,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "NL curation 2026-11-02. Parks NL lists La Manche Village Trail and La Manche Falls trail. In OSM the village path is an East Coast Trail leg (0.41 mi in polygon) and only Falls trail (1.06 mi) and Flamber Head Path (ECT) remain. East Coast Trail excluded by rule: under 2 trails."
+      "notes": "NL curation 2026-11-02. Parks NL lists La Manche Village Trail and La Manche Falls trail. In OSM the village path is an East Coast Trail leg (0.41 mi in polygon) and only Falls trail (1.06 mi) and Flamber Head Path (ECT) remain. East Coast Trail excluded by rule: under 2 trails. ca-new3 2026-11-02: Re-replay: 4 trails but two are East Coast Trail legs (long-distance, excluded by rule), leaving Falls trail 1.06 mi; hold stands."
     },
     {
       "id": "barachois-pond-provincial-park-ca-nl",
@@ -7020,7 +7020,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. 1 named trail (Hoodo Trail 0.83 mi). Alberta Parks lists several (Hoodoo, Battle Scene, Milk River); OSM names only Hoodo. Retry 2026-11-02 (ca-missing): replay unchanged, 1 trail (Hoodo Trail 0.8 mi). Still HOLD few-trails; OSM names no second Writing-on-Stone walk."
+      "notes": "AB curation 2026-11-02. 1 named trail (Hoodo Trail 0.83 mi). Alberta Parks lists several (Hoodoo, Battle Scene, Milk River); OSM names only Hoodo. Retry 2026-11-02 (ca-missing): replay unchanged, 1 trail (Hoodo Trail 0.8 mi). Still HOLD few-trails; OSM names no second Writing-on-Stone walk. ca-new3 2026-11-02: Re-replay: 1 trail (0.8 mi); hold stands."
     },
     {
       "id": "dinosaur-provincial-park-ca-ab",
@@ -7089,7 +7089,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. No publishable named trails after the Canada filter (only unnamed paved paths plus 3 fragments: No More path, Ice Caves, Pioneer Trail). Alberta Parks lists ~100 km of named pathways, none named in OSM."
+      "notes": "AB curation 2026-11-02. No publishable named trails after the Canada filter (only unnamed paved paths plus 3 fragments: No More path, Ice Caves, Pioneer Trail). Alberta Parks lists ~100 km of named pathways, none named in OSM. ca-new3 2026-11-02: Re-replay: SAFETY BLOCK; hold stands."
     },
     {
       "id": "glenbow-ranch-provincial-park-ca-ab",
@@ -9363,7 +9363,7 @@
       ],
       "tier": 1,
       "hold": "few-trails",
-      "notes": "ON curation 2026-11-02. Only one whole trail: Donevan Trail (2.4 mi) at Landons Bay. Fitzsimmons Trail is 64% inside the polygon (2.2 of 3.4 mi), so it fails the whole-route rule; the other Parks Canada trails (Jones Creek loops, Mallorytown Landing Smoky Fire and Six Nations) are not in this polygon or not mapped by name. Mallorytown Landing is a separate polygon (w689808006). Needs a rescope or OSM completion. Source: https://parks.canada.ca/pn-np/on/1000/activ/randon-hike"
+      "notes": "ON curation 2026-11-02. Only one whole trail: Donevan Trail (2.4 mi) at Landons Bay. Fitzsimmons Trail is 64% inside the polygon (2.2 of 3.4 mi), so it fails the whole-route rule; the other Parks Canada trails (Jones Creek loops, Mallorytown Landing Smoky Fire and Six Nations) are not in this polygon or not mapped by name. Mallorytown Landing is a separate polygon (w689808006). Needs a rescope or OSM completion. Source: https://parks.canada.ca/pn-np/on/1000/activ/randon-hike ca-new3 2026-11-02: Re-replay: 2 trails / 4.6 mi (Donevan 2.4 whole; Fitzsimmons 2.2 of about 3.4 mi, a stub); flagship Mallorytown Landing / Jones Creek trails absent; hold stands."
     },
     {
       "id": "rouge-national-urban-park-ca-on",
@@ -9807,7 +9807,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "ON curation 2026-11-02. No named hiking trails in OSM (the canyon lookout loop is not mapped by name): no publishable trails after the Canada filter. Needs OSM naming."
+      "notes": "ON curation 2026-11-02. No named hiking trails in OSM (the canyon lookout loop is not mapped by name): no publishable trails after the Canada filter. Needs OSM naming. ca-new3 2026-11-02: Re-replay could not run (registry centre outside boundary bbox); prior evidence: no named hiking trail in OSM; hold stands."
     },
     {
       "id": "kakabeka-falls-provincial-park-ca-on",
@@ -10037,7 +10037,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "ON curation 2026-11-02. Only Bonnie's Pond hiking trail (1.2 mi) is a named hiking trail. The lwn relation r6345079 is named 'Silent Lake Provicial Park' (a park-wide network, 17 mi, about the 11+17 km mountain-bike loops), not a named hike, and is excluded. Ontario Parks lists Lakehead Loop, Bonnie's Pond and the 15 km Lakeshore Hiking Trail; Lakehead and Lakeshore are not mapped by name. Source: https://www.ontarioparks.ca/park/silentlake/activities"
+      "notes": "ON curation 2026-11-02. Only Bonnie's Pond hiking trail (1.2 mi) is a named hiking trail. The lwn relation r6345079 is named 'Silent Lake Provicial Park' (a park-wide network, 17 mi, about the 11+17 km mountain-bike loops), not a named hike, and is excluded. Ontario Parks lists Lakehead Loop, Bonnie's Pond and the 15 km Lakeshore Hiking Trail; Lakehead and Lakeshore are not mapped by name. Source: https://www.ontarioparks.ca/park/silentlake/activities ca-new3 2026-11-02: Re-replay could not run (registry centre outside boundary bbox); prior evidence: 1 named hiking trail; hold stands."
     },
     {
       "id": "mono-cliffs-provincial-park-ca-on",
@@ -10354,7 +10354,7 @@
       ],
       "tier": 1,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. Only Les Falaises (0.72 mi, Parks Canada 1.2 km loop) is a whole official trail. Le Petit Percé (0.64 mi mapped vs 3.8 km official) and Les Cypripèdes (0.64 mi mapped vs 10.8 km official) are partial stubs, not whole routes; Poète Jomphe (0.17 mi) and Anse des Érosions (0.35 mi) are sub-0.6 mi pieces; La Lumière, Campanules, Samuel and the shoreline hikes are not mapped by name. Parks Canada list read (https://parks.canada.ca/pn-np/qc/mingan/activ/randonnee_hiking). Needs OSM naming."
+      "notes": "QC curation 2026-11-02. Only Les Falaises (0.72 mi, Parks Canada 1.2 km loop) is a whole official trail. Le Petit Percé (0.64 mi mapped vs 3.8 km official) and Les Cypripèdes (0.64 mi mapped vs 10.8 km official) are partial stubs, not whole routes; Poète Jomphe (0.17 mi) and Anse des Érosions (0.35 mi) are sub-0.6 mi pieces; La Lumière, Campanules, Samuel and the shoreline hikes are not mapped by name. Parks Canada list read (https://parks.canada.ca/pn-np/qc/mingan/activ/randonnee_hiking). Needs OSM naming. ca-new3 2026-11-02: Re-replay: 3 trails / 2.0 mi, all stubs (0.6 to 0.7 mi vs Parks Canada 1.2, 3.8, 10.8 km); hold stands."
     },
     {
       "id": "parc-national-du-mont-tremblant-ca-qc",
@@ -10741,7 +10741,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. One real trail: Sentier du Grand-Duc (1.52 mi). 'Entrée Saint-Basile-le-Grand' is an entrance link, and the other named ways are sub-0.6 mi pieces or the winter snowshoe loop. Needs OSM naming of the park's trails."
+      "notes": "QC curation 2026-11-02. One real trail: Sentier du Grand-Duc (1.52 mi). 'Entrée Saint-Basile-le-Grand' is an entrance link, and the other named ways are sub-0.6 mi pieces or the winter snowshoe loop. Needs OSM naming of the park's trails. ca-new3 2026-11-02: Re-replay could not run: registry centre outside the boundary bbox (centre from the old hold); hold stands, prior evidence 1 trail."
     },
     {
       "id": "parc-national-de-la-yamaska-ca-qc",
@@ -10910,7 +10910,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. SAFETY BLOCK: no publishable trails after the Canada filter (named ways are 0.12 mi pieces). Needs OSM naming."
+      "notes": "QC curation 2026-11-02. SAFETY BLOCK: no publishable trails after the Canada filter (named ways are 0.12 mi pieces). Needs OSM naming. ca-new3 2026-11-02: Re-replay: SAFETY BLOCK again; hold stands."
     },
     {
       "id": "parc-national-daiguebelle-ca-qc",
@@ -10950,7 +10950,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. One trail: Sentier de la Zizanie-des-Marais (0.71 mi); the other named boardwalk pieces are sub-0.6 mi. Bird-marsh park; thin in OSM."
+      "notes": "QC curation 2026-11-02. One trail: Sentier de la Zizanie-des-Marais (0.71 mi); the other named boardwalk pieces are sub-0.6 mi. Bird-marsh park; thin in OSM. ca-new3 2026-11-02: Re-replay: 1 trail / 0.7 mi; hold stands."
     },
     {
       "id": "parc-national-du-lac-temiscouata-ca-qc",
@@ -11042,7 +11042,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. One trail: L'Évolution de la Vie (2.03 mi), the fossil-cliff interpretation walk. Under the 2-trail bar."
+      "notes": "QC curation 2026-11-02. One trail: L'Évolution de la Vie (2.03 mi), the fossil-cliff interpretation walk. Under the 2-trail bar. ca-new3 2026-11-02: Re-replay: 1 trail / 2.0 mi; hold stands."
     },
     {
       "id": "parc-national-dopemican-ca-qc",
@@ -11387,7 +11387,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Birch Forest 1.08 mi). Most named Moose Mountain trails (Beaver Lake, Academy, Peninsula, Stirrup Lake, White-tailed Deer and others) are tagged as ski pistes (piste:type) or foot=no and the Harmon, Boundary, Long Lake and Nixon Lake tracks carry motor_vehicle/atv tags, so the engine drops them as ski/motorised. Re-open if OSM gets summer hiking tags."
+      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Birch Forest 1.08 mi). Most named Moose Mountain trails (Beaver Lake, Academy, Peninsula, Stirrup Lake, White-tailed Deer and others) are tagged as ski pistes (piste:type) or foot=no and the Harmon, Boundary, Long Lake and Nixon Lake tracks carry motor_vehicle/atv tags, so the engine drops them as ski/motorised. Re-open if OSM gets summer hiking tags. ca-new3 2026-11-02: Re-replay: 1 trail / 1.1 mi; hold stands."
     },
     {
       "id": "greenwater-lake-provincial-park-ca-sk",
@@ -11825,7 +11825,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). East Sooke RP (r1801799, leisure=park): the generic prefilter does not keep leisure=park boundaries, so the replay refuses (found [] boundaries). Coast Trail cannot be assembled without an engine/prefilter change."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). East Sooke RP (r1801799, leisure=park): the generic prefilter does not keep leisure=park boundaries, so the replay refuses (found [] boundaries). Coast Trail cannot be assembled without an engine/prefilter change. ca-new3 2026-11-02: Re-replay: refused (leisure=park boundary not kept by the generic prefilter); hold stands."
     },
     {
       "id": "goldstream-provincial-park-ca-bc",
@@ -11860,11 +11860,31 @@
       "state": "Canada",
       "relation_id": 8634879,
       "name": "Okanagan Mountain Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -119.78,
+        49.62,
+        -119.5,
+        49.83
+      ],
+      "center": [
+        49.731,
+        -119.641
+      ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Okanagan Mountain PP: 13 trails / 23.8 mi replay and the BC Parks trail list matches (Boulder, Old C.N., Divide Lake, Good's Basin, Rim, Commando Bay, Buchan Bay, Baker Lake, Mountain Goat, Frederick Creek, Wild Horse Canyon), but 'Wildhorse Canyon' assembles as two same-name trails (12.65 mi whole and a 1.27 mi piece that is 67% inside the polygon) and 'Golden Mile' is a clipped road piece. exclude_trails selects by name only, so the 1.27 mi duplicate cannot be dropped without also dropping the main canyon trail. Needs a length-aware selector (code follow-up)."
+      "hold": null,
+      "notes": "ca-new3 2026-11-02: SHIP (reversal of the needs-rescope hold). Replay 12 trails / 23.8 mi; with Wildhorse Canyon (a 1.27 mi stub, 67% inside the polygon) and Golden Mile (0.73 mi clipped road piece) excluded: 10 trails / 21.8 mi. The BC Parks list matches (Boulder, Old C.N., Divide Lake, Good's Basin, Rim, Commando Bay, Buchan Bay, Baker Lake, Mountain Goat, Frederick Creek). KNOWN OMISSION: Wild Horse Canyon, a listed trail, is not shipped because the OSM geometry is a stub; recorded for a later length-aware selector or OSM fix. Previous hold was a same-name duplicate that no longer appears in the replay.",
+      "exclude_trails": [
+        {
+          "id": "n:Wildhorse Canyon",
+          "name": "Wildhorse Canyon",
+          "reason": "Stub: only a 1.27 mi piece of the canyon route (67% inside the park polygon), so it would misstate the BC Parks Wild Horse Canyon trail; recorded as a known omission"
+        },
+        {
+          "id": "n:Golden Mile",
+          "name": "Golden Mile",
+          "reason": "Clipped road piece (0.73 mi), not a signed trail"
+        }
+      ]
     },
     {
       "id": "kalamalka-lake-provincial-park-ca-bc",
@@ -11912,7 +11932,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Bugaboo PP: replay 3 trails (Bugaboo Spires, Cobalt Lake twice as two same-name pieces); only 2 distinct names and the duplicate cannot be dropped by name."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Bugaboo PP: replay 3 trails (Bugaboo Spires, Cobalt Lake twice as two same-name pieces); only 2 distinct names and the duplicate cannot be dropped by name. ca-new3 2026-11-02: Re-replay: 2 trails / 4.5 mi (Bugaboo Spires Trail 3.1, Cobalt Lake Trail 1.35 in 12 pieces); the standard hut route is the Conrad Kain Hut Trail (7.4 km return), so 'Bugaboo Spires Trail' is an unconfirmed name and Cobalt Lake is a stub; hold stands."
     },
     {
       "id": "purcell-wilderness-conservancy-provincial-park-ca-bc",
@@ -11981,7 +12001,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Lighthouse Park (r8314570): polygon under the 0.01 deg size gate (prepare-areas)."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Lighthouse Park (r8314570): polygon under the 0.01 deg size gate (prepare-areas). ca-new3 2026-11-02: Re-replay: fails the size gate (boundary 0.016 x 0.009); hold stands."
     },
     {
       "id": "mount-arrowsmith-massif-regional-park-ca-bc",
@@ -12113,7 +12133,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Killbear PP: replay 2 trails / 2.6 mi (Twin Points, Lookout Point 1.7 of 2.2 mi). Ontario Parks (https://www.ontarioparks.ca/park/killbear/activities) lists 4: Lighthouse Point Trail (0.5 mi) and the 6 km Recreational Trail are not shipped by name, so a completionist could not finish the park honestly."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Killbear PP: replay 2 trails / 2.6 mi (Twin Points, Lookout Point 1.7 of 2.2 mi). Ontario Parks (https://www.ontarioparks.ca/park/killbear/activities) lists 4: Lighthouse Point Trail (0.5 mi) and the 6 km Recreational Trail are not shipped by name, so a completionist could not finish the park honestly. ca-new3 2026-11-02: Re-replay: 2 trails / 2.6 mi (Lookout Point 1.7 of 2.2); hold stands."
     },
     {
       "id": "quetico-provincial-park-ca-on",
@@ -12184,7 +12204,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Murphys Point PP: replay 2 trails / 3.3 mi (Point, Sylvain); official list not read (page fetch returned no match)."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Murphys Point PP: replay 2 trails / 3.3 mi (Point, Sylvain); official list not read (page fetch returned no match). ca-new3 2026-11-02: Re-replay: 2 trails / 3.3 mi; still no official list read; hold stands."
     },
     {
       "id": "bonnechere-provincial-park-ca-on",
@@ -12252,7 +12272,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Short Hills PP: replay 5 trails but Laura Secord Trail and the Laura Secord Legacy (long-distance) duplicate each other and 'Walking Trail #2' is generic; no official list read."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Short Hills PP: replay 5 trails but Laura Secord Trail and the Laura Secord Legacy (long-distance) duplicate each other and 'Walking Trail #2' is generic; no official list read. ca-new3 2026-11-02: Re-replay: 5 trails / 6.2 mi; Swayze Falls Trail (signature) absent, two Laura Secord entries and 'Walking Trail #2' would need excluding, leaving 2 trails; hold stands."
     },
     {
       "id": "sauble-falls-provincial-park-ca-on",
@@ -12368,7 +12388,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Clearwater Lake PP (r2025522, leisure=park only): the generic prefilter does not keep the boundary (found []), so it cannot be assembled."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Clearwater Lake PP (r2025522, leisure=park only): the generic prefilter does not keep the boundary (found []), so it cannot be assembled. ca-new3 2026-11-02: Re-replay: refused (boundary not kept by the generic prefilter); hold stands."
     },
     {
       "id": "grass-river-provincial-park-ca-mb",
@@ -12404,7 +12424,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pembina Valley PP: replay 3 trails / 6.4 mi (Pembina Rim 4.1 mi, Oak Woods, Porcupine Ridges). Four short Manitoba Parks trails (Boulder Creek 0.28, Valley Vistas 0.31, Whitetail Hollows 0.45, Hawks Hills 0.48 mi) fall under the 0.6 mi floor; the official PDF (gov.mb.ca pembina_valley_pp.pdf) could not be read to justify waivers. Re-open with waivers."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pembina Valley PP: replay 3 trails / 6.4 mi (Pembina Rim 4.1 mi, Oak Woods, Porcupine Ridges). Four short Manitoba Parks trails (Boulder Creek 0.28, Valley Vistas 0.31, Whitetail Hollows 0.45, Hawks Hills 0.48 mi) fall under the 0.6 mi floor; the official PDF (gov.mb.ca pembina_valley_pp.pdf) could not be read to justify waivers. Re-open with waivers. ca-new3 2026-11-02: Re-replay: 3 trails / 6.4 mi; Porcupine Ridges is 1.64 mi mapped vs about 4 mi on AllTrails (a stub) and the official PDF (gov.mb.ca park_info/pembina_valley_pp.pdf) is still unreadable here, so no waiver evidence; hold stands."
     },
     {
       "id": "pike-lake-provincial-park-ca-sk",
@@ -12429,6 +12449,453 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Echo Valley PP: replay 1 trail (Mink Trail 1.0 mi)."
+    },
+    {
+      "id": "parc-de-la-gatineau-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 39285217,
+      "name": "Parc de la Gatineau",
+      "bbox": [
+        -76.32,
+        45.37,
+        -75.68,
+        45.73
+      ],
+      "center": [
+        45.49,
+        -75.871
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "ca-new3 2026-11-02: SHIP. NCC park (way-backed polygon). Replay 47 trails, kept 9 / 15.1 mi after 38 curated exclusions. Kept = nine of the eleven NCC 'Popular Summer Trails' (https://ncc-ccn.gc.ca/places/hiking-and-walking-gatineau-park, read): Lac des Fées, Pioneers, Sugarbush, Champlain, Pink Lake, Waterfall and Lauriault, King Mountain, Luskville Falls, Wolf (Trail 62). Mapped lengths vs NCC: Pink Lake 1.43 mi (2.3 km) exact, Sugarbush 1.14 (1.9 km), Champlain 0.67 (1.1 km), Pioneers 0.78 (1.3 km loop); KNOWN SHORT: Wolf 5.2 of about 6.3 mi, Luskville Falls 1.8 of about 2.6 mi, Lauriault 2.1 of about 2.8 mi. NOT SHIPPED (known omissions): Lusk Cave and Skyline (Trails 30, 1 and 6) have no named OSM route; the NCC numbered trails (Trail 50, 65 to 74, '#58 to #79' MTB names) carry no trail name; MTB, equestrian, paved Pathway (ref 5) and informal paths excluded. English-named King Mountain and Waterfall/Lauriault relations are 100% inside the French-named ways, so they are dropped as duplicates. Centre = trail-extent midpoint. Mapped under French names as the NCC signs them.",
+      "exclude_trails": [
+        {
+          "id": "n:Trail 73",
+          "name": "Trail 73",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 72",
+          "name": "Trail 72",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 74",
+          "name": "Trail 74",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 70",
+          "name": "Trail 70",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 71",
+          "name": "Trail 71",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 66",
+          "name": "Trail 66",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 65",
+          "name": "Trail 65",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Trail 50",
+          "name": "Trail 50",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#79 (Brésilienne)",
+          "name": "#79 (Brésilienne)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:# 59 (Moonshine)",
+          "name": "# 59 (Moonshine)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#68 (Missing Link)",
+          "name": "#68 (Missing Link)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#41 (de la Mine)",
+          "name": "#41 (de la Mine)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:# 77 (Happy Valley)",
+          "name": "# 77 (Happy Valley)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#53B (Bench)",
+          "name": "#53B (Bench)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#78 (Dé-Monique)",
+          "name": "#78 (Dé-Monique)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#72B (Irish Cream)",
+          "name": "#72B (Irish Cream)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#72B (Irish Whiskey)",
+          "name": "#72B (Irish Whiskey)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:# 58 (Konnektor)",
+          "name": "# 58 (Konnektor)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:#58 (Glazer)",
+          "name": "#58 (Glazer)",
+          "reason": "NCC numbered-trail label with no trail name (ref-only, e.g. Trail 73); not a named walk a hiker can tick, and the NCC numbers do not map one to one onto the named hikes"
+        },
+        {
+          "id": "n:Foreplay",
+          "name": "Foreplay",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Junior",
+          "name": "Junior",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Sunset",
+          "name": "Sunset",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Switchback",
+          "name": "Switchback",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Whale",
+          "name": "Whale",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:M.O.",
+          "name": "M.O.",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:H.A.T.",
+          "name": "H.A.T.",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Coupe Québec",
+          "name": "Coupe Québec",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Piste 25",
+          "name": "Piste 25",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Mosquito Alley",
+          "name": "Mosquito Alley",
+          "reason": "Mountain-bike / multi-use or ski-grade trail (imba/mtb tags, bicycle=yes or designated, nordic piste, or a bike-style name), not a signed hiking trail"
+        },
+        {
+          "id": "n:Equestrian Trail",
+          "name": "Equestrian Trail",
+          "reason": "Bridleway for horses (highway=bridleway, horse=designated), not a hiking trail"
+        },
+        {
+          "id": "n:Sentier du Parc-de-la-Gatineau",
+          "name": "Sentier du Parc-de-la-Gatineau",
+          "reason": "Paved cycleway (Gatineau Park Pathway, ref 5, bicycle=designated, nordic piste), not a hiking trail"
+        },
+        {
+          "id": "n:Red trail",
+          "name": "Red trail",
+          "reason": "Not on the NCC official summer hiking list and carries no official name; unsigned or informal path, kept out"
+        },
+        {
+          "id": "n:Yellow Box Trail",
+          "name": "Yellow Box Trail",
+          "reason": "Not on the NCC official summer hiking list and carries no official name; unsigned or informal path, kept out"
+        },
+        {
+          "id": "n:Escarpment Top Trail",
+          "name": "Escarpment Top Trail",
+          "reason": "Not on the NCC official summer hiking list and carries no official name; unsigned or informal path, kept out"
+        },
+        {
+          "id": "n:Carman Lake Lookout Trail",
+          "name": "Carman Lake Lookout Trail",
+          "reason": "Not on the NCC official summer hiking list and carries no official name; unsigned or informal path, kept out"
+        },
+        {
+          "id": "n:Sentier / Trail",
+          "name": "Sentier / Trail",
+          "reason": "Not on the NCC official summer hiking list and carries no official name; unsigned or informal path, kept out"
+        },
+        {
+          "id": "n:Waterfall and Lauriault Trail",
+          "name": "Waterfall and Lauriault Trail",
+          "reason": "Same trail as 'Sentier de la Chute et Lauriault' (English-named relation fully inside the French-named ways: 100% within 25 m); one trail one area, keep the longer French-named geometry"
+        },
+        {
+          "id": "n:King Mountain Trail",
+          "name": "King Mountain Trail",
+          "reason": "Same trail as 'Sentier du Mont-King' (English-named relation fully inside the French-named ways: 100% within 25 m); one trail one area, keep the longer geometry"
+        }
+      ]
+    },
+    {
+      "id": "reserve-naturelle-gault-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "name": "Refuge d’oiseaux migrateurs du Mont-Saint-Hilaire",
+      "bbox": [
+        -73.23,
+        45.48,
+        -73.08,
+        45.62
+      ],
+      "center": [
+        45.549,
+        -73.162
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ca-new3 2026-11-02: SHIP. Gault Nature Reserve (McGill), Mont-Saint-Hilaire. Boundary = relation r20631839 (Mont-Saint-Hilaire Migratory Bird Sanctuary), a one-member relation whose outer way w475531260 is the Gault polygon; the reserve's own relation r12244795 is a 0.005 deg fragment (fails the size gate) and its way twin hits the name-collision refusal. display_name gives locals the name they use. Replay 7 trails / 11.8 mi: Rocky (Rouge), Rocky (Bleu), Dieppe (Vert), Pain de Sucre (Jaune), Burning Hill (Orange), Mauve, Lac Hertel. The AllTrails five-summit loop (Burned Hill, Pain de Sucre, Dieppe, Rocky, Saint-Hilaire) and Lac Hertel match; official Gault trail page (https://gault.mcgill.ca/en/outdoor-activities/) was only seen as a search snippet, not read. Sentier du Piedmont (1.5 mi) lies in the neighbouring Piémont reserve and is not included. Gault is visitor-capped and fee-based; the trails are public-by-reservation.",
+      "relation_id": 20631839,
+      "display_name": "Réserve naturelle Gault (Mont-Saint-Hilaire)"
+    },
+    {
+      "id": "niagara-glen-nature-reserve-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 158461048,
+      "name": "Niagara Glen Nature Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "ca-new3 2026-11-02: Replay: prepare-areas fails the size gate (boundary 0.011 x 0.009 deg, each side must be at least 0.01). The named walks exist (Whirlpool Trail, River Path, Terrace Path, Eddy Path, Cliffside Path, Woodland Path, 0.1 to 0.96 mi each) but sit under the 0.01 deg floor. Code need: size-gate override for small sites."
+    },
+    {
+      "id": "rainbow-falls-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11748880,
+      "name": "Rainbow Falls Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: 1 trail (Back 40, 1.3 mi); Rainbow Falls trail itself unnamed in OSM."
+    },
+    {
+      "id": "elora-gorge-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 561915668,
+      "name": "Elora Gorge Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: SAFETY BLOCK, no publishable named trails (Grand River Conservation Authority tier, which MANDATE defers)."
+    },
+    {
+      "id": "crawford-lake-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 37659034,
+      "name": "Crawford Lake Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: 1 trail (Buffalo Crag Trail 0.8 mi). Conservation Halton tier is deferred by MANDATE."
+    },
+    {
+      "id": "rattlesnake-point-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 42433445,
+      "name": "Rattlesnake Point Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "needs-rescope",
+      "notes": "ca-new3 2026-11-02: Replay: fails the 0.01 deg size gate (boundary 0.014 x 0.007). Conservation Halton tier is deferred by MANDATE."
+    },
+    {
+      "id": "kelso-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1538916615,
+      "name": "Kelso Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "mtb-centre",
+      "notes": "ca-new3 2026-11-02: Replay: 3 trails / 2.7 mi, all mountain-bike names (Turkey Shoot, Rough Trade, Ascension). Conservation Halton tier is deferred by MANDATE."
+    },
+    {
+      "id": "hilton-falls-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1539110989,
+      "name": "Hilton Falls Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "ca-new3 2026-11-02: Replay: 7 trails / 10.4 mi but only Beaver Dam Trail and Hilton Falls Trail (Yellow) read as walks; Bent Rim 1/2, Bog'd Up, 5 Bridges are bike-style names and 'Beaver Dam Trail & Hilton Falls Side Trail' duplicates. Conservation Halton tier is deferred by MANDATE."
+    },
+    {
+      "id": "spencer-gorge-conservation-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1547508123,
+      "name": "Spencer Gorge Conservation Area",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "needs-rescope",
+      "notes": "ca-new3 2026-11-02: Replay: fails the 0.01 deg size gate (boundary 0.022 x 0.010). Hamilton Conservation Authority tier (Webster Falls, Tew Falls) is deferred by MANDATE."
+    },
+    {
+      "id": "macmillan-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 7887413,
+      "name": "MacMillan Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: 1 trail (Old Growth Trail 0.7 mi, the Cathedral Grove loop)."
+    },
+    {
+      "id": "skaha-bluffs-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8634862,
+      "name": "Skaha Bluffs Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: 2 trails / 2.5 mi, both climbing-crag names (Ward 1, Sourkraut); Skaha Bluffs is a climbing area, not a signed hike."
+    },
+    {
+      "id": "buntzen-lake-recreation-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1227260282,
+      "name": "Buntzen Lake Recreation Area",
+      "bbox": [
+        -122.92,
+        49.28,
+        -122.8,
+        49.42
+      ],
+      "center": [
+        49.348,
+        -122.859
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "ca-new3 2026-11-02: SHIP. BC Hydro recreation area (way-backed), tier 3. Replay 3 trails / 7.0 mi: Buntzen Lake Trail (lake loop 4.4 mi), Lakeview Trail 1.5, Academy Trail 1.2. No official BC Hydro list read. KNOWN OMISSION: Diez Vistas Trail (r16412032, 4.2 mi) and Halvor Lunden/Eagle Ridge lie outside this polygon and are not in any live area (Belcarra live area holds only Buntzen Ridge); follow-up needs a trail-level polygon override. Shoreline Trail Bike Route and mountain-bike names dropped by the engine."
+    },
+    {
+      "id": "canmore-nordic-centre-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364669,
+      "name": "Canmore Nordic Centre Provincial Park",
+      "bbox": [
+        -115.48,
+        51.01,
+        -115.28,
+        51.18
+      ],
+      "center": [
+        51.09,
+        -115.392
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "ca-new3 2026-11-02: SHIP. Alberta Parks unit that contains Grassi Lakes. Replay 5 trails / 6.0 mi; shipped 2 / 3.3 mi: Grassi Lakes (lwn relation, whole destination, 2.1 mi) and Georgetown Interpretive (1.2 mi, Alberta Parks trail-report link in OSM). Upper Grassi Lakes Trail and Grassi Lakes Interpretive Trail are the hard and easy branches, both fully inside the Grassi Lakes relation, so they are dropped as duplicates. Reclaimer Trail dropped (bicycle=yes connector, no source). Ha Ling and East End of Rundle are not in this polygon (they sit in Spray Valley PP, a live area: update left to the live-fix chain). Thin (2 trails) but both are real signed walks and Grassi Lakes is a top Canmore hike; no live area holds it.",
+      "exclude_trails": [
+        {
+          "id": "n:Upper Grassi Lakes Trail",
+          "name": "Upper Grassi Lakes Trail",
+          "reason": "Easy and hard branches of the Grassi Lakes trail; both lie fully inside the 'Grassi Lakes' relation (the whole destination), so listing them would double count one trail"
+        },
+        {
+          "id": "n:Grassi Lakes Interpretive Trail",
+          "name": "Grassi Lakes Interpretive Trail",
+          "reason": "Easy and hard branches of the Grassi Lakes trail; both lie fully inside the 'Grassi Lakes' relation (the whole destination), so listing them would double count one trail"
+        },
+        {
+          "id": "n:Reclaimer Trail",
+          "name": "Reclaimer Trail",
+          "reason": "Short mixed-use connector at the Nordic Centre (bicycle=yes), no source that it is a signed hike"
+        }
+      ]
+    },
+    {
+      "id": "turtle-mountain-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "way_id": 150410871,
+      "name": "Turtle Mountain Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: 2 trails / 7.9 mi (Dunseith 6.7, Disappearing Lakes 1.2). The park's signature lake loops (Adam Lake, Bower Lake, James Lake, John Lake) are not named in OSM, so the area would lack its flagship walk."
+    },
+    {
+      "id": "asessippi-provincial-park-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "way_id": 150287074,
+      "name": "Asessippi Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay: SAFETY BLOCK, no publishable trails."
+    },
+    {
+      "id": "duncans-cove-nature-reserve-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 17565350,
+      "name": "Duncans Cove Nature Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "ca-new3 2026-11-02: Replay (boundary_by_id for the twin polygon): 1 trail (Portuguese Cove Lighthouse 0.95 mi).",
+      "boundary_by_id": true
     }
   ]
 }

@@ -87,7 +87,7 @@ def test_publish_ca_workflow_contract():
     doc = yaml.safe_load(PUBLISH)
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"areas", "province", "mode", "chunk_size"}
-    assert inputs["mode"]["options"] == ["qualify", "publish"] and inputs["mode"]["default"] == "qualify"
+    assert inputs["mode"]["options"] == ["qualify", "publish", "update"] and inputs["mode"]["default"] == "qualify"
     assert inputs["province"]["options"] == ["ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt"]
     assert inputs["chunk_size"]["default"] == "25"
     assert doc["concurrency"] == {"group": "trailforge-publish", "cancel-in-progress": False}
@@ -95,7 +95,7 @@ def test_publish_ca_workflow_contract():
     code = _code(PUBLISH)
     for forbidden in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_ACCOUNT_ID", "aws s3", "s3api", "--elevation ",
                       "gh workflow run", "--force", "PREFILTER_DK", "seed-areas", "denmark", "Denmark", "dk_publish",
-                      "dk-run-area", "--region", "mode=update", "== 'update'"):
+                      "dk-run-area", "--region"):
         assert forbidden not in code, forbidden
     assert '[[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]' in PUBLISH
     assert "-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)" in PUBLISH and "-dk" not in _code(PUBLISH)
@@ -105,7 +105,7 @@ def test_publish_ca_workflow_contract():
     assert PUBLISH.count("curl -fL") == 1 and "bash extract/prefilter.sh" in PUBLISH
     assert "pbf-url" in PUBLISH and "trailforge: publish ${AREA_COUNT} Canadian area(s) to app" in PUBLISH
     for step, cond in (("Install blessed geoms", "inputs.mode == 'publish' }}"),
-                       ("Commit published data", "inputs.mode == 'publish' }}")):
+                       ("Commit published data", "inputs.mode == 'publish' || inputs.mode == 'update' }}")):
         block = PUBLISH.split(f"- name: {step}", 1)[1].split("\n      - name:", 1)[0]
         assert f"if: ${{{{ {cond}" in block, step
     assert "git push" not in PUBLISH.split("- name: Commit published data", 1)[0]
@@ -117,13 +117,13 @@ def test_sync_ca_workflow_contract():
     assert doc["concurrency"] == {"group": "sync-geom-to-r2", "cancel-in-progress": False}   # shared with DK + Mols
     inputs = (doc.get("on") or doc.get(True))["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"mode", "rollback_run_id"}                  # the area list is never an input
-    assert inputs["mode"]["options"] == ["plan", "apply", "rollback"]
+    assert inputs["mode"]["options"] == ["plan", "apply", "rollback", "plan-update", "apply-update", "rollback-update"]
     assert doc["permissions"] == {"contents": "read", "actions": "read"}
     assert sorted(set(re.findall(r"secrets\.([A-Z0-9_]+)", SYNC))) == [
         "R2_ACCESS_KEY_ID", "R2_ACCOUNT_ID", "R2_SECRET_ACCESS_KEY"]
     assert "environment:" not in SYNC and "HMAC" not in SYNC
     code = _code(SYNC)
-    for forbidden in ("dk_publish", "dk-r2", "Danish", "Denmark", "-update", "-remove"):
+    for forbidden in ("dk_publish", "dk-r2", "Danish", "Denmark", "-remove"):
         assert forbidden not in code, forbidden
     assert "scripts/ca_publish.py derive-areas" in SYNC and "scripts/ca_publish.py build-candidates" in SYNC
     assert "ca-r2-snapshot-${{ github.run_id }}" in SYNC and "-n \"ca-r2-snapshot-$ROLLBACK_RUN_ID\"" in SYNC
@@ -131,7 +131,7 @@ def test_sync_ca_workflow_contract():
     assert SYNC.index("Snapshot live R2") < SYNC.index("Save snapshot + candidates") < SYNC.index("- name: Apply")
     assert "PARTIAL APPLY: dispatch mode=rollback with rollback_run_id=$GITHUB_RUN_ID" in SYNC
     assert 'test "$(cur "$key")" = "$(base "$key")"' in SYNC and "parking_after" in SYNC
-    assert SYNC.count('test "$(cur parking.json)" = "$(base parking.json)"') == 1
+    assert SYNC.count('test "$(cur parking.json)" = "$(base parking.json)"') == 2        # apply + apply-update
 
 
 def test_every_workflow_holding_r2_write_credentials_shares_the_sync_lock():

@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import unicodedata
 from pathlib import Path
 
 import _parking_geom_guard as geom_guard
@@ -190,6 +191,28 @@ ASCII_TRANSLIT: dict[str, str] = {
 }
 
 
+# Canada-only French folds (Quebec/NB/MB names). Kept OUT of ASCII_TRANSLIT on
+# purpose: ASCII_TRANSLIT is shared with every US/DK slug, and a new fold there
+# would silently change any existing id built from a name with these letters.
+# Applied only for region=ca (see ca_ascii_fold / slugify / to_app_json).
+CA_FRENCH_TRANSLIT: dict[str, str] = {
+    "à": "a", "À": "A", "â": "a", "Â": "A",
+    "î": "i", "Î": "I", "ï": "i", "Ï": "I",
+    "ô": "o", "Ô": "O", "û": "u", "Û": "U",
+    "ù": "u", "Ù": "U", "ë": "e", "Ë": "E",
+    "ÿ": "y", "Ÿ": "Y", "œ": "oe", "Œ": "Oe",
+}
+def ca_ascii_fold(name: str) -> str:
+    """Fold accented letters to ASCII for a Canadian id. Explicit tables first
+    (ASCII_TRANSLIT + CA_FRENCH_TRANSLIT), then NFKD to drop any other
+    combining mark (e.g. macrons) so no letter is deleted from the id."""
+    s = unicodedata.normalize("NFC", name)
+    for src, dst in ASCII_TRANSLIT.items():
+        s = s.replace(src, dst)
+    for src, dst in CA_FRENCH_TRANSLIT.items():
+        s = s.replace(src, dst)
+    s = unicodedata.normalize("NFKD", s)
+    return "".join(c for c in s if not unicodedata.combining(c))
 def display_state(code: str) -> str:
     """User-facing state/country label for a region code."""
     return DISPLAY_STATE_OVERRIDES.get(code) or STATE_NAMES.get(code, code)
@@ -212,6 +235,8 @@ def slugify(name: str, state_code: str) -> str:
     """Stable area slug. Mirrors AreaDataService.slugify on iOS so
     recorded-hike completions stay valid across builds."""
     s = name
+    if state_code.upper().startswith("CA-"):
+        s = ca_ascii_fold(s)
     for src, dst in ASCII_TRANSLIT.items():
         s = s.replace(src, dst)
     s = s.lower()

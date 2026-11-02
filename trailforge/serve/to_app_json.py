@@ -27,15 +27,29 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
 import _parking_geom_guard as geom_guard  # noqa: E402
+from _seed_constants import ca_ascii_fold  # noqa: E402 — Canada-only accent fold
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "assemble"))
 import model  # noqa: E402 — for merge_key (same-trail matching across renames)
 sys.path.insert(0, os.path.dirname(__file__))
 import elevation  # noqa: E402 — single source of truth for the difficulty label
 
 
-def trail_slug(name: str) -> str:
-    """Mirror scripts/_seed_constants._trail_slug / AreaDataService.slugify."""
-    parts = [p for p in re.split(r"[^a-z0-9]+", (name or "").lower()) if p]
+# Canadian areas already live whose trail ids were minted WITHOUT the accent fold
+# (Brule Trail -> br-l-trail, Schaffer -> sch-ffer). Ids are permanent, so these
+# two keep the legacy slug on any regeneration. Every other Canadian area folds.
+CA_LEGACY_UNFOLDED_AREAS = frozenset({
+    "awenda-provincial-park-ca-on",
+    "jasper-national-park-ca-ab",
+})
+def trail_slug(name: str, fold_accents: bool = False) -> str:
+    """Mirror scripts/_seed_constants._trail_slug / AreaDataService.slugify.
+    fold_accents is True only for Canada (region=ca): accented letters fold to
+    ASCII instead of splitting the id (Riviere, not rivi-re). Default False
+    keeps every US/DK id byte-identical."""
+    name = name or ""
+    if fold_accents:
+        name = ca_ascii_fold(name)
+    parts = [p for p in re.split(r"[^a-z0-9]+", name.lower()) if p]
     return "-".join(parts)[:60]
 
 
@@ -67,6 +81,7 @@ def convert(fc: dict, area_id: str, name: str, state: str,
     polygon. Splitting them lets the pipeline keep the id (which the containment
     gate needs) without changing what the app reads.
     """
+    fold_accents = state == "Canada" and area_id not in CA_LEGACY_UNFOLDED_AREAS
     trails = []
     slug_counts: dict[str, int] = {}
     used_canonical: set[str] = set()
@@ -92,7 +107,7 @@ def convert(fc: dict, area_id: str, name: str, state: str,
             tid = preserved
             slug_counts[preserved] = 1
         else:
-            base = trail_slug(id_nm)
+            base = trail_slug(id_nm, fold_accents)
             seen = slug_counts.get(base, 0)
             slug_counts[base] = seen + 1
             tid = base if seen == 0 else f"{base}-{seen}"

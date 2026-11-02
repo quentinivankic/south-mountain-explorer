@@ -3221,11 +3221,6 @@
           "reason": "Boundary-clipped: 2.5 of 5.5 mi lie inside the polygon; not a whole route"
         },
         {
-          "id": "n:Citadel Pass Tr",
-          "name": "Citadel Pass Tr",
-          "reason": "Boundary-clipped: 4.3 of 5.6 mi lie inside the polygon; not a whole route"
-        },
-        {
           "id": "n:Coastline",
           "name": "Coastline",
           "reason": "informal local network name (Nordic/MTB/cycling-style); not on the Parks Canada hiking list"
@@ -4192,6 +4187,12 @@
           "name": "Nigel Pass Trail",
           "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
           "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        },
+        {
+          "osm_name": "Citadel Pass Tr",
+          "name": "Citadel Pass Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Abbreviation expanded; same trail. live-fix2 restore: signature Sunshine to Citadel Pass hike, 4.3 of 5.6 mi inside the park polygon (77%); rest lies in Mount Assiniboine PP, where the 1.3 mi piece stays excluded (one trail, one area)"
         }
       ]
     },
@@ -5552,9 +5553,9 @@
         },
         {
           "osm_name": "S Kananaskis Pass Tr",
-          "name": "S Kananaskis Pass Trail",
-          "source": "https://www.openstreetmap.org/way/24836193",
-          "reason": "Abbreviation expanded; same trail"
+          "name": "South Kananaskis Pass Trail",
+          "source": "https://albertaparks.ca/parks/kananaskis/peter-lougheed-pp/information-facilities/trails/",
+          "reason": "Abbreviation expanded to the full name; same trail (live-fix2)"
         },
         {
           "osm_name": "Three Lakes Valley Tr",
@@ -6113,6 +6114,46 @@
           "id": "n:Yamnuska Ascent Normal",
           "name": "Yamnuska Ascent Normal",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Highline Trail",
+          "name": "Highline Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Cloudline",
+          "name": "Cloudline",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Epic Tower Trail",
+          "name": "Epic Tower Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Johnny's Trail",
+          "name": "Johnny's Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Meander Trail",
+          "name": "Meander Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Stoneworks Canyon Trail",
+          "name": "Stoneworks Canyon Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:Tibits Quarry Trail",
+          "name": "Tibits Quarry Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
+        },
+        {
+          "id": "n:McGillivray Creek Trail",
+          "name": "McGillivray Creek Trail",
+          "reason": "Canmore multi-use / mountain-bike trail (OSM bicycle=yes or designated, Canmore Nordic Centre / quarry network), not a hiking trail a local would tick (live-fix2 verified from OSM way tags)"
         }
       ],
       "trail_name_fixes": [
@@ -6646,12 +6687,12 @@
         50.74
       ],
       "center": [
-        50.654,
-        -114.579
+        50.645,
+        -114.693
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Sheep River PP: most OSM routes are clipped by the polygon and excluded; the whole routes remain (Indian Oils, South Gorge Creek, Missinglink Mountain, Green Mountain).",
+      "notes": "AB curation 2026-11-02. Sheep River PP: most OSM routes are clipped by the polygon and excluded; the whole routes remain (Indian Oils, South Gorge Creek, Missinglink Mountain, Green Mountain). live-fix2 2026-11-02: Missinglink Mountain East Ridge and S Ridge routes dropped; pin moved from [50.654, -114.579] to a trail point next to the new trail-extent midpoint (0.1 deg publish gate).",
       "exclude_trails": [
         {
           "id": "n:Bluerock Knob Trail",
@@ -6692,14 +6733,16 @@
           "id": "n:Windy Point Tr",
           "name": "Windy Point Tr",
           "reason": "Boundary-clipped: 0.7 of 3.3 mi lie inside the polygon; not a whole route"
-        }
-      ],
-      "trail_name_fixes": [
+        },
         {
-          "osm_name": "Missinglink Mtn S Ridge Rt",
-          "name": "Missinglink Mtn S Ridge Route",
-          "source": "https://www.openstreetmap.org/way/24834909",
-          "reason": "Abbreviation expanded; same trail"
+          "id": "n:Missinglink Mountain East Ridge Route",
+          "name": "Missinglink Mountain East Ridge Route",
+          "reason": "Unsigned peak route (Missinglink Mountain ridge variant); the signed Missinglink Mountain Trail stays (live-fix2, one trail one name)"
+        },
+        {
+          "id": "n:Missinglink Mtn S Ridge Rt",
+          "name": "Missinglink Mtn S Ridge Rt",
+          "reason": "Unsigned peak route (Missinglink Mountain ridge variant); the signed Missinglink Mountain Trail stays (live-fix2, one trail one name)"
         }
       ]
     },
@@ -7869,7 +7912,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix2 2026-11-02: pin kept (no trail point lies within the 0.1 deg gate of the extent midpoint); Floe Lake and Helmet Creek dropped (100% inside the Rockwall Trail, no double counting).",
       "exclude_trails": [
         {
           "id": "n:Ball Pass Trail",
@@ -8005,6 +8048,16 @@
           "id": "n:Vermilion Peak Trail",
           "name": "Vermilion Peak Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Floe Lake Trail",
+          "name": "Floe Lake Trail",
+          "reason": "Contained 100% in the Rockwall Trail (kept whole, 32.8 mi); double counting removed (live-fix2, audit 2). Ticking the Rockwall covers it"
+        },
+        {
+          "id": "n:Helmet Creek and Falls Trail",
+          "name": "Helmet Creek and Falls Trail",
+          "reason": "Contained 100% in the Rockwall Trail (kept whole, 32.8 mi); double counting removed (live-fix2, audit 2). Ticking the Rockwall covers it"
         }
       ],
       "keep_trails": [
@@ -8658,11 +8711,6 @@
           "id": "n:Fight Meadow via Phillip Lake and Fight Lake",
           "name": "Fight Meadow via Phillip Lake and Fight Lake",
           "reason": "Descriptive 'via' composite of Phillip Lake and Fight Lake routes"
-        },
-        {
-          "id": "n:Trophy Mountain Trail",
-          "name": "Trophy Mountain Trail",
-          "reason": "Boundary-clipped: 3.1 of 3.8 mi lie inside the polygon; not a whole route"
         }
       ]
     },

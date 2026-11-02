@@ -10242,12 +10242,12 @@
         49.04
       ],
       "center": [
-        48.923,
-        -64.442
+        48.855,
+        -64.322
       ],
       "tier": 1,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Compared with the Parks Canada Forillon hiking page (https://parks.canada.ca/pn-np/qc/forillon/activ/randonnee-hiking): La Chute, La Taïga, Le Pic-bois, Le Ruisseau, Les Graves, La Vallée, Les Lacs, Les Crêtes, Mont-Saint-Alban present (Le Castor waived). Not mapped by name or sub-0.6 mi (known omissions): Prélude-à-Forillon, Du Banc, Les Parages (closed sector), Le Portage (0.98 mi mapped under a portage name, partial).",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Forillon hiking page (https://parks.canada.ca/pn-np/qc/forillon/activ/randonnee-hiking): La Chute, La Taïga, Le Pic-bois, Le Ruisseau, Les Graves, La Vallée, Les Lacs, Les Crêtes, Mont-Saint-Alban present (Le Castor waived). Not mapped by name or sub-0.6 mi (known omissions): Prélude-à-Forillon, Du Banc, Les Parages (closed sector), Le Portage (0.98 mi mapped under a portage name, partial).",
       "exclude_trails": [
         {
           "id": "n:Les Lacs",
@@ -10284,12 +10284,12 @@
         46.97
       ],
       "center": [
-        46.751,
-        -72.833
+        46.72,
+        -72.966
       ],
       "tier": 1,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Compared with the Parks Canada Mauricie hiking maps page (https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking): Les Falaises, Les Cascades, Mistigance, Lac-Gabet, La Terrasse, Chutes-Waber, Lac-Étienne, La Cache, Mekinac, Lac-Solitaire, Lac-du-Pimbina, Deux-Criques, Chutes-Parker present (Ruisseau-Brodeur waived); Du Camping and Ruisseau-Bouchard also present. Known omissions: La Tourbière (0.15 mi piece), L'Esker (not mapped by name). Ski/snowshoe-network duplicates excluded.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Mauricie hiking maps page (https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking): Les Falaises, Les Cascades, Mistigance, Lac-Gabet, La Terrasse, Chutes-Waber, Lac-Étienne, La Cache, Mekinac, Lac-Solitaire, Lac-du-Pimbina, Deux-Criques, Chutes-Parker present (Ruisseau-Brodeur waived); Du Camping and Ruisseau-Bouchard also present. Known omissions: La Tourbière (0.15 mi piece), L'Esker (not mapped by name). Ski/snowshoe-network duplicates excluded.",
       "exclude_trails": [
         {
           "id": "n:Chute Waber",
@@ -10343,6 +10343,14 @@
           "source": "https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking",
           "reason": "Parks Canada Mauricie hiking maps list Ruisseau-Brodeur; short official walk (0.41 mi)"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier Lac-du-Pimbina (#15)",
+          "name": "Sentier Lac-du-Pimbina",
+          "source": "https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
       ]
     },
     {
@@ -10378,12 +10386,12 @@
         46.69
       ],
       "center": [
-        46.456,
-        -74.208
+        46.34,
+        -74.322
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. 'Les Grandes Valléees' is kept as OSM spells it (typo, no official source).",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. 'Les Grandes Valléees' is kept as OSM spells it (typo, no official source).",
       "exclude_trails": [
         {
           "id": "n:Coupe-Canada",
@@ -10405,6 +10413,14 @@
           "name": "Sentier du Mont Nixon",
           "reason": "Boundary-clipped: 1.6 of 4.5 mi lie inside the polygon; not a whole route"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Les Grandes Valléees",
+          "name": "Les Grandes Vallées",
+          "source": "https://www.sepaq.com/pq/mot/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
       ]
     },
     {
@@ -10425,7 +10441,7 @@
       ],
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). Signature gap: Mont Albert and Mont Jacques-Cartier absent; needs rescope even after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omissions: Mont Jacques-Cartier, Mont Albert, Lac-aux-Américains and Mont Xalibu are not mapped by name in OSM; the IAT (Grande Traversée) is long-distance and dropped.",
+      "notes": "HOLD (QC2 2026-11-02): signature gap. Mont Albert and Mont Jacques-Cartier, the park's flagship summit hikes, are mapped in OSM only as ways named for the SIA/IAT Grande Traversée (long-distance, excluded by rule) or as unnamed paths, so neither can be kept by name; Gaspésie without them would not satisfy a local expert. Ids are fine after the accent fold (checked on the 9 candidate trails). Unhold once the two summit trails carry their own names in OSM. Signature gap: Mont Albert and Mont Jacques-Cartier absent; needs rescope even after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omissions: Mont Jacques-Cartier, Mont Albert, Lac-aux-Américains and Mont Xalibu are not mapped by name in OSM; the IAT (Grande Traversée) is long-distance and dropped.",
       "exclude_trails": [
         {
           "id": "n:Sentier d'hiver",
@@ -10461,8 +10477,8 @@
         -71.431
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Compared with the Sépaq hiking-trail list (archived copy of https://www.sepaq.com/pq/jac/annexes/sentiers_pedestres.dot?language_id=2, read): all 17 listed trails present (Le Confluent, La Tourbière, L'Aperçu, La Matteucie, Les Cascades, Le Perdreau, La Croisée, L'Éperon, Les Coulées, Le Draveur Nord and Sud, Les Loups, Le Scotora, L'Escarpement, La Mésange, La Rivière-Cachée, La Rivière-Sautauriski); four names fixed from that list.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Compared with the Sépaq hiking-trail list (archived copy of https://www.sepaq.com/pq/jac/annexes/sentiers_pedestres.dot?language_id=2, read): all 17 listed trails present (Le Confluent, La Tourbière, L'Aperçu, La Matteucie, Les Cascades, Le Perdreau, La Croisée, L'Éperon, Les Coulées, Le Draveur Nord and Sud, Les Loups, Le Scotora, L'Escarpement, La Mésange, La Rivière-Cachée, La Rivière-Sautauriski); four names fixed from that list.",
       "exclude_trails": [
         {
           "id": "n:Accès Lac Cauchon",
@@ -10488,6 +10504,11 @@
           "id": "n:Sentier du Hibou Nord",
           "name": "Sentier du Hibou Nord",
           "reason": "Boundary-clipped: 1.2 of 6.5 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Lac Cook",
+          "name": "Lac Cook",
+          "reason": "Not on the 17-trail Sépaq hiking list; no source cited, left out"
         }
       ],
       "trail_name_fixes": [
@@ -10534,8 +10555,8 @@
         -70.487
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier du Mont Élie is 16% inside the polygon (excluded as clipped). La Traversée de Charlevoix is long-distance (dropped).",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier du Mont Élie is 16% inside the polygon (excluded as clipped). La Traversée de Charlevoix is long-distance (dropped).",
       "exclude_trails": [
         {
           "id": "n:Sentier du Mont Élie",
@@ -10561,8 +10582,8 @@
         -70.804
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
       "exclude_trails": [
         {
           "id": "n:Le Boréal",
@@ -10598,8 +10619,8 @@
         -72.19
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omission: the Brompton and Kingsbury sector trails exist only under system-coded OSM names (excluded, see exclude list); needs OSM naming.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omission: the Brompton and Kingsbury sector trails exist only under system-coded OSM names (excluded, see exclude list); needs OSM naming.",
       "exclude_trails": [
         {
           "id": "n:Brompton ~ Accès ~ SE ~ Mont-Cathédrale (Carré) (1,2 km)",
@@ -10645,8 +10666,8 @@
         -71.12
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier Frontalier stages excluded (cross-border long-distance).",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier Frontalier stages excluded (cross-border long-distance).",
       "exclude_trails": [
         {
           "id": "n:La Promenade Boréale",
@@ -10682,8 +10703,8 @@
         -68.843
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
       "exclude_trails": [
         {
           "id": "n:La Colonie Sud",
@@ -10709,8 +10730,8 @@
         -74.054
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
       "exclude_trails": [
         {
           "id": "n:Voie de Service",
@@ -10756,8 +10777,8 @@
         -72.62
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
       "exclude_trails": [
         {
           "id": "n:La Rivière",
@@ -10783,8 +10804,16 @@
         -71.171
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Le litoral",
+          "name": "Le Littoral",
+          "source": "https://www.sepaq.com/pq/fro/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
+      ]
     },
     {
       "id": "parc-national-du-fjord-du-saguenay-ca-qc",
@@ -10804,7 +10833,7 @@
       ],
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). Signature gap: Statue trail excluded as boundary-clipped (38-68% inside); rescue after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier de la Statue, Montagne Blanche and La Pinède are 38-68% inside the polygon (excluded as clipped).",
+      "notes": "HOLD (QC2 2026-11-02): signature gap. Sentier de la Statue (the park's iconic Baie-Éternité day hike) is 1.4 of 2.0 mi inside the park polygon; a test run without the exclusion shipped it truncated at the boundary (+1.3 mi), which is not a whole route. Le Fjord and Les Caps ship whole but the park would lack the Statue. Ids are fine after the accent fold. Unhold if the boundary or the shipped route can be made whole. Signature gap: Statue trail excluded as boundary-clipped (38-68% inside); rescue after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier de la Statue, Montagne Blanche and La Pinède are 38-68% inside the polygon (excluded as clipped).",
       "exclude_trails": [
         {
           "id": "n:Sentier d'hiver",
@@ -10850,8 +10879,8 @@
         -70.847
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. QC2 2026-11-02: Le Yéti dropped (snowshoe-only per espaces.ca raquette list).",
       "exclude_trails": [
         {
           "id": "n:Approach Dent de Dracula",
@@ -10872,6 +10901,11 @@
           "id": "n:Sentier l'Hibernal (hiver seulement)",
           "name": "Sentier l'Hibernal (hiver seulement)",
           "reason": "Winter-only, approach, variant or non-hiking route by name"
+        },
+        {
+          "id": "n:Sentier le Yéti",
+          "name": "Sentier le Yéti",
+          "reason": "Snowshoe trail in the Baie-d'Alexis sector (listed by espaces.ca among the Saguenay snowshoe routes, 3.5 km one way), not a summer hiking trail"
         }
       ]
     },
@@ -10912,8 +10946,8 @@
         -78.702
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
     },
     {
       "id": "parc-national-de-plaisance-ca-qc",
@@ -10952,8 +10986,8 @@
         -68.825
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier national legs dropped (long-distance).",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier national legs dropped (long-distance).",
       "exclude_trails": [
         {
           "id": "n:Sentier Montagne à Fourneau",
@@ -10984,8 +11018,8 @@
         -73.48
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
     },
     {
       "id": "parc-national-de-lile-bonaventure-et-du-rocher-perce-ca-qc",
@@ -11040,12 +11074,12 @@
         47.16
       ],
       "center": [
-        47.062,
-        -79.313
+        46.958,
+        -79.283
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
       "exclude_trails": [
         {
           "id": "n:Sentier de la Rivière Kipawa: Parcours Grand Chute-Inukshuk",
@@ -11072,12 +11106,20 @@
         49.75
       ],
       "center": [
-        49.589,
-        -62.641
+        49.509,
+        -62.747
       ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "accent-id: needs ASCII_TRANSLIT fix (trail/area ids would drop accented letters). QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine."
+      "hold": null,
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier Les Téégraphes",
+          "name": "Sentier Les Télégraphes",
+          "source": "https://www.sepaq.com/pq/ant/",
+          "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        }
+      ]
     },
     {
       "id": "prince-albert-national-park-ca-sk",

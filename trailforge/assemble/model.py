@@ -1064,8 +1064,15 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              defer_relation_absorption: bool = False,
              exact_denmark: bool = False,
              defer_promotion: bool = False,
-             accept_directional_roles: bool = False
+             accept_directional_roles: bool = False,
+             ca_accept_gap: dict[int, dict] | None = None,
+             ca_keep_superroute: list[dict] | None = None,
+             ca_rule_report: dict | None = None
              ) -> list[Trail]:
+    if (ca_accept_gap or ca_keep_superroute) and (
+            member_safety.normalize(region) != "ca" or exact_denmark):
+        raise ValueError(
+            "ca_accept_gap / ca_keep_superroute are limited to region ca")
     if exact_denmark != defer_promotion:
         raise ValueError(
             "exact-Denmark model assembly must defer destination promotion")
@@ -1135,6 +1142,21 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             superroute_ids.add(rid)          # the parent superroute
             superroute_ids.update(kids)      # its child segments
 
+    # Canada opt-in (registry keep_superroute, region ca only): decided once per run from the
+    # relation graph. Empty for every other run, so the drop below is untouched.
+    keep_plan: dict[int, dict] = {}
+    kept_children: dict[int, int] = {}
+    if ca_keep_superroute:
+        import ca_rules
+        keep_plan = ca_rules.plan_keep_superroutes(
+            ca_keep_superroute, relations, _route_ids,
+            lambda name: is_thru_hike_name(name, region))
+        for kept_rid, plan in keep_plan.items():
+            if plan["status"] == "accepted":
+                for child in plan["children"]:
+                    kept_children[child] = kept_rid
+        if ca_rule_report is not None:
+            ca_rule_report["keep_superroute"] = keep_plan
     # 1. relations-first
     denmark = member_safety.normalize(region) == "dk"
     if denmark and relation_scope_evidence:
@@ -1172,6 +1194,21 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             spur_ways = [w for w, role in members
                          if role in SPUR_ROLES and w in ways
                          and _is_trailish(ways[w]["tags"])]
+        if ca_accept_gap and rid in ca_accept_gap and not denmark:
+            # Canada opt-in (registry accept_gap): give this relation back the member ways the
+            # ingest filter dropped for a ski-piste tag alone. Fail closed = default members kept
+            # and the failure reported (assemble.py exits 2).
+            import ca_rules
+            gap_plan = ca_rules.plan_accept_gap(
+                ca_accept_gap[rid], members, ways, nodes,
+                lambda w: _relation_member_walkable(ways[w]["tags"], region),
+                lambda w: ca_rules.piste_only_drop(
+                    ways[w]["tags"], ingest_drop_reason(ways[w]["tags"])),
+                MAIN_ROLES)
+            if ca_rule_report is not None:
+                ca_rule_report.setdefault("accept_gap", {})[rid] = gap_plan
+            if gap_plan["status"] == "accepted":
+                main_ways = gap_plan["main_ways"]
         if not main_ways:
             if audit is not None:
                 audit["assembly_status"] = "entirely-filtered"
@@ -1252,15 +1289,23 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         # Super-relation drop: a thru-hike superroute or one of its numbered
         # segments. Its own ways are claimed above so name-stitch can't resurface
         # the fragment; drop the object itself (underlying local trails survive).
-        if rid in superroute_ids:
+        keep_here = keep_plan.get(rid, {}).get("status") == "accepted"
+        if rid in superroute_ids and not keep_here:
             if audit is not None:
                 audit["assembly_status"] = "removed-thru-hike"
             if collect_removed is not None:
                 t.removed_reason = ("part of a long-distance thru-hike route "
                                     "(super-relation) — dropped from the checklist")
+                if rid in kept_children:
+                    t.removed_reason = (
+                        f"child segment of r{kept_children[rid]}, a single-park "
+                        "super-relation kept whole (registry keep_superroute) — "
+                        "its ways are in that trail")
                 t.removed_category = "thru-hike"
                 collect_removed.append(t)
             continue
+        if keep_here and ca_rule_report is not None:
+            keep_plan[rid]["main_ways"] = list(main_ways)
         if audit is not None:
             audit["assembly_status"] = "emitted"
         relation_output_way_ids.update(contributing)

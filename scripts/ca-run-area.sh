@@ -46,6 +46,25 @@ fi
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
 A="$W/$AREA_ID"
 test -f "$A/area.json" && test -f "$A/index.json"
+# Optional per-relation engine opt-ins (registry accept_gap / keep_superroute; relation-backed only). Absent
+# = no flag, so every other area runs exactly as before. `--region ca` is added once, only when one is set.
+# Entries are validated by ca_publish.py (load_registry) and again by assemble.py; each fails closed there.
+CA_RULE_FLAGS=()
+for RULE_KEY in accept_gap keep_superroute; do
+  RULE_COUNT="$(jq -r --arg id "$AREA_ID" --arg k "$RULE_KEY" '.areas[] | select(.id == $id) | if has($k) then (.[$k] | length | tostring) else empty end' \
+    "$ROOT_REGISTRY")"
+  if [ -n "$RULE_COUNT" ]; then
+    if [ "$RULE_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+      echo "SAFETY BLOCK: $RULE_KEY must be a non-empty list on a relation-backed area" >&2
+      exit 2
+    fi
+    jq -c --arg id "$AREA_ID" --arg k "$RULE_KEY" '.areas[] | select(.id == $id) | .[$k]' "$ROOT_REGISTRY" > "$A/ca-$RULE_KEY.json"
+    CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}" "$A/ca-$RULE_KEY.json")
+  fi
+done
+if [ "${#CA_RULE_FLAGS[@]}" -gt 0 ] && [ -z "$BOUNDARY_BY_ID" ]; then
+  BOUNDARY_ARGS+=(--region ca)
+fi
 jq -e --arg id "$AREA_ID" '.id == $id and .status == "ok" and (.cross_check == "registry-relation" or .cross_check == "registry-way")' \
   "$A/area.json" >/dev/null
 mkdir -p "$A/geom"
@@ -58,6 +77,7 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --out "data/aoi/$AREA_ID.trails.geojson" \
   --only-area "$AREA_NAME" \
   ${BOUNDARY_ARGS[@]+"${BOUNDARY_ARGS[@]}"} \
+  ${CA_RULE_FLAGS[@]+"${CA_RULE_FLAGS[@]}"} \
   --min-length-mi 0.1 --per-area-merge \
   --report-json "$A/assembly.json"
 cp "data/aoi/$AREA_ID.removed.geojson" "$A/removed.geojson"

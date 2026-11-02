@@ -181,6 +181,56 @@ struct PlannedRouteTests {
         #expect(!c.hikeStarted && !c.preview.isShowing)
     }
 
+    @MainActor
+    @Test func showOnMapRefitsOnceAfterSettling() async throws {
+        let c = PlanHikeController()
+        c.settleDelay = .milliseconds(20)
+        c.loadPreviewForTesting(PlanPreview.options(best: route([(.trail, 2)]), alternatives: []))
+        c.showOnMap()
+        #expect(c.preview.isShowing && c.fitTick == 1)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(c.fitTick == 2)
+        // Clearing before the delay ends cancels the second fit.
+        c.showOnMap()
+        #expect(c.fitTick == 3)
+        c.clearRoute()
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(c.fitTick == 3)
+    }
+
+    // MARK: - Off-main planning inputs
+    @Test func completionSnapshotMatchesIdAndFingerprintRules() {
+        let a = K.trail("A", [(0, 0), (200, 0)])
+        let b = K.trail("B", [(0, 300), (200, 300)])
+        let c = K.trail("C", [(0, 600), (200, 600)])
+        let inputs = [a, b, c].map { TrailNetwork.Input(areaId: "x", trail: $0) }
+        let byId = TrailCompletionLookup.snapshot(
+            completions: ["x": [a.id: "2026-01-01"]], fingerprints: [], trails: inputs)
+        #expect(byId.isComplete(inputs[0].key) && !byId.isComplete(inputs[1].key))
+        let byFp = TrailCompletionLookup.snapshot(
+            completions: [:], fingerprints: [b.completionFingerprint], trails: inputs)
+        #expect(byFp.isComplete(inputs[1].key) && !byFp.isComplete(inputs[0].key) && !byFp.isComplete(inputs[2].key))
+    }
+
+    @Test func areasReadOffMainActorFromDisk() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PlanLoaderTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let area = Area(
+            id: "nb", name: "Nb", subtitle: "AZ", centerLat: 33.3, centerLon: -112, zoom: 13,
+            bbox: [-112.1, 33.2, -111.9, 33.4],
+            trails: [Trail(id: "t", name: "T", distanceMi: 1, difficulty: .easy,
+                           segments: [[[33.3, -112], [33.31, -112.01]]])],
+            trailCount: 1, totalMi: 1, cachedAt: nil)
+        _ = AreaCacheStore(cacheDirectory: dir).store(area)
+        let got = await Task.detached {
+            PlanningNetworkLoader.readAreas(ids: ["nb", "missing", "nb"], directory: dir)
+        }.value
+        #expect(got.keys.sorted() == ["nb"])
+        #expect(got["nb"]?.bbox == [-112.1, 33.2, -111.9, 33.4])
+        #expect(PlanningNetworkLoader.readAreas(ids: [], directory: dir).isEmpty)
+    }
+
     // MARK: - Start gating
 
     @Test func startIsGatedByRecordingAndRecovery() {

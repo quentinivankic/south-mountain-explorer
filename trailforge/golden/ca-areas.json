@@ -2037,7 +2037,7 @@
           "reason": "Official Parks Canada spelling is Mi'gmaq Cedar; OSM has Migmag Cedars Trail"
         },
         {
-          "osm_name": "Sentier de la rivi\u00e8re Kouchibouguac",
+          "osm_name": "Sentier de la rivière Kouchibouguac",
           "name": "Kouchibouguac River",
           "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
           "reason": "Official Parks Canada name is Kouchibouguac River; OSM carries the French-only name"
@@ -2560,7 +2560,7 @@
           "reason": "Parks Canada trail #17 Green Gardens. OSM tags the relation rwn."
         },
         {
-          "name": "Steve\u2019s Trail",
+          "name": "Steve’s Trail",
           "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
           "reason": "Parks Canada trail #2 Steve's Trail (1 km return = the whole 0.32 mi route); dropped only by the fragment rule."
         },
@@ -2656,7 +2656,7 @@
       "province": "nl",
       "state": "Canada",
       "relation_id": 13426029,
-      "name": "L\u2019Anse aux Meadows National Historic Site",
+      "name": "L’Anse aux Meadows National Historic Site",
       "bbox": null,
       "center": null,
       "tier": 1,
@@ -3449,7 +3449,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance.",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded.",
       "exclude_trails": [
         {
           "id": "n:12a Wapiti Campground",
@@ -3479,16 +3479,6 @@
         {
           "id": "n:2n Star Wars",
           "name": "2n Star Wars",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
-          "id": "n:3 High Lakes",
-          "name": "3 High Lakes",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
-          "id": "n:3 Saturday Night Lake",
-          "name": "3 Saturday Night Lake",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
@@ -3542,24 +3532,19 @@
           "reason": "Boundary-clipped: 3.2 of 6.5 mi lie inside the polygon; not a whole route"
         },
         {
-          "id": "n:Cinquifoil Peak",
-          "name": "Cinquifoil Peak",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
           "id": "n:Cottonwood Trail 8",
           "name": "Cottonwood Trail 8",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
-          "id": "n:Curator Lake",
-          "name": "Curator Lake",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+          "id": "n:Edith Cavell Pond Trail",
+          "name": "Edith Cavell Pond Trail",
+          "reason": "Mis-stitched composite: 7.19 mi running ~4 mi east-west is not the 1 km pond walk; the Path of the Glacier Trail and Cavell Meadows Trail ship"
         },
         {
           "id": "n:Evelyn Creek/Skyline Trail",
           "name": "Evelyn Creek/Skyline Trail",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+          "reason": "Duplicate/variant piece of the Skyline Trail route (Skyline Trail ships); not a standalone named trail"
         },
         {
           "id": "n:Fiddle Peak Trail",
@@ -3607,11 +3592,6 @@
           "reason": "Boundary-clipped: 8.7 of 21.2 mi lie inside the polygon; not a whole route"
         },
         {
-          "id": "n:Morrow Peak",
-          "name": "Morrow Peak",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
           "id": "n:Mount Columbia Trail",
           "name": "Mount Columbia Trail",
           "reason": "Boundary-clipped: 2.6 of 8.1 mi lie inside the polygon; not a whole route"
@@ -3654,11 +3634,6 @@
         {
           "id": "n:Sleepy Hollow",
           "name": "Sleepy Hollow",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
-          "id": "n:Stutfield Glacier Ice Cave Route",
-          "name": "Stutfield Glacier Ice Cave Route",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
@@ -3719,11 +3694,6 @@
         {
           "id": "n:Trail 3 (Town to 3a)",
           "name": "Trail 3 (Town to 3a)",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
-          "id": "n:Trail 3 Minnow Lake",
-          "name": "Trail 3 Minnow Lake",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
@@ -3797,11 +3767,6 @@
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
-          "id": "n:Trail 8 (MinaLake)",
-          "name": "Trail 8 (MinaLake)",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
           "id": "n:Trail 8c",
           "name": "Trail 8c",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
@@ -3809,11 +3774,6 @@
         {
           "id": "n:Trail 8c Historic Route",
           "name": "Trail 8c Historic Route",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
-        },
-        {
-          "id": "n:Trail 9 Wabaso Lake",
-          "name": "Trail 9 Wabaso Lake",
           "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
         },
         {
@@ -3844,7 +3804,7 @@
         {
           "id": "n:Valley of the 5 Lakes Trail",
           "name": "Valley of the 5 Lakes Trail",
-          "reason": "Jasper town MTB/fitness network, numbered/informal name, or unofficial route; not on the Parks Canada hiking guide"
+          "reason": "Duplicate/variant of 'Valley of the Five Lakes Trail' (2.0 mi stitched piece; the 3.44 mi trail ships)"
         },
         {
           "id": "n:Water tower",
@@ -3874,6 +3834,42 @@
           "name": "Valley of the Five Lakes Trail",
           "source": "https://www.openstreetmap.org/way/24828516",
           "reason": "Typo/numeric-name fix to the official spelling; same trail"
+        },
+        {
+          "osm_name": "Trail 9 Wabaso Lake",
+          "name": "Wabasso Lake Trail",
+          "source": "https://www.openstreetmap.org/way/253265124",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Trail 8 (MinaLake)",
+          "name": "Mina Lake Trail",
+          "source": "https://www.openstreetmap.org/way/1122817749",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Curator Lake",
+          "name": "Curator Lake Trail",
+          "source": "https://www.openstreetmap.org/way/253088513",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "3 Saturday Night Lake",
+          "name": "Saturday Night Lake Trail",
+          "source": "https://www.openstreetmap.org/way/155369038",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "3 High Lakes",
+          "name": "High Lakes Trail",
+          "source": "https://www.openstreetmap.org/way/155368984",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
+        },
+        {
+          "osm_name": "Trail 3 Minnow Lake",
+          "name": "Minnow Lake Trail",
+          "source": "https://www.openstreetmap.org/way/155368936",
+          "reason": "Numbered/informal OSM name replaced by the official hiking-trail name; same trail (Parks Canada Jasper day-hike guide)"
         }
       ]
     },
@@ -4219,6 +4215,11 @@
           "reason": "Boundary-clipped: 2.9 of 7.0 mi lie inside the polygon; not a whole route"
         },
         {
+          "id": "n:Mount Buller Buttress #4 Climber's Route",
+          "name": "Mount Buller Buttress #4 Climber's Route",
+          "reason": "Climbing access route, not a hiking trail"
+        },
+        {
           "id": "n:Mount Nestor Trail",
           "name": "Mount Nestor Trail",
           "reason": "Boundary-clipped: 1.5 of 2.2 mi lie inside the polygon; not a whole route"
@@ -4334,6 +4335,11 @@
           "reason": "variant/approach/connector segment, not a standalone named trail"
         },
         {
+          "id": "n:Harvie Heights ridge traverse",
+          "name": "Harvie Heights ridge traverse",
+          "reason": "Informal lower-case name, unofficial route"
+        },
+        {
           "id": "n:High Rockies",
           "name": "High Rockies",
           "reason": "Boundary-clipped: 1.1 of 15.8 mi lie inside the polygon; not a whole route"
@@ -4347,6 +4353,11 @@
           "id": "n:Horseshoe Loop",
           "name": "Horseshoe Loop",
           "reason": "Boundary-clipped: 1.6 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Horseshoe Slabs",
+          "name": "Horseshoe Slabs",
+          "reason": "Climbing slab, not a hiking trail"
         },
         {
           "id": "n:Jewell Pass Tr (TCT)",
@@ -4417,7 +4428,7 @@
       "trail_name_fixes": [
         {
           "osm_name": "Pigeon Mtn Tr",
-          "name": "Pigeon Mtn Trail",
+          "name": "Pigeon Mountain Trail",
           "source": "https://www.openstreetmap.org/way/24851721",
           "reason": "Abbreviation expanded; same trail"
         },
@@ -4850,6 +4861,11 @@
           "reason": "Boundary-clipped: 1.0 of 2.5 mi lie inside the polygon; not a whole route"
         },
         {
+          "id": "n:Drywood Climber's Trail",
+          "name": "Drywood Climber's Trail",
+          "reason": "Climbing access route, not a hiking trail"
+        },
+        {
           "id": "n:Gargantua / Andy Good Plateau Route",
           "name": "Gargantua / Andy Good Plateau Route",
           "reason": "Boundary-clipped: 0.6 of 3.2 mi lie inside the polygon; not a whole route"
@@ -5078,8 +5094,8 @@
         -117.402
       ],
       "tier": 2,
-      "hold": null,
-      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar.",
+      "hold": "few-trails",
+      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble.",
       "exclude_trails": [
         {
           "id": "n:Whitehorse Creek Trails",

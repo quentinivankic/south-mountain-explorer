@@ -110,6 +110,7 @@ jobs:
           # back to the backup). Anything else refuses. Nothing is written in this step.
           mkdir -p cand/orphans
           : > cand/existing.tsv
+          : > cand/orphan-headers.tsv
           while read -r area; do
             for key in "$area.json" "silhouettes/$area.json"; do
               found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" \
@@ -119,6 +120,9 @@ jobs:
                 etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" \
                   --query ETag --output text "cand/orphans/$key")"
                 printf '%s\t%s\n' "$key" "${etag//\"/}" >> cand/existing.tsv
+                # Original headers, so a rollback restores them exactly (jq fails loudly on bad JSON).
+                aws s3api head-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --output json \
+                  | jq -r --arg k "$key" '[$k, .ContentType, .CacheControl] | @tsv' >> cand/orphan-headers.tsv
               fi
             done
           done < cand/areas.txt
@@ -151,6 +155,12 @@ jobs:
             aws s3 cp "$1" "s3://$BUCKET/$2" --endpoint-url "$ENDPOINT" \
               --content-type "application/json" --cache-control "$3" --no-progress
           }
+          # Adopted orphan: same conditional write as sync-dk-to-r2.yml apply-update (bare ETag, --if-match "$4").
+          put_if() { # file key cache-control etag
+            aws s3api put-object --bucket "$BUCKET" --key "$2" --body "$1" \
+              --content-type "application/json" --cache-control "$3" --if-match "$4" \
+              --endpoint-url "$ENDPOINT" > /dev/null
+          }
           cur() { aws s3api head-object --bucket "$BUCKET" --key "$1" --endpoint-url "$ENDPOINT" --query ETag --output text | tr -d '"'; }
           base() { awk -F'\t' -v k="$1" '$1==k {print $2}' snap/etags.tsv; }
           # Race guard: shared files and parking must still be the snapshotted objects.
@@ -167,10 +177,9 @@ jobs:
             esac
             etag="$(jq -r --arg k "$key" '.adopt[] | select(.key==$k) | .etag' cand/adopt.json)"
             if [ -n "$etag" ]; then
-              # Adopted System-1 orphan: still the planned object, overwritten only If-Match its ETag.
+              # Adopted System-1 orphan: must still be the planned object, then overwritten If-Match its ETag.
               test "$(cur "$key")" = "$etag" || { echo "adopted $key changed since plan; aborting"; exit 1; }
-              aws s3api put-object --bucket "$BUCKET" --key "$key" --body "cand/$file" --if-match "\"$etag\"" \
-                --endpoint-url "$ENDPOINT" --content-type "application/json" --cache-control "$cc" > /dev/null
+              put_if "cand/$file" "$key" "$cc" "$etag"
             else
               put "cand/$file" "$key" "$cc"
             fi
@@ -204,11 +213,19 @@ jobs:
           parking_before="$(awk -F'\t' '$1=="parking.json" {print $2}' snap/etags.tsv)"
           # Do not clobber anyone else's later publish: each shared file must be the applied
           # candidate (restore) or already the baseline (skip); anything else refuses.
-          # Adopted orphan keys: fetch their current bytes so rollback-decide can tell candidate/orphan/third party.
+          # Adopted orphan keys. The saved orphan bytes must still be exactly what the plan recorded.
+          python3 scripts/ca_publish.py check-adopt-files --adopt rb/cand/adopt.json --dir rb/cand/orphans
+          # Current live bytes + ETags of the adopted keys. Only a real 404 means "absent"; every other
+          # fetch error fails the rollback (set -e), so a failure can never pass for a missing key.
           mkdir -p rb/cur
-          jq -r '.adopt[].key' rb/cand/adopt.json | while read -r key; do
-            mkdir -p "rb/cur/$(dirname "$key")"
-            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "rb/cur/$key" > /dev/null 2>&1 || rm -f "rb/cur/$key"
+          : > rb/live-etags.tsv
+          for key in $(jq -r '.adopt[].key' rb/cand/adopt.json); do
+            found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
+            if [ -n "$found" ] && [ "$found" != "None" ]; then
+              mkdir -p "rb/cur/$(dirname "$key")"
+              etag="$(aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --query ETag --output text "rb/cur/$key")"
+              printf '%s\t%s\n' "$key" "${etag//\"/}" >> rb/live-etags.tsv
+            fi
           done
           python3 scripts/ca_publish.py rollback-decide --plan rb/cand/plan.json --live-dir snap \
             --adopt rb/cand/adopt.json --cur-dir rb/cur > rb/actions.tsv
@@ -220,8 +237,18 @@ jobs:
                 aws s3 cp "rb/snap/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
                   --content-type "application/json" --cache-control "public, max-age=300" --no-progress ;;
               restore-orphan)
-                aws s3 cp "rb/cand/orphans/$key" "s3://$BUCKET/$key" --endpoint-url "$ENDPOINT" \
-                  --content-type "application/json" --cache-control "public, max-age=86400" --no-progress ;;
+                ct="$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/cand/orphan-headers.tsv)"
+                cc="$(awk -F'\t' -v k="$key" '$1==k {print $3}' rb/cand/orphan-headers.tsv)"
+                test -n "$ct" && test -n "$cc" || { echo "no saved headers for $key"; exit 1; }
+                live_etag="$(awk -F'\t' -v k="$key" '$1==k {print $2}' rb/live-etags.tsv)"
+                if [ -n "$live_etag" ]; then
+                  aws s3api put-object --bucket "$BUCKET" --key "$key" --body "rb/cand/orphans/$key" \
+                    --content-type "$ct" --cache-control "$cc" --if-match "$live_etag" \
+                    --endpoint-url "$ENDPOINT" > /dev/null
+                else
+                  aws s3api put-object --bucket "$BUCKET" --key "$key" --body "rb/cand/orphans/$key" \
+                    --content-type "$ct" --cache-control "$cc" --endpoint-url "$ENDPOINT" > /dev/null
+                fi ;;
               skip) echo "skip $key (already baseline)" ;;
               delete)
                 aws s3api delete-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" ;;
@@ -233,6 +260,16 @@ jobs:
             aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify/$key" > /dev/null
             test "$(sha256sum "verify/$key" | cut -d' ' -f1)" = "$(sha256sum "rb/snap/$key" | cut -d' ' -f1)" || { echo "ROLLBACK READBACK MISMATCH $key"; exit 1; }
           done
+          # Adopted keys: read every one back; bytes AND content-type/cache-control must be the saved orphan's.
+          mkdir -p verify-orphans
+          for key in $(jq -r '.adopt[].key' rb/cand/adopt.json); do
+            mkdir -p "verify-orphans/$(dirname "$key")"
+            aws s3api get-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" "verify-orphans/$key" > /dev/null
+            want="$(awk -F'\t' -v k="$key" '$1==k {print $2 "|" $3}' rb/cand/orphan-headers.tsv)"
+            got="$(aws s3api head-object --bucket "$BUCKET" --key "$key" --endpoint-url "$ENDPOINT" --output json | jq -r '[.ContentType, .CacheControl] | join("|")')"
+            test "$got" = "$want" || { echo "ROLLBACK HEADER MISMATCH $key: $got != $want"; exit 1; }
+          done
+          python3 scripts/ca_publish.py check-adopt-files --adopt rb/cand/adopt.json --dir verify-orphans
           awk -F'\t' '$2=="delete" {print $1}' rb/actions.tsv | while read -r key; do
             found="$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix "$key" --endpoint-url "$ENDPOINT" --query "Contents[?Key=='$key'].Key" --output text)"
             test -z "$found" -o "$found" = "None" || { echo "$key still present"; exit 1; }

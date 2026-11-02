@@ -416,4 +416,42 @@ def test_sync_workflow_wires_the_adopt_gate_if_match_and_orphan_restore():
     assert wf.index("classify-orphans") < wf.index("build-candidates")           # classified before candidates
     assert '--if-match' in wf and "restore-orphan" in wf and "--cur-dir" in wf
     assert wf.count("delete-object") == 1                                         # still only the plain-new rollback delete
-    assert "put-object" in wf and wf.count("put-object") == 1
+    assert wf.count("aws s3api put-object") == 3          # apply put_if + the two rollback restore forms
+
+def _wf():
+    return (Path(__file__).resolve().parent.parent / ".github/workflows/sync-ca-to-r2.yml").read_text()
+def test_adopt_apply_uses_the_exact_dk_if_match_form():
+    wf = _wf()
+    dk = (Path(__file__).resolve().parent.parent / ".github/workflows/sync-dk-to-r2.yml").read_text()
+    # DK's proven call: s3api put-object ... --if-match "$4" via put(file key cc etag), bare ETag, > /dev/null.
+    dk_call = ('aws s3api put-object --bucket "$BUCKET" --key "$2" --body "$1" \\\n'
+               '              --content-type "application/json" --cache-control "$3" --if-match "$4" \\\n'
+               '              --endpoint-url "$ENDPOINT" > /dev/null')
+    assert dk_call in dk and dk_call in wf
+    assert 'put_if "cand/$file" "$key" "$cc" "$etag"' in wf
+    assert '--if-match "\\"' not in wf and '\\"$etag\\"' not in wf         # no quoted ETag form
+def test_adopt_rollback_verifies_sha_before_put_reads_back_and_never_swallows_errors():
+    wf = _wf()
+    rb = wf[wf.index("name: Rollback"):]
+    assert rb.index("check-adopt-files --adopt rb/cand/adopt.json --dir rb/cand/orphans") < rb.index("put-object")
+    assert rb.count("check-adopt-files") == 2                                    # before the put and after the readback
+    assert "ROLLBACK HEADER MISMATCH" in rb and "ContentType" in rb and "CacheControl" in rb
+    assert "orphan-headers.tsv" in wf and "no saved headers" in rb
+    assert "|| rm -f" not in wf and "> /dev/null 2>&1" not in wf and "|| true" not in rb
+def _adopt_file(tmp_path, data=b"orphan-bytes"):
+    d = tmp_path / "files"
+    (d / "silhouettes").mkdir(parents=True, exist_ok=True)
+    (d / "a-ca-ns.json").write_bytes(data)
+    adopt = tmp_path / "adopt.json"
+    adopt.write_text(json.dumps({"adopt": [{"key": "a-ca-ns.json", "etag": "e", "sha256": ca._sha(b"orphan-bytes"),
+                                            "file": "a-ca-ns.json"}]}), encoding="utf-8")
+    return adopt, d
+def test_check_adopt_files_passes_on_exact_bytes_and_fails_on_mismatch_or_missing(tmp_path, capsys):
+    adopt, d = _adopt_file(tmp_path)
+    assert ca.main(["check-adopt-files", "--adopt", str(adopt), "--dir", str(d)]) == 0
+    (d / "a-ca-ns.json").write_bytes(b"tampered")
+    assert ca.main(["check-adopt-files", "--adopt", str(adopt), "--dir", str(d)]) == 1
+    assert "differ" in capsys.readouterr().err
+    (d / "a-ca-ns.json").unlink()
+    assert ca.main(["check-adopt-files", "--adopt", str(adopt), "--dir", str(d)]) == 1
+    assert "missing" in capsys.readouterr().err

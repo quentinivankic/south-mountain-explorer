@@ -1280,6 +1280,19 @@ def classify_orphans(args: argparse.Namespace) -> int:
     return 0
 
 
+def check_adopt_files(args: argparse.Namespace) -> int:
+    """Every adopted key's file under `--dir` must exist and hash to the sha256 recorded in adopt.json."""
+    adopt = json.loads(args.adopt.read_text(encoding="utf-8"))["adopt"]
+    for item in adopt:
+        path = args.dir / item["key"]
+        if not path.is_file():
+            raise CaError(f"{item['key']}: file is missing under {args.dir}")
+        if _sha(path.read_bytes()) != item["sha256"]:
+            raise CaError(f"{item['key']}: bytes differ from the adopt sha256")
+    print(f"adopt files verified: {len(adopt)}")
+    return 0
+
+
 def rollback_decide(args: argparse.Namespace) -> int:
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
     actions = smp.rollback_actions(plan, args.live_dir)
@@ -1395,6 +1408,9 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--live-dir", required=True, type=Path)
     c.add_argument("--adopt", type=Path)
     c.add_argument("--cur-dir", type=Path)
+    k = sub.add_parser("check-adopt-files")
+    k.add_argument("--adopt", required=True, type=Path)
+    k.add_argument("--dir", required=True, type=Path)
     o = sub.add_parser("classify-orphans")
     o.add_argument("--areas-file", required=True, type=Path)
     o.add_argument("--live-index", required=True, type=Path)
@@ -1408,7 +1424,8 @@ def main(argv: list[str] | None = None) -> int:
                 "report-area": report_area, "mark-failed": mark_failed, "qualify-aggregate": qualify_aggregate,
                 "merge-index": merge_index, "verify-staged": verify_cmd, "verify-commit": verify_cmd,
                 "derive-areas": derive_areas_cmd, "build-candidates": build_candidates,
-                "rollback-decide": rollback_decide, "classify-orphans": classify_orphans}
+                "rollback-decide": rollback_decide, "classify-orphans": classify_orphans,
+                "check-adopt-files": check_adopt_files}
     try:
         return handlers[args.command](args)
     except (CaError, smp.SimpleError, contract.ManifestError, contract.InventoryError, OSError, ValueError,

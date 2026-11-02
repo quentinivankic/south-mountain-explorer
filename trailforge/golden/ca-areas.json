@@ -6874,8 +6874,8 @@
         -81.547
       ],
       "tier": 1,
-      "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance.",
+      "hold": "needs-rescope",
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule.",
       "keep_trails": [
         {
           "name": "Marr Lake Trail",
@@ -6972,8 +6972,8 @@
         -82.508
       ],
       "tier": 1,
-      "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail page read (https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking): Marsh Boardwalk, DeLaurier, Woodland Nature, West Beach Footpath present; Tilden Woods, Tip Trail and three footpaths (Cactus Field, Redbud, Sparrow Field) waived as official standalone walks. Not mapped by name (known omissions): Chinquapin Oak Trail, Shuster Trail.",
+      "hold": "needs-rescope",
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail page read (https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking): Marsh Boardwalk, DeLaurier, Woodland Nature, West Beach Footpath present; Tilden Woods, Tip Trail and three footpaths (Cactus Field, Redbud, Sparrow Field) waived as official standalone walks. Not mapped by name (known omissions): Chinquapin Oak Trail, Shuster Trail. Review 708: HELD needs-rescope. Tip Trail ships 0.17 of 0.62 mi and Chinquapin Oak Trail (4 km) is absent; hold until OSM supports both or the stub is accepted.",
       "keep_trails": [
         {
           "name": "Tilden Woods Trail",
@@ -7047,6 +7047,14 @@
           "name": "Oak Ridges Trail Association side trail",
           "reason": "Oak Ridges Trail Association side trail (long-distance trail network); not a Parks Canada trail"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Rouge National Park Trail",
+          "name": "Northeast, Harvest and Central Trails",
+          "source": "https://parks.canada.ca/pn-np/on/rouge/activ/sentiers-trails",
+          "reason": "OSM name is not an official Parks Canada trail; the spine is the Northeast, Harvest and Central trails"
+        }
       ]
     },
     {
@@ -7066,18 +7074,13 @@
         -78.199
       ],
       "tier": 2,
-      "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. KNOWN OMISSION: Western Uplands Backpacking Trail (60 mi super-relation r11851829) is dropped by the engine as a thru-hike super-relation; it is not registry-waivable (code follow-up). Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified).",
+      "hold": "needs-rescope",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. KNOWN OMISSION: Western Uplands Backpacking Trail (60 mi super-relation r11851829) is dropped by the engine as a thru-hike super-relation; it is not registry-waivable (code follow-up). Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified). Review 708: Brent Crater Trail restored (on the Ontario Parks Algonquin hiking list, 2 km). HELD needs-rescope until Western Uplands can ship (single-park super-relation rule) or the omission is accepted.",
       "exclude_trails": [
         {
           "id": "n:Arowhon Pine trail",
           "name": "Arowhon Pine trail",
           "reason": "Not on the Ontario Parks Algonquin hiking list; trail at the Arowhon Pines private lodge"
-        },
-        {
-          "id": "n:Brent Crater Trail",
-          "name": "Brent Crater Trail",
-          "reason": "Not on the Ontario Parks Algonquin hiking list; backcountry canoe-access trail"
         },
         {
           "id": "n:CN Alderdale Subdivision",
@@ -7423,6 +7426,11 @@
           "name": "Plantain Lane Nature Trail",
           "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
           "reason": "Ontario Parks lists the 0.3 km Plantain Lane Nature Trail"
+        },
+        {
+          "name": "Chest Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the 0.8 km Nanabosho Lookout Trail; the OSM 'Chest Trail' is where it climbs"
         }
       ],
       "trail_name_fixes": [
@@ -7431,6 +7439,12 @@
           "name": "Piney Wood Hills Nature Trail",
           "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
           "reason": "Typo in OSM; Ontario Parks spells Piney Wood Hills Nature Trail"
+        },
+        {
+          "osm_name": "Chest Trail",
+          "name": "Nanabosho Lookout Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks names this walk Nanabosho Lookout Trail (0.8 km)"
         }
       ]
     },

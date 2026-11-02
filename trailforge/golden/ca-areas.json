@@ -5606,6 +5606,12 @@
           "name": "Otterhead Trail",
           "source": "https://www.openstreetmap.org/way/429413713",
           "reason": "Capitalisation only; same trail"
+        },
+        {
+          "osm_name": "Spiral Tunnel Viewpoint (Upper tunnel) Trail",
+          "name": "Spiral Tunnel Viewpoint Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
         }
       ]
     },
@@ -5658,6 +5664,11 @@
           "id": "n:Mount Ball Trail",
           "name": "Mount Ball Trail",
           "reason": "Boundary-clipped: 1.1 of 1.7 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Redstreak Campground Trail",
+          "name": "Redstreak Campground Trail",
+          "reason": "Campground path, not a hiking trail"
         },
         {
           "id": "n:Simpson River Trail",
@@ -5734,7 +5745,7 @@
       "trail_name_fixes": [
         {
           "osm_name": "Hemlock grove boardwalk",
-          "name": "Hemlock grove Boardwalk",
+          "name": "Hemlock Grove Boardwalk",
           "source": "https://www.openstreetmap.org/way/30606524",
           "reason": "Capitalisation only; same trail"
         }
@@ -5897,8 +5908,8 @@
         -122.992
       ],
       "tier": 2,
-      "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. BC Parks lists Diamond Head (Elfin Lakes), Black Tusk / Garibaldi Lake (Rubble Creek, Taylor Meadows), Cheakamus Lake, Singing Pass, Russet Lake and Wedgemount Lake (https://bcparks.ca/garibaldi-park/). Present: Black Tusk, Panorama Ridge, Garibaldi Lake, Elfin Lakes, Cheakamus Lake, Helm Creek, Mamquam Lake and named scrambles. Wedgemount Lake, High Note and Overlord are boundary-clipped and excluded. Whistler-side mountain-bike names are all sub-0.6 mi stubs and dropped. OSM splits the main trails into partly unnamed ways, so several distances are shorter than the official ones.",
+      "hold": "needs-rescope",
+      "notes": "BC curation 2026-11-02. Whole park. BC Parks lists Diamond Head (Elfin Lakes), Black Tusk / Garibaldi Lake (Rubble Creek, Taylor Meadows), Cheakamus Lake, Singing Pass, Russet Lake and Wedgemount Lake (https://bcparks.ca/garibaldi-park/). Present: Black Tusk, Panorama Ridge, Garibaldi Lake, Elfin Lakes, Cheakamus Lake, Helm Creek, Mamquam Lake and named scrambles. Wedgemount Lake, High Note and Overlord are boundary-clipped and excluded. Whistler-side mountain-bike names are all sub-0.6 mi stubs and dropped. OSM splits the main trails into partly unnamed ways, so several distances are shorter than the official ones. HELD 2026-11-02 (review #707): Garibaldi Lake 1.31 mi, Elfin Lakes 2.21, Black Tusk 1.49 and Panorama Ridge 1.68 are disjoint OSM stubs of 5.6-9 mi routes and Wedgemount is clipped; same defect as Joffre. Needs OSM completion before shipping. Known omission (review #707): Wedgemount Lake.",
       "exclude_trails": [
         {
           "id": "n:Black Tusk/Cinder Flats Trail",
@@ -5950,7 +5961,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "BC curation 2026-11-02. Only 2 whole named trails: Joffre Lakes Trail (OSM maps 0.84 mi of the official 5 km one-way route) and Slalok Mountain Trail; Tszil Mountain Trail is boundary-clipped (0.7 of 1.1 mi). 2.0 mi total is under the 2.5 mi / 3 trail bar and the flagship distance would be understated by a factor of three. OSM mapping gap; Quentin's call whether to complete the OSM trail."
+      "notes": "BC curation 2026-11-02. Only 2 whole named trails: Joffre Lakes Trail (OSM maps 0.84 mi of the official 5 km one-way route) and Slalok Mountain Trail; Tszil Mountain Trail is boundary-clipped (0.7 of 1.1 mi). 2.0 mi total is under the 2.5 mi / 3 trail bar and the flagship distance would be understated by a factor of three. OSM mapping gap; Quentin's call whether to complete the OSM trail. Known omission (review #707): Joffre Lakes Trail (held)."
     },
     {
       "id": "golden-ears-provincial-park-ca-bc",
@@ -6131,6 +6142,18 @@
           "name": "Mount Myra Trail",
           "source": "https://www.openstreetmap.org/way/971400068",
           "reason": "Abbreviation expanded; same trail"
+        },
+        {
+          "osm_name": "Bedwell River Trail (Oimintis)",
+          "name": "Bedwell River Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
+        },
+        {
+          "osm_name": "Mckenzie Meadows Trail",
+          "name": "McKenzie Meadows Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Capitalisation only; same trail"
         }
       ]
     },
@@ -6262,6 +6285,14 @@
           "id": "n:Lakeview Trail / Centennial Trail",
           "name": "Lakeview Trail / Centennial Trail",
           "reason": "Composite of Lakeview Trail and Centennial trail (both shipped)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Centennial trail (Wall Creek trail)",
+          "name": "Centennial Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
         }
       ]
     },
@@ -6397,7 +6428,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (relation r2227369; same-name way twin w61586047 handled by boundary_by_id). Black Mountain, Mount Strachan, Mount Hanover, Yew Lake, Sunset Trail present. Howe Sound Crest Trail (10.5 of 16.6 mi inside) and Baden Powell (long-distance, clipped) excluded. Winter-only access trail excluded. BC Parks Cypress page (https://bcparks.ca/cypress-park/) lists Baden Powell and day-hike / backcountry trails (not compared name by name).",
+      "notes": "BC curation 2026-11-02. Whole park (relation r2227369; same-name way twin w61586047 handled by boundary_by_id). Black Mountain, Mount Strachan, Mount Hanover, Yew Lake, Sunset Trail present. Howe Sound Crest Trail (10.5 of 16.6 mi inside) and Baden Powell (long-distance, clipped) excluded. Winter-only access trail excluded. BC Parks Cypress page (https://bcparks.ca/cypress-park/) lists Baden Powell and day-hike / backcountry trails (not compared name by name). Known omission (review #707): Hollyburn Peak.",
       "boundary_by_id": true,
       "exclude_trails": [
         {
@@ -6445,7 +6476,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Elsay Lake, Mystery Lake, Mount Elsay, Flower Lake Loop, Old Buck, Bishop Bump, Canadian Pass, De Pencier Bluff present; Mount Seymour Trail restored (81% inside). About 60 mountain-bike trail names are sub-0.6 mi stubs and dropped; Baden Powell is long-distance / clipped. BC Parks Mount Seymour page (https://bcparks.ca/mount-seymour-park/) read for the winter routes only (trail list unverified). Restored despite the clip rule: Mount Seymour Trail (Flagship summit trail; 1.4 of 1.7 mi (81%) inside the polygon, the rest is the lot-side start at the polygon edge; no neighbouring BC area contains it).",
+      "notes": "BC curation 2026-11-02. Whole park. Elsay Lake, Mystery Lake, Mount Elsay, Flower Lake Loop, Old Buck, Bishop Bump, Canadian Pass, De Pencier Bluff present; Mount Seymour Trail restored (81% inside). About 60 mountain-bike trail names are sub-0.6 mi stubs and dropped; Baden Powell is long-distance / clipped. BC Parks Mount Seymour page (https://bcparks.ca/mount-seymour-park/) read for the winter routes only (trail list unverified). Restored despite the clip rule: Mount Seymour Trail (Flagship summit trail; 1.4 of 1.7 mi (81%) inside the polygon, the rest is the lot-side start at the polygon edge; no neighbouring BC area contains it). Review #707: Mount Seymour Trail (1.37 mi, 2 pieces) accepted as a known fragment. Known omission (review #707): Dog Mountain.",
       "exclude_trails": [
         {
           "id": "n:Baden Powell Trail",
@@ -6466,6 +6497,11 @@
           "id": "n:Indian Arm / Elsay Lake Access Route",
           "name": "Indian Arm / Elsay Lake Access Route",
           "reason": "Boundary-clipped: 2.2 of 3.0 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Old Buck Access Trail",
+          "name": "Old Buck Access Trail",
+          "reason": "variant/approach/connector segment, not a standalone named trail"
         },
         {
           "id": "n:Percy",
@@ -6497,7 +6533,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Three trails: Third Peak Trail, Chief Backside Trail and The Climb (Skatshn). First Peak and Second Peak trails are 0.3 and 0.6 mi OSM stubs below the fragment floor and no BC Parks list page was readable to waive them. Sea to Summit and Slhanay (clipped) and ~25 climbing-approach names excluded.",
+      "notes": "BC curation 2026-11-02. Whole park. Three trails: Third Peak Trail, Chief Backside Trail and The Climb (Skatshn). First Peak and Second Peak trails are 0.3 and 0.6 mi OSM stubs below the fragment floor and no BC Parks list page was readable to waive them. Sea to Summit and Slhanay (clipped) and ~25 climbing-approach names excluded. Known omission (review #707): First Peak and Second Peak.",
       "exclude_trails": [
         {
           "id": "n:A Scottish Tale Approach",
@@ -6600,6 +6636,11 @@
           "id": "n:Drinnon Lake Trail",
           "name": "Drinnon Lake Trail",
           "reason": "Boundary-clipped: 2.5 of 3.2 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Evans Beach/Beatrice Lake Trail",
+          "name": "Evans Beach/Beatrice Lake Trail",
+          "reason": "Composite of two trails (slash name); composite-exclusion rule"
         },
         {
           "id": "n:Mulvey Basin Trail",
@@ -6705,7 +6746,7 @@
       ],
       "tier": 3,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (Metro Vancouver). Compared with the Metro Vancouver Lynn Headwaters brochure (https://metrovancouver.org/services/regional-parks/Documents/lynn-headwaters-regional-park-brochure.pdf) only at park level (not name by name): Lynn Lake, Hanes Valley, Coliseum Mountain, Headwaters, Cedar Mill, Kennedy Falls, Goat Mountain / Ridge present. Several backcountry routes beyond Norvan Falls were closed at survey time (not a data issue). Baden Powell (long-distance) and clipped routes excluded.",
+      "notes": "BC curation 2026-11-02. Whole park (Metro Vancouver). Compared with the Metro Vancouver Lynn Headwaters brochure (https://metrovancouver.org/services/regional-parks/Documents/lynn-headwaters-regional-park-brochure.pdf) only at park level (not name by name): Lynn Lake, Hanes Valley, Coliseum Mountain, Headwaters, Cedar Mill, Kennedy Falls, Goat Mountain / Ridge present. Several backcountry routes beyond Norvan Falls were closed at survey time (not a data issue). Baden Powell (long-distance) and clipped routes excluded. Known omission (review #707): Lynn Peak and Norvan Falls.",
       "exclude_trails": [
         {
           "id": "n:Erik the Red Trail",
@@ -6731,6 +6772,14 @@
           "id": "n:Palisade Ridge Trail",
           "name": "Palisade Ridge Trail",
           "reason": "Boundary-clipped: 1.0 of 1.2 mi lie inside the polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Crown N1 (Godmother Peak) Trail",
+          "name": "Crown N1 Trail",
+          "source": "https://www.openstreetmap.org/",
+          "reason": "Drop parenthetical alias; same trail"
         }
       ]
     },

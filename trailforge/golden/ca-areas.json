@@ -12467,6 +12467,67 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Echo Valley PP: replay 1 trail (Mink Trail 1.0 mi)."
+    },
+    {
+      "id": "tombstone-territorial-park-ca-yt",
+      "province": "yt",
+      "state": "Canada",
+      "relation_id": 9527815,
+      "name": "Tombstone Territorial Park",
+      "bbox": [
+        -139.24,
+        64.22,
+        -137.97,
+        64.92
+      ],
+      "center": [
+        64.47,
+        -138.38
+      ],
+      "tier": 2,
+      "hold": null,
+      "exclude_trails": [
+        {
+          "id": "n:Hart River Trail",
+          "name": "Hart River Trail",
+          "reason": "Not on the Yukon Parks or yukonhiking.ca Tombstone lists; 5.5 mi name-stitched way with no signage tags; not a hike a local would tick."
+        },
+        {
+          "id": "n:North Klondike Trail",
+          "name": "North Klondike Trail",
+          "reason": "Unlisted 1.6 mi name-stitched way; not on the Yukon Parks or yukonhiking.ca lists."
+        },
+        {
+          "id": "n:Angelcomb Peak",
+          "name": "Angelcomb Peak",
+          "reason": "Unmarked peak ridge route; Yukon Parks discourages it (sheep lambing habitat), so it is a peak ascent without a signed trail."
+        },
+        {
+          "id": "n:Surfbird Mountain",
+          "name": "Surfbird Mountain",
+          "reason": "Unmarked peak ridge route (peak ascent without a signed trail)."
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Beaver Pond Interpretive Trail",
+          "source": "https://yukon.ca/en/outdoor-recreation-and-wildlife/camping/site/tombstone-mountain",
+          "reason": "Yukon Parks lists a 1 km wheelchair-accessible interpretive trail from the Tombstone Interpretive Centre to a beaver pond; OSM has it as a Yukon Government relation of 0.589 mi (under the 0.6 mi floor), wholly inside the park."
+        }
+      ],
+      "notes": "Territories batch 2026-11-02 (ca-terr). Kept: the Grizzly Lake, Divide Lake and Talus Lake backcountry-campground trail chain (Yukon Parks), Goldensides, Twin Lakes and Mount Monolith Viewpoint, Beaver Pond Interpretive. Sources: https://yukon.ca/en/outdoor-recreation-and-wildlife/parks-and-protected-areas/tombstone-territorial-park and https://yukonhiking.ca/regions/TombstoneTerritorialPark."
+    },
+    {
+      "id": "kluane-national-park-and-reserve-ca-yt",
+      "province": "yt",
+      "state": "Canada",
+      "relation_id": 9561308,
+      "name": "Kluane National Park and Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). The park relation r9561308 spans 3.992 x 1.338 deg and fails the 3.0 deg size gate in ca_publish.py (_size_problems), so prepare-areas cannot run it. Code need (follow-up, no tooling built): a per-area span waiver or a Haines Junction / Kathleen Lake sub-area boundary. Content in OSM: King's Throne (r6356498 2.39 mi plus a 1.68 mi summit way), Sheep Creek (lwn r6381421), Auriol Trail 7.9 mi in 11 ways, Cottonwood Trail (summer and winter ways mixed), Slims River West 9.3 mi. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap."
     }
   ]
 }

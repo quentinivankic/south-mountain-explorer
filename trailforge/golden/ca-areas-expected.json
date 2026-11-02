@@ -2290,6 +2290,126 @@
         "Wolf Willow Loop",
         "Wolf Willow Loop / Trans Canada Trail"
       ]
+    },
+    "goldstream-provincial-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Arbutus Ridge Trail",
+        "Arbutus Trail",
+        "Bridge Trail",
+        "FUBM",
+        "Finlayson Short Circuit",
+        "Gargamel",
+        "Hidden Springs Falls Trail",
+        "Skirt Mountain Trail"
+      ]
+    },
+    "tweedsmuir-provincial-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 43.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alexander Mackenzie Heritage Trail",
+        "Horsetail falls trail",
+        "Junker-Vista Portage",
+        "Kidney-Widgeon Portage",
+        "Turner-Cutthroat Portage",
+        "Tweedsmuir Lookout Trail",
+        "Tweedsmuir Trail",
+        "Valley Loop Trail",
+        "Vista-Cutthroat Portage"
+      ]
+    },
+    "neys-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 8.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "quetico-provincial-park-ca-on": {
+      "trail_count": 7,
+      "total_mi": 11.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Batchewaung Portage",
+        "Big Knife Portage",
+        "Black Robe Portage",
+        "Bonhomme Portage",
+        "Bottle Portage",
+        "Cedar Portage",
+        "Dead Man's Portage",
+        "Death March Portages",
+        "Deux Rivières Portage",
+        "Eat 'em Up Portage",
+        "Fisher Trail",
+        "French Portage",
+        "Have a Smoke Portage",
+        "Knife Portage",
+        "McAlpine Portage",
+        "Memory Lane Portage",
+        "Monument Portage",
+        "North Portage",
+        "Paul Kane Trail",
+        "Portage",
+        "Portage de gros Rocher",
+        "Portage des Morts",
+        "Portage des Petite Islette",
+        "Portage des Petite Rocher",
+        "Sauvage Portage",
+        "Silver Falls Portage",
+        "Wheelbarrow Portage"
+      ]
+    },
+    "restoule-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 4.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Angel's Point Trail",
+        "Grawbarger Trail",
+        "Rangers Point Trail"
+      ]
+    },
+    "rondeau-provincial-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 13.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Warbler Way"
+      ]
+    },
+    "whiteshell-provincial-park-ca-mb": {
+      "trail_count": 15,
+      "total_mi": 89.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Mantario Trail"
+      ],
+      "forbidden_names": [
+        "Alf Hole Winter Trail",
+        "Big Whiteshell Hiking Trail",
+        "Centennnial Trail",
+        "Chattermark",
+        "Dragon Fire Self-Guiding Trail",
+        "East Perimeter Trail",
+        "Falcon South Shore Trail",
+        "Hunt Lake Trail",
+        "Jean Lake Winter Trail",
+        "Marsh Trail",
+        "North Whiteshell Trail",
+        "North Whiteshell Trail (hikeable)",
+        "South Shore Trail",
+        "South Whiteshell Trail",
+        "Teagan's Connector"
+      ]
     }
   }
 }

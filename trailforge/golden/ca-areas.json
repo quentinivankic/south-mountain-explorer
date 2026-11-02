@@ -2511,6 +2511,599 @@
       "tier": 3,
       "hold": "municipal-deferred",
       "notes": "NB curation 2026-11-02. leisure=park relation (needs the Canada workflow r<id> re-add extended to this relation). Saint John city park with many mountain-bike and exercise trails (Carnage, Moose Trax, Zoo Trail); municipal tier, MTB-heavy."
+    },
+    {
+      "id": "gros-morne-national-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 6236296,
+      "name": "Gros Morne National Park",
+      "bbox": [
+        -58.2,
+        49.25,
+        -57.36,
+        50.03
+      ],
+      "center": [
+        49.596,
+        -57.768
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT.",
+      "exclude_trails": [
+        {
+          "id": "n:Lookout trail",
+          "name": "Lookout trail",
+          "reason": "Park boundary clips it to 0.81 of its 2.2 mi in OSM (official Lookout Trail is a 5.8 km loop); a stub is not the whole route, listed as a known omission"
+        },
+        {
+          "id": "n:Snug Harbour to North Rim",
+          "name": "Snug Harbour to North Rim",
+          "reason": "Not among Parks Canada's 18 trails (5.495 mi); same unmarked backcountry route family as the excluded Snug Harbor Trail"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Gros Morne Mountain Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #9 (17 km return). OSM tags the relation rwn."
+        },
+        {
+          "name": "Tablelands",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #16 Tablelands Trail. OSM tags the relation rwn."
+        },
+        {
+          "name": "Green Gardens Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #17 Green Gardens. OSM tags the relation rwn."
+        },
+        {
+          "name": "Steve\u2019s Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #2 Steve's Trail (1 km return = the whole 0.32 mi route); dropped only by the fragment rule."
+        },
+        {
+          "name": "Berry Hill Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #7 Berry Hill Trail (1.5 km return, about 0.47 mi one way); dropped only by the fragment rule."
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Stuckless Pont Trail",
+          "name": "Stuckless Pond Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Typo; Parks Canada trail #12 Stuckless Pond Trail"
+        },
+        {
+          "osm_name": "Baker's Brook Fall Trail",
+          "name": "Baker's Brook Falls Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #6 Baker's Brook Falls"
+        },
+        {
+          "osm_name": "Stanleyville Trail from Lomond",
+          "name": "Stanleyville Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #14 Stanleyville Trail"
+        },
+        {
+          "osm_name": "Tablelands",
+          "name": "Tablelands Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #16 Tablelands Trail"
+        }
+      ]
+    },
+    {
+      "id": "terra-nova-national-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 12153321,
+      "name": "Terra Nova National Park",
+      "bbox": [
+        -54.26,
+        48.34,
+        -53.62,
+        48.71
+      ],
+      "center": [
+        48.549,
+        -53.951
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "NL curation 2026-11-02. Parks Canada trail pages read: Outport, Goowiddy, Louil Hill, Ochre Hill (https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik/<slug>). Mount Stamford look-off is the official spur off Outport. Coastal, Sandy Pond, Malady Head, Dunphy's Pond and Heritage trails exist officially but are unnamed in OSM (known omissions). Mill Cove Lookout (0.49 mi, whole official route) is kept by waiver; Ochre Hill Lookout Loop 0.17 mi stays under the fragment rule. Known partial OSM lengths: Ochre Hill, Goowiddy, Outport. Campground and Southwest Arm trails omitted.",
+      "exclude_trails": [
+        {
+          "id": "n:Trail 7 Terra Nova Park",
+          "name": "Trail 7 Terra Nova Park",
+          "reason": "Numbered OSM label, not on the Parks Canada trail list and no official name"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Mill Cove Lookout",
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Official Mill Cove Lookout Trail (1.5 km return); OSM 0.487 mi is the full route, dropped only by the fragment rule"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mill Cove Lookout",
+          "name": "Mill Cove Lookout Trail",
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Official name Mill Cove Lookout Trail"
+        }
+      ]
+    },
+    {
+      "id": "torngat-mountains-national-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 9460231,
+      "name": "Torngat Mountains National Park",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No hiking trails mapped in OSM (backcountry park, no marked trails). 0 publishable trails."
+    },
+    {
+      "id": "l-anse-aux-meadows-national-historic-site-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 13426029,
+      "name": "L\u2019Anse aux Meadows National Historic Site",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail after filters: Birchy Nuddick Trail 1.42 mi. IAT dropped; Unmarked Path in Gunners Cove 0.25 mi."
+    },
+    {
+      "id": "red-bay-national-historic-site-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 13426056,
+      "name": "Red Bay National Historic Site",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail: Tracey Hill Trail 0.76 mi; the rest are ATV/old road tracks."
+    },
+    {
+      "id": "signal-hill-national-historic-site-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 232593490,
+      "name": "Signal Hill National Historic Site",
+      "bbox": [
+        -52.74,
+        47.52,
+        -52.63,
+        47.63
+      ],
+      "center": [
+        47.568,
+        -52.679
+      ],
+      "tier": 1,
+      "hold": null,
+      "notes": "NL curation 2026-11-02. North Head, Burma Road and Ladies' Lookout are Parks Canada trails (pages under https://parks.canada.ca/lhn-nhs/nl/signalhill/activ/ran-hik/). The East Coast Trail legs inside the site are excluded as long-distance. Ladies' Lookout is 0.53 mi in OSM vs about 0.8 mi official (1.3 km): known omission of the top section. Lake to Lookout Walk 0.27 mi stays dropped. Omissions: Centre to Summit, Gibbet Hill, Burma Road shortfall.",
+      "exclude_trails": [
+        {
+          "id": "n:East Coast Trail",
+          "name": "East Coast Trail",
+          "reason": "East Coast Trail legs are a long-distance network (excluded by rule)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Ladie's Lookout Trail",
+          "source": "https://parks.canada.ca/lhn-nhs/nl/signalhill/activ/ran-hik/ladies-lookout",
+          "reason": "Parks Canada Signal Hill hiking page lists Ladies' Lookout; 0.53 mi in OSM, dropped only by the fragment rule"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Ladie's Lookout Trail",
+          "name": "Ladies' Lookout Trail",
+          "source": "https://parks.canada.ca/lhn-nhs/nl/signalhill/activ/ran-hik/ladies-lookout",
+          "reason": "Official spelling Ladies' Lookout"
+        }
+      ]
+    },
+    {
+      "id": "cape-spear-lighthouse-national-historic-site-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 1246137861,
+      "name": "Cape Spear Lighthouse National Historic Site",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "NL curation 2026-11-02. OSM polygon 0.013 x 0.009 deg fails prepare-areas size gate; Cape Spear Path (2.34 mi) lies mostly outside it and the other paths are East Coast Trail legs or unnamed."
+    },
+    {
+      "id": "butter-pot-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2828834,
+      "name": "Butter Pot Provincial Park",
+      "bbox": [
+        -53.15,
+        47.3,
+        -52.97,
+        47.47
+      ],
+      "center": [
+        47.397,
+        -53.071
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "NL curation 2026-11-02. Parks NL lists Pegwood Pond Trail, Peters Pond Trail and Butter Pot Hill Trail (https://www.parksnl.ca/plan-your-visit/hiking-and-walking/). OSM has Pegwood Pond and Butterpot Hill; Peters Pond is unmapped (known omission). Pegwood Pond OSM length (1.91 mi) looks long vs 2.6 km return.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Butterpot Hill Trail",
+          "name": "Butter Pot Hill Trail",
+          "source": "https://www.parksnl.ca/plan-your-visit/hiking-and-walking/",
+          "reason": "Parks NL spelling"
+        }
+      ]
+    },
+    {
+      "id": "la-manche-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054014,
+      "name": "La Manche Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Parks NL lists La Manche Village Trail and La Manche Falls trail. In OSM the village path is an East Coast Trail leg (0.41 mi in polygon) and only Falls trail (1.06 mi) and Flamber Head Path (ECT) remain. East Coast Trail excluded by rule: under 2 trails."
+    },
+    {
+      "id": "barachois-pond-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 154413349,
+      "name": "Barachois Pond Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Parks NL lists Erin Mountain lookout and summit trails; OSM has only one unnamed 1.85 mi footway. Needs OSM names (Quentin's call)."
+    },
+    {
+      "id": "chance-cove-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2053003,
+      "name": "Chance Cove Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. One trail, Chance Cove Provincial Park Trail, 0.45 mi (fragment); rest unnamed."
+    },
+    {
+      "id": "witless-bay-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 152051080,
+      "name": "Witless Bay Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Marine seabird reserve; no trail ways inside the polygon."
+    },
+    {
+      "id": "avalon-wilderness-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054180,
+      "name": "Avalon Wilderness Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Only Horse Chops Road and Frank's Pond Road (roads), no hiking trails."
+    },
+    {
+      "id": "mistaken-point-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2053964,
+      "name": "Mistaken Point Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No named trail ways in the polygon (reserve trail is East Coast Trail / unnamed)."
+    },
+    {
+      "id": "cape-st-marys-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2077520,
+      "name": "Cape St. Mary's Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi."
+    },
+    {
+      "id": "salmonier-nature-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054184,
+      "name": "Salmonier Nature Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Only unnamed footways and tracks; 0 named trails."
+    },
+    {
+      "id": "pistolet-bay-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 13426027,
+      "name": "Pistolet Bay Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No trail ways mapped; Parks NL lists no hiking trails."
+    },
+    {
+      "id": "blow-me-down-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 20177051,
+      "name": "Blow Me Down Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Parks NL lists Lark Harbour Head and Tortoise Mountain trails; OSM has two unnamed ways (1.7 mi). Needs OSM names."
+    },
+    {
+      "id": "cataracts-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 152092173,
+      "name": "Cataracts Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No trail ways inside the polygon."
+    },
+    {
+      "id": "jacks-pond-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054410,
+      "name": "Jack's Pond Provincial Park Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Only an unnamed track."
+    },
+    {
+      "id": "marine-drive-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054336,
+      "name": "Marine Drive Provincial Park Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "notes": "NL curation 2026-11-02. Only East Coast Trail legs (excluded by rule) and Shoe Cove Road."
+    },
+    {
+      "id": "gooseberry-cove-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054355,
+      "name": "Gooseberry Cove Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "NL curation 2026-11-02. OSM polygon 0.005 x 0.004 deg fails the prepare-areas size gate; no trails mapped."
+    },
+    {
+      "id": "fitzgeralds-pond-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054399,
+      "name": "Fitzgeralds Pond Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No trail ways inside the polygon."
+    },
+    {
+      "id": "bellevue-beach-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054402,
+      "name": "Bellevue Beach Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No trail ways inside the polygon."
+    },
+    {
+      "id": "lockston-path-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2054468,
+      "name": "Lockston Path Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Parks NL lists Scenic Lookout and Northwest Pond trails; no trail ways inside the OSM polygon. Needs OSM mapping."
+    },
+    {
+      "id": "pinware-river-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 1040673685,
+      "name": "Pinware River Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Parks NL lists Lookout Trail; only unnamed 0.85 mi in OSM."
+    },
+    {
+      "id": "burnt-cape-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 13426028,
+      "name": "Burnt Cape Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail: Burnt Cape Ecological Reserve 1.91 mi (named after the reserve, not a trail name)."
+    },
+    {
+      "id": "hawke-hill-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 152057897,
+      "name": "Hawke Hill Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail: Hawke Hill Path 0.87 mi."
+    },
+    {
+      "id": "baccalieu-island-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 152094475,
+      "name": "Baccalieu Island Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Island seabird reserve; no trail ways."
+    },
+    {
+      "id": "little-grand-lake-ecological-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2064864,
+      "name": "Little Grand Lake Provisional Ecological Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. Only unnamed 25 mi of tracks (wilderness, no named trails)."
+    },
+    {
+      "id": "corduroy-brook-nature-reserve-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 625312209,
+      "name": "Corduroy Brook Nature Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. 1 trail: Corduroy Brook Nature Trail 3.02 mi."
+    },
+    {
+      "id": "thomas-howe-demonstration-forest-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 1070023288,
+      "name": "Thomas Howe Demonstration Forest",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "municipal-deferred",
+      "notes": "NL curation 2026-11-02. Provincial forestry site run with the Town of Gander. 2 trails 2.0 mi after filters (Edgar Baird Lakeside 1.31, Edward Blackmore 0.66); Albert Martin 0.60 (0.597), P. G. Tipping 0.43 and Frank R. Hayward 0.31 are fragments. Gander town page lists 'three interpretive walking trails' without names (https://www.gander.ca/recreation-activities-and-visitors/walking-and-hiking-trails/), so no official source to waive the fragments. Below the 2.5 mi / 3 trail bar."
+    },
+    {
+      "id": "terra-nova-migratory-bird-sanctuary-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 20631450,
+      "name": "Terra Nova Migratory Bird Sanctuary",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "NL curation 2026-11-02. No trail ways inside the polygon."
+    },
+    {
+      "id": "jt-cheeseman-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 1388197422,
+      "name": "J.T. Cheeseman Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "NL curation 2026-11-02. OSM polygon 0.002 x 0.002 deg fails the size gate. Parks NL lists Smokey Cape Trail and Water Fall trail."
+    },
+    {
+      "id": "pippy-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 353625937,
+      "name": "Pippy Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "needs-rescope",
+      "notes": "NL curation 2026-11-02. This way (w353625937) is a 0.005 x 0.003 deg fragment. The real park is relation 10789826 (boundary=administrative, not in the prefilter; relation re-add is a workflow code change). Park has Long Pond to Oxen Pond Walk 1.14, Long Pond Trail 0.96, Main Trail 0.79 (generic name), O'Brien 0.47, Yetman 0.38; most ways unnamed. Municipal/regional tier, deferred."
+    },
+    {
+      "id": "bowring-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "way_id": 448342054,
+      "name": "Bowring Park",
+      "bbox": null,
+      "center": null,
+      "tier": 3,
+      "hold": "municipal-deferred",
+      "notes": "NL curation 2026-11-02. City of St. John's park (leisure=park). 1 trail after filters (South Brook Trail 1.10); Main Trail is a generic name."
+    },
+    {
+      "id": "smith-sound-provincial-park-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 1983232,
+      "name": "Smith Sound Provincial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "NL curation 2026-11-02. leisure=park relation (r1983232): needs the explicit-id relation re-add in the workflow (code), and boundary is 0.011 x 0.004 deg. No named trails found."
     }
   ]
 }

@@ -3895,7 +3895,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped).",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here.",
       "exclude_trails": [
         {
           "id": "n:Akamina Pass Trail",
@@ -3906,6 +3906,11 @@
           "id": "n:Bertha Peak Main Trail",
           "name": "Bertha Peak Main Trail",
           "reason": "Duplicate stitched piece of Bertha Peak Trail"
+        },
+        {
+          "id": "n:Crypt Lake Trail",
+          "name": "Crypt Lake Trail",
+          "reason": "Already published whole in the live US areas waterton-lakes-national-park-mt and waterton-glacier-international-peace-park-mt (qualify duplicate gate); one trail, one area. The US rows are not touched here."
         },
         {
           "id": "n:Festubert Mountain Route",

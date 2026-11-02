@@ -29,10 +29,20 @@ struct TurnCueRoute: Sendable, Equatable {
         let cum: [Double]
         let isLoop: Bool
 
-        init(pts: [LocalPt], isLoop: Bool) {
+        /// Arc ranges that are straight bridges across a gap between two pieces
+        /// of the same trail (unverified; no junctions are derived inside them).
+        let bridges: [ClosedRange<Double>]
+        init(pts: [LocalPt], isLoop: Bool, bridgeStarts: [Int] = []) {
             self.pts = pts
-            self.cum = TurnCueGeometry.cumulative(pts)
+            let cum = TurnCueGeometry.cumulative(pts)
+            self.cum = cum
             self.isLoop = isLoop
+            self.bridges = bridgeStarts.compactMap { i in
+                i >= 1 && i < cum.count ? cum[i - 1]...cum[i] : nil
+            }
+        }
+        func isInBridge(_ arc: Double) -> Bool {
+            bridges.contains { arc > $0.lowerBound + 1 && arc < $0.upperBound - 1 }
         }
 
         var length: Double { cum.last ?? 0 }
@@ -189,51 +199,33 @@ enum TurnCueRouteBuilder {
     }
 
     static func stitch(segments: [[LocalPt]]) -> [TurnCueRoute.Chain] {
-        var remaining = segments
-        var chains: [[LocalPt]] = []
-        while !remaining.isEmpty {
-            let startIdx = remaining.indices.max {
-                TurnCueGeometry.cumulative(remaining[$0]).last! < TurnCueGeometry.cumulative(remaining[$1]).last!
-            }!
-            var chain = remaining.remove(at: startIdx)
-            while true {
-                var bestIdx: Int?
-                var bestDist = stitchGapMeters
-                var bestMode = 0 // 0 append, 1 append reversed, 2 prepend, 3 prepend reversed
-                for (i, seg) in remaining.enumerated() {
-                    let cands: [(Double, Int)] = [
-                        (TurnCueGeometry.distance(chain.last!, seg.first!), 0),
-                        (TurnCueGeometry.distance(chain.last!, seg.last!), 1),
-                        (TurnCueGeometry.distance(chain.first!, seg.last!), 2),
-                        (TurnCueGeometry.distance(chain.first!, seg.first!), 3),
-                    ]
-                    for (d, m) in cands where d <= bestDist {
-                        bestDist = d; bestIdx = i; bestMode = m
-                    }
-                }
-                guard let idx = bestIdx else { break }
-                let seg = remaining.remove(at: idx)
-                switch bestMode {
-                case 0: chain.append(contentsOf: seg)
-                case 1: chain.append(contentsOf: seg.reversed())
-                case 2: chain = seg + chain
-                default: chain = seg.reversed() + chain
-                }
+        // Pieces of the same trail are joined across gaps up to
+        // `TrailPieceStitcher.sameTrailBridgeMeters`; gaps wider than
+        // `stitchGapMeters` become straight bridge segments (unverified).
+        let lengths = segments.map { TurnCueGeometry.cumulative($0).last! }
+        let placed = TrailPieceStitcher.order(
+            ends: segments.map { (first: $0.first!, last: $0.last!) },
+            maxGap: TrailPieceStitcher.sameTrailBridgeMeters,
+            distance: { TurnCueGeometry.distance($0, $1) },
+            pickStart: { idxs in idxs.max { lengths[$0] < lengths[$1] }! }
+        )
+        let built: [TurnCueRoute.Chain] = placed.map { chainPlacements in
+            var pts: [LocalPt] = []
+            var bridgeStarts: [Int] = []
+            for p in chainPlacements {
+                let seg = p.reversed ? segments[p.piece].reversed() : segments[p.piece]
+                if !pts.isEmpty, p.gapBefore > stitchGapMeters { bridgeStarts.append(pts.count) }
+                pts.append(contentsOf: seg)
             }
-            chains.append(chain)
-        }
-        let built: [TurnCueRoute.Chain] = chains.map { pts in
-            var pts = pts
             var loop = false
             if pts.count >= 3, TurnCueGeometry.distance(pts.first!, pts.last!) <= 10 {
                 loop = true
                 if TurnCueGeometry.distance(pts.first!, pts.last!) > 0.5 { pts.append(pts.first!) }
             }
-            return TurnCueRoute.Chain(pts: pts, isLoop: loop)
+            return TurnCueRoute.Chain(pts: pts, isLoop: loop, bridgeStarts: bridgeStarts)
         }
         return built.sorted { $0.length > $1.length }
     }
-
     // MARK: Contacts
 
     private struct Sample {
@@ -312,7 +304,7 @@ enum TurnCueRouteBuilder {
 
         struct Contact { var arc: Double; var line: Int; var idx: Int; var dist: Double }
         var contactList: [Contact] = []
-        for s in chainSamples {
+        for s in chainSamples where !chain.isInBridge(s.arc) {
             let r = Int((s.pt.y / cell).rounded(.down)), c = Int((s.pt.x / cell).rounded(.down))
             var best: Contact?
             for dr in -1...1 { for dc in -1...1 {

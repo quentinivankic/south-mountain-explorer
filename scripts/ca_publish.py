@@ -150,6 +150,38 @@ def _check_keep_trails(aid: str, entry: dict[str, Any]) -> None:
         raise CaError(str(error)) from None
 
 
+def _ca_rules():
+    """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
+    list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
+    top except member_safety, which it resolves from its own directory."""
+    import importlib.util
+    folder = ROOT / "trailforge" / "assemble"
+    added = str(folder) not in sys.path
+    if added:
+        sys.path.insert(0, str(folder))
+    try:
+        spec = importlib.util.spec_from_file_location("ca_rules_registry", folder / "ca_rules.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        if added:
+            sys.path.remove(str(folder))
+def _check_engine_rules(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in engine rules (region ca): per-relation accept_gap and keep_superroute. Both need a
+    relation-backed entry and a non-empty valid list; assemble.py validates them again."""
+    for key, check in (("accept_gap", "validate_accept_gap"), ("keep_superroute", "validate_keep_superroute")):
+        if key not in entry:
+            continue
+        if "way_id" in entry:
+            raise CaError(f"{aid}: {key} needs a relation-backed entry (relation_id)")
+        items = entry[key]
+        if not isinstance(items, list) or not items:
+            raise CaError(f"{aid}: {key} must be a non-empty list when present")
+        try:
+            getattr(_ca_rules(), check)(items)
+        except ValueError as error:
+            raise CaError(f"{aid}: {key} is invalid: {error}") from None
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Canada area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -211,6 +243,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise CaError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
+        _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
             # polygons (assemble --boundary-by-id; check-boundary-unique then requires the collision).
@@ -883,6 +916,9 @@ def report_area(args: argparse.Namespace) -> int:
         ident["relation_ids"] = _trail_relations(kept, t.get("name"))
         identities.append(ident)
     rec["trail_identities"] = identities
+    if assembly.get("ca_rules"):
+        # Engine opt-ins used by this area (registry accept_gap / keep_superroute), for the reviewer.
+        rec["ca_rules"] = assembly["ca_rules"]
     live_ids = nearby_live_ids(args.live_index, area["id"], area.get("center"))
     rec["live_duplicates"] = live_conflicts(area["id"], identities, args.live_geom_dir, live_ids)
     if args.expected and Path(args.expected).is_file():

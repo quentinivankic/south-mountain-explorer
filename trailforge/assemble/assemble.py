@@ -1051,6 +1051,20 @@ def main(argv=None) -> int:
                          "hard-capped at 1000) is published as its connected "
                          "parts, never bridged; dk-v3 only, fail-closed when "
                          "an entry is stale, unneeded or over its limit")
+    ap.add_argument("--ca-accept-gap", dest="ca_accept_gap",
+                    help="JSON list of {relation, max_gap_m, reason} (Canada registry "
+                         "accept_gap): the listed route relation gets back the member "
+                         "ways dropped only for a ski-piste tag; the gap they left must "
+                         "be at most max_gap_m (hard-capped at 1000); --region ca with "
+                         "exact-area assembly by relation id and the legacy rules only; "
+                         "fail-closed when an entry is stale, unneeded or over its limit")
+    ap.add_argument("--ca-keep-superroute", dest="ca_keep_superroute",
+                    help="JSON list of {relation, reason} (Canada registry "
+                         "keep_superroute): a single-park super-relation is kept as one "
+                         "trail instead of dropped as a thru-hike; --region ca with "
+                         "exact-area assembly by relation id and the legacy rules only; "
+                         "fail-closed when it leaves the area polygon, is a child of a "
+                         "larger route or is a recognised long-distance network")
     ap.add_argument("--dk-accept-directional-roles",
                     dest="dk_accept_directional_roles", action="store_true",
                     help="count forward/backward way members of route=hiking "
@@ -1141,6 +1155,25 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-accept-gap is invalid: {error}")
+    args.ca_gap, args.ca_keep = [], []
+    if args.ca_accept_gap or args.ca_keep_superroute:
+        flag = "--ca-accept-gap" if args.ca_accept_gap else "--ca-keep-superroute"
+        if (model.member_safety.normalize(args.region) != "ca"
+                or not args.require_exact_area or args.dk_rules != "legacy"
+                or args.expected_area_relation_id is None
+                or args.expected_area_way_id is not None):
+            ap.error(f"{flag} requires --region ca, --require-exact-area by relation "
+                     "id and the legacy rules")
+        try:
+            import ca_rules as ca_rules_args
+            if args.ca_accept_gap:
+                args.ca_gap = ca_rules_args.validate_accept_gap(json.loads(
+                    Path(args.ca_accept_gap).read_text(encoding="utf-8")))
+            if args.ca_keep_superroute:
+                args.ca_keep = ca_rules_args.validate_keep_superroute(json.loads(
+                    Path(args.ca_keep_superroute).read_text(encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"{flag} is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
         if args.dk_rules not in ("dk-v2", "dk-v3", "legacy"):
@@ -1230,6 +1263,9 @@ def main(argv=None) -> int:
     exact_denmark = (
         args.require_exact_area
         and model.member_safety.normalize(args.region) == "dk")
+    ca_rules_run = None
+    if args.ca_gap or args.ca_keep:
+        import ca_rules as ca_rules_run
     nodes, ways, relations, pois = read_pbf(
         args.inp, exact_denmark=exact_denmark,
         denmark=model.member_safety.normalize(args.region) == "dk")
@@ -1334,6 +1370,7 @@ def main(argv=None) -> int:
     removed: list = []
     ingest_dropped: list = []
     relation_member_audit: list[dict] = []
+    ca_rule_report: dict = {}
     trails = model.assemble(nodes, ways, relations, pois,
                             min_length_mi=args.min_length_mi, areas=areas_arg,
                             collect_removed=removed, region=args.region,
@@ -1345,7 +1382,12 @@ def main(argv=None) -> int:
                             exact_denmark=exact_denmark,
                             defer_promotion=exact_denmark,
                             accept_directional_roles=bool(
-                                args.dk_accept_directional_roles))
+                                args.dk_accept_directional_roles),
+                            ca_accept_gap=({ca_rules_run.relation_number(e): e
+                                            for e in args.ca_gap}
+                                           if args.ca_gap else None),
+                            ca_keep_superroute=args.ca_keep or None,
+                            ca_rule_report=ca_rule_report)
     features = [t.to_feature() for t in trails]
     curation_removed_features = [t.to_feature() for t in removed]
     terminal_absorption_targets = (
@@ -1463,6 +1505,21 @@ def main(argv=None) -> int:
             features, curation_removed_features, clip_removed, quality_removed)
 
     terminal_absorption_failure = None
+    ca_rule_evidence = None
+    if ca_rules_run is not None:
+        # Canada opt-ins fail closed: a stale, unneeded, over-limit or out-of-area entry fails the
+        # area (same exit path as the Denmark opt-ins); evidence goes into the assembly report.
+        ca_failures, ca_rule_evidence = ca_rules_run.finalize(
+            ca_rule_report, args.ca_gap, args.ca_keep, ways, nodes,
+            exact_area["geom"] if exact_area is not None else None, features)
+        if ca_failures:
+            terminal_absorption_failure = "ca-rule failures: " + "; ".join(ca_failures)
+            print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+        restored = {f"w{w}" for rec in ca_rule_report.get("accept_gap", {}).values()
+                    if rec["status"] == "accepted" for w in rec["restored_way_ids"]}
+        for dropped in ingest_dropped:
+            if (dropped.get("properties") or {}).get("ckey") in restored:
+                dropped["properties"]["restored_by_accept_gap"] = True
     if (isinstance(quality_report, dict)
             and quality_report.get("dk_curated_exclude_failures")):
         # Stale or ambiguous curated exclusions fail the area (same exit path).
@@ -1685,6 +1742,7 @@ def main(argv=None) -> int:
         "quality": quality_report,
         **({"name_prefix": name_prefix_report}
            if name_prefix_report is not None else {}),
+        **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
     })
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")

@@ -1233,14 +1233,83 @@ def build_candidates(args: argparse.Namespace) -> int:
     return 0
 
 
+def classify_orphans(args: argparse.Namespace) -> int:
+    """Adopt-orphan gate. `--existing` is a TSV `key<TAB>etag` of per-area keys that ALREADY exist in R2,
+    their bytes saved under `--orphan-dir/<key>`. A key may be overwritten only when (a) its area id is NOT in
+    the live index.json, (b) the area's geom object is a System-1 leftover (an object with state "Canada", the
+    same id and a cached_at stamp), and (c) a silhouette is the usual {"b","l"} document. Anything else refuses.
+    Writes the adopt list (key, etag, sha256, file) to `--out`."""
+    ids = [i for i in args.areas_file.read_text(encoding="utf-8").split() if i]
+    live_ids = {row[0] for row in json.loads(args.live_index.read_bytes())}
+    existing: dict[str, str] = {}
+    for line in args.existing.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            key, etag = line.split("\t")
+            existing[key] = etag
+    wanted = {k for i in ids for k in (f"{i}.json", f"silhouettes/{i}.json")}
+    extra = sorted(set(existing) - wanted)
+    if extra:
+        raise CaError("existing key is not a per-area key of this plan: " + ", ".join(extra))
+    adopt = []
+    for aid in ids:
+        geom_key, sil_key = f"{aid}.json", f"silhouettes/{aid}.json"
+        if geom_key not in existing and sil_key not in existing:
+            continue
+        if aid in live_ids:
+            raise CaError(f"{aid}: already in the live index; a live area is never adopted")
+        if geom_key not in existing:
+            raise CaError(f"{aid}: silhouette exists without a System-1 geom; refusing to adopt")
+        geom = json.loads((args.orphan_dir / geom_key).read_bytes())
+        if (not isinstance(geom, dict) or geom.get("id") != aid or geom.get("state") != STATE
+                or not isinstance(geom.get("cached_at"), str) or not geom["cached_at"]):
+            raise CaError(f"{aid}: existing geom is not a System-1 Canada leftover (id/state/cached_at)")
+        keys = [geom_key] + ([sil_key] if sil_key in existing else [])
+        for key in keys:
+            data = (args.orphan_dir / key).read_bytes()
+            if key == sil_key:
+                sil = json.loads(data)
+                if not isinstance(sil, dict) or "b" not in sil or "l" not in sil:
+                    raise CaError(f"{aid}: existing silhouette is not a silhouette document")
+            if not existing[key]:
+                raise CaError(f"{key}: existing object has no ETag")
+            adopt.append({"key": key, "etag": existing[key], "sha256": _sha(data), "file": key})
+    _write_json(args.out, {"schema": "trekdex-ca-r2-adopt-v1", "adopt": adopt})
+    for item in adopt:
+        print(f"ADOPT\t{item['key']}\t{item['etag']}\t{item['sha256']}")
+    print(f"adopt {len(adopt)} existing orphan key(s)")
+    return 0
+
+
 def rollback_decide(args: argparse.Namespace) -> int:
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
     actions = smp.rollback_actions(plan, args.live_dir)
     for key in ("index.json", "trail-search.json", "trail-shapes.json"):
         print(f"{key}\t{actions[key]}")
-    for write in plan["writes"]:
-        if write["key"] not in SHARED_KEYS:
-            print(f"{write['key']}\tdelete")
+    adopted: dict[str, dict[str, Any]] = {}
+    if args.adopt:
+        adopted = {a["key"]: a for a in json.loads(args.adopt.read_text(encoding="utf-8"))["adopt"]}
+    candidate = {w["key"]: w["sha256"] for w in plan["writes"]}
+    for key in candidate:
+        if key in SHARED_KEYS:
+            continue
+        if key not in adopted:
+            print(f"{key}\tdelete")
+            continue
+        # An adopted key goes back to its saved orphan bytes, never deleted. Anything that is neither the
+        # candidate nor the orphan is a third party's write and refuses.
+        if not args.cur_dir:
+            raise CaError("rollback with adopted keys needs --cur-dir")
+        cur = args.cur_dir / key
+        if not cur.exists():
+            print(f"{key}\trestore-orphan")
+            continue
+        got = _sha(cur.read_bytes())
+        if got == candidate[key]:
+            print(f"{key}\trestore-orphan")
+        elif got == adopted[key]["sha256"]:
+            print(f"{key}\tskip")
+        else:
+            raise CaError(f"{key}: live bytes are neither the candidate nor the saved orphan; refusing")
     return 0
 
 
@@ -1324,6 +1393,14 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("rollback-decide")
     c.add_argument("--plan", required=True, type=Path)
     c.add_argument("--live-dir", required=True, type=Path)
+    c.add_argument("--adopt", type=Path)
+    c.add_argument("--cur-dir", type=Path)
+    o = sub.add_parser("classify-orphans")
+    o.add_argument("--areas-file", required=True, type=Path)
+    o.add_argument("--live-index", required=True, type=Path)
+    o.add_argument("--existing", required=True, type=Path)
+    o.add_argument("--orphan-dir", required=True, type=Path)
+    o.add_argument("--out", required=True, type=Path)
     args = p.parse_args(argv)
     handlers = {"select": select_cmd, "prepare-areas": prepare_areas,
                 "check-boundary-unique": check_boundary_unique_cmd,
@@ -1331,7 +1408,7 @@ def main(argv: list[str] | None = None) -> int:
                 "report-area": report_area, "mark-failed": mark_failed, "qualify-aggregate": qualify_aggregate,
                 "merge-index": merge_index, "verify-staged": verify_cmd, "verify-commit": verify_cmd,
                 "derive-areas": derive_areas_cmd, "build-candidates": build_candidates,
-                "rollback-decide": rollback_decide}
+                "rollback-decide": rollback_decide, "classify-orphans": classify_orphans}
     try:
         return handlers[args.command](args)
     except (CaError, smp.SimpleError, contract.ManifestError, contract.InventoryError, OSError, ValueError,

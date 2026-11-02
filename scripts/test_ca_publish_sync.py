@@ -308,3 +308,112 @@ def test_rollback_refuses_third_party_bytes(tmp_path, capsys):
     state = {"index.json": "other", "trail-search.json": "base", "trail-shapes.json": "cand"}
     code, lines, err, _ = _decide(tmp_path, capsys, state)
     assert code == 1 and lines == [] and "refusing" in err
+# ------------------------------------------------------------ adopt-orphan ----
+def _orphans(tmp_path, ids, geom_overrides=None, with_sil=True, only=None):
+    od = tmp_path / "orph"
+    lines = []
+    for n, aid in enumerate(only if only is not None else ids):
+        geom = {"id": aid, "state": "Canada", "cached_at": "2026-05-19T03:50:43Z", "trails": []}
+        geom.update(geom_overrides or {})
+        (od / f"silhouettes").mkdir(parents=True, exist_ok=True)
+        (od / f"{aid}.json").write_bytes(_default(geom))
+        lines.append(f"{aid}.json\tetag-g{n}")
+        if with_sil:
+            (od / f"silhouettes/{aid}.json").write_bytes(_compact({"b": [0, 0, 1, 1], "l": []}))
+            lines.append(f"silhouettes/{aid}.json\tetag-s{n}")
+    ex = tmp_path / "existing.tsv"
+    ex.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return od, ex
+def _classify(tmp_path, ids, live, od, ex):
+    af = tmp_path / "areas.txt"
+    af.write_text("\n".join(ids) + "\n", encoding="utf-8")
+    out = tmp_path / "adopt.json"
+    code = ca.main(["classify-orphans", "--areas-file", str(af), "--live-index", str(live / "index.json"),
+                    "--existing", str(ex), "--orphan-dir", str(od), "--out", str(out)])
+    return code, out
+def test_classify_adopts_only_system1_leftovers_not_in_the_live_index(tmp_path, capsys):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    od, ex = _orphans(tmp_path, ids)
+    code, out = _classify(tmp_path, ids, live, od, ex)
+    got = json.loads(out.read_text())["adopt"]
+    assert code == 0 and [g["key"] for g in got] == [ids[0] + ".json", f"silhouettes/{ids[0]}.json",
+                                                      ids[1] + ".json", f"silhouettes/{ids[1]}.json"]
+    assert got[0]["etag"] == "etag-g0" and got[0]["sha256"] == ca._sha((od / f"{ids[0]}.json").read_bytes())
+def test_classify_no_existing_keys_adopts_nothing(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    ex = tmp_path / "existing.tsv"
+    ex.write_text("", encoding="utf-8")
+    code, out = _classify(tmp_path, ids, live, tmp_path / "orph", ex)
+    assert code == 0 and json.loads(out.read_text())["adopt"] == []
+@pytest.mark.parametrize("override", [{"state": "Colorado"}, {"cached_at": None}, {"id": "other-ca-ns"},
+                                      {"cached_at": ""}])
+def test_classify_refuses_non_system1_geoms(tmp_path, override):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    od, ex = _orphans(tmp_path, ids, override)
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1
+def test_classify_refuses_live_ids_silhouette_only_foreign_keys_and_bad_silhouettes(tmp_path):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    od, ex = _orphans(tmp_path, ids)
+    live_rows = json.loads((live / "index.json").read_bytes())
+    (live / "index.json").write_bytes(_compact(live_rows + [[ids[0], "X", "Canada", 45.0, -62.0, 1, 1.0]]))
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1                       # live area is never adopted
+    (live / "index.json").write_bytes(_compact(live_rows))
+    (od / f"silhouettes/{ids[1]}.json").write_bytes(b'{"x":1}')
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1                       # not a silhouette
+    (od / f"silhouettes/{ids[1]}.json").write_bytes(_compact({"b": [], "l": []}))
+    ex.write_text(f"silhouettes/{ids[0]}.json\te\n", encoding="utf-8")
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1                       # silhouette without geom
+    ex.write_text("trail-shapes.json\te\n", encoding="utf-8")
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1                       # not a per-area key
+    ex.write_text(f"{ids[0]}.json\t\n", encoding="utf-8")
+    assert _classify(tmp_path, ids, live, od, ex)[0] == 1                       # no ETag
+def _adopt_decide(tmp_path, capsys, geom0=None, sil0=None):
+    """Plan with 2 new areas where area 0 was an adopted orphan; `geom0`/`sil0` set the CURRENT live bytes of
+    area 0's geom/silhouette: None (absent), "cand", "orphan" or "other"."""
+    repo, live, ids = _make_repo(tmp_path, 2)
+    out = tmp_path / "out"
+    assert _build(repo, live, out) == 0
+    od, ex = _orphans(tmp_path, ids, only=[ids[0]])
+    code, adopt = _classify(tmp_path, ids, live, od, ex)
+    assert code == 0
+    capsys.readouterr()
+    cur = tmp_path / "cur"
+    (cur / "silhouettes").mkdir(parents=True)
+    for key in SHARED:
+        (cur / key).write_bytes((out / key).read_bytes())
+    for key, cand_file, what in ((f"{ids[0]}.json", f"geom/{ids[0]}.json", geom0),
+                                 (f"silhouettes/{ids[0]}.json", f"sil/{ids[0]}.json", sil0)):
+        if what:
+            data = {"cand": (out / cand_file).read_bytes(), "orphan": (od / key).read_bytes(),
+                    "other": b"third-party"}[what]
+            (cur / key).write_bytes(data)
+    code = ca.main(["rollback-decide", "--plan", str(out / "plan.json"), "--live-dir", str(cur),
+                    "--adopt", str(adopt), "--cur-dir", str(cur)])
+    cap = capsys.readouterr()
+    return code, dict(line.split("\t") for line in cap.out.splitlines() if "\t" in line), cap.err, ids
+def test_rollback_restores_adopted_orphans_and_still_deletes_plain_new_keys(tmp_path, capsys):
+    code, acts, _, ids = _adopt_decide(tmp_path, capsys, "cand", "cand")
+    assert code == 0
+    assert acts[f"{ids[0]}.json"] == "restore-orphan" and acts[f"silhouettes/{ids[0]}.json"] == "restore-orphan"
+    assert acts[f"{ids[1]}.json"] == "delete" and acts[f"silhouettes/{ids[1]}.json"] == "delete"
+def test_rollback_adopted_key_already_orphan_skips_and_missing_restores(tmp_path, capsys):
+    code, acts, _, ids = _adopt_decide(tmp_path, capsys, "orphan", None)
+    assert code == 0 and acts[f"{ids[0]}.json"] == "skip" and acts[f"silhouettes/{ids[0]}.json"] == "restore-orphan"
+def test_rollback_adopted_key_with_third_party_bytes_refuses(tmp_path, capsys):
+    code, acts, err, _ = _adopt_decide(tmp_path, capsys, "other", "cand")
+    assert code == 1 and "neither the candidate nor the saved orphan" in err
+def test_rollback_with_adopted_keys_needs_cur_dir(tmp_path, capsys):
+    repo, live, ids = _make_repo(tmp_path, 2)
+    out = tmp_path / "out"
+    assert _build(repo, live, out) == 0
+    od, ex = _orphans(tmp_path, ids, only=[ids[0]])
+    _, adopt = _classify(tmp_path, ids, live, od, ex)
+    assert ca.main(["rollback-decide", "--plan", str(out / "plan.json"), "--live-dir", str(live),
+                    "--adopt", str(adopt)]) == 1
+def test_sync_workflow_wires_the_adopt_gate_if_match_and_orphan_restore():
+    wf = (Path(__file__).resolve().parent.parent / ".github/workflows/sync-ca-to-r2.yml").read_text()
+    assert "refusing to overwrite" not in wf and "classify-orphans" in wf
+    assert wf.index("classify-orphans") < wf.index("build-candidates")           # classified before candidates
+    assert '--if-match' in wf and "restore-orphan" in wf and "--cur-dir" in wf
+    assert wf.count("delete-object") == 1                                         # still only the plain-new rollback delete
+    assert "put-object" in wf and wf.count("put-object") == 1

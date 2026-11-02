@@ -140,11 +140,42 @@
       "state": "Canada",
       "relation_id": 4855583,
       "name": "Cape Breton Highlands National Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -61.01,
+        46.55,
+        -60.27,
+        46.91
+      ],
+      "center": [
+        46.73,
+        -60.641
+      ],
       "tier": 1,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true,
+      "exclude_trails": [
+        {
+          "id": "n:Unmaintained Wilderness Trail",
+          "name": "Unmaintained Wilderness Trail",
+          "reason": "Not a Parks Canada hiking trail (absent from the official Cape Breton Highlands trail list); unmaintained, 19.9 mi"
+        },
+        {
+          "id": "n:Unmaintained Trail",
+          "name": "Unmaintained Trail",
+          "reason": "Not a Parks Canada hiking trail (absent from the official trail list); unmaintained"
+        },
+        {
+          "id": "n:Branch Pond Lookoff (CLOSED)",
+          "name": "Branch Pond Lookoff (CLOSED)",
+          "reason": "Closed; not a current Parks Canada trail"
+        },
+        {
+          "id": "n:Old Cabot Trail (Abandoned)",
+          "name": "Old Cabot Trail (Abandoned)",
+          "reason": "Abandoned old road alignment; not a hiking trail (the official Le vieux chemin du Cap-Rouge is not this feature)"
+        }
+      ]
     },
     {
       "id": "fortress-of-louisbourg-national-historic-park-of-canada-ca-ns",
@@ -155,8 +186,8 @@
       "bbox": null,
       "center": null,
       "tier": 1,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; pinned replay yields 1 trail (Old Town Trail 1.4 mi), below the 2-trail bar. Held."
     },
     {
       "id": "kejimkujik-national-park-seaside-ca-ns",
@@ -329,7 +360,15 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q1): 5 trails, 5.6 mi, pre/post clip 109>21."
+      "notes": "Qualify 2026-11-02 (run q1): 5 trails, 5.6 mi, pre/post clip 109>21.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Whicky-Whack loop",
+          "name": "Whicky-Whack Loop",
+          "source": "https://www.openstreetmap.org/relation/668172720",
+          "reason": "Capitalisation only; same loop"
+        }
+      ]
     },
     {
       "id": "boggy-lake-wilderness-area-ca-ns",
@@ -475,11 +514,20 @@
       "state": "Canada",
       "relation_id": 6078134,
       "name": "Cape Split Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -64.55,
+        45.26,
+        -64.38,
+        45.39
+      ],
+      "center": [
+        45.325,
+        -64.463
+      ],
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true
     },
     {
       "id": "card-lake-provincial-park-ca-ns",
@@ -884,8 +932,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
     },
     {
       "id": "lake-rossignol-wilderness-area-ca-ns",
@@ -920,8 +968,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
     },
     {
       "id": "lower-east-chezzetcook-provincial-park-ca-ns",
@@ -1028,8 +1076,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
     },
     {
       "id": "north-mountain-wilderness-area-ca-ns",
@@ -1061,7 +1109,15 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q2): 2 trails, 5.6 mi, pre/post clip 6>4."
+      "notes": "Qualify 2026-11-02 (run q2): 2 trails, 5.6 mi, pre/post clip 6>4.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "North-River-Falls-Trail",
+          "name": "North River Falls Trail",
+          "source": "https://www.openstreetmap.org/way/449538011",
+          "reason": "OSM name is hyphenated like a slug; spaces restored, same trail"
+        }
+      ]
     },
     {
       "id": "oakfield-provincial-park-ca-ns",
@@ -1096,8 +1152,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
     },
     {
       "id": "paces-lake-provincial-park-ca-ns",
@@ -1117,11 +1173,20 @@
       "state": "Canada",
       "relation_id": 4855585,
       "name": "Polletts Cove - Aspy Fault Wilderness Area",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -60.84,
+        46.77,
+        -60.42,
+        47.09
+      ],
+      "center": [
+        46.927,
+        -60.629
+      ],
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true
     },
     {
       "id": "polly-brook-wilderness-area-ca-ns",
@@ -1180,8 +1245,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": "few-trails",
+      "notes": "Same-name twin boundary; with boundary_by_id the pinned area still has 0 publishable trails after the Canada filter (PR #692 replay; the twin polygon also yields 0), so genuinely trail-less."
     },
     {
       "id": "powells-point-provincial-park-ca-ns",
@@ -1393,11 +1458,27 @@
       "state": "Canada",
       "relation_id": 4855744,
       "name": "Taylor Head Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -62.63,
+        44.74,
+        -62.49,
+        44.92
+      ],
+      "center": [
+        44.828,
+        -62.563
+      ],
       "tier": 2,
-      "hold": "name-collision",
-      "notes": "Two OSM boundaries carry this exact name in the AOI (a duplicate multipolygon beside the boundary relation); the Canada lane cannot pin same-name polygons without a shared-engine edit."
+      "hold": null,
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "boundary_by_id": true,
+      "exclude_trails": [
+        {
+          "id": "n:Taylor Head Provincial Park",
+          "name": "Taylor Head Provincial Park",
+          "reason": "Park-named lwn umbrella relation (5.95 mi): its member ways include the Headland Trail way and other named walks already kept, so it duplicates them rather than being a distinct signed walk"
+        }
+      ]
     },
     {
       "id": "terence-bay-wilderness-area-ca-ns",

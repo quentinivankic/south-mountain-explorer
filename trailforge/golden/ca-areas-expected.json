@@ -2120,6 +2120,176 @@
       "forbidden_names": [
         "Sentier du Rocher Precé à marée basse"
       ]
+    },
+    "prince-albert-national-park-ca-sk": {
+      "trail_count": 21,
+      "total_mi": 52.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Kingsmere Lake – Clare Lake Portage",
+        "Lily Lake – Clare Lake Portage"
+      ]
+    },
+    "grasslands-national-park-ca-sk": {
+      "trail_count": 15,
+      "total_mi": 47.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Otter Basin Route"
+      ],
+      "forbidden_names": [
+        "Old Wagon trail"
+      ]
+    },
+    "cypress-hills-interprovincial-park-west-block-ca-sk": {
+      "trail_count": 6,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "La Barge Trail",
+        "South Benson Trail"
+      ]
+    },
+    "meadow-lake-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 78.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "duck-mountain-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Damselfly Trail",
+        "Fen Interpretive Trail",
+        "Fire Tower Trail",
+        "Trans Canada Trail"
+      ]
+    },
+    "greenwater-lake-provincial-park-ca-sk": {
+      "trail_count": 2,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "buffalo-pound-provincial-park-ca-sk": {
+      "trail_count": 3,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "1/4 Mile",
+        "Barrels",
+        "Beaver Loop",
+        "Big Rock",
+        "Boat Launch",
+        "Bum Rap",
+        "C'ya!",
+        "Cabela's Buck Wild",
+        "Climb to Roots",
+        "Gup's Trail",
+        "Hawk's Hill",
+        "Heaven",
+        "Jackpot",
+        "Jackson's Hole",
+        "Joe's Loop",
+        "Junkyard",
+        "Lost Hi-way",
+        "Lower Chalet",
+        "Mus Nuckl",
+        "Noser",
+        "Noser 2",
+        "Pick-up Sticks",
+        "Prairie Downhill",
+        "Rankins",
+        "Roadside Attraction",
+        "Roots",
+        "Rutledge",
+        "Terminator",
+        "Thank You Nature",
+        "Third Floor",
+        "Third Floor Connection Prairie",
+        "Three Amigos",
+        "Tunnel",
+        "Twister",
+        "Upper Chalet",
+        "Upside Down",
+        "Weeping Fee",
+        "What Trail?"
+      ]
+    },
+    "spruce-woods-provincial-park-ca-mb": {
+      "trail_count": 3,
+      "total_mi": 6.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Dune Trail",
+        "Hogsback Trail"
+      ]
+    },
+    "hecla-grindstone-provincial-park-ca-mb": {
+      "trail_count": 3,
+      "total_mi": 9.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chorus Frog Trail",
+        "Madtom Trail",
+        "Trail to Wildlife Viewing Tower"
+      ]
+    },
+    "birds-hill-provincial-park-ca-mb": {
+      "trail_count": 12,
+      "total_mi": 33.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Birds Hill Provincial Park Cross-country Ski Trails"
+      ]
+    },
+    "riding-mountain-national-park-ca-mb": {
+      "trail_count": 34,
+      "total_mi": 185.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Brûlé",
+        "Burls and Bittersweet",
+        "Cairn's Cabin",
+        "Clear Lake",
+        "Compound Long Loop",
+        "Compound Short Loop",
+        "East Gate Connector",
+        "Elk Creek Campsite",
+        "Hilton",
+        "Multi-Use",
+        "Ominnik Marsh Trail",
+        "Reeves Ravine (c)",
+        "South Lake Trail Winter Route"
+      ]
+    },
+    "douglas-provincial-park-ca-sk": {
+      "trail_count": 7,
+      "total_mi": 14.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cacti / Dune Loop",
+        "Juniper Nature Trail / Cacti Hiking Trail",
+        "Juniper Nature Trail / Dune Hiking Trail",
+        "Sand Dunes Interpretive Trail",
+        "Sunset Nature Trail / Trans Canada Trail",
+        "Trans Canada Trail",
+        "Wolf Willow Loop",
+        "Wolf Willow Loop / Trans Canada Trail"
+      ]
     }
   }
 }

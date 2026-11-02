@@ -211,6 +211,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise CaError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
+        if "boundary_by_id" in entry:
+            # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
+            # polygons (assemble --boundary-by-id; check-boundary-unique then requires the collision).
+            if entry["boundary_by_id"] is not True:
+                raise CaError(f"{aid}: boundary_by_id must be true when present")
+            if "way_id" in entry:
+                raise CaError(f"{aid}: boundary_by_id needs a relation-backed entry (relation_id)")
         if "trail_name_fixes" in entry:
             try:
                 ca_trail_filter.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
@@ -678,6 +685,14 @@ def check_boundary_unique_cmd(args: argparse.Namespace) -> int:
     kind, ident = (("way", entry["way_id"]) if "way_id" in entry else ("relation", entry["relation_id"]))
     # Way-backed areas have no --require-exact-area pin, so no other boundary may even contain the name.
     hits = boundary_name_matches(args.pbf, entry["name"], contains="way_id" in entry)
+    if entry.get("boundary_by_id") is True:
+        # Id-pinned opt-in: the name MUST collide (else the opt-in is stale) and the registry
+        # relation must be one of the same-name boundaries; assemble --boundary-by-id re-checks.
+        if len(hits) < 2 or hits.count((kind, ident)) != 1:
+            raise CaError(f"{args.area_id}: boundary_by_id needs several boundaries named "
+                          f"{entry['name']!r} including {kind} {ident} in the AOI, found {hits}")
+        print(f"{args.area_id}: boundary {kind} {ident} pinned by id among {len(hits)} same-name boundaries")
+        return 0
     if hits != [(kind, ident)]:
         raise CaError(f"{args.area_id}: expected exactly one boundary named {entry['name']!r} "
                       f"({kind} {ident}) in the AOI, found {hits}; hold it as name-collision")

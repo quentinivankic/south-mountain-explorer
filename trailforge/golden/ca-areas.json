@@ -1977,7 +1977,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance. Black Hole excluded (not on the Parks Canada list). Point Wolfe Beach kept (official 1 km beach walk). live-fix1 2026-11-02: Point Wolfe Beach dropped (not on the current list); Medicine Trail renamed to its Parks Canada name.",
+      "notes": "NB cleanup 2026-11-03 review, no change: Coppermine (65% on Goose River) and Matthews Head (55% on Coastal) are separate Parks Canada-listed signed trails, kept (Kootenay precedent); Herring Cove Beach 0.20 and MacLaren Pond Medicine 0.26 are agency-listed short walks, kept. NB curation 2026-11-02. Whole park. Compared with the Parks Canada Fundy trail list (https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails): every named hiking trail on the list is present except Alma Beach, Cygnus, Cassiopeia, Ursa Major/Minor, Orion, Peregrine (unnamed or unmapped in OSM) and Pumptrack (MTB, excluded). Coastal Trail relation = official Coastal East + West. TCT (nwn) and Fundy Footpath dropped by the Canada filter (long-distance). Dobson Link is an official Fundy trail (kept); the Dobson Trail itself is long-distance. Black Hole excluded (not on the Parks Canada list). Point Wolfe Beach kept (official 1 km beach walk). live-fix1 2026-11-02: Point Wolfe Beach dropped (not on the current list); Medicine Trail renamed to its Parks Canada name.",
       "exclude_trails": [
         {
           "id": "n:Upper Salmon",
@@ -2049,7 +2049,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada hiking list (https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking): 10 trails. Kept: Kouchibouguac River (lwn), Osprey, Claire-Fontaine, Beaver, Tweedie, Bog, Pines, Mi'gmaq Cedar. Not shipped: Kellys Beach Boardwalk and Salt Marsh (OSM geometry far shorter than the official length). Major Kollock Creek is a mountain-bike trail (excluded). Osprey is ~60% of its official 5.3 km as mapped.",
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada hiking list (https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking): 10 trails. Kept: Kouchibouguac River (lwn), Osprey, Claire-Fontaine, Beaver, Tweedie, Bog, Pines, Mi'gmaq Cedar. Not shipped: Kellys Beach Boardwalk and Salt Marsh (OSM geometry far shorter than the official length). Major Kollock Creek is a mountain-bike trail (excluded). Osprey is ~60% of its official 5.3 km as mapped. NB cleanup 2026-11-03: Bog accent fix NOT applied: qualify shows the live id sentier-de-la-rivi-re-kouchibouguac now slugs as sentier-de-la-riviere-kouchibouguac (engine fold drift, independent of any rename), so any Kouchibouguac update would re-id a live trail; needs an id-preserving fix first.",
       "display_name": "Kouchibouguac National Park",
       "keep_trails": [
         {
@@ -2113,7 +2113,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Official source: NB Parks https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park (the trail map is script-rendered, no trail list readable); trail names match the park's published hikes (Mount Carleton, Head, Bailey, Sagamook, Bald Mountain Brook, Big Brook, Dry Brook, Pine Point). Dropped: Nepisiguit Mi'gmaq Trail (rwn long-distance), Portage Trail (canoe portage), Ruisseau Caribou Brook (OSM access=no), Williams Falls 0.19 mi (fragment, no readable official source). Bilingual OSM names unchanged.",
+      "notes": "NB curation 2026-11-02. Official source: NB Parks https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park (the trail map is script-rendered, no trail list readable); trail names match the park's published hikes (Mount Carleton, Head, Bailey, Sagamook, Bald Mountain Brook, Big Brook, Dry Brook, Pine Point). Dropped: Nepisiguit Mi'gmaq Trail (rwn long-distance), Portage Trail (canoe portage), Ruisseau Caribou Brook (OSM access=no), Williams Falls 0.19 mi (fragment, no readable official source). Bilingual OSM names kept except the four Mount / Mont composites, renamed Mount Carleton Trail, Mount Bailey Trail, Mount Head Trail, Lower Mount Bailey Trail (NB cleanup 2026-11-03; trail ids keep the OSM-derived slugs).",
       "trail_name_fixes": [
         {
           "osm_name": "Ruisseau Bald Mountain Brook",
@@ -2126,6 +2126,30 @@
           "name": "Dry Brook Trail",
           "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
           "reason": "OSM name glues a French word onto an English name"
+        },
+        {
+          "osm_name": "Mount / Mont Carleton",
+          "name": "Mount Carleton Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM bilingual composite 'Mount / Mont'; English park usage and sibling Mount Sagamook Trail are 'Mount X Trail'"
+        },
+        {
+          "osm_name": "Mount / Mont Bailey",
+          "name": "Mount Bailey Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM bilingual composite 'Mount / Mont'; English park usage and sibling Mount Sagamook Trail are 'Mount X Trail'"
+        },
+        {
+          "osm_name": "Mount / Mont Head",
+          "name": "Mount Head Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM bilingual composite 'Mount / Mont'; English park usage and sibling Mount Sagamook Trail are 'Mount X Trail'"
+        },
+        {
+          "osm_name": "Lower Mount / Mont Bailey",
+          "name": "Lower Mount Bailey Trail",
+          "source": "https://www.nbparks.ca/en/parks/7/mount-carleton-provincial-park",
+          "reason": "OSM bilingual composite 'Mount / Mont'; English park usage and sibling Mount Sagamook Trail are 'Mount X Trail'"
         }
       ]
     },

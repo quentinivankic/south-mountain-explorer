@@ -38,7 +38,9 @@ def test_run_area_script_is_the_generic_path_with_no_denmark_machinery():
     assert code.count("--region") == 2 and "--region ca --boundary-by-id" in code
     assert "BOUNDARY_ARGS+=(--region ca)" in code and 'if [ "${#CA_RULE_FLAGS[@]}" -gt 0 ] && [ -z "$BOUNDARY_BY_ID" ]' in code
     assert "if [ -n \"$BOUNDARY_BY_ID\" ]" in code and "boundary_by_id" in code
-    assert code.count("--ca-") == 1 and 'CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}"' in code
+    assert code.count("--ca-") == 2 and 'CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}"' in code
+    # registry dedupe_ring_way: its own gated branch (relation-backed, no boundary_by_id), one flag
+    assert 'CA_RULE_FLAGS+=("--ca-dedupe-ring-way")' in code and 'if [ -n "$DEDUPE_RING_WAY" ]' in code
     assert "for RULE_KEY in accept_gap keep_superroute" in code and "if [ -n \"$RULE_COUNT\" ]" in code
     for forbidden in ("--dk-", "denmark", "Denmark", "validate_publish_pilot", "_pbf_discovery",
                       "build_relation_slice", "export_relation_members", "relation-authority",
@@ -263,3 +265,10 @@ def test_publish_workflow_readds_only_way_boundaries_and_the_leisure_park_relati
     assert "w[1-9][0-9]*|$PARK_RELS" in line
     # no generic relation pattern: other relation runs keep the prefilter bytes
     assert "[wr]" not in line and "r[1-9]" not in line
+def test_publish_workflow_readds_registry_keep_park_boundary_relations_by_explicit_id_only():
+    # park_args comes from ca_publish select (flagged, selected areas only); the re-add keeps the same
+    # id-only pattern, so a run without a flagged area keeps the prefilter bytes.
+    assert "PARK_ARGS: ${{ steps.select.outputs.park_args }}" in PUBLISH
+    assert 'if [ -n "${PARK_ARGS:-}" ]; then' in PUBLISH
+    assert "grep -E -x 'r[1-9][0-9]*|w[1-9][0-9]*'" in PUBLISH
+    assert PUBLISH.count("bash extract/prefilter.sh") == 1

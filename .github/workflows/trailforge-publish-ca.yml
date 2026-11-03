@@ -116,6 +116,7 @@ jobs:
         env:
           PROVINCE: ${{ inputs.province }}
           GETID_ARGS: ${{ steps.select.outputs.getid_args }}
+          PARK_ARGS: ${{ steps.select.outputs.park_args }}
         run: |
           set -euo pipefail
           URL="$(python3 scripts/ca_publish.py pbf-url --province "$PROVINCE")"
@@ -134,6 +135,11 @@ jobs:
           # 4855708 = Crystal Crescent Beach Provincial Park.
           PARK_RELS="r4855708"
           WAY_IDS="$(printf '%s\n' "$GETID_ARGS" | tr ' ' '\n' | grep -E -x "w[1-9][0-9]*|$PARK_RELS" || true)"
+          # Registry keep_park_boundary areas (leisure=park + operator, validated by prepare-areas): their
+          # relation ids come from the select step, only for the selected areas.
+          if [ -n "${PARK_ARGS:-}" ]; then
+            WAY_IDS="$(printf '%s\n%s\n' "$WAY_IDS" "$PARK_ARGS" | tr ' ' '\n' | grep -E -x 'r[1-9][0-9]*|w[1-9][0-9]*' | sort -u || true)"
+          fi
           if [ -n "$WAY_IDS" ]; then
             # shellcheck disable=SC2086
             osmium getid -r --overwrite -o data/way-boundaries.osm.pbf "data/raw/canada-$PROVINCE.osm.pbf" $WAY_IDS

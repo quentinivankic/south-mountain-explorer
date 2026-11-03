@@ -35,13 +35,13 @@ extension RoutePlanEngine {
     static let maxWork = 1500
     static let maxPasses = 25
     /// Pending trails tried per insert / replace move (cheapest solo cost first).
-    static let pendingFanout = 10
+    static let pendingFanout = Int.max
     /// Trails tried as "first stop" seeds on big instances.
-    static let forcedSeeds = 12
+    static let forcedSeeds = 30
     private static let gainLambdas: [Double] = [0, 3, 12, 50, 200]
 
     /// Seeds polished by local search.
-    static let polishedSeeds = 3
+    static let polishedSeeds = 6
 
     func run() -> RoutePlan? {
         if PlanCancellation.isCancelled { return nil }

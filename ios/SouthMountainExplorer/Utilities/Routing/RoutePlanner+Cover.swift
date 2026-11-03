@@ -29,7 +29,7 @@ extension RoutePlanEngine {
     }
 
     /// Most boundary nodes kept per trail. Each costs one Dijkstra.
-    static let maxBoundaryNodes = 7
+    static let maxBoundaryNodes = 10
 
     // MARK: - Graph
 

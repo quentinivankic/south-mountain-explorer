@@ -40,10 +40,15 @@ enum RoutePlanningService {
                 view: request.network, credit: inLimit, completion: request.completion,
                 limitSeconds: limit, maxGainFt: request.maxGainFt,
                 paceFactor: request.paceFactor, shape: request.shape)
-            var best = whole
+            // Both candidates get the edge-level detour search: turn onto
+            // unfinished trail instead of walking old trail, partial trails allowed.
+            var best = NewMilesRoute.polish(
+                whole, view: request.network, credit: inLimit, completion: request.completion,
+                limitSeconds: limit, maxGainFt: request.maxGainFt,
+                paceFactor: request.paceFactor, shape: request.shape)
             if let p = partial,
                RouteScore.isBetter(score: p.score, efficiency: p.efficiency, seconds: p.metrics.seconds,
-                                   than: whole.score, efficiency: whole.efficiency, seconds: whole.metrics.seconds) {
+                                   than: best.score, efficiency: best.efficiency, seconds: best.metrics.seconds) {
                 best = p
             }
             let alts = RouteAlternatives.build(

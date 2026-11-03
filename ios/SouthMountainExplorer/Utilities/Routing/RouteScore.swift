@@ -5,17 +5,20 @@ import Foundation
 /// A route is valued by the new ground it covers, not by how many trails it
 /// ticks off. In miles:
 ///
-///     score = newMiles + 0.5 * finishedTrails - 0.25 * repeatMiles
+///     score = newMiles + 0.5 * finishedTrails - 0.4 * repeatMiles
 ///
-/// where `repeatMiles` is everything walked that is not new (completed trails,
-/// connectors, bridges, and new ground walked a second time).
+/// where `repeatMiles` is everything walked that is not new: completed
+/// trails, connectors, bridges, and new ground walked a second time (the
+/// return pass of an out-and-back on an unfinished trail counts as repeat).
 ///
 /// - Each whole trail finished is worth a flat half mile on top of its new
-///   miles, so finishing a trail still matters.
-/// - Each mile of repeat walking costs a quarter mile of value. Extra distance
-///   is therefore worth walking only when at least about a fifth of it is
-///   new (new / (new + repeat) above 0.2). That is what stops a 7 mile walk
-///   over finished trails to reach one short new trail.
+///   miles. It is a bonus, not a requirement: a partial stretch of new trail
+///   scores its new miles.
+/// - Each mile of repeat walking costs 0.4 mile of value (it was 0.25). Extra
+///   distance is therefore worth walking only when more than about 29% of it
+///   is new (0.4 / 1.4). Turning onto an unfinished trail beats walking the
+///   same distance of old trail, and an out-and-back on new ground still pays
+///   (new 1, repeat 1 gives +0.6).
 /// - Scores within `tolerance` count as equal; then higher efficiency
 ///   (newMiles / totalMiles) wins, then less time.
 ///
@@ -23,7 +26,7 @@ import Foundation
 /// but flagged "low value" so the UI can say so and offer a shorter option.
 enum RouteScore {
     static let bonusPerFinishedTrailMiles = 0.5
-    static let repeatPenalty = 0.25
+    static let repeatPenalty = 0.4
     /// Below this share of new ground the route is flagged low value.
     static let lowValueEfficiency = 0.30
     /// Scores closer than this (miles, about half a metre) tie.

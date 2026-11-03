@@ -12,13 +12,14 @@ struct RoutePlanScoringTests {
 
     @Test func scoreIsNewMilesPlusTrailBonusMinusRepeatCost() {
         let mi = 1609.344
-        // 1 new mi in 2 mi, one trail: 1 + 0.5 - 0.25 * 1.
-        #expect(abs(RouteScore.value(newMeters: mi, totalMeters: 2 * mi, finished: 1) - 1.25) < 1e-9)
+        // 1 new mi in 2 mi, one trail: 1 + 0.5 - 0.4 * 1.
+        #expect(abs(RouteScore.value(newMeters: mi, totalMeters: 2 * mi, finished: 1) - 1.1) < 1e-9)
         // All new, no trail finished.
         #expect(abs(RouteScore.value(newMeters: 2 * mi, totalMeters: 2 * mi, finished: 0) - 2.0) < 1e-9)
-        // Quentin's walk: 0.98 new mi in 7.36 mi, one trail. Barely positive-free.
+        // Quentin's first walk: 0.98 new mi in 7.36 mi, one trail. Too much repeat ground
+        // for the little it adds, so the score is negative.
         let v = RouteScore.value(newMeters: 0.98 * mi, totalMeters: 7.36 * mi, finished: 1)
-        #expect(abs(v - (0.98 + 0.5 - 0.25 * 6.38)) < 1e-9)
+        #expect(abs(v - (0.98 + 0.5 - 0.4 * 6.38)) < 1e-9)
         #expect(v < 0)
     }
 

@@ -100,7 +100,7 @@ struct RoutePlan: Sendable {
 /// Algorithm (heuristic, deterministic, no randomness, no clock):
 ///
 /// 1. **Jobs.** Each candidate trail is a job: "walk all its required edges".
-///    A job has up to 7 boundary nodes (its ends, junctions, the nodes nearest
+///    A job has up to 10 boundary nodes (its ends, junctions, the nodes nearest
 ///    the start / finish, and the start / end if on the trail). For every
 ///    (entry, exit) pair of boundary nodes the cheapest known covering walk is
 ///    built:

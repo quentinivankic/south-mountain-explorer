@@ -91,6 +91,60 @@ enum NewMilesRoute {
             steps.append(contentsOf: home.reversed())
         }
 
+        guard let greedy = assemble(
+            steps: steps, view: view, credit: candidates, completion: completion,
+            limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+        else { return nil }
+        return polish(
+            greedy, view: view, credit: candidates, completion: completion,
+            limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+    }
+
+    /// Runs the edge-level detour search (`EdgeWalkSearch`) on `plan` and
+    /// returns the result when it scores better, else `plan` unchanged.
+    static func polish(
+        _ plan: RoutePlan,
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan {
+        guard let search = EdgeWalkSearch(
+            view: view, credit: candidates, completion: completion, limitSeconds: limit,
+            maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+        else { return plan }
+        let improved = search.improve(plan.steps)
+        guard improved != plan.steps,
+              let out = assemble(
+                steps: improved, view: view, credit: candidates, completion: completion,
+                limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape),
+              RouteScore.isBetter(score: out.score, efficiency: out.efficiency, seconds: out.metrics.seconds,
+                                  than: plan.score, efficiency: plan.efficiency, seconds: plan.metrics.seconds)
+        else { return plan }
+        return out
+    }
+
+    /// Metrics, finished trails and step info for a continuous walk. nil when
+    /// the walk is empty, broken, outside the limits, or covers no new ground.
+    static func assemble(
+        steps: [RouteStep],
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan? {
+        let net = view.network
+        let start = view.start.nodeId
+        guard !steps.isEmpty else { return nil }
+        var done = Set<TrailNetwork.TrailKey>()
+        for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
+        let isNew = net.edges.map { $0.kind == .trail && $0.trailKeys.contains { !done.contains($0) } }
         guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: paceFactor, completed: done),
               metrics.isContinuous, metrics.seconds <= limit + 1e-3, metrics.newMeters > 0
         else { return nil }

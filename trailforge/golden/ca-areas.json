@@ -11352,7 +11352,7 @@
         -109.51
       ],
       "tier": 2,
-      "hold": "needs-rescope",
+      "hold": null,
       "dedupe_ring_way": true,
       "notes": "SK/MB curation 2026-11-02. Centre Block (the main Loch Leven / Elk Valley block). The relation (r15678445, nature_reserve) and its own outer ring way (w120623144, protected_area) carry the identical name. check-boundary-unique ignores ring members, the assembler counts both, so neither the plain row nor boundary_by_id passes in the unmodified Canada lane. Needs a Canada-lane code fix (follow-up), not a registry change.  The West Block is a separate polygon and ships as its own row."
     },

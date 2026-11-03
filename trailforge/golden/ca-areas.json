@@ -13049,7 +13049,7 @@
         {
           "id": "n:Slims River West Trail",
           "name": "Slims River West Trail",
-          "reason": "3.1 mi duplicate of the Parks Canada Ä’äy Chù (Slim's River) West trail already kept (same corridor, second OSM name)."
+          "reason": "3.1 mi OSM way under a second spelling that continues the kept Slim's River West corridor south from its end node; publishing it would split one trail into two checklist rows and the registry cannot merge differently named ways, so it is left out (OSM-incomplete, known limitation)."
         },
         {
           "id": "n:Donjek Route",
@@ -13067,7 +13067,15 @@
           "reason": "Parks Canada lists Thechàl Dhâl Ridge as an unmarked route, not a trail, and notes the Thechàl Dhâl face is closed to public access year-round."
         }
       ],
-      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox/center are the qualify-proposed values (run 41573269069): 9 trails, 47.7 mi, 0 duplicates."
+      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Review remediation 2026-11-02 (OSM evidence in .agents/tasks/trekdex-canada-engine/kluane-osm-evidence.md): no named signed Kathleen Lake trail exists in OSM (only unnamed day-use paths; Kokanee boardwalk 0.6 mi unmapped by name), recorded as a known omission; the 30>23 count is candidate filtering, not geometric clipping, and every kept way is 100% inside the polygon; Cottonwood 16.4 mi, Auriol 3.2 mi (rest of the loop is tagged piste:type=nordic) and Slim's River West 9.3 mi are OSM-incomplete, not polygon-clipped, and are kept as the Parks Canada signature trails; Dezadeash River Trail is inside the polygon and on the Parks Canada list, kept with the official spelling. Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox/center are the qualify-proposed values (run 41573269069): 9 trails, 47.7 mi, 0 duplicates.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Dezedeash River Trail",
+          "name": "Dezadeash River Trail",
+          "source": "https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking",
+          "reason": "Parks Canada lists the trail as Dezadeash River (map no. 7); OSM spells it Dezedeash"
+        }
+      ]
     },
     {
       "id": "fred-henne-territorial-park-ca-nt",

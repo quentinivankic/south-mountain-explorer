@@ -13019,8 +13019,16 @@
       "state": "Canada",
       "relation_id": 9561308,
       "name": "Kluane National Park and Reserve",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -141.05,
+        59.95,
+        -136.96,
+        61.39
+      ],
+      "center": [
+        60.7,
+        -139.0
+      ],
       "tier": 1,
       "hold": null,
       "span_waiver": {
@@ -13059,7 +13067,7 @@
           "reason": "Parks Canada lists Thechàl Dhâl Ridge as an unmarked route, not a trail, and notes the Thechàl Dhâl face is closed to public access year-round."
         }
       ],
-      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox/center null until qualify proposes them."
+      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox/center are the qualify-proposed values (run 41573269069): 9 trails, 47.7 mi, 0 duplicates."
     },
     {
       "id": "fred-henne-territorial-park-ca-nt",

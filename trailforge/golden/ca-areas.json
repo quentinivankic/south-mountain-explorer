@@ -13064,8 +13064,8 @@
         64.92
       ],
       "center": [
-        64.47,
-        -138.38
+        64.443,
+        -138.372
       ],
       "tier": 2,
       "hold": null,
@@ -13098,7 +13098,7 @@
           "reason": "Yukon Parks lists a 1 km wheelchair-accessible interpretive trail from the Tombstone Interpretive Centre to a beaver pond; OSM has it as a Yukon Government relation of 0.589 mi (under the 0.6 mi floor), wholly inside the park."
         }
       ],
-      "notes": "Territories batch 2026-11-02 (ca-terr). Kept: the Grizzly Lake, Divide Lake and Talus Lake backcountry-campground trail chain (Yukon Parks), Goldensides, Twin Lakes and Mount Monolith Viewpoint, Beaver Pond Interpretive. Sources: https://yukon.ca/en/outdoor-recreation-and-wildlife/parks-and-protected-areas/tombstone-territorial-park and https://yukonhiking.ca/regions/TombstoneTerritorialPark."
+      "notes": "Territories batch 2026-11-02 (ca-terr). Kept: the Grizzly Lake, Divide Lake and Talus Lake backcountry-campground trail chain (Yukon Parks), Goldensides, Twin Lakes and Mount Monolith Viewpoint, Beaver Pond Interpretive. Sources: https://yukon.ca/en/outdoor-recreation-and-wildlife/parks-and-protected-areas/tombstone-territorial-park and https://yukonhiking.ca/regions/TombstoneTerritorialPark. Cleanup 2026-11-03: pin moved [64.47,-138.38] -> [64.443,-138.372], on the Grizzly Lake Trail (was 1.9 mi from any trail; gate box midpoint 64.4696,-138.3798). Registry-only; 6 trails/16.8 mi unchanged, no double counting (trails meet only at single junction vertices)."
     },
     {
       "id": "kluane-national-park-and-reserve-ca-yt",

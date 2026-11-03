@@ -11380,12 +11380,19 @@
         54.81
       ],
       "center": [
-        54.479,
-        -109.236
+        54.435,
+        -109.012
       ],
       "tier": 2,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Boreal Trail (signed relation, 69.9 mi, wholly inside the park polygon), Gold Creek Trail, New Branch Hiking Trail. Sask Parks list not readable (JS-rendered); the set is what OSM maps, unverified against the park's list."
+      "notes": "SK/MB curation 2026-11-02. Whole park. Boreal Trail (signed relation, 69.9 mi, wholly inside the park polygon), Gold Creek Trail, New Branch Hiking Trail. Sask Parks list not readable (JS-rendered); the set is what OSM maps, unverified against the park's list. live-fix4 2026-11-02: Boreal Trail dropped (three same-name relations merged into one 69.9 mi long-distance item); 3 trails 78.7 mi becomes 2 trails 8.9 mi. Pin moved from [54.479, -109.236] to [54.435, -109.012], the closest point to New Branch Hiking Trail (about 2.7 mi) that stays within the 0.1 deg publish gate of the new trail-extent midpoint; the two kept trails are 0.3 deg apart so no trail vertex can satisfy the gate.",
+      "exclude_trails": [
+        {
+          "id": "n:Boreal Trail",
+          "name": "Boreal Trail",
+          "reason": "Wrong class: three separate same-name route relations (r18166071/72/73) merged into one 69.9 mi item, a long-distance backpacking leg, not a walkable trail"
+        }
+      ]
     },
     {
       "id": "duck-mountain-provincial-park-ca-sk",

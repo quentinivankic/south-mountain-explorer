@@ -7684,12 +7684,12 @@
         51.69
       ],
       "center": [
-        51.408,
-        -116.483
+        51.43,
+        -116.486
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names. live-fix1 remediation (review #717): restored Paget Peak North Trail (agency-listed or only link to a listed trail).",
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Yoho hikes-and-walks table (https://parks.canada.ca/pn-np/bc/yoho/activ/randonnee-hike/jour-day): Wapta Falls, Emerald Lakeshore (Emerald Lake Loop), Centennial, Yoho Valley, Ross Lake, Paget, Emerald Basin, Yoho Glacier, Little Yoho Valley, Hoodoos, Mt. Hunter lookouts, Hamilton Lake, Ottertail Valley, Iceline, Whaleback, Burgess/Wapta Highline, Lake O'Hara circuit and named alpine routes are present. Not in OSM as a hiking trail: Tally-Ho (tagged as a bike/ski feature, dropped by the engine), Takakkaw Falls, Sherbrooke Lake, Yoho Lake, Emerald River, Tocher Ridge, Laughing Falls (unnamed or unmapped). Excluded: boundary-clipped routes, connectors, composites and duplicate names. live-fix1 remediation (review #717): restored Paget Peak North Trail (agency-listed or only link to a listed trail). live-fix5 2026-11-02: pin moved from [51.408, -116.483] to trail point [51.43, -116.486] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:Celeste Lake Connector",
@@ -8148,12 +8148,12 @@
         51.24
       ],
       "center": [
-        51.047,
-        -118.061
+        51.072,
+        -118.072
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Parks Canada Mount Revelstoke pages (https://parks.canada.ca/pn-np/bc/revelstoke/activ/randonee-hiking/autoroute-highway) list Eva, Miller and Jade Lakes (present), the Summit Trail (present), Skunk Cabbage Boardwalk (waiver) and Giant Cedars Boardwalk (not mapped as a named trail in OSM). Soren Sorensen loops, Lindmark and Inspiration Woods ship as mapped (not compared name by name). Nels Nelson Ski Jump Trail is winter-only and dropped.",
+      "notes": "BC curation 2026-11-02. Whole park. Parks Canada Mount Revelstoke pages (https://parks.canada.ca/pn-np/bc/revelstoke/activ/randonee-hiking/autoroute-highway) list Eva, Miller and Jade Lakes (present), the Summit Trail (present), Skunk Cabbage Boardwalk (waiver) and Giant Cedars Boardwalk (not mapped as a named trail in OSM). Soren Sorensen loops, Lindmark and Inspiration Woods ship as mapped (not compared name by name). Nels Nelson Ski Jump Trail is winter-only and dropped. live-fix5 2026-11-02: pin moved from [51.047, -118.061] to trail point [51.072, -118.072] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:23 Connector",
@@ -8190,12 +8190,12 @@
         49.17
       ],
       "center": [
-        48.818,
-        -125.119
+        48.793,
+        -125.116
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole reserve (Long Beach, West Coast Trail and Broken Group units). Compared with the Parks Canada Pacific Rim hiking page (https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking). West Coast Trail ships whole (75 km official, 45.3 mi inside the polygon) as a signature multi-day trail by waiver; its 'Beach Option' pieces are excluded as variants. Long Beach Unit short walks (Rainforest B, Shorepine Bog, Combers Beach) added by waiver; Willowbrae and South Beach are 65% / 78% inside the unit polygon and stay out as clipped; Rainforest A, Nuu-chah-nulth, Canso Bomber Ruins, Cape Beale Lighthouse and Keeha Beach present. Halfmoon Bay Trail (0.14 mi stub), Radar Hill and the paved ʔapsčiik t̓ašii multi-use pathway are not shipped (stub / paved cycle path).",
+      "notes": "BC curation 2026-11-02. Whole reserve (Long Beach, West Coast Trail and Broken Group units). Compared with the Parks Canada Pacific Rim hiking page (https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking). West Coast Trail ships whole (75 km official, 45.3 mi inside the polygon) as a signature multi-day trail by waiver; its 'Beach Option' pieces are excluded as variants. Long Beach Unit short walks (Rainforest B, Shorepine Bog, Combers Beach) added by waiver; Willowbrae and South Beach are 65% / 78% inside the unit polygon and stay out as clipped; Rainforest A, Nuu-chah-nulth, Canso Bomber Ruins, Cape Beale Lighthouse and Keeha Beach present. Halfmoon Bay Trail (0.14 mi stub), Radar Hill and the paved ʔapsčiik t̓ašii multi-use pathway are not shipped (stub / paved cycle path). live-fix5 2026-11-02: pin moved from [48.818, -125.119] to trail point [48.793, -125.116] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:Cape Beale Trail / Tapaltos Beach Trail",
@@ -8986,12 +8986,12 @@
         50.93
       ],
       "center": [
-        50.729,
-        -128.34
+        50.734,
+        -128.306
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Cape Scott Trail 13.3 mi, San Josef Bay, Lowrie Bay and Mount Saint Patrick present. North Coast Trail (19.3 of 29.2 mi inside the polygon) is boundary-clipped and excluded; the Vancouver Island Trail is long-distance and dropped. BC Parks list not compared name by name (unverified).",
+      "notes": "BC curation 2026-11-02. Whole park. Cape Scott Trail 13.3 mi, San Josef Bay, Lowrie Bay and Mount Saint Patrick present. North Coast Trail (19.3 of 29.2 mi inside the polygon) is boundary-clipped and excluded; the Vancouver Island Trail is long-distance and dropped. BC Parks list not compared name by name (unverified). live-fix5 2026-11-02: pin moved from [50.729, -128.34] to trail point [50.734, -128.306] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:North Coast Trail",
@@ -9021,12 +9021,12 @@
         50.07
       ],
       "center": [
-        49.851,
-        -117.523
+        49.923,
+        -117.445
       ],
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Evans Creek, Sharp Creek, Sandy Creek, Nemo Creek and Evans Beach / Beatrice Lake trails present; Drinnon Lake and Mulvey Basin (clipped) excluded. BC Parks list not compared name by name (unverified).",
+      "notes": "BC curation 2026-11-02. Whole park. Evans Creek, Sharp Creek, Sandy Creek, Nemo Creek and Evans Beach / Beatrice Lake trails present; Drinnon Lake and Mulvey Basin (clipped) excluded. BC Parks list not compared name by name (unverified). live-fix5 2026-11-02: pin moved from [49.851, -117.523] to trail point [49.923, -117.445] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:Drinnon Lake Trail",
@@ -12056,12 +12056,12 @@
         53.87
       ],
       "center": [
-        52.448,
-        -125.979
+        52.544,
+        -125.882
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). SHIP. Compared with the BC Parks Tweedsmuir South hiking page (https://bcparks.ca/tweedsmuir-park/hiking, read in full): Rainbow Range, Octopus Lake, Crystal Lake, Hunlen Falls (8.9 of 10.2 mi), Ptarmigan Lake (6.0 of 7.5 mi) and Kettle Pond are present. Known omissions: Capoose Trail, Burnt Bridge, the 30 km unmaintained Tweedsmuir Route and the Panorama Lakes loop routes (not mapped by name or route-class). 'Tweedsmuir Trail' (7.95 of 18.6 mi, a stub of the Tweedsmuir Route), 'Tweedsmuir Lookout Trail' and 'Valley Loop Trail' (not on the BC Parks page) are excluded. Nuxalk-Carrier Grease / Alexander Mackenzie Heritage Trail is long-distance and not in the replay.",
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). SHIP. Compared with the BC Parks Tweedsmuir South hiking page (https://bcparks.ca/tweedsmuir-park/hiking, read in full): Rainbow Range, Octopus Lake, Crystal Lake, Hunlen Falls (8.9 of 10.2 mi), Ptarmigan Lake (6.0 of 7.5 mi) and Kettle Pond are present. Known omissions: Capoose Trail, Burnt Bridge, the 30 km unmaintained Tweedsmuir Route and the Panorama Lakes loop routes (not mapped by name or route-class). 'Tweedsmuir Trail' (7.95 of 18.6 mi, a stub of the Tweedsmuir Route), 'Tweedsmuir Lookout Trail' and 'Valley Loop Trail' (not on the BC Parks page) are excluded. Nuxalk-Carrier Grease / Alexander Mackenzie Heritage Trail is long-distance and not in the replay. live-fix5 2026-11-02: pin moved from [52.448, -125.979] to trail point [52.544, -125.882] (old pin was over 1.5 mi from the nearest trail; new pin sits on a trail inside the 0.1 deg publish gate). Trail set unchanged.",
       "exclude_trails": [
         {
           "id": "n:Tweedsmuir Trail",

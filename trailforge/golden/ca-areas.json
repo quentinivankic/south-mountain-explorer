@@ -662,12 +662,12 @@
         44.74
       ],
       "center": [
-        44.659,
-        -63.393
+        44.663,
+        -63.464
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q1): 4 trails, 7.1 mi, pre/post clip 41>7.",
+      "notes": "Qualify 2026-11-02 (run q1): 4 trails, 7.1 mi, pre/post clip 41>7. ns-cleanup 2026-11-02: pin moved from [44.659, -63.393] (2.73 mi from the nearest trail) to [44.663, -63.464] on a trail vertex inside the 0.1 deg centre gate.",
       "exclude_trails": [
         {
           "id": "n:Cole Harbour Heritage Trails",
@@ -880,12 +880,12 @@
         45.64
       ],
       "center": [
-        45.5,
-        -63.1
+        45.537,
+        -63.07
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q2): 4 trails, 13.7 mi, pre/post clip 8>6."
+      "notes": "Qualify 2026-11-02 (run q2): 4 trails, 13.7 mi, pre/post clip 8>6. ns-cleanup 2026-11-02: pin moved from [45.5, -63.1] (2.2 mi from the nearest trail) to [45.537, -63.07] on a trail vertex inside the 0.1 deg centre gate."
     },
     {
       "id": "humes-river-wilderness-area-ca-ns",
@@ -1152,12 +1152,12 @@
         46.42
       ],
       "center": [
-        46.3,
-        -60.7
+        46.317,
+        -60.671
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q2): 2 trails, 5.6 mi, pre/post clip 6>4.",
+      "notes": "Qualify 2026-11-02 (run q2): 2 trails, 5.6 mi, pre/post clip 6>4. ns-cleanup 2026-11-02: pin moved from [46.3, -60.7] (1.78 mi from the nearest trail) to [46.317, -60.671] on a trail vertex inside the 0.1 deg centre gate.",
       "trail_name_fixes": [
         {
           "osm_name": "North-River-Falls-Trail",
@@ -1228,12 +1228,12 @@
         47.09
       ],
       "center": [
-        46.927,
-        -60.629
+        46.906,
+        -60.696
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02.",
+      "notes": "Same-name twin boundary in the AOI; pinned by relation id (boundary_by_id, PR #692). Replay/qualify 2026-11-02. ns-cleanup 2026-11-02: pin moved from [46.927, -60.629] (1.93 mi from the nearest trail) to [46.906, -60.696] on a trail vertex inside the 0.1 deg centre gate.",
       "boundary_by_id": true
     },
     {

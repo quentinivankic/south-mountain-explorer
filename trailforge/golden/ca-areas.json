@@ -11887,12 +11887,20 @@
       "state": "Canada",
       "relation_id": 1801799,
       "name": "East Sooke Regional Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -123.76,
+        48.26,
+        -123.58,
+        48.41
+      ],
+      "center": [
+        48.337,
+        -123.667
+      ],
       "tier": 3,
-      "hold": "needs-rescope",
+      "hold": null,
       "keep_park_boundary": true,
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). East Sooke RP (r1801799, leisure=park): the generic prefilter does not keep leisure=park boundaries, so the replay refuses (found [] boundaries). Coast Trail cannot be assembled without an engine/prefilter change. ca-new3 2026-11-02: Re-replay: refused (leisure=park boundary not kept by the generic prefilter); hold stands."
+      "notes": "East Sooke curation 2026-11-02 (ca-bc-east-sooke). Whole Capital Regional District park (leisure=park, kept by the Canada keep_park_boundary opt-in from engine PR #728). Qualify 41576944423: 8 trails / 20.2 mi, 0 duplicates; all eight are CRD-signed named park trails: Coast, Interior, Anderson Cove, Endurance Ridge, Babbington Hill, Coppermine, Parkheights, Creyke Point. Names are already correct in OSM (no fixes needed). The engine already drops Pike Road Trail (0.05 mi stub, not a hike), Shepherd Creek Road (named road), Mount Maguire / Silver Spray / Swamp Bypass / Parkheights-Interior (under 0.6 mi) and two sub-0.1 mi stubs. No live BC area shares a trail (Juan de Fuca, Sooke Potholes and Sooke Mountain are separate, unpublished or non-overlapping). bbox is the qualify-proposed value; centre is the trail-extent midpoint (qualify proposed [48.3,-123.7], which lies south of the boundary bbox and would be refused at publish)."
     },
     {
       "id": "goldstream-provincial-park-ca-bc",

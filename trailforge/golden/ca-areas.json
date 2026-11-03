@@ -11352,9 +11352,31 @@
         -109.51
       ],
       "tier": 2,
-      "hold": "needs-rescope",
+      "hold": null,
       "dedupe_ring_way": true,
-      "notes": "SK/MB curation 2026-11-02. Centre Block (the main Loch Leven / Elk Valley block). The relation (r15678445, nature_reserve) and its own outer ring way (w120623144, protected_area) carry the identical name. check-boundary-unique ignores ring members, the assembler counts both, so neither the plain row nor boundary_by_id passes in the unmodified Canada lane. Needs a Canada-lane code fix (follow-up), not a registry change.  The West Block is a separate polygon and ships as its own row."
+      "notes": "SK/MB curation 2026-11-02. Centre Block (the main Loch Leven / Elk Valley block). The relation (r15678445, nature_reserve) and its own outer ring way (w120623144, protected_area) carry the identical name. check-boundary-unique ignores ring members, the assembler counts both, so neither the plain row nor boundary_by_id passes in the unmodified Canada lane. Now shipped via dedupe_ring_way (merged same-name ring dedupe). The West Block is a separate polygon and ships as its own row. Curation: 8 signed Saskatchewan Parks trails kept (Boiler Creek, Lynx, Valley View, Native Prairie Interpretive, Highland Rotary, Lodgepole, Whispering Pines, Squirrel Run). Dropped bike/Trans Canada Trail/unsigned: Moose, Woodlands, Sasquatch Stomp, Fire Break. West Block trails stay in the West Block area (no trail in two areas). Sask Parks trail list not readable (JS-rendered); set is what OSM maps, unverified against the park list.",
+      "exclude_trails": [
+        {
+          "id": "n:Moose Trail",
+          "name": "Moose Trail",
+          "reason": "Cycle-designated cycleway (highway=cycleway, bicycle=designated) and Trans Canada Trail leg; not a hiking trail"
+        },
+        {
+          "id": "n:Woodlands Trail",
+          "name": "Woodlands Trail",
+          "reason": "Bike-flagged (bicycle=designated); shared with the Trans Canada Trail; not a hiking-only trail"
+        },
+        {
+          "id": "n:Sasquatch Stomp",
+          "name": "Sasquatch Stomp",
+          "reason": "Bike-flagged cycleway (highway=cycleway, bicycle=designated)"
+        },
+        {
+          "id": "n:Fire Break",
+          "name": "Fire Break",
+          "reason": "Unsigned fire-break track (highway=track, CanVec import), no operator or route relation"
+        }
+      ]
     },
     {
       "id": "cypress-hills-interprovincial-park-west-block-ca-sk",

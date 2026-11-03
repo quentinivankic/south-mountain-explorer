@@ -3,7 +3,8 @@ import Foundation
 /// Top-level, UI-free entry for Plan a Hike ("Plan a Hike", Task 6).
 ///
 /// `planOutcome` runs Task 4 eligibility and the Task 5 planner and answers one
-/// of three ways: a best route plus alternatives, "nothing fits" (honest
+/// of three ways: a best route (the higher `RouteScore` of the whole-trail plan
+/// and the new-ground walk) plus alternatives, "nothing fits" (honest
 /// message, the exact time the closest trail needs, and a fallback that walks
 /// the most new ground), or "nothing to plan" (counts per reason). Pure and
 /// deterministic.
@@ -32,8 +33,21 @@ enum RoutePlanningService {
             network: request.network, candidates: inLimit, completion: request.completion,
             timeLimitSeconds: limit, maxGainFt: request.maxGainFt,
             paceFactor: request.paceFactor, shape: request.shape)
-        if !inLimit.isEmpty, let best = RoutePlanner.plan(base), !PlanCancellation.isCancelled {
-            let alts = RouteAlternatives.build(best: best, base: base, request: request, credit: inLimit)
+        if !inLimit.isEmpty, let whole = RoutePlanner.plan(base), !PlanCancellation.isCancelled {
+            // A partial-trail walk over new ground competes on the same score.
+            // When it wins (most of a whole-trail hike is repeat ground), it is the best.
+            let partial = NewMilesRoute.plan(
+                view: request.network, credit: inLimit, completion: request.completion,
+                limitSeconds: limit, maxGainFt: request.maxGainFt,
+                paceFactor: request.paceFactor, shape: request.shape)
+            var best = whole
+            if let p = partial,
+               RouteScore.isBetter(score: p.score, efficiency: p.efficiency, seconds: p.metrics.seconds,
+                                   than: whole.score, efficiency: whole.efficiency, seconds: whole.metrics.seconds) {
+                best = p
+            }
+            let alts = RouteAlternatives.build(
+                best: best, base: base, request: request, credit: inLimit, newMiles: partial)
             return .planned(best: best, alternatives: alts)
         }
         // Cancelled mid-search: skip the extra planning below, the caller discards this.

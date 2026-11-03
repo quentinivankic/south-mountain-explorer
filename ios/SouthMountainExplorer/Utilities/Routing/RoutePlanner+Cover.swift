@@ -379,7 +379,7 @@ extension RoutePlanEngine {
         let requiredMeters = edgeIds.reduce(0.0) { $0 + net.edges[$1].lengthMeters }
         return PlanJob(index: index, key: key, name: name, members: members, owner: owner, edgeIds: edgeIds,
                        requiredMeters: requiredMeters, nodes: boundary, keyIndex: [], cover: cover,
-                       bonus: min(0.25, 0.02 * newMeters / 1609.344))
+                       newMiles: newMeters / RouteScore.metersPerMile)
     }
 
     /// Builds all jobs (sorted by key, so input order never matters), then the

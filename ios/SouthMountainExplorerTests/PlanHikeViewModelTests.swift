@@ -157,7 +157,7 @@ struct PlanHikeViewModelTests {
         #expect(d.headline == "Finishes 3 trails in 1 h 50 m")
         #expect(d.route?.trailNames == ["Alpha", "Beta", "Gamma"])
         #expect(d.alternatives.count == 1)
-        #expect(d.alternatives[0].title == "Shortest")
+        #expect(d.alternatives[0].title == "Shorter")
         #expect(d.alternatives[0].why == "1 h 10 m shorter, 2 fewer trails")
         #expect(d.alternatives[0].route.trailNames == ["Alpha"])
         #expect(d.replan == nil && d.fallback == nil && d.message == nil)
@@ -300,8 +300,79 @@ struct PlanHikeViewModelTests {
     @Test func pinSpotDescribesItself() {
         let s = PlanSpotBuilder.pinSpot(lat: 33.30321, lon: -112.10337)
         #expect(s.id == "pin")
-        #expect(s.title == "Dropped pin (33.3032, -112.1034)")
+        #expect(s.title == "Dropped pin")
         #expect(s.point == .pin(lat: 33.30321, lon: -112.10337))
+    }
+
+    // MARK: - v2: friendly start, time chips, summary line
+
+    @Test func timeChipsAreOneToFourHours() {
+        #expect(PlanHikeInputs.timeChipMinutes == [60, 120, 180, 240])
+        var i = PlanHikeInputs()
+        #expect(i.timeIsChip)
+        i.timeLimitMinutes = 95
+        #expect(!i.timeIsChip)
+        i.timeLimitMinutes = 240
+        #expect(i.timeIsChip)
+    }
+
+    @Test func defaultStartUsesYourLocationNearATrail() throws {
+        let t = K.trail("A", [(0, 0), (1000, 0)])
+        let c = K.ll(200, 100)    // 100 m off the trail
+        let spots = [PlanSpot(id: "t", point: .trailhead(name: "North TH", lat: K.ll(0, 0)[0], lon: K.ll(0, 0)[1]), title: "North TH")]
+        let pick = try #require(PlanSpotBuilder.defaultStart(
+            user: (c[0], c[1]), spots: spots, trails: [t], areaCenter: (c[0], c[1]), maxTrailMeters: 500))
+        #expect(pick.title == "Your location")
+        #expect(pick.point == .pin(lat: c[0], lon: c[1], name: "Your location"))
+        #expect(pick.point.displayName == "Your location")
+    }
+
+    @Test func defaultStartFallsBackToTheNearestTrailhead() throws {
+        let t = K.trail("A", [(0, 0), (1000, 0)])
+        let far = K.ll(0, 50_000)
+        let near = K.ll(900, 0), other = K.ll(0, 0)
+        let spots = [
+            PlanSpot(id: "p", point: .parking(lot(near[0], near[1], name: "Lot")), title: "Lot"),
+            PlanSpot(id: "a", point: .trailhead(name: "Far TH", lat: other[0], lon: other[1]), title: "Far TH"),
+            PlanSpot(id: "b", point: .trailhead(name: "Near TH", lat: near[0], lon: near[1]), title: "Near TH"),
+        ]
+        // No location: nearest trailhead to the area centre.
+        let a = try #require(PlanSpotBuilder.defaultStart(
+            user: nil, spots: spots, trails: [t], areaCenter: (near[0], near[1]), maxTrailMeters: 500))
+        #expect(a.title == "Near TH")
+        // Location far from every trail: nearest trailhead to the user.
+        let b = try #require(PlanSpotBuilder.defaultStart(
+            user: (far[0], far[1]), spots: spots, trails: [t], areaCenter: (other[0], other[1]), maxTrailMeters: 500))
+        #expect(b.title == "Far TH" || b.title == "Near TH")
+        #expect(PlanSpotBuilder.defaultStart(
+            user: nil, spots: [], trails: [t], areaCenter: (near[0], near[1]), maxTrailMeters: 500) == nil)
+    }
+
+    @Test func startNamesNeverShowCoordinates() {
+        #expect(PlanSpotBuilder.pinSpot(lat: 33.3664, lon: -112.0309).title == "Dropped pin")
+        #expect(PlanSpotBuilder.hereSpot(lat: 33.3664, lon: -112.0309).title == "Your location")
+    }
+
+    @Test func summaryLineIsTrailDistanceTimeNewMiles() throws {
+        let p = try plan(names: ["Kachina Access"], meters: 7.4 * 1609.344, seconds: 2 * 3600 + 57 * 60,
+                         gainFt: 1963, newMeters: 1.0 * 1609.344)
+        let r = PlanResultDisplay.route(p, title: "Your hike", units: .imperial, isBest: true)
+        #expect(r.summary == "Kachina Access · 7.4 mi · 2 h 57 m · 1.0 new mi")
+        #expect(r.climbLine == "1963 ft climb")
+        #expect(r.lowValueNote?.hasPrefix("Most trails near here are done.") == true)
+        let many = try plan(names: ["A", "B", "C"], meters: 4000, newMeters: 3000)
+        #expect(PlanResultDisplay.route(many, title: "t", units: .imperial).summary.hasPrefix("A +2 more · "))
+        #expect(PlanResultDisplay.route(many, title: "t", units: .imperial).lowValueNote == nil)
+        let none = try plan(names: [], meters: 4000, newMeters: 3000)
+        #expect(PlanResultDisplay.route(none, title: "t", units: .imperial).summary.hasPrefix("Your hike · "))
+    }
+
+    @Test func lowValueNoteMatchesTheBrief() throws {
+        let p = try plan(names: ["Kachina Access"], meters: 7.36 * 1609.344, seconds: 10620, newMeters: 0.98 * 1609.344)
+        let r = PlanResultDisplay.route(p, title: "Your hike", units: .imperial, isBest: true, offersShorter: true)
+        #expect(r.lowValueNote == "Most trails near here are done. Best is 0.98 new mi in 7.4 mi. Try Shorter for a closer option.")
+        let metric = PlanResultDisplay.route(p, title: "Your hike", units: .metric, isBest: true)
+        #expect(metric.lowValueNote?.contains("new km in") == true)
     }
 
     // MARK: - End to end through the real planner

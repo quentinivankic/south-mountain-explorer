@@ -29,8 +29,8 @@ struct PlanJob {
     var keyIndex: [Int] = []
     /// `cover[entry][exit]`: indices into `nodes`. nil when no walk was built.
     let cover: [[PlanCoverWalk?]]
-    /// Bonus added to the greedy score: tiny, always < 1.
-    let bonus: Double
+    /// New ground the whole job covers, miles (greedy seed scoring).
+    let newMiles: Double
     /// `tailSecs[entry][k]`: least cover-then-walk-to-key-node-`k` seconds from
     /// entry `entry` (k == key-node count means "no next stop"). Gain-free
     /// shortcut for the greedy scan; built with the distance tables.

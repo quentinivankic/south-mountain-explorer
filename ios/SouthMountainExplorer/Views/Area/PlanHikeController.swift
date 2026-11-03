@@ -54,6 +54,8 @@ final class PlanHikeController {
     /// Dropped pins keep their own list entry so the pickers can show them.
     private(set) var startPin: PlanSpot?
     private(set) var endPin: PlanSpot?
+    /// The user's own position, offered as a start when it is near a trail.
+    private(set) var hereSpot: PlanSpot?
 
     private var loader: PlanningNetworkLoader?
     private var preparedAreaId: String?
@@ -61,7 +63,10 @@ final class PlanHikeController {
     private var lastPlanned: PlanHikeInputs?
 
     /// Spot list and personal pace, once per area. Cheap to call on every open.
-    func prepare(area: Area, recording: RecordingService, units: UnitsPreference) async {
+    func prepare(
+        area: Area, recording: RecordingService, units: UnitsPreference,
+        userLocation: (lat: Double, lon: Double)? = nil
+    ) async {
         inputs.normalizeClimb(units: units)
         if preparedAreaId != area.id {
             preparedAreaId = area.id
@@ -71,12 +76,34 @@ final class PlanHikeController {
             inputs.normalizeClimb(units: units)
             startPin = nil
             endPin = nil
+            hereSpot = nil
             state = .idle
         }
+        applyDefaultStart(area: area, userLocation: userLocation)
         let pace = await PersonalPace.load(using: recording)
         personalPace = pace
         inputs.reconcilePace(personal: pace)
     }
+
+    /// Fills an empty start: the user's location if it is near a trail, else
+    /// the nearest trailhead. Never replaces a start the user chose.
+    func applyDefaultStart(area: Area, userLocation: (lat: Double, lon: Double)?) {
+        if let u = userLocation,
+           let d = PlanSpotBuilder.nearestTrailMeters(lat: u.lat, lon: u.lon, trails: area.trails),
+           d <= Self.maxHereMeters {
+            hereSpot = PlanSpotBuilder.hereSpot(lat: u.lat, lon: u.lon)
+        } else {
+            hereSpot = nil
+        }
+        guard inputs.start == nil else { return }
+        let pick = PlanSpotBuilder.defaultStart(
+            user: userLocation, spots: spots, trails: area.trails,
+            areaCenter: (area.centerLat, area.centerLon), maxTrailMeters: Self.maxHereMeters)
+        inputs.start = pick?.point
+    }
+
+    /// The user's position counts as "at the trails" within this distance.
+    static let maxHereMeters = 500.0
 
     func setPin(_ target: PlanPinTarget, lat: Double, lon: Double) {
         let spot = PlanSpotBuilder.pinSpot(lat: lat, lon: lon)
@@ -110,6 +137,13 @@ final class PlanHikeController {
             guard !Task.isCancelled, let self, self.preview.isShowing else { return }
             self.fitTick &+= 1
         }
+    }
+
+    /// Back to the inputs from a result: removes the route and keeps the inputs.
+    func edit() {
+        cancel()
+        clearRoute()
+        state = .idle
     }
 
     func selectRoute(id: String) {
@@ -178,6 +212,8 @@ final class PlanHikeController {
             case .success(let done):
                 self.state = .planned(done.outcome, done.context)
                 self.preview.load(done.options)
+                // The route goes on the map as soon as it is ready.
+                self.showOnMap()
             case .failure(let err): self.state = .failed(PlanHikeMessages.startError(err.error, isEnd: err.isEnd, units: units))
             }
             self.run = nil

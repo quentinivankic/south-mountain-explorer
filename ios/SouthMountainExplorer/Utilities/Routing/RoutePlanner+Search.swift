@@ -13,6 +13,12 @@ struct PlanPick {
 struct PlanEval {
     var finished: [Int]
     var newMeters: Double
+    /// Every step walked, repeats included.
+    var totalMeters: Double
+    var score: Double {
+        RouteScore.value(newMeters: newMeters, totalMeters: totalMeters, finished: finished.count)
+    }
+    var efficiency: Double { RouteScore.efficiency(newMeters: newMeters, totalMeters: totalMeters) }
 }
 
 struct PlanState {
@@ -48,7 +54,12 @@ extension RoutePlanEngine {
         for mode in 0..<3 { seeds.append(greedyFill(empty, mode: mode)) }
         for j in promising(jobs.indices.map { $0 }).prefix(Self.forcedSeeds) {
             if PlanCancellation.isCancelled { return nil }
-            if let first = makeState(order: [j]) { seeds.append(greedyFill(first, mode: 0)) }
+            if let first = makeState(order: [j]) {
+                // The trail alone is a seed too: with repeat walking costing
+                // value, a short single-trail hike often beats a filled one.
+                seeds.append(first)
+                seeds.append(greedyFill(first, mode: 0))
+            }
         }
         var unique: [PlanState] = []
         var seen = Set<[Int]>()
@@ -63,7 +74,6 @@ extension RoutePlanEngine {
             if PlanCancellation.isCancelled { return nil }
             let polished = localSearch(unique[i])
             if best == nil || better(polished, best!) { best = polished }
-            if best!.eval.finished.count == singleCount { break }
         }
         guard let state = best, !state.eval.finished.isEmpty else { return nil }
         return assemble(state)
@@ -80,12 +90,16 @@ extension RoutePlanEngine {
 
     // MARK: - Objective
 
-    /// More trails finished, then more new metres, then less time. Small
-    /// tolerances keep float noise from reshuffling equal plans.
+    /// Higher `RouteScore` first (new miles, a bonus per whole trail finished,
+    /// a cost per repeat mile), then higher efficiency, then less time.
+    /// A small tolerance keeps float noise from reshuffling equal plans.
     func better(_ a: PlanState, _ b: PlanState) -> Bool {
-        if a.eval.finished.count != b.eval.finished.count { return a.eval.finished.count > b.eval.finished.count }
-        if abs(a.eval.newMeters - b.eval.newMeters) > 0.5 { return a.eval.newMeters > b.eval.newMeters }
-        return a.secs < b.secs - 0.5
+        // A hike must finish at least one whole trail; the empty walk (score
+        // zero) must never beat a real one that scores below zero.
+        if a.eval.finished.isEmpty != b.eval.finished.isEmpty { return !a.eval.finished.isEmpty }
+        return RouteScore.isBetter(
+            score: a.eval.score, efficiency: a.eval.efficiency, seconds: a.secs,
+            than: b.eval.score, efficiency: b.eval.efficiency, seconds: b.secs)
     }
 
     // MARK: - Sequence costs
@@ -190,7 +204,8 @@ extension RoutePlanEngine {
 
     // MARK: - Exact evaluation
 
-    private func mark(_ steps: [RouteStep], _ newMeters: inout Double) {
+    private func mark(_ steps: [RouteStep], _ newMeters: inout Double, _ total: inout Double) {
+        for st in steps { total += net.edges[st.edgeId].lengthMeters }
         for st in steps where stamp[st.edgeId] != gen {
             stamp[st.edgeId] = gen
             if isNewEdge[st.edgeId] { newMeters += net.edges[st.edgeId].lengthMeters }
@@ -201,17 +216,17 @@ extension RoutePlanEngine {
     func evaluate(_ picks: [PlanPick]) -> PlanEval {
         evaluations += 1
         gen += 1
-        var newM = 0.0
+        var newM = 0.0, total = 0.0
         var prev = startK
         for p in picks {
             let job = jobs[p.job]
-            mark(leg(prev, job.keyIndex[p.s]), &newM)
-            if let cw = job.cover[p.s][p.t] { mark(cw.steps, &newM) }
+            mark(leg(prev, job.keyIndex[p.s]), &newM, &total)
+            if let cw = job.cover[p.s][p.t] { mark(cw.steps, &newM, &total) }
             prev = job.keyIndex[p.t]
         }
-        if let f = finishK { mark(leg(prev, f), &newM) }
+        if let f = finishK { mark(leg(prev, f), &newM, &total) }
         let done = (0..<singleCount).filter { j in jobs[j].edgeIds.allSatisfy { stamp[$0] == gen } }
-        return PlanEval(finished: done, newMeters: newM)
+        return PlanEval(finished: done, newMeters: newM, totalMeters: total)
     }
 
     // MARK: - Greedy insertion
@@ -238,8 +253,8 @@ extension RoutePlanEngine {
     }
 
     /// `mode` varies the score so the seeds explore differently:
-    /// 0 trails per second with a small new-miles bonus, 1 cheapest extra
-    /// time first, 2 most new ground per second.
+    /// 0 value per second (new miles plus the per-trail bonus), 1 cheapest
+    /// extra time first, 2 most new ground per second.
     func greedyFill(_ start: PlanState, mode: Int) -> PlanState {
         var cur = start
         var blocked = Set<Int>()
@@ -263,8 +278,9 @@ extension RoutePlanEngine {
                     let score: Double
                     switch mode {
                     case 1: score = weight / max(dt, 1)
-                    case 2: score = weight * (job.bonus * 50 + 0.01) / max(dt, 1)
-                    default: score = (weight + job.bonus) / max(dt, 1)
+                    case 2: score = (job.newMiles + 0.01) / max(dt, 1)
+                    default:
+                        score = (job.newMiles + RouteScore.bonusPerFinishedTrailMiles * weight) / max(dt, 1)
                     }
                     if best == nil || score > best!.score + 1e-12
                         || (abs(score - best!.score) <= 1e-12 && dt < best!.dt - 1e-9) {

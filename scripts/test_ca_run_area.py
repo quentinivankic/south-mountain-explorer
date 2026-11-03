@@ -47,7 +47,7 @@ def test_run_area_script_is_the_generic_path_with_no_denmark_machinery():
                       "--only-area \"$AREA_ID\""):
         assert forbidden not in code, forbidden
     assert "--dry-run" not in code
-    assert "-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)$" in code
+    assert "-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu)$" in code
 
 
 def test_run_area_script_pins_exactly_one_boundary_id_and_way_backed_areas_skip_the_relation_pin():
@@ -159,7 +159,7 @@ def test_publish_ca_workflow_contract():
                       "dk-run-area", "--region"):
         assert forbidden not in code, forbidden
     assert '[[ "$RAW_CHUNK" =~ ^([1-9]|[1-3][0-9]|40)$ ]]' in PUBLISH
-    assert "-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)" in PUBLISH and "-dk" not in _code(PUBLISH)
+    assert "-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu)" in PUBLISH and "-dk" not in _code(PUBLISH)
     assert 'test "$GITHUB_REF_NAME" = "main"' in PUBLISH
     assert 'test "$(git rev-parse origin/main)" = "$(git rev-parse HEAD^)"' in PUBLISH
     assert "verify-staged" in PUBLISH and "verify-commit" in PUBLISH

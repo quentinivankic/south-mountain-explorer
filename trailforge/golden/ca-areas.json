@@ -2049,7 +2049,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada hiking list (https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking): 10 trails. Kept: Kouchibouguac River (lwn), Osprey, Claire-Fontaine, Beaver, Tweedie, Bog, Pines, Mi'gmaq Cedar. Not shipped: Kellys Beach Boardwalk and Salt Marsh (OSM geometry far shorter than the official length). Major Kollock Creek is a mountain-bike trail (excluded). Osprey is ~60% of its official 5.3 km as mapped. NB cleanup 2026-11-03: Bog display name given its accent (Bog / La Tourbière); trail id unchanged.",
+      "notes": "NB curation 2026-11-02. Whole park. Compared with the Parks Canada hiking list (https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking): 10 trails. Kept: Kouchibouguac River (lwn), Osprey, Claire-Fontaine, Beaver, Tweedie, Bog, Pines, Mi'gmaq Cedar. Not shipped: Kellys Beach Boardwalk and Salt Marsh (OSM geometry far shorter than the official length). Major Kollock Creek is a mountain-bike trail (excluded). Osprey is ~60% of its official 5.3 km as mapped. NB cleanup 2026-11-03: Bog accent fix NOT applied: qualify shows the live id sentier-de-la-rivi-re-kouchibouguac now slugs as sentier-de-la-riviere-kouchibouguac (engine fold drift, independent of any rename), so any Kouchibouguac update would re-id a live trail; needs an id-preserving fix first.",
       "display_name": "Kouchibouguac National Park",
       "keep_trails": [
         {
@@ -2092,12 +2092,6 @@
           "name": "Claire-Fontaine",
           "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
           "reason": "Duplicated halves in OSM; official name is Claire-Fontaine"
-        },
-        {
-          "osm_name": "Bog / La Tourbiere",
-          "name": "Bog / La Tourbière",
-          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
-          "reason": "Parks Canada lists the Bog trail; the French half is La Tourbière and OSM drops the accent"
         }
       ]
     },

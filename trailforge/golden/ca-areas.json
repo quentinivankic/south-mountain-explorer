@@ -11890,7 +11890,7 @@
       "bbox": null,
       "center": null,
       "tier": 3,
-      "hold": "needs-rescope",
+      "hold": null,
       "keep_park_boundary": true,
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). East Sooke RP (r1801799, leisure=park): the generic prefilter does not keep leisure=park boundaries, so the replay refuses (found [] boundaries). Coast Trail cannot be assembled without an engine/prefilter change. ca-new3 2026-11-02: Re-replay: refused (leisure=park boundary not kept by the generic prefilter); hold stands."
     },

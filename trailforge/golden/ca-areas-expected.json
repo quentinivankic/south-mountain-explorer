@@ -2884,6 +2884,28 @@
         "Range Lake Trail",
         "Trans Canada Trail (Northwest Territories)"
       ]
+    },
+    "kluane-national-park-and-reserve-ca-yt": {
+      "trail_count": 9,
+      "total_mi": 47.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alsek River Valley Trail",
+        "Blue Loop",
+        "Cotton Wood Trail - Winter only - ski/Snowshoe",
+        "Donjek Route",
+        "King's Throne Summit Trail",
+        "Mount Cairnes Trail",
+        "Mt. Archibald Scramble",
+        "Observation Mountain Trail",
+        "Orange Loop",
+        "Rock Glacier Trail",
+        "Slims River West Trail",
+        "Soldier's Summit Interpretive Trail",
+        "Soldiers Summit Trail",
+        "Thechàl Dhâl Trail"
+      ]
     }
   }
 }

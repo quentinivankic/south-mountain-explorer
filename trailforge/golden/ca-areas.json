@@ -7233,12 +7233,12 @@
         54.07
       ],
       "center": [
-        53.748,
+        53.793,
         -119.137
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names. live-fix1 2026-11-02: pin moved from [53.658, -119.118] (9.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names. live-fix1 2026-11-02: pin moved from [53.658, -119.118] (9.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix5 2026-11-02: pin moved from [53.748, -119.137] (3.14 mi from the nearest trail) to the trail vertex nearest the trail-extent midpoint [53.793, -119.137].",
       "exclude_trails": [
         {
           "id": "n:Cowlick Creek Trail",

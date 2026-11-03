@@ -6776,7 +6776,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Castle Provincial Park (adjoins Castle Wildland PP). Four named trails; St. Eloi Ridge and Syncline are clipped stubs and excluded (shipped whole in Castle Wildland).",
+      "notes": "AB curation 2026-11-02. Castle Provincial Park (adjoins Castle Wildland PP). Four named trails; St. Eloi Ridge and Syncline are clipped stubs and excluded (shipped whole in Castle Wildland). live-fix3 2026-11-02: Mount Backus and Byron Hill dropped as peak ascents (Spirko routes); kept Castle Mountain to Lynx Creek (Great Divide Trail alternate) and Carbondale Hill.",
       "exclude_trails": [
         {
           "id": "n:St. Eloi Ridge Trail",
@@ -6787,6 +6787,16 @@
           "id": "n:Syncline Mountain Route",
           "name": "Syncline Mountain Route",
           "reason": "Boundary-clipped: 2.3 of 7.9 mi lie inside the polygon; not a whole route"
+        },
+        {
+          "id": "n:Mount Backus Trail",
+          "name": "Mount Backus Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Byron Hill Trail",
+          "name": "Byron Hill Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [
@@ -6811,12 +6821,12 @@
         49.68
       ],
       "center": [
-        49.257,
-        -114.16
+        49.225,
+        -114.125
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Castle Wildland PP: named hikes and scrambles (Barnaby Ridge, Castle Peak, Windsor, Table Mountain, Yarrow Creek). Clipped stubs and alt routes excluded. live-fix1 2026-11-02: pin moved from [49.392, -114.304] (4.82 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "AB curation 2026-11-02. Castle Wildland PP: named hikes and scrambles (Barnaby Ridge, Castle Peak, Windsor, Table Mountain, Yarrow Creek). Clipped stubs and alt routes excluded. live-fix1 2026-11-02: pin moved from [49.392, -114.304] (4.82 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix3 2026-11-02: Table Mountain Trail restored (signature Beaver Mines Lake hike; only 0.5 of 2.8 mi lies in Castle Provincial); Victoria Ridge and The Amoeba dropped as ridge/peak ascents (Spirko/Peakery routes, no signage evidence). Kept: Barnaby Ridge, Bovin Lake, Yarrow Creek, Table Mountain. Pin moved to [49.225, -114.125], on a trail 0.07 deg from the trail-extent midpoint (old pin 2.7 mi from any trail).",
       "exclude_trails": [
         {
           "id": "n:Andy Good Peak Traverse Route",
@@ -6912,11 +6922,6 @@
           "id": "n:Table Mountain Alternate Ascent",
           "name": "Table Mountain Alternate Ascent",
           "reason": "variant/approach/connector segment, not a standalone named trail"
-        },
-        {
-          "id": "n:Table Mountain Trail",
-          "name": "Table Mountain Trail",
-          "reason": "Boundary-clipped: 2.3 of 2.8 mi lie inside the polygon; not a whole route"
         },
         {
           "id": "n:Windsor Mountain Trail",
@@ -7042,6 +7047,16 @@
           "id": "n:Yarrow Ridge Route",
           "name": "Yarrow Ridge Route",
           "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Victoria Ridge Trail",
+          "name": "Victoria Ridge Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:The Amoeba Trail",
+          "name": "The Amoeba Trail",
+          "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         }
       ],
       "trail_name_fixes": [

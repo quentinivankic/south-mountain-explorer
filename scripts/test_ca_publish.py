@@ -42,12 +42,12 @@ def test_committed_registry_and_table_load_and_are_pinned_to_canada():
     assert set(table) <= {a["id"] for a in reg["areas"]}
 
 
-@pytest.mark.parametrize("good", ["algonquin-ca-on", "x-y-z-ca-ns", "a1-ca-pe"])
+@pytest.mark.parametrize("good", ["algonquin-ca-on", "x-y-z-ca-ns", "a1-ca-pe", "a-ca-nt", "a-ca-nu", "a-ca-yt"])
 def test_slug_accepts_province_suffixed_ids(good):
     assert ca.SLUG.fullmatch(good)
 
 
-@pytest.mark.parametrize("bad", ["algonquin-ca", "yosemite-ca", "a-dk", "a-ca-nt", "a-ca-nu", "a-ca-xx",
+@pytest.mark.parametrize("bad", ["algonquin-ca", "yosemite-ca", "a-dk", "a-ca-xx",
                                  "a-ca-NS", "-ca-ns", "A-ca-ns", "a_b-ca-ns", "a-ca-ns-ns"])
 def test_slug_rejects_bare_california_foreign_and_unsupported_ids(bad):
     assert not ca.SLUG.fullmatch(bad)
@@ -84,7 +84,7 @@ def _drop(key):
 
 @pytest.mark.parametrize("entries,needle", [
     (_bad(id="area-001-ca"), "id is invalid"),
-    (_bad(id="area-001-ca-nu", province="nu"), "id is invalid"),
+    (_bad(id="area-001-ca-xx", province="xx"), "id is invalid"),
     (_bad(province="pe"), "province must equal"),
     (_bad(state="Denmark"), "state must be"),
     (_bad(name="Cafe\u0301"), "name is invalid"),
@@ -168,7 +168,7 @@ def test_select_refuses_unknown_duplicate_malformed_published_and_oversized(tmp_
     with pytest.raises(ca.CaError, match="mode must be"):
         ca.select_areas(reg, set(), ids[0], 25, "remove", "ns")
     with pytest.raises(ca.CaError, match="province must be"):
-        ca.select_areas(reg, set(), ids[0], 25, "qualify", "nt")
+        ca.select_areas(reg, set(), ids[0], 25, "qualify", "xx")
 
 
 def test_select_cli_writes_ids_and_getid_args(tmp_path):
@@ -189,7 +189,7 @@ def test_select_cli_writes_ids_and_getid_args(tmp_path):
 def test_pbf_urls_use_the_geofabrik_canada_province_extracts():
     assert ca.pbf_url("pe") == "https://download.geofabrik.de/north-america/canada/prince-edward-island-latest.osm.pbf"
     assert ca.pbf_url("nl").endswith("/canada/newfoundland-and-labrador-latest.osm.pbf")
-    assert set(ca.PROVINCES) == {"ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt"}
+    assert set(ca.PROVINCES) == {"ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt", "nt", "nu"}
 
 
 # ---------------------------------------------------------- blessed table ----
@@ -238,3 +238,8 @@ def test_expected_table_rejects_foreign_ids_and_wrong_schema(tmp_path):
         "trail_count": 1, "total_mi": 1.0, "required_names": [], "forbidden_names": []}}}), encoding="utf-8")
     with pytest.raises(ca.CaError, match="invalid"):
         ca.load_expected(path)
+
+
+def test_territory_extracts_use_the_geofabrik_canada_slugs():
+    assert ca.pbf_url("nt").endswith("/canada/northwest-territories-latest.osm.pbf")
+    assert ca.pbf_url("nu").endswith("/canada/nunavut-latest.osm.pbf")

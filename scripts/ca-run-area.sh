@@ -20,7 +20,7 @@ ROOT_REGISTRY="$(pwd)/trailforge/golden/ca-areas.json"
 : "${AREA_ID:?}" "${AREA_NAME:?}" "${BBOX:?}" "${W:?}"
 RELATION_ID="${RELATION_ID:-}"
 WAY_ID="${WAY_ID:-}"
-[[ "$AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)$ ]]
+[[ "$AREA_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu)$ ]]
 # Exactly one boundary id. A way-backed area has no assemble pin: check-boundary-unique is its guard.
 if [ -n "$RELATION_ID" ] && [ -z "$WAY_ID" ]; then
   [[ "$RELATION_ID" =~ ^[1-9][0-9]*$ ]]

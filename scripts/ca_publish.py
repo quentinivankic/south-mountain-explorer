@@ -57,11 +57,12 @@ REGISTRY_SCHEMA = "trekdex-ca-areas-v1"
 EXPECTED_SCHEMA = "trekdex-ca-areas-expected-v1"
 STATE = "Canada"
 EXTRACT_BASE = "north-america/canada"
-# Province code -> Geofabrik extract slug (one province per run). NT/NU are out of scope.
+# Province code -> Geofabrik extract slug (one province per run). NT/NU are supported as territories.
 PROVINCES = {
     "ab": "alberta", "bc": "british-columbia", "mb": "manitoba", "nb": "new-brunswick",
     "nl": "newfoundland-and-labrador", "ns": "nova-scotia", "on": "ontario",
     "pe": "prince-edward-island", "qc": "quebec", "sk": "saskatchewan", "yt": "yukon",
+    "nt": "northwest-territories", "nu": "nunavut",
 }
 # Documented hold reasons (a held entry is skipped by batch= selection; name it in areas= to run it).
 HOLD_REASONS = {

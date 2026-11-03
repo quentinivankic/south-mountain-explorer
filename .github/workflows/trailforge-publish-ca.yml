@@ -70,8 +70,8 @@ jobs:
           RAW_CHUNK: ${{ inputs.chunk_size }}
         run: |
           set -euo pipefail
-          [[ "$RAW_PROVINCE" =~ ^(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)$ ]]
-          [[ "$RAW_AREAS" =~ ^(batch=[1-9][0-9]{0,3}|[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt)(,[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt))*)$ ]]
+          [[ "$RAW_PROVINCE" =~ ^(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu)$ ]]
+          [[ "$RAW_AREAS" =~ ^(batch=[1-9][0-9]{0,3}|[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu)(,[a-z0-9]+(-[a-z0-9]+)*-ca-(ab|bc|mb|nb|nl|ns|on|pe|qc|sk|yt|nt|nu))*)$ ]]
           [[ "$RAW_MODE" =~ ^(qualify|publish|update)$ ]]
           if [ "$RAW_MODE" = "update" ]; then
             [[ "$RAW_AREAS" != batch=* ]]

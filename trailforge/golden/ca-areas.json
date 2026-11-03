@@ -24,7 +24,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "PEI smoke test 2026-11-01. Local rehearsal 12 trails / 28.7 mi before exclusions; 10 trails after. Dropped as under 0.6 mi (no official-page waiver verified, follow-up): Cavendish Beach Trail 0.32, Dunelands Trail 0.56, Haunted Wood Trail 0.51, Dunes Trail 0.49, Balsam Hollow Trail 0.28, Havre Saint Pierre 0.45, Greenwich Beach 0.28. Long-distance super-relations removed by the engine: Confederation Trail, International Appalachian Trail, Island Trails, Winter River/Breadalbane (Island Walk). live-fix1 2026-11-02: pin moved from [46.5, -63.1] (5.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "PEI smoke test 2026-11-01. Local rehearsal 12 trails / 28.7 mi before exclusions; 10 trails after. Dropped as under 0.6 mi (no official-page waiver verified, follow-up): Cavendish Beach Trail 0.32, Dunelands Trail 0.56, Haunted Wood Trail 0.51, Dunes Trail 0.49, Balsam Hollow Trail 0.28, Havre Saint Pierre 0.45, Greenwich Beach 0.28. Long-distance super-relations removed by the engine: Confederation Trail, International Appalachian Trail, Island Trails, Winter River/Breadalbane (Island Walk). live-fix1 2026-11-02: pin moved from [46.5, -63.1] (5.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint. PE cleanup 2026-11-03 review: no trail dropped, no re-pin (pin 0.02 mi from Bubbling Springs). No parent+leg pairs (max shared-vertex overlap Farm Lands/Bubbling Springs 27%, separate signed Parks Canada trails sharing a trailhead spur). Gulf Shore Way kept (signed, Parks Canada-listed). Tlaqatik and Greenwich Dunes renamed to their Parks Canada names; ids keep OSM-derived slugs.",
       "exclude_trails": [
         {
           "id": "n:Gulf Shore Trail",
@@ -35,6 +35,20 @@
           "id": "n:Greenwich Trails",
           "name": "Greenwich Trails",
           "reason": "Umbrella relation: 100% of its nodes lie on Tlaqatik and Greenwich Dunes, both kept as the named walks"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Tlaqatik",
+          "name": "Tlaqatik Trail",
+          "source": "https://parks.canada.ca/pn-np/pe/pei-ipe/activ/sentiers-trails/tlaqatik",
+          "reason": "Bare OSM name; Parks Canada lists it as Tlaqatik Trail"
+        },
+        {
+          "osm_name": "Greenwich Dunes",
+          "name": "Greenwich Dunes Trail",
+          "source": "https://parks.canada.ca/pn-np/pe/pei-ipe/activ/sentiers-trails/greenwich-dune",
+          "reason": "Parks Canada lists it as Greenwich Dunes Trail; sibling trails are 'X Trail'"
         }
       ]
     },

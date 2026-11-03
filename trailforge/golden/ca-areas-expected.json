@@ -2670,8 +2670,8 @@
       "forbidden_names": []
     },
     "algonquin-provincial-park-ca-on": {
-      "trail_count": 27,
-      "total_mi": 140.6,
+      "trail_count": 26,
+      "total_mi": 138.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2710,6 +2710,7 @@
         "Hardwood Red Spruce Trail",
         "Head Lake - Cache Lake Portage",
         "High Falls Cheater Trail",
+        "High Falls Trail",
         "Hillard Lake - Delano Lake",
         "Hogan - Big Crow Cart Path",
         "Iris Lake - Alder Lake Portage",

@@ -9448,7 +9448,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. Western Uplands Backpacking Trail (60 mi lwn super-relation r11851829) ships whole via keep_superroute (engine rules PR #716, Quentin-approved); its 7 child relations stay removed. Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified). Review 708: Brent Crater Trail restored (on the Ontario Parks Algonquin hiking list, 2 km). Unheld 2026-11-02 (ca-joffre-algonquin): replay 27 trails / 140.6 mi including Western Uplands 60.35 mi, Highland 20.47 mi and Eastern Pines 11.85 mi backpacking trails.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks hiking list read (https://www.ontarioparks.ca/park/algonquin/activities): all 16 Highway 60 corridor trails present (Whiskey Rapids, Hardwood Lookout, Mizzy Lake, Peck Lake, Track and Tower, Hemlock Bluff, Bat Lake, Two Rivers, Centennial Ridges, Lookout, Big Pines, Booth's Rock, Spruce Bog Boardwalk, Fork Lake, Beaver Pond, Logging Museum), plus Barron Canyon and the Highland and Eastern Pines backpacking trails. 41 portage/cart-path names, ski, bike and railway names are dropped; further cart paths and lake-to-lake links excluded by hand. Western Uplands Backpacking Trail (60 mi lwn super-relation r11851829) ships whole via keep_superroute (engine rules PR #716, Quentin-approved); its 7 child relations stay removed. Berm Lake, Great Pines, Bear Nest Side and South Lookout trails ship as mapped (not on the day-use list; not verified). Review 708: Brent Crater Trail restored (on the Ontario Parks Algonquin hiking list, 2 km). Unheld 2026-11-02 (ca-joffre-algonquin): replay 27 trails / 140.6 mi including Western Uplands 60.35 mi, Highland 20.47 mi and Eastern Pines 11.85 mi backpacking trails. live-fix4 2026-11-02: High Falls Trail dropped (two unrelated ways about 10 mi apart merged by name); 27 trails 140.6 mi becomes 26 trails 138.8 mi.",
       "exclude_trails": [
         {
           "id": "n:Arowhon Pine trail",
@@ -9474,6 +9474,11 @@
           "id": "n:High Falls Cheater Trail",
           "name": "High Falls Cheater Trail",
           "reason": "Variant (cheater route) of the High Falls Trail, not a standalone trail"
+        },
+        {
+          "id": "n:High Falls Trail",
+          "name": "High Falls Trail",
+          "reason": "Wrong class: two unrelated ways both named High Falls Trail (w1137099283 and w1434490954), about 10 mi apart, merged into one item; not on the Ontario Parks day-use list"
         },
         {
           "id": "n:Hogan - Big Crow Cart Path",

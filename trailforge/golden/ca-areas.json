@@ -12934,6 +12934,171 @@
       "hold": "few-trails",
       "notes": "ca-new3 2026-11-02: Replay (boundary_by_id for the twin polygon): 1 trail (Portuguese Cove Lighthouse 0.95 mi).",
       "boundary_by_id": true
+    },
+    {
+      "id": "tombstone-territorial-park-ca-yt",
+      "province": "yt",
+      "state": "Canada",
+      "relation_id": 9527815,
+      "name": "Tombstone Territorial Park",
+      "bbox": [
+        -139.24,
+        64.22,
+        -137.97,
+        64.92
+      ],
+      "center": [
+        64.47,
+        -138.38
+      ],
+      "tier": 2,
+      "hold": null,
+      "exclude_trails": [
+        {
+          "id": "n:Hart River Trail",
+          "name": "Hart River Trail",
+          "reason": "Not on the Yukon Parks or yukonhiking.ca Tombstone lists; 5.5 mi name-stitched way with no signage tags; not a hike a local would tick."
+        },
+        {
+          "id": "n:North Klondike Trail",
+          "name": "North Klondike Trail",
+          "reason": "Unlisted 1.6 mi name-stitched way; not on the Yukon Parks or yukonhiking.ca lists."
+        },
+        {
+          "id": "n:Angelcomb Peak",
+          "name": "Angelcomb Peak",
+          "reason": "Unmarked peak ridge route; Yukon Parks discourages it (sheep lambing habitat), so it is a peak ascent without a signed trail."
+        },
+        {
+          "id": "n:Surfbird Mountain",
+          "name": "Surfbird Mountain",
+          "reason": "Unmarked peak ridge route (peak ascent without a signed trail)."
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Beaver Pond Interpretive Trail",
+          "source": "https://yukon.ca/en/outdoor-recreation-and-wildlife/camping/site/tombstone-mountain",
+          "reason": "Yukon Parks lists a 1 km wheelchair-accessible interpretive trail from the Tombstone Interpretive Centre to a beaver pond; OSM has it as a Yukon Government relation of 0.589 mi (under the 0.6 mi floor), wholly inside the park."
+        }
+      ],
+      "notes": "Territories batch 2026-11-02 (ca-terr). Kept: the Grizzly Lake, Divide Lake and Talus Lake backcountry-campground trail chain (Yukon Parks), Goldensides, Twin Lakes and Mount Monolith Viewpoint, Beaver Pond Interpretive. Sources: https://yukon.ca/en/outdoor-recreation-and-wildlife/parks-and-protected-areas/tombstone-territorial-park and https://yukonhiking.ca/regions/TombstoneTerritorialPark."
+    },
+    {
+      "id": "kluane-national-park-and-reserve-ca-yt",
+      "province": "yt",
+      "state": "Canada",
+      "relation_id": 9561308,
+      "name": "Kluane National Park and Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). The park relation r9561308 spans 3.992 x 1.338 deg and fails the 3.0 deg size gate in ca_publish.py (_size_problems), so prepare-areas cannot run it. Code need (follow-up, no tooling built): a per-area span waiver or a Haines Junction / Kathleen Lake sub-area boundary. Content in OSM: King's Throne (r6356498 2.39 mi plus a 1.68 mi summit way), Sheep Creek (lwn r6381421), Auriol Trail 7.9 mi in 11 ways, Cottonwood Trail (summer and winter ways mixed), Slims River West 9.3 mi. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap."
+    },
+    {
+      "id": "fred-henne-territorial-park-ca-nt",
+      "province": "nt",
+      "state": "Canada",
+      "relation_id": 7422279,
+      "name": "Fred Henne Territorial Park",
+      "bbox": [
+        -114.52,
+        62.42,
+        -114.36,
+        62.54
+      ],
+      "center": [
+        62.475,
+        -114.413
+      ],
+      "tier": 2,
+      "hold": null,
+      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413)."
+    },
+    {
+      "id": "hidden-lake-territorial-park-ca-nt",
+      "province": "nt",
+      "state": "Canada",
+      "relation_id": 12707151,
+      "name": "Hidden Lake Territorial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Replay ok but only 1 trail: Cameron Falls Trail 0.9 mi. Below the 2-trail bar for territories. Cameron River Crossing Territorial Park (r12875365) is 0.016 x 0.009 deg and fails the 0.01 size gate. Release when a second named trail is mapped inside the polygon."
+    },
+    {
+      "id": "nahanni-national-park-reserve-ca-nt",
+      "province": "nt",
+      "state": "Canada",
+      "relation_id": 9527833,
+      "name": "Nahanni National Park Reserve",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Relation r9527833 spans 5.630 x 1.856 deg and fails the 3.0 deg size gate in prepare-areas. The gate is unchanged. OSM holds no named hiking trail in the park (Virginia Falls portage is excluded by the mandate). Not worth a sub-boundary until trails are mapped."
+    },
+    {
+      "id": "wood-buffalo-national-park-ca-nt",
+      "province": "nt",
+      "state": "Canada",
+      "relation_id": 7087464,
+      "name": "Wood Buffalo National Park",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Relation r7087464 spans 3.326 x 1.216 deg and fails the 3.0 deg size gate. The gate is unchanged. The park straddles AB and NT; the only named NT-side trail nearby is Thebacha Trail in Fort Smith, outside the park, so nothing to ship here. If ever run, assign each trail to one area only (AB side first)."
+    },
+    {
+      "id": "auyuittuq-national-park-ca-nu",
+      "province": "nu",
+      "state": "Canada",
+      "relation_id": 9460113,
+      "name": "Auyuittuq National Park",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Relation r9460113 spans 4.422 x 1.948 deg and fails the 3.0 deg size gate. The gate is unchanged. Content in OSM: Akshayuk Pass Route (relation plus way, mountain_hiking), only one named route. Needs a span waiver and a second named trail to meet the bar. Inuktitut display name to be kept when it runs."
+    },
+    {
+      "id": "quttinirpaaq-national-park-ca-nu",
+      "province": "nu",
+      "state": "Canada",
+      "relation_id": 6263263,
+      "name": "Quttinirpaaq National Park",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Relation r6263263 spans 16.522 x 1.983 deg and fails the 3.0 deg size gate. The gate is unchanged. No named trails mapped in OSM."
+    },
+    {
+      "id": "sirmilik-national-park-ca-nu",
+      "province": "nu",
+      "state": "Canada",
+      "relation_id": 6127119,
+      "name": "Sirmilik National Park",
+      "bbox": null,
+      "center": null,
+      "tier": 1,
+      "hold": "needs-rescope",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Relation r6127119 spans 8.444 x 2.006 deg and fails the 3.0 deg size gate. The gate is unchanged. No named trails mapped in OSM."
+    },
+    {
+      "id": "sylvia-grinnell-territorial-park-ca-nu",
+      "province": "nu",
+      "state": "Canada",
+      "way_id": 662169371,
+      "name": "ᓯᐅᕕᐊ ᒍᕆᓂᐅᑉ ᒥᕐᖑᐃᓯᕐᕕᖓ Sylvia Grinnell Territorial Park",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "few-trails",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Way w662169371 (Iqaluit). Registry name carries the Inuktitut syllabics because the way's name tag must match exactly; the id is ASCII. Replay: SAFETY BLOCK, no publishable trails after the Canada filter. Katannilik Territorial Park, Blackstone and Twin Falls Gorge have no polygon or named trail in the Geofabrik extracts (Blackstone is a campground node only)."
     }
   ]
 }

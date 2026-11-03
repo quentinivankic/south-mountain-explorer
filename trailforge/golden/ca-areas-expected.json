@@ -2079,6 +2079,29 @@
         "Old Wagon trail"
       ]
     },
+    "cypress-hills-interprovincial-park-ca-sk": {
+      "trail_count": 8,
+      "total_mi": 10.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bald Butte Trail",
+        "Deer Trail",
+        "Fire Break",
+        "Flicker Trail",
+        "Lodgepole Trail / Whispering Pines Trail",
+        "Moose Trail",
+        "Moose Trail / Trans Canada Trail",
+        "Pine Path",
+        "Ridge Run",
+        "Sasquatch Stomp",
+        "The Ramble",
+        "Trans Canada Trail",
+        "Valley of the Windfall Interprative Trail",
+        "Woodlands Trail",
+        "Woodlands Trail / Trans Canada Trail"
+      ]
+    },
     "cypress-hills-interprovincial-park-west-block-ca-sk": {
       "trail_count": 6,
       "total_mi": 13.7,

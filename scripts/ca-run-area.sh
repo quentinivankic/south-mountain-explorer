@@ -62,6 +62,17 @@ for RULE_KEY in accept_gap keep_superroute; do
     CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}" "$A/ca-$RULE_KEY.json")
   fi
 done
+# Optional ring-way dedupe (registry dedupe_ring_way: true; relation-backed only): a same-name outer ring
+# way of the area's own relation is not a second boundary. Absent = no flag.
+DEDUPE_RING_WAY="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("dedupe_ring_way") then (.dedupe_ring_way | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$DEDUPE_RING_WAY" ]; then
+  if [ "$DEDUPE_RING_WAY" != "true" ] || [ -z "$RELATION_ID" ] || [ -n "$BOUNDARY_BY_ID" ]; then
+    echo "SAFETY BLOCK: dedupe_ring_way must be true on a relation-backed area without boundary_by_id" >&2
+    exit 2
+  fi
+  CA_RULE_FLAGS+=("--ca-dedupe-ring-way")
+fi
 if [ "${#CA_RULE_FLAGS[@]}" -gt 0 ] && [ -z "$BOUNDARY_BY_ID" ]; then
   BOUNDARY_ARGS+=(--region ca)
 fi

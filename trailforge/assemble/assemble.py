@@ -1065,6 +1065,11 @@ def main(argv=None) -> int:
                          "exact-area assembly by relation id and the legacy rules only; "
                          "fail-closed when it leaves the area polygon, is a child of a "
                          "larger route or is a recognised long-distance network")
+    ap.add_argument("--ca-dedupe-ring-way", dest="ca_dedupe_ring_way", action="store_true",
+                    help="Canada registry dedupe_ring_way: ignore a same-name boundary WAY that is an "
+                         "outer ring member of the --expected-area-relation-id relation itself; "
+                         "--region ca with exact-area assembly by relation id and the legacy rules "
+                         "only (not with --boundary-by-id); fails closed when nothing is deduped")
     ap.add_argument("--dk-accept-directional-roles",
                     dest="dk_accept_directional_roles", action="store_true",
                     help="count forward/backward way members of route=hiking "
@@ -1155,6 +1160,13 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-accept-gap is invalid: {error}")
+    if args.ca_dedupe_ring_way and (
+            model.member_safety.normalize(args.region) != "ca"
+            or not args.require_exact_area or args.dk_rules != "legacy"
+            or args.expected_area_relation_id is None
+            or args.expected_area_way_id is not None or args.dk_boundary_by_id):
+        ap.error("--ca-dedupe-ring-way requires --region ca, --require-exact-area by relation id "
+                 "and the legacy rules, and excludes --boundary-by-id")
     args.ca_gap, args.ca_keep = [], []
     if args.ca_accept_gap or args.ca_keep_superroute:
         flag = "--ca-accept-gap" if args.ca_accept_gap else "--ca-keep-superroute"
@@ -1298,6 +1310,7 @@ def main(argv=None) -> int:
 
     area_objs = None
     exact_area = None
+    ring_dropped: list[int] = []
     boundary_matches: list[dict] = []
     if args.require_exact_area:
         import areas as areamod
@@ -1311,6 +1324,12 @@ def main(argv=None) -> int:
         if args.dk_boundary_by_id:
             exact_matches, failure = _select_boundary_by_id(
                 exact_matches, *_expected_boundary(args), args.only_area)
+        elif args.ca_dedupe_ring_way:
+            import ca_rules as ca_rules_ring
+            exact_matches, ring_dropped, failure = ca_rules_ring.dedupe_ring_way_areas(
+                exact_matches,
+                ca_rules_ring.outer_ring_ways(args.inp, args.expected_area_relation_id),
+                args.expected_area_relation_id)
         elif args.dk_container_by_id:
             exact_matches, failure = _select_container_by_id(
                 area_objs, *_expected_boundary(args), args.only_area)
@@ -1743,6 +1762,9 @@ def main(argv=None) -> int:
         **({"name_prefix": name_prefix_report}
            if name_prefix_report is not None else {}),
         **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
+        **({"ca_ring_way_dedupe": {"relation": args.expected_area_relation_id,
+                                   "dropped_ring_ways": ring_dropped}}
+           if args.ca_dedupe_ring_way else {}),
     })
     welded = sum(1 for f in features if f["properties"].get("welds"))
     from_rel = sum(1 for f in features if f["properties"].get("source") == "relation")

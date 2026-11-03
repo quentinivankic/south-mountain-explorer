@@ -410,6 +410,20 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
     International Appalachian, Eastern Continental, ...), any part of its geometry
     leaves the registry area polygon (tolerance 0.0002 degrees, about 20 m), or
     the trail is not in the published population.
+- **Canada ring-way dedupe** (registry `dedupe_ring_way: true`, flag `--ca-dedupe-ring-way`,
+  `ca_rules.dedupe_ring_way_areas`). OSM can hold a boundary relation and its own tagged
+  `outer` ring way with the identical name (Cypress Hills Centre Block r15678445 / w120623144), so
+  exact-area assembly sees two boundaries. The flag drops only same-name way areas that are `outer`
+  members of the `--expected-area-relation-id` relation; any other same-name boundary still fails
+  closed, and a flag with nothing to dedupe exits 2 (stale). Allowed only with `--region ca`,
+  `--require-exact-area` by relation id, the legacy rules and no `--boundary-by-id`.
+  `ca_publish.py check-boundary-unique` requires the same twin for such an entry. The report keeps the
+  raw `boundary_match_count` and adds `ca_ring_way_dedupe`.
+- **Other Canada per-area opt-ins** (registry, `ca_publish.py`/workflow, not the assembler):
+  `span_waiver {max_deg, reason}` raises only the upper boundary span limit (3.0 deg, waiver
+  `3.0 < max_deg <= 5.0`) for that one area; `keep_park_boundary: true` re-adds a `leisure=park`
+  relation the prefilter drops (it must carry an `operator` tag, checked by `prepare-areas`;
+  municipal parks stay out by tier).
 - **Container by id** (registry `container_by_id: {"reason": "..."}`,
   `--dk-container-by-id`, dk-v3 exact Denmark only, needs `include_trails`): for
   an area with no usable named boundary. The registry's `relation_id` / `way_id`

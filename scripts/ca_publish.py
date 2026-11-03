@@ -209,6 +209,25 @@ def _check_engine_rules(aid: str, entry: dict[str, Any]) -> None:
             getattr(_ca_rules(), check)(items)
         except ValueError as error:
             raise CaError(f"{aid}: {key} is invalid: {error}") from None
+def _check_canada_boundary_opt_ins(aid: str, entry: dict[str, Any]) -> None:
+    """Per-area, explicit, Canada-only boundary opt-ins: span_waiver, keep_park_boundary,
+    dedupe_ring_way. Absent = the entry runs exactly as before."""
+    if "span_waiver" in entry:
+        waiver = entry["span_waiver"]
+        if (not isinstance(waiver, dict) or set(waiver) != SPAN_WAIVER_KEYS
+                or not _is_num(waiver["max_deg"]) or not REL_SPAN_MAX < waiver["max_deg"] <= SPAN_WAIVER_MAX_DEG
+                or not isinstance(waiver["reason"], str) or not waiver["reason"].strip()):
+            raise CaError(f"{aid}: span_waiver needs exactly max_deg ({REL_SPAN_MAX} < max_deg <= "
+                          f"{SPAN_WAIVER_MAX_DEG}) and a reason")
+    for key in ("keep_park_boundary", "dedupe_ring_way"):
+        if key not in entry:
+            continue
+        if entry[key] is not True:
+            raise CaError(f"{aid}: {key} must be true when present")
+        if "way_id" in entry:
+            raise CaError(f"{aid}: {key} needs a relation-backed entry (relation_id)")
+    if "dedupe_ring_way" in entry and "boundary_by_id" in entry:
+        raise CaError(f"{aid}: dedupe_ring_way and boundary_by_id are mutually exclusive")
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Canada area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -279,6 +298,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
                 raise CaError(f"{aid}: boundary_by_id must be true when present")
             if "way_id" in entry:
                 raise CaError(f"{aid}: boundary_by_id needs a relation-backed entry (relation_id)")
+        _check_canada_boundary_opt_ins(aid, entry)
         if "trail_name_fixes" in entry:
             try:
                 ca_trail_filter.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
@@ -436,8 +456,12 @@ def select_cmd(args: argparse.Namespace) -> int:
             ids = [f"w{registry['by_id'][i]['way_id']}" if "way_id" in registry["by_id"][i]
                    else f"r{registry['by_id'][i]['relation_id']}" for i in chosen]
             relations = " ".join(dict.fromkeys(ids))
+            parks = " ".join(f"r{registry['by_id'][i]['relation_id']}" for i in chosen
+                             if registry["by_id"][i].get("keep_park_boundary") is True)
             stream.write(f"area_ids={','.join(chosen)}\narea_count={len(chosen)}\n"
                          f"getid_args={relations}\n")
+            if parks:
+                stream.write(f"park_args={parks}\n")
     print(f"selected {len(chosen)} area(s): {','.join(chosen)}")
     return 0
 
@@ -535,19 +559,26 @@ REL_NAME_KEYS = ("name",)
 REL_SPAN_MIN, REL_SPAN_MAX = 0.01, 3.0     # degrees, per axis (Canadian parks can be very large)
 
 
-def _size_problems(box: list[float] | None) -> list[str]:
+# Per-area span waiver (registry `span_waiver`): raises ONLY the upper span limit for that one area
+# (Kluane NP is 3.992 deg wide). The lower limit and the inside-Canada check are never waived.
+SPAN_WAIVER_MAX_DEG = 5.0
+SPAN_WAIVER_KEYS = {"max_deg", "reason"}
+def _size_problems(box: list[float] | None, span_max: float = REL_SPAN_MAX) -> list[str]:
     problems: list[str] = []
     if box is None:
         return problems
     w, h = box[2] - box[0], box[3] - box[1]
-    if not (REL_SPAN_MIN <= w <= REL_SPAN_MAX and REL_SPAN_MIN <= h <= REL_SPAN_MAX):
+    if not (REL_SPAN_MIN <= w <= span_max and REL_SPAN_MIN <= h <= span_max):
         problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
-                        f"(each side must be {REL_SPAN_MIN}..{REL_SPAN_MAX})")
+                        f"(each side must be {REL_SPAN_MIN}..{span_max})")
     if not (CA_LON[0] <= box[0] and box[2] <= CA_LON[1] and CA_LAT[0] <= box[1] and box[3] <= CA_LAT[1]):
         problems.append(f"boundary bbox {box} is outside Canada")
     return problems
 
 
+def _span_max(entry: dict[str, Any]) -> float:
+    waiver = entry.get("span_waiver")
+    return waiver["max_deg"] if isinstance(waiver, dict) else REL_SPAN_MAX
 def _names(tags: dict[str, str]) -> set[str]:
     return {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
 
@@ -565,7 +596,11 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
     names = _names(tags)
     if entry["name"] not in names:
         problems.append(f"relation {entry['relation_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
-    return problems + _size_problems(info.get("bbox"))
+    if entry.get("keep_park_boundary") is True and not (
+            tags.get("leisure") == "park" and (tags.get("operator") or "").strip()):
+        problems.append(f"relation {entry['relation_id']} is not a leisure=park boundary with an operator "
+                        "tag (keep_park_boundary needs both)")
+    return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 
 def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
@@ -581,7 +616,7 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
     names = _names(info["tags"])
     if entry["name"] not in names:
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
-    return problems + _size_problems(info.get("bbox"))
+    return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 
 def union_bbox(boxes: list[list[float]]) -> list[float]:
@@ -753,6 +788,26 @@ def boundary_name_matches(pbf: Path, name: str, contains: bool = False) -> list[
             + [("way", w) for w, closed in sorted(way_hits.items()) if closed and w not in member_ways])
 
 
+def ring_way_twins(pbf: Path, name: str, relation_id: int) -> list[int]:
+    """Closed, same-name, non-trail ways that are `outer` members of relation `relation_id`."""
+    import osmium
+    wanted = unicodedata.normalize("NFC", name)
+    named: set[int] = set()
+    outer: set[int] = set()
+    class _Scan(osmium.SimpleHandler):
+        def way(self, w):
+            tags = {t.k: t.v for t in w.tags}
+            have = tags.get("name")
+            if (have and unicodedata.normalize("NFC", have) == wanted
+                    and "highway" not in tags and "route" not in tags):
+                refs = [n.ref for n in w.nodes]
+                if len(refs) >= 4 and refs[0] == refs[-1]:
+                    named.add(w.id)
+        def relation(self, r):
+            if r.id == relation_id:
+                outer.update(m.ref for m in r.members if m.type == "w" and m.role == "outer")
+    _Scan().apply_file(str(pbf))
+    return sorted(named & outer)
 def pbf_url_cmd(args: argparse.Namespace) -> int:
     print(pbf_url(args.province))
     return 0
@@ -775,6 +830,16 @@ def check_boundary_unique_cmd(args: argparse.Namespace) -> int:
     if hits != [(kind, ident)]:
         raise CaError(f"{args.area_id}: expected exactly one boundary named {entry['name']!r} "
                       f"({kind} {ident}) in the AOI, found {hits}; hold it as name-collision")
+    if entry.get("dedupe_ring_way") is True:
+        # Ring ways of any relation are ignored by boundary_name_matches; the opt-in must have a
+        # same-name outer ring way of the registry relation to dedupe (else it is stale).
+        twins = ring_way_twins(args.pbf, entry["name"], ident)
+        if not twins:
+            raise CaError(f"{args.area_id}: dedupe_ring_way is not needed: no way named "
+                          f"{entry['name']!r} is an outer ring of relation {ident}")
+        print(f"{args.area_id}: unique boundary {kind} {ident}; same-name outer ring way(s) "
+              f"{twins} deduped")
+        return 0
     print(f"{args.area_id}: unique boundary {kind} {ident}")
     return 0
 

@@ -11348,11 +11348,12 @@
         49.75
       ],
       "center": [
-        49.7,
-        -109.5
+        49.67,
+        -109.51
       ],
       "tier": 2,
       "hold": "needs-rescope",
+      "dedupe_ring_way": true,
       "notes": "SK/MB curation 2026-11-02. Centre Block (the main Loch Leven / Elk Valley block). The relation (r15678445, nature_reserve) and its own outer ring way (w120623144, protected_area) carry the identical name. check-boundary-unique ignores ring members, the assembler counts both, so neither the plain row nor boundary_by_id passes in the unmodified Canada lane. Needs a Canada-lane code fix (follow-up), not a registry change.  The West Block is a separate polygon and ships as its own row."
     },
     {
@@ -11890,6 +11891,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
+      "keep_park_boundary": true,
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). East Sooke RP (r1801799, leisure=park): the generic prefilter does not keep leisure=park boundaries, so the replay refuses (found [] boundaries). Coast Trail cannot be assembled without an engine/prefilter change. ca-new3 2026-11-02: Re-replay: refused (leisure=park boundary not kept by the generic prefilter); hold stands."
     },
     {
@@ -13021,6 +13023,10 @@
       "center": null,
       "tier": 1,
       "hold": "needs-rescope",
+      "span_waiver": {
+        "max_deg": 4.5,
+        "reason": "Kluane NP and Reserve is one 3.992 x 1.338 degree park polygon; only the upper span limit is waived for this area"
+      },
       "notes": "Territories batch 2026-11-02 (ca-terr). The park relation r9561308 spans 3.992 x 1.338 deg and fails the 3.0 deg size gate in ca_publish.py (_size_problems), so prepare-areas cannot run it. Code need (follow-up, no tooling built): a per-area span waiver or a Haines Junction / Kathleen Lake sub-area boundary. Content in OSM: King's Throne (r6356498 2.39 mi plus a 1.68 mi summit way), Sheep Creek (lwn r6381421), Auriol Trail 7.9 mi in 11 ways, Cottonwood Trail (summer and winter ways mixed), Slims River West 9.3 mi. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap."
     },
     {

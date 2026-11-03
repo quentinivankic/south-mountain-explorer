@@ -374,3 +374,31 @@ def finalize(rule_report: Mapping[str, Any], accept_entries: list[dict[str, Any]
         evidence["keep_superroute"] = keep_rows
     evidence["failures"] = failures
     return failures, evidence
+# ------------------------------------------------------------------ ring-way dedupe --
+# Registry `dedupe_ring_way: true` (Canada, relation-backed, per area). OSM can hold a boundary relation
+# AND its own tagged outer ring way with the identical name (Cypress Hills Centre Block r15678445 /
+# w120623144): the area assembler yields both, so exact-area assembly sees two same-name boundaries.
+# The opt-in drops ONLY same-name way areas that are `outer` members of the registry relation itself.
+# Any other same-name boundary still fails closed, and an opt-in with nothing to dedupe is stale.
+def outer_ring_ways(pbf_path: str, relation_id: int) -> set[int]:
+    """Way ids that are `outer` members of relation `relation_id` in the PBF."""
+    import osmium
+    found: set[int] = set()
+    class _Scan(osmium.SimpleHandler):
+        def relation(self, r):
+            if r.id == relation_id:
+                found.update(m.ref for m in r.members if m.type == "w" and m.role == "outer")
+    _Scan().apply_file(str(pbf_path))
+    return found
+def dedupe_ring_way_areas(matches: list[dict], rings: set[int],
+                          relation_id: int) -> tuple[list[dict], list[int], str | None]:
+    """(kept matches, dropped ring way ids, failure). Only way-built areas whose id is an outer
+    ring of the registry relation are dropped; a stale opt-in (nothing dropped) fails closed."""
+    dropped = sorted(int(a.get("osm_id") or 0) for a in matches
+                     if a.get("osm_type") == "way" and int(a.get("osm_id") or 0) in rings)
+    if not dropped:
+        return matches, [], (f"dedupe_ring_way is not needed: no same-name boundary is an outer ring "
+                             f"way of relation {relation_id}; remove it from the registry entry")
+    kept = [a for a in matches
+            if not (a.get("osm_type") == "way" and int(a.get("osm_id") or 0) in rings)]
+    return kept, dropped, None

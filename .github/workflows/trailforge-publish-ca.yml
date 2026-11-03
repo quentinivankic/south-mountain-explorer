@@ -39,7 +39,7 @@ on:
       province:
         description: "Province / territory of the areas (one per run)"
         type: choice
-        options: ["ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt"]
+        options: ["ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt", "nt", "nu"]
         default: pe
       mode:
         description: "qualify (dry run, report only) | publish (main only, new areas) | update (main only, republish existing areas)"

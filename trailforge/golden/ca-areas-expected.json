@@ -2037,14 +2037,14 @@
       ]
     },
     "sleeping-giant-provincial-park-ca-on": {
-      "trail_count": 18,
-      "total_mi": 45.5,
+      "trail_count": 19,
+      "total_mi": 45.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Kabeyun Trail"
+        "Kabeyun Trail",
+        "Joe Creek Nature Trail"
       ],
       "forbidden_names": [
-        "Joe Creek Nature Trail",
         "Thunder Bay Bogs Nature Trail"
       ]
     },

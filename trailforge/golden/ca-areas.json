@@ -2106,6 +2106,12 @@
           "name": "Claire-Fontaine",
           "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
           "reason": "Duplicated halves in OSM; official name is Claire-Fontaine"
+        },
+        {
+          "osm_name": "Bog / La Tourbiere",
+          "name": "Bog / La Tourbière",
+          "source": "https://parks.canada.ca/pn-np/nb/kouchibouguac/activ/randonnee-hiking",
+          "reason": "Accent fix: French is La Tourbière; id keeps the OSM spelling"
         }
       ]
     },
@@ -9849,7 +9855,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks trail list read (https://www.ontarioparks.ca/park/sleepinggiant/activities): Kabeyun (37 km backbone, ships whole via keep_trails), Talus Lake, Top of the Giant, Head, Sawyer Bay, Middlebrun Bay, Twinpine Lake, Sawbill Lake, Ravine Lake, Piney Wood Hills present; Sea Lion, Pass Lake Overlook and Plantain Lane waived. 'Chest Trail' (0.5 mi, probably the official Nanabosho Lookout Trail) is not confirmed and left out. Burma, Pickerel Lake (ski) and Bay's End Lookout (TCT) not shipped.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks trail list read (https://www.ontarioparks.ca/park/sleepinggiant/activities): Kabeyun (37 km backbone, ships whole via keep_trails), Talus Lake, Top of the Giant, Head, Sawyer Bay, Middlebrun Bay, Twinpine Lake, Sawbill Lake, Ravine Lake, Piney Wood Hills present; Sea Lion, Pass Lake Overlook and Plantain Lane waived. 'Chest Trail' (0.5 mi, probably the official Nanabosho Lookout Trail) is not confirmed and left out. Burma, Pickerel Lake (ski) and Bay's End Lookout (TCT) not shipped. restore2 2026-11-03: Joe Creek Nature Trail restored (0.40 mi footway, agency-listed). Burma Trail and Ferns Lake Trail are OSM nordic ski pistes (piste:type=nordic), Thunder Cape Bird Observatory Trail lies outside the polygon, Tee Harbour and Wildlife Habitat have no named way: not shipped.",
       "keep_trails": [
         {
           "name": "Kabeyun Trail",
@@ -9875,6 +9881,11 @@
           "name": "Chest Trail",
           "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
           "reason": "Ontario Parks lists the 0.8 km Nanabosho Lookout Trail; the OSM 'Chest Trail' is where it climbs"
+        },
+        {
+          "name": "Joe Creek Nature Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the Joe Creek Nature Trail; mapped 0.40 mi footway inside the park polygon"
         }
       ],
       "trail_name_fixes": [
@@ -10837,6 +10848,14 @@
           "id": "n:Voie de Service",
           "name": "Voie de Service",
           "reason": "Service road, not a hiking trail"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier du Sommets (boucle)",
+          "name": "Sentier des Sommets (boucle)",
+          "source": "https://www.sepaq.com/pq/oka/",
+          "reason": "Grammar fix: French is 'des Sommets'; id keeps the OSM spelling"
         }
       ]
     },

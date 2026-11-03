@@ -17,7 +17,7 @@ on:
 jobs:
   screenshots:
     name: Screenshots – ${{ matrix.id }}
-    runs-on: macos-latest
+    runs-on: xcode-27
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -48,8 +48,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode 26
-        run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+      - name: Select Xcode 27.1
+        run: sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+      - name: Show Xcode + SDK
+        run: xcodebuild -version && xcodebuild -showsdks | grep -i ios
 
       - name: Install iOS platform + Simulator runtime
         run: |

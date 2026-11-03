@@ -404,6 +404,8 @@ struct TurnCueEngine: Sendable {
 
     // MARK: - Junction cues
 
+    private let turnDegrees = 35.0
+    private let gentleTurnDegrees = 25.0
     private func classify(_ j: TurnCueJunction, direction: Direction) -> Cue? {
         let fwd = direction == .forward
         guard let sel = fwd ? j.selectedBearingForward : j.selectedBearingBackward,
@@ -411,7 +413,7 @@ struct TurnCueEngine: Sendable {
         let heading = TurnCueGeometry.normalize360(approach + 180)
         let thSel = TurnCueGeometry.signedAngleDiff(from: heading, to: sel)
         let thB = j.branches.map { TurnCueGeometry.signedAngleDiff(from: heading, to: $0.bearing) }
-        if abs(thSel) >= 35 {
+        if abs(thSel) >= turnDegrees {
             guard thB.contains(where: { abs($0) <= 150 }) else { return nil }
             let sharp = abs(thSel) >= 110
             if thSel > 0 { return Cue(symbol: sharp ? .sharpRight : .turnRight) }
@@ -420,6 +422,13 @@ struct TurnCueEngine: Sendable {
         let ahead = thB.filter { abs($0) <= 100 }
         guard let b = ahead.min(by: { abs($0 - thSel) < abs($1 - thSel) }) else { return nil }
         let diff = abs(b - thSel)
+        // Gentle turn (25 to 35 degrees) with a way ahead that is clearly not
+        // the trail (60+ degrees from it): continuing straight is a plausible
+        // wrong turn, so call the turn. A side branch behind (not in `ahead`)
+        // or an ambiguous near-parallel branch (< 20) stays quiet.
+        if abs(thSel) >= gentleTurnDegrees, diff >= 60 {
+            return Cue(symbol: thSel > 0 ? .turnRight : .turnLeft)
+        }
         guard diff >= 20, diff < 60 else { return nil }
         return Cue(symbol: thSel < b ? .keepLeft : .keepRight)
     }

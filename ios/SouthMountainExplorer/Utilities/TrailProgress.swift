@@ -17,11 +17,22 @@ struct TrailGeometry: Equatable, Sendable {
     let cum: [Double]
     let total: Double
     let isLoop: Bool
-    /// Elevation samples in meters, evenly spaced by arc length (stored order).
+    /// Elevation samples in meters, evenly spaced by arc length of the stored
+    /// pieces (no gaps, no chords).
     let profileMeters: [Double]?
+    /// Per-vertex position on the profile's own axis (stored piece distance).
+    /// Nil when the polyline is the stored one, so `cum` already is that axis.
+    let profileArc: [Double]?
+    /// Length of the profile axis (sum of stored piece lengths).
+    let profileTotal: Double
+    /// Segment `i` (vertex i to i+1) is a straight bridge across a gap between
+    /// two pieces of the same trail (unverified), not mapped trail.
+    let bridgeAfter: [Bool]
+    var hasBridges: Bool { bridgeAfter.contains(true) }
 
     init?(trail: Trail) {
-        let pts = TrailProfile.polyline(trail.segments)
+        let ordered = Self.orderedPolyline(trail.segments)
+        let pts = ordered.pts
         guard pts.count >= 2 else { return nil }
         let cum = TrailProfile.cumulativeMeters(pts)
         guard let total = cum.last, total > 1 else { return nil }
@@ -37,11 +48,62 @@ struct TrailGeometry: Equatable, Sendable {
         self.isLoop = PolylineMath.isLoop(pts.map {
             CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)
         })
+        self.profileArc = ordered.profileArc
+        self.profileTotal = ordered.profileTotal ?? total
+        self.bridgeAfter = ordered.bridgeAfter ?? [Bool](repeating: false, count: pts.count - 1)
         if let ft = trail.profileFt, ft.count >= 2 {
             self.profileMeters = ft.map { Double($0) * 0.3048 }
         } else {
             self.profileMeters = nil
         }
+    }
+
+    /// Walking-order polyline for a trail stored as several pieces (OSM ways in
+    /// arbitrary order and direction). Single-piece trails, and pieces already
+    /// contiguous in stored order, return exactly the stored polyline.
+    /// Pieces of the same trail are bridged up to 180 m (see `TrailPieceStitcher`).
+    /// Chains that stay apart (a gap over 180 m) are appended in stored order,
+    /// joined by a flagged bridge, as before.
+    static func orderedPolyline(_ segments: [[[Double]]]) -> (
+        pts: [TrailProfile.Point], profileArc: [Double]?, profileTotal: Double?, bridgeAfter: [Bool]?
+    ) {
+        let pieces: [[TrailProfile.Point]] = segments.map { TrailProfile.polyline([$0]) }.filter { $0.count >= 2 }
+        guard pieces.count > 1 else { return (TrailProfile.polyline(segments), nil, nil, nil) }
+        let pieceLen = pieces.map { TrailProfile.cumulativeMeters($0).last ?? 0 }
+        var offsets: [Double] = []
+        var run = 0.0
+        for l in pieceLen { offsets.append(run); run += l }
+        let chains = TrailPieceStitcher.order(
+            ends: pieces.map { (first: $0.first!, last: $0.last!) },
+            maxGap: TrailPieceStitcher.sameTrailBridgeMeters,
+            distance: { TrailProfile.meters($0, $1) },
+            pickStart: { $0.min()! }
+        )
+        let placements = chains.flatMap { $0 }
+        let identity = placements.map(\.piece) == Array(pieces.indices)
+            && placements.allSatisfy { !$0.reversed && $0.gapBefore <= TrailPieceStitcher.contiguousMeters }
+            && chains.count == 1
+        // Keep the stored polyline untouched when it is already walkable.
+        if identity { return (TrailProfile.polyline(segments), nil, nil, nil) }
+        var pts: [TrailProfile.Point] = []
+        var arcs: [Double] = []
+        var bridge: [Bool] = []
+        for chain in chains {
+            for (pi, p) in chain.enumerated() {
+                let piece = pieces[p.piece]
+                let cum = TrailProfile.cumulativeMeters(piece)
+                let isBridge = !pts.isEmpty
+                    && (pi == 0 || p.gapBefore > TrailPieceStitcher.contiguousMeters)
+                if !pts.isEmpty { bridge.append(isBridge) }
+                let order = p.reversed ? Array(piece.indices.reversed()) : Array(piece.indices)
+                for (k, idx) in order.enumerated() {
+                    if k > 0 { bridge.append(false) }
+                    pts.append(piece[idx])
+                    arcs.append(offsets[p.piece] + (p.reversed ? pieceLen[p.piece] - cum[idx] : cum[idx]))
+                }
+            }
+        }
+        return (pts, arcs, run, bridge)
     }
 
     func xy(lat: Double, lon: Double) -> (x: Double, y: Double) {
@@ -51,10 +113,32 @@ struct TrailGeometry: Equatable, Sendable {
 
     /// Elevation in meters at arc position `s` (wrapped for loops), nil with no profile.
     func elevation(at s: Double) -> Double? {
-        guard let p = profileMeters else { return nil }
+        guard profileMeters != nil else { return nil }
         var pos = s
         if isLoop { pos = pos.truncatingRemainder(dividingBy: total); if pos < 0 { pos += total } }
-        let f = min(1, max(0, pos / total))
+        guard let arc = profileArc else { return sample(min(1, max(0, pos / total))) }
+        // Reordered / bridged polyline: map the walking position onto the
+        // profile axis through the owning segment. A bridge has no profile of
+        // its own, so blend the elevations at its two ends.
+        pos = min(total, max(0, pos))
+        var lo = 0, hi = cum.count - 1
+        while hi - lo > 1 {
+            let mid = (lo + hi) / 2
+            if cum[mid] <= pos { lo = mid } else { hi = mid }
+        }
+        let segLen = cum[hi] - cum[lo]
+        let t = segLen > 1e-9 ? (pos - cum[lo]) / segLen : 0
+        let axis = max(profileTotal, 1e-9)
+        if bridgeAfter[lo] {
+            guard let e0 = sample(min(1, max(0, arc[lo] / axis))),
+                  let e1 = sample(min(1, max(0, arc[hi] / axis))) else { return nil }
+            return e0 + (e1 - e0) * t
+        }
+        return sample(min(1, max(0, (arc[lo] + (arc[hi] - arc[lo]) * t) / axis)))
+    }
+
+    private func sample(_ f: Double) -> Double? {
+        guard let p = profileMeters else { return nil }
         let idx = f * Double(p.count - 1)
         let i = min(p.count - 2, Int(idx))
         return p[i] + (p[i + 1] - p[i]) * (idx - Double(i))

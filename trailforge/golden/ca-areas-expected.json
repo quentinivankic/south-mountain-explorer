@@ -432,8 +432,8 @@
       ]
     },
     "banff-national-park-ca-ab": {
-      "trail_count": 100,
-      "total_mi": 341.7,
+      "trail_count": 101,
+      "total_mi": 346.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Glacier Lake Route",
@@ -483,14 +483,14 @@
         "Cirque Forepeak Trail",
         "Cirque Peak Trail",
         "Cirrus Mountain Trail",
-        "Citadel Pass Tr",
         "Citadel Peak Trail",
         "Coastline",
         "Cockscomb Mountain Trail",
         "Conical Peak Descent Route",
         "Conical Peak Trail",
         "Constellation  Valley  Canyoning  Approach",
-        "Copper Lake trail"
+        "Copper Lake trail",
+        "Copper Mountain Trail"
       ]
     },
     "waterton-lakes-national-park-ca-ab": {
@@ -742,12 +742,11 @@
       ]
     },
     "sheep-river-provincial-park-ca-ab": {
-      "trail_count": 7,
-      "total_mi": 16.8,
+      "trail_count": 5,
+      "total_mi": 12.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Green Mountain Route",
-        "Missinglink Mountain East Ridge Route"
+        "Green Mountain Route"
       ],
       "forbidden_names": [
         "Bluerock Creek Trail",
@@ -759,6 +758,8 @@
         "Hoffman Hill Trail",
         "Meadow Loop",
         "Missinglink Mountain Alt Route",
+        "Missinglink Mountain East Ridge Route",
+        "Missinglink Mtn S Ridge Rt",
         "Missinglink Mtn SW Ridge Rt",
         "Prairie Pine Macabee Ridges Route",
         "Sandy McNabb Loop",
@@ -1060,8 +1061,8 @@
       ]
     },
     "bow-valley-wildland-provincial-park-ca-ab": {
-      "trail_count": 18,
-      "total_mi": 47.6,
+      "trail_count": 10,
+      "total_mi": 35.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -1078,6 +1079,7 @@
         "Bogart Tower Trail",
         "Buller North Ridge Route",
         "Centennial Ridge Trail",
+        "Cloudline",
         "Clubouse Cutoff",
         "Cougar Creek Route",
         "Cougar Peak Trail",
@@ -1085,6 +1087,7 @@
         "Door Jamb and Loder Peak Trail",
         "Douglas Fir Bench (Closed Dec 1 - May 15)",
         "East End of Rundle Trail",
+        "Epic Tower Trail",
         "Fable to Mythic Route",
         "GDT en - Section C",
         "GDT enq",
@@ -1110,11 +1113,9 @@
         "Heart Creek Trail",
         "High Rockies",
         "Highline East Connector",
+        "Highline Trail",
         "Highline West Connector",
-        "Highline West End",
-        "Horse Meadows Connector",
-        "Horse-shoe loop",
-        "Horseshoe Loop"
+        "Highline West End"
       ]
     },
     "belcarra-regional-park-ca-bc": {
@@ -1691,8 +1692,8 @@
       ]
     },
     "wells-gray-provincial-park-ca-bc": {
-      "trail_count": 25,
-      "total_mi": 77.0,
+      "trail_count": 26,
+      "total_mi": 80.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Hobson Lake Route"
@@ -1709,8 +1710,7 @@
         "Norman's Eddy Trail",
         "Osprey Loop",
         "Silvertip Falls Trail",
-        "TRT012 Coulee Access Trail",
-        "Trophy Mountain Trail"
+        "TRT012 Coulee Access Trail"
       ]
     },
     "yoho-national-park-ca-bc": {

@@ -3207,6 +3207,13 @@
       "tier": 1,
       "hold": null,
       "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored Fairview Mountain Trail, Simpson Pass Healy Pass Trail (agency-listed or only link to a listed trail).",
+      "keep_trails": [
+        {
+          "name": "Silverton Falls Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Parks Canada Banff hiking page lists Silverton Falls; OSM maps the 0.32 mi path as Silverton Falls Trail (way 24830958) on the Bow Valley Parkway, wholly inside the park. A short signed waterfall walk below the 0.6 mi fragment floor."
+        }
+      ],
       "exclude_trails": [
         {
           "id": "n:2240 Trail",
@@ -5010,11 +5017,6 @@
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
         },
         {
-          "id": "n:Lost Lake Route",
-          "name": "Lost Lake Route",
-          "reason": "Unsigned route / scramble, not an agency-listed or signed trail (Quentin bar 2026-11-02)"
-        },
-        {
           "id": "n:Mount Alderson Trail",
           "name": "Mount Alderson Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
@@ -5070,6 +5072,11 @@
           "name": "Snowshoe Trail",
           "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
           "reason": "Parks Canada Waterton day-hike page lists Snowshoe (16.4 km return, summer hiking on a former fire road from Red Rock Canyon); the winter-only name rule is a false positive for this trail"
+        },
+        {
+          "name": "Lost Lake Route",
+          "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists Lost Lake; OSM maps the 0.69 mi path as Lost Lake Route (way 376450717), wholly inside the park, ending at Lost Lake. The unsigned-route exclusion is lifted because the hike is agency-listed."
         }
       ],
       "trail_name_fixes": [

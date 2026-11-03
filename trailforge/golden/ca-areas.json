@@ -10283,12 +10283,12 @@
         49.04
       ],
       "center": [
-        48.855,
-        -64.322
+        48.833,
+        -64.277
       ],
       "tier": 1,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Forillon hiking page (https://parks.canada.ca/pn-np/qc/forillon/activ/randonnee-hiking): La Chute, La Taïga, Le Pic-bois, Le Ruisseau, Les Graves, La Vallée, Les Lacs, Les Crêtes, Mont-Saint-Alban present (Le Castor waived). Not mapped by name or sub-0.6 mi (known omissions): Prélude-à-Forillon, Du Banc, Les Parages (closed sector), Le Portage (0.98 mi mapped under a portage name, partial).",
+      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Forillon hiking page (https://parks.canada.ca/pn-np/qc/forillon/activ/randonnee-hiking): La Chute, La Taïga, Le Pic-bois, Le Ruisseau, Les Graves, La Vallée, Les Lacs, Les Crêtes, Mont-Saint-Alban present (Le Castor waived). Not mapped by name or sub-0.6 mi (known omissions): Prélude-à-Forillon, Du Banc, Les Parages (closed sector), Le Portage (0.98 mi mapped under a portage name, partial). QC cleanup 2026-11-02: centre re-pinned [48.855, -64.322] -> [48.833, -64.277] onto a mapped trail vertex (old pin was the trail-bbox midpoint, >1.5 mi from any trail).",
       "exclude_trails": [
         {
           "id": "n:Les Lacs",
@@ -10325,12 +10325,12 @@
         46.97
       ],
       "center": [
-        46.72,
-        -72.966
+        46.764,
+        -72.924
       ],
       "tier": 1,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Mauricie hiking maps page (https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking): Les Falaises, Les Cascades, Mistigance, Lac-Gabet, La Terrasse, Chutes-Waber, Lac-Étienne, La Cache, Mekinac, Lac-Solitaire, Lac-du-Pimbina, Deux-Criques, Chutes-Parker present (Ruisseau-Brodeur waived); Du Camping and Ruisseau-Bouchard also present. Known omissions: La Tourbière (0.15 mi piece), L'Esker (not mapped by name). Ski/snowshoe-network duplicates excluded.",
+      "notes": "QC curation 2026-11-02. Whole park. Compared with the Parks Canada Mauricie hiking maps page (https://parks.canada.ca/pn-np/qc/mauricie/visit/cartes-maps/rando-hiking): Les Falaises, Les Cascades, Mistigance, Lac-Gabet, La Terrasse, Chutes-Waber, Lac-Étienne, La Cache, Mekinac, Lac-Solitaire, Lac-du-Pimbina, Deux-Criques, Chutes-Parker present (Ruisseau-Brodeur waived); Du Camping and Ruisseau-Bouchard also present. Known omissions: La Tourbière (0.15 mi piece), L'Esker (not mapped by name). Ski/snowshoe-network duplicates excluded. QC cleanup 2026-11-02: centre re-pinned [46.72, -72.966] -> [46.764, -72.924] onto a mapped trail vertex (old pin was the trail-bbox midpoint, >1.5 mi from any trail).",
       "exclude_trails": [
         {
           "id": "n:Chute Waber",
@@ -10427,12 +10427,12 @@
         46.69
       ],
       "center": [
-        46.34,
-        -74.322
+        46.394,
+        -74.284
       ],
       "tier": 2,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. 'Les Grandes Valléees' is kept as OSM spells it (typo, no official source).",
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. 'Les Grandes Valléees' is kept as OSM spells it (typo, no official source). QC cleanup 2026-11-02: centre re-pinned [46.34, -74.322] -> [46.394, -74.284] onto a mapped trail vertex (old pin was the trail-bbox midpoint, >1.5 mi from any trail).",
       "exclude_trails": [
         {
           "id": "n:Coupe-Canada",
@@ -10461,6 +10461,12 @@
           "name": "Les Grandes Vallées",
           "source": "https://www.sepaq.com/pq/mot/",
           "reason": "Fix typo in OSM name; id keeps the OSM spelling"
+        },
+        {
+          "osm_name": "Le Ruisseau-aux-mures",
+          "name": "Le Ruisseau-aux-Mûres",
+          "source": "https://www.alltrails.com/trail/canada/quebec/lac-croche-via-chutes-aux-mures",
+          "reason": "OSM drops the accent; the Sépaq trail is Ruisseau aux Mûres; id keeps the OSM spelling"
         }
       ]
     },
@@ -10725,6 +10731,14 @@
           "name": "Sentier Frontalier SF9",
           "reason": "Stage of the Sentier Frontalier (cross-border long-distance trail); duplicate of the line above"
         }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Parcour du Soleil",
+          "name": "Parcours du Soleil",
+          "source": "https://www.journaldemontreal.com/2019/03/02/le-parc-national-du-mont-megantic-belle-neige-et-beau-ciel",
+          "reason": "OSM misspells Parcours; the Sépaq trail is Le Parcours du Soleil; id keeps the OSM spelling"
+        }
       ]
     },
     {
@@ -10948,7 +10962,12 @@
           "name": "Sentier le Yéti",
           "reason": "Snowshoe trail in the Baie-d'Alexis sector (listed by espaces.ca among the Saguenay snowshoe routes, 3.5 km one way), not a summer hiking trail"
         }
-      ]
+      ],
+      "display_name": "Parc national des Monts-Valin",
+      "allow_rename": {
+        "from": "Parc National des Monts-Valin",
+        "reason": "Capital N is inconsistent with the other 18 Sépaq parks and French typography (Parc national); id unchanged"
+      }
     },
     {
       "id": "parc-national-de-la-pointe-taillon-ca-qc",
@@ -11115,12 +11134,12 @@
         47.16
       ],
       "center": [
-        46.958,
-        -79.283
+        47.038,
+        -79.275
       ],
       "tier": 2,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. QC cleanup 2026-11-02: centre re-pinned [46.958, -79.283] -> [47.038, -79.275] onto a mapped trail vertex (old pin was the trail-bbox midpoint, >1.5 mi from any trail).",
       "exclude_trails": [
         {
           "id": "n:Sentier de la Rivière Kipawa: Parcours Grand Chute-Inukshuk",
@@ -11147,12 +11166,12 @@
         49.75
       ],
       "center": [
-        49.509,
-        -62.747
+        49.56,
+        -62.695
       ],
       "tier": 2,
       "hold": null,
-      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine.",
+      "notes": "QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. QC cleanup 2026-11-02: centre re-pinned [49.509, -62.747] -> [49.56, -62.695] onto a mapped trail vertex (old pin was the trail-bbox midpoint, >1.5 mi from any trail).",
       "trail_name_fixes": [
         {
           "osm_name": "Sentier Les Téégraphes",

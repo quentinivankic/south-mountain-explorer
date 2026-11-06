@@ -228,6 +228,50 @@ def _check_canada_boundary_opt_ins(aid: str, entry: dict[str, Any]) -> None:
             raise CaError(f"{aid}: {key} needs a relation-backed entry (relation_id)")
     if "dedupe_ring_way" in entry and "boundary_by_id" in entry:
         raise CaError(f"{aid}: dedupe_ring_way and boundary_by_id are mutually exclusive")
+
+
+# Per-area, explicit, Canada-only pin opt-ins (this registry is region=ca only; dk/US never read it).
+#   center_cluster {trails: [<published trail name>...], reason}: the merge/verify centre gate measures
+#     the pin against the bbox midpoint of THOSE trails (a dominant cluster: >= CLUSTER_MIN_SHARE of the
+#     area's trail miles) instead of all trails, and the pin must sit within CENTRE_GATE_DEG of one of
+#     their points. For two-cluster parks whose all-trails midpoint falls in empty ground (Kluane).
+#   trail_id_pins [{name, id, reason}]: finish-publish keeps a LIVE trail id the engine would otherwise
+#     re-derive (accent-fold drift / name fix); the id must be live in this area's repo geom on a trail
+#     whose name folds to the same slug, and unique (and app-canonical unique) in the new geom.
+CENTRE_GATE_DEG = 0.1
+CLUSTER_MIN_SHARE = 0.5
+CENTER_CLUSTER_KEYS = {"trails", "reason"}
+TRAIL_ID_PIN_KEYS = {"name", "id", "reason"}
+TRAIL_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+def _nfc_text(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value == unicodedata.normalize("NFC", value)
+def _check_canada_pin_opt_ins(aid: str, entry: dict[str, Any]) -> None:
+    if "center_cluster" in entry:
+        cluster = entry["center_cluster"]
+        names = cluster.get("trails") if isinstance(cluster, dict) else None
+        if (not isinstance(cluster, dict) or set(cluster) != CENTER_CLUSTER_KEYS
+                or not isinstance(names, list) or not names or not all(_nfc_text(n) for n in names)
+                or len(set(names)) != len(names) or not _nfc_text(cluster["reason"])):
+            raise CaError(f"{aid}: center_cluster needs exactly trails (non-empty list of unique NFC "
+                          "trail names) and a reason")
+        if entry.get("center") is None:
+            raise CaError(f"{aid}: center_cluster needs a registry center")
+    if "trail_id_pins" in entry:
+        pins = entry["trail_id_pins"]
+        if not isinstance(pins, list) or not pins:
+            raise CaError(f"{aid}: trail_id_pins must be a non-empty list when present")
+        names: set[str] = set()
+        ids: set[str] = set()
+        for pin in pins:
+            if (not isinstance(pin, dict) or set(pin) != TRAIL_ID_PIN_KEYS or not _nfc_text(pin["name"])
+                    or not isinstance(pin["id"], str) or not TRAIL_ID.fullmatch(pin["id"])
+                    or len(pin["id"]) > 64 or not _nfc_text(pin["reason"])):
+                raise CaError(f"{aid}: trail_id_pins entries need exactly name (NFC text), id "
+                              "(lowercase slug) and reason")
+            if pin["name"] in names or pin["id"] in ids:
+                raise CaError(f"{aid}: trail_id_pins repeats {pin['name']!r} / {pin['id']!r}")
+            names.add(pin["name"])
+            ids.add(pin["id"])
 def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
     doc = _read_json(path, "Canada area registry")
     if not isinstance(doc, dict) or doc.get("schema") != REGISTRY_SCHEMA:
@@ -299,6 +343,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             if "way_id" in entry:
                 raise CaError(f"{aid}: boundary_by_id needs a relation-backed entry (relation_id)")
         _check_canada_boundary_opt_ins(aid, entry)
+        _check_canada_pin_opt_ins(aid, entry)
         if "trail_name_fixes" in entry:
             try:
                 ca_trail_filter.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
@@ -722,6 +767,47 @@ def index_for_publish_cmd(args: argparse.Namespace) -> int:
     return 0
 
 
+def _canonical_trail_id(tid: str) -> str:
+    """Mirror Trail.canonicalTrailId (the app strips a trailing -<1-3 digits>)."""
+    return re.sub(r"-\d{1,3}$", "", tid)
+
+
+def _fold_slug(name: Any) -> str:
+    import _seed_constants
+    return "-".join(p for p in re.split(r"[^a-z0-9]+", _seed_constants.ca_ascii_fold(str(name or "")).lower()) if p)
+
+
+def apply_trail_id_pins(aid: str, geom: dict[str, Any], pins: list[dict[str, Any]], live_path: Path) -> None:
+    """Registry `trail_id_pins` (opt-in): set each pinned trail's id back to its LIVE id, in place.
+    Fails closed unless the area is live (repo geom present), each pin names exactly one new trail,
+    the id is a trail id in the live geom on a trail whose name folds to the same slug as the pin
+    name, the engine id actually differs (else the pin is stale), and the resulting ids are unique and
+    app-canonical unique."""
+    if not live_path.is_file():
+        raise CaError(f"{aid}: trail_id_pins needs a live area (no {live_path.name} in the repo geoms)")
+    live = _read_json(live_path, f"{aid} live geom")
+    live_names = {t.get("id"): t.get("name") for t in (live.get("trails") or []) if isinstance(t, dict)}
+    trails = geom.get("trails") or []
+    for pin in pins:
+        hits = [t for t in trails if t.get("name") == pin["name"]]
+        if len(hits) != 1:
+            raise CaError(f"{aid}: trail_id_pins {pin['name']!r} matches {len(hits)} trail(s), expected 1")
+        if pin["id"] not in live_names:
+            raise CaError(f"{aid}: trail_id_pins id {pin['id']!r} is not a live trail id of this area")
+        if _fold_slug(live_names[pin["id"]]) != _fold_slug(pin["name"]):
+            raise CaError(f"{aid}: trail_id_pins id {pin['id']!r} is live on {live_names[pin['id']]!r}, "
+                          f"not on {pin['name']!r}")
+        if hits[0]["id"] == pin["id"]:
+            raise CaError(f"{aid}: trail_id_pins {pin['name']!r} already gets id {pin['id']!r}; "
+                          "the pin is stale (remove it)")
+        print(f"{aid}: trail id pinned {hits[0]['id']!r} -> live {pin['id']!r} ({pin['name']!r})")
+        hits[0]["id"] = pin["id"]
+    ids = [t.get("id") for t in trails]
+    canon = [_canonical_trail_id(str(i)) for i in ids]
+    if len(set(ids)) != len(ids) or len(set(canon)) != len(canon):
+        raise CaError(f"{aid}: trail_id_pins would make trail ids non-unique in the area")
+
+
 def finish_publish_cmd(args: argparse.Namespace) -> int:
     """Take the counts the publisher wrote into the OSM-name index, keep the registry display
     name in the row and in the geom, and fail closed on any identity drift."""
@@ -737,8 +823,19 @@ def finish_publish_cmd(args: argparse.Namespace) -> int:
     shown = area.get("display_name") or area["name"]
     if geom.get("id") != area["id"] or geom.get("name") != area["name"]:
         raise CaError("published geom identity differs from the registry")
+    changed = False
+    if args.registry is not None:
+        entry = load_registry(args.registry)["by_id"].get(area["id"])
+        if entry is None:
+            raise CaError(f"{area['id']} is not in the Canada registry")
+        if "trail_id_pins" in entry:
+            apply_trail_id_pins(area["id"], geom, entry["trail_id_pins"],
+                                args.live_geom_dir / f"{area['id']}.json")
+            changed = True
     if shown != geom["name"]:
         geom["name"] = shown
+        changed = True
+    if changed:
         # Same serialization as the publisher's atomic_write_json (default separators, ASCII).
         args.geom.write_bytes(json.dumps(geom, ensure_ascii=True, allow_nan=False).encode("utf-8"))
     _write_json(args.index, [row])
@@ -1114,6 +1211,32 @@ def _rows(payload: bytes, context: str, compact: bool) -> list[list[Any]]:
     return rows
 
 
+def _cluster_points(entry: dict[str, Any], geom: dict[str, Any], context: str) -> list[Any]:
+    """Points of the registry `center_cluster` trails (opt-in). Fails closed unless every named trail
+    is in the geom exactly once, the cluster carries >= CLUSTER_MIN_SHARE of the area's trail miles,
+    and the pin sits within CENTRE_GATE_DEG (both axes) of one of the cluster's points."""
+    aid, names = entry["id"], entry["center_cluster"]["trails"]
+    trails = geom.get("trails") or []
+    picked = []
+    for name in names:
+        hits = [t for t in trails if t.get("name") == name]
+        if len(hits) != 1:
+            raise CaError(f"{context}: {aid} center_cluster trail {name!r} is in the geom "
+                          f"{len(hits)} time(s), expected exactly 1")
+        picked.append(hits[0])
+    total = sum(t.get("distanceMi") or 0 for t in trails)
+    share = sum(t.get("distanceMi") or 0 for t in picked) / total if total > 0 else 0.0
+    if share < CLUSTER_MIN_SHARE:
+        raise CaError(f"{context}: {aid} center_cluster holds {share:.0%} of the trail miles; a dominant "
+                      f"cluster needs at least {CLUSTER_MIN_SHARE:.0%}")
+    pts = [pt for t in picked for seg in t.get("segments") or [] for pt in seg]
+    lat, lon = entry["center"]
+    if not pts or min(max(abs(p[0] - lat), abs(p[1] - lon)) for p in pts) > CENTRE_GATE_DEG:
+        raise CaError(f"{context}: {aid} centre is more than {CENTRE_GATE_DEG} deg from every "
+                      "center_cluster trail point")
+    return pts
+
+
 def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], context: str) -> None:
     if "way_id" in entry:
         # Way-backed: no relation id exists, so the row has no 8th element at all.
@@ -1126,6 +1249,8 @@ def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], c
     if entry.get("center") is None or [row[3], row[4]] != entry["center"]:
         raise CaError(f"{context}: {entry['id']} row centre differs from the registry")
     pts = [pt for t in geom.get("trails") or [] for seg in t.get("segments") or [] for pt in seg]
+    if pts and "center_cluster" in entry:
+        pts = _cluster_points(entry, geom, context)
     if pts:
         mid = ((min(p[0] for p in pts) + max(p[0] for p in pts)) / 2,
                (min(p[1] for p in pts) + max(p[1] for p in pts)) / 2)
@@ -1953,6 +2078,9 @@ def main(argv: list[str] | None = None) -> int:
     fp.add_argument("--publish-index", required=True, type=Path)
     fp.add_argument("--geom", required=True, type=Path)
     fp.add_argument("--area-json", required=True, type=Path)
+    fp.add_argument("--registry", type=Path, default=None,
+                    help="Canada registry: applies the area's trail_id_pins opt-in (ca-run-area.sh passes it)")
+    fp.add_argument("--live-geom-dir", type=Path, default=LIVE_GEOM_DIR)
     e = sub.add_parser("assert-expected")
     e.add_argument("--geom", required=True, type=Path)
     e.add_argument("--area-id", required=True)

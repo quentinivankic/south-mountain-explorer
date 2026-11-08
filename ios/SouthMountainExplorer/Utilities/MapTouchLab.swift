@@ -15,6 +15,14 @@ enum MapTouchLab {
     static let noSelectionTapKey = "TrekdexDiagNoSelectionTap"
     static let noSheetPanKey = "TrekdexDiagNoSheetPan"
     static let bareMapLaunchKey = "TrekdexBareMap"
+    static let showPOIKey = "TrekdexDiagShowPOI"
+    static let noUserDotKey = "TrekdexDiagNoUserDot"
+    static let noPinsKey = "TrekdexDiagNoPins"
+    static let standardTypeKey = "TrekdexDiagStandardType"
+    static var showPOI: Bool { UserDefaults.standard.bool(forKey: showPOIKey) }
+    static var noUserDot: Bool { UserDefaults.standard.bool(forKey: noUserDotKey) }
+    static var noPins: Bool { UserDefaults.standard.bool(forKey: noPinsKey) }
+    static var standardType: Bool { UserDefaults.standard.bool(forKey: standardTypeKey) }
 
     static var noCameraWrites: Bool { UserDefaults.standard.bool(forKey: noCameraWritesKey) }
     static var noOverlays: Bool { UserDefaults.standard.bool(forKey: noOverlaysKey) }

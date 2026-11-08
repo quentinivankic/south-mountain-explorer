@@ -271,14 +271,14 @@ struct MapKitMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let mv = MKMapView()
         mv.delegate = MapTouchLab.noDelegate ? nil : context.coordinator  // DIAG ONLY
-        TouchDiag.log("lab switches noCamera=\(MapTouchLab.noCameraWrites) noOverlays=\(MapTouchLab.noOverlays) noDelegate=\(MapTouchLab.noDelegate) noTap=\(MapTouchLab.noSelectionTap) noSheetPan=\(MapTouchLab.noSheetPan)")  // DIAG ONLY
-        mv.pointOfInterestFilter = .excludingAll
-        mv.mapType = mapStyle.mkMapType
+        TouchDiag.log("lab switches noCamera=\(MapTouchLab.noCameraWrites) noOverlays=\(MapTouchLab.noOverlays) noDelegate=\(MapTouchLab.noDelegate) noTap=\(MapTouchLab.noSelectionTap) noSheetPan=\(MapTouchLab.noSheetPan) showPOI=\(MapTouchLab.showPOI) noUserDot=\(MapTouchLab.noUserDot) noPins=\(MapTouchLab.noPins) standardType=\(MapTouchLab.standardType)")  // DIAG ONLY
+        if !MapTouchLab.showPOI { mv.pointOfInterestFilter = .excludingAll }  // DIAG ONLY gate
+        mv.mapType = MapTouchLab.standardType ? .standard : mapStyle.mkMapType  // DIAG ONLY gate
         mv.isPitchEnabled = false
         mv.isRotateEnabled = true
         mv.showsCompass = true
         mv.showsScale = true
-        mv.showsUserLocation = showsUserLocation
+        mv.showsUserLocation = showsUserLocation && !MapTouchLab.noUserDot  // DIAG ONLY gate
         // Synthetic screenshot dot (see `demoUserDot` doc). Added once
         // here — the demo recording is injected in-memory at launch and
         // never moves, so there's nothing to update.
@@ -393,7 +393,7 @@ struct MapKitMapView: UIViewRepresentable {
         let parkingSig = Self.parkingSig(area.parking, selectedTrailId: selectedTrailId,
                                          showAll: showAllParking,
                                          poolCount: parkingPoolCount)
-        if parkingSig != coord.lastParkingSig {
+        if parkingSig != coord.lastParkingSig, !MapTouchLab.noPins {  // DIAG ONLY gate
             // Merge HERE, not in the Coordinator: `ParkingPoolService` is
             // @MainActor and the Coordinator is deliberately non-isolated (see
             // its doc comment), and doing it behind the signature check keeps the
@@ -524,12 +524,12 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         // 7) User-location + tracking mode.
-        let targetMapType = mapStyle.mkMapType
+        let targetMapType = MapTouchLab.standardType ? .standard : mapStyle.mkMapType  // DIAG ONLY gate
         if mapView.mapType != targetMapType {
             mapView.mapType = targetMapType
         }
-        if mapView.showsUserLocation != showsUserLocation {
-            mapView.showsUserLocation = showsUserLocation
+        if mapView.showsUserLocation != (showsUserLocation && !MapTouchLab.noUserDot) {  // DIAG ONLY gate
+            mapView.showsUserLocation = showsUserLocation && !MapTouchLab.noUserDot
         }
         if mapView.userTrackingMode != userTrackingMode, !MapTouchLab.noCameraWrites {  // DIAG ONLY gate
             mapView.setUserTrackingMode(userTrackingMode, animated: true)

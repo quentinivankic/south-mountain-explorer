@@ -7973,12 +7973,27 @@
         51.36
       ],
       "center": [
-        51.017,
-        -116.128
+        51.186,
+        -116.123
       ],
+      "center_cluster": {
+        "trails": [
+          "Rockwall Trail",
+          "Floe Lake Trail",
+          "Helmet Creek and Falls Trail",
+          "Stanley Glacier Trail",
+          "Numa Creek Trail",
+          "Tumbling Creek Trail",
+          "Marble Canyon to Ochre Beds Trail",
+          "Marble Canyon",
+          "Ochre Beds & Paint Pots Trail",
+          "Fireweed Loops Trail"
+        ],
+        "reason": "Kootenay's trails sit in two bands about 30 mi apart (Vermilion/Rockwall north of 51.05 N, Radium/Kindersley south of 50.82 N); the all-trails midpoint falls between them, 2.4 mi from any trail. The north band holds 57.3 of 80.1 trail mi (72%), so the pin sits at the Marble Canyon trailhead on Highway 93."
+      },
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "BC curation 2026-11-02. Whole park (way-backed polygon w673733022). Compared with the Parks Canada Kootenay hikes table (https://parks.canada.ca/pn-np/bc/kootenay/activ/randonnee-hike/jour-day): Floe Lake, Stanley Glacier, Kindersley Pass, Sinclair Creek, Kimpton Creek, Cobb Lake, Dog Lake, Helmet Creek, Tumbling Creek, Numa Creek, Marble Canyon, Paint Pots and Redstreak Creek present; Rockwall Trail added by waiver (signature route, official 54.1 km). Ball Pass, Simpson River, Boom Mountain and Monarch trails cross into Banff / Mount Assiniboine and are excluded as boundary-clipped (they belong to those areas). live-fix1 2026-11-02: pin moved from [50.942, -116.093] (7.76 mi from the nearest trail) to a trail point next to the trail-extent midpoint. Pin 2026-11-08 (live-fix7, center_cluster opt-in from PR #749): [51.017,-116.128] -> [51.186,-116.123], the Marble Canyon trailhead (start of Marble Canyon and the Ochre Beds connector; was 2.4 mi from any trail). Gate box is the north-band bbox midpoint 51.1401,-116.1745 +/- 0.1 deg. Registry-only; 18 trails/80.1 mi unchanged.",
       "exclude_trails": [
         {
           "id": "n:Ball Pass Trail",
@@ -8445,12 +8460,25 @@
         53.35
       ],
       "center": [
-        53.087,
-        -118.923
+        53.051,
+        -119.214
       ],
+      "center_cluster": {
+        "trails": [
+          "Berg Lake Trail",
+          "Resplendent Mountain Trail",
+          "Snowbird Pass Trail",
+          "Resplendent via Patterson Route",
+          "Cinnamon Peak Trail",
+          "Hargreaves Lake Route",
+          "Mumm Basin Trail",
+          "Lookout Trail"
+        ],
+        "reason": "Mount Robson's trails sit in two clusters about 33 mi apart (Berg Lake/Mount Robson west, Fitzwilliam at Yellowhead Lake east); the all-trails midpoint falls in trailless ground 6.6 mi from any trail. The Berg Lake cluster holds 39.8 of 47.5 trail mi (84%), so the pin sits at the Berg Lake trailhead."
+      },
       "tier": 2,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park (Mount Robson Provincial Park relation only; the Corridor protected area is separate). Berg Lake Trail 15.2 mi, Snowbird Pass, Fitzwilliam, Resplendent routes present. Moose River Route, Robson Pass and Overlander Falls cross the park edge and are excluded as boundary-clipped; the Great Divide alternate is excluded. BC Parks list not compared name by name (unverified). live-fix1 2026-11-02: pin moved from [53.002, -118.833] (12.45 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "BC curation 2026-11-02. Whole park (Mount Robson Provincial Park relation only; the Corridor protected area is separate). Berg Lake Trail 15.2 mi, Snowbird Pass, Fitzwilliam, Resplendent routes present. Moose River Route, Robson Pass and Overlander Falls cross the park edge and are excluded as boundary-clipped; the Great Divide alternate is excluded. BC Parks list not compared name by name (unverified). live-fix1 2026-11-02: pin moved from [53.002, -118.833] (12.45 mi from the nearest trail) to a trail point next to the trail-extent midpoint. Pin 2026-11-08 (live-fix7, center_cluster opt-in from PR #749): [53.087,-118.923] -> [53.051,-119.214], the Berg Lake Trail trailhead at Kinney Lake Road (was 6.6 mi from any trail). Gate box is the Berg Lake cluster bbox midpoint 53.1036,-119.1534 +/- 0.1 deg. Registry-only; 9 trails unchanged.",
       "exclude_trails": [
         {
           "id": "n:Moose River Route",

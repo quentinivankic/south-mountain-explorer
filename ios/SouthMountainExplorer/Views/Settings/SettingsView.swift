@@ -399,6 +399,16 @@ struct SettingsView: View {
                     Text("Backup")
                 }
 
+                // DIAG ONLY (chat/map-touch-diag-ios273): always visible in this build.
+                Section("Map Touch Lab") {
+                    NavigationLink {
+                        MapTouchLabView()
+                    } label: {
+                        Label("Map Touch Lab", systemImage: "hand.draw")
+                    }
+                    .accessibilityIdentifier("map-touch-lab-link")
+                }
+
                 // TESTFLIGHT/DEV ONLY: hidden from App Store production installs.
                 if BuildEnv.isTestFlight {
                 Section("Developer") {

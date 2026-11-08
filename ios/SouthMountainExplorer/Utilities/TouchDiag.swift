@@ -16,6 +16,31 @@ enum TouchDiag {
     private static var installed = false
     private static var movedCount = 0
 
+    private static var updateCount = 0
+    private static var updateWindowStart = CACurrentMediaTime()
+
+    /// Counts MapKitMapView.updateUIView calls and logs the rate once per
+    /// second, to show whether SwiftUI is re-running the map many times a
+    /// second during a gesture.
+    static func mapUpdated() {
+        guard enabled else { return }
+        updateCount += 1
+        let now = CACurrentMediaTime()
+        if now - updateWindowStart >= 1 {
+            log("updateUIView calls=\(updateCount) in \(String(format: "%.1f", now - updateWindowStart))s")
+            updateCount = 0
+            updateWindowStart = now
+        }
+    }
+
+    static func region(_ phase: String, animated: Bool, _ mapView: MKMapView) {
+        guard enabled else { return }
+        let states = (mapView.subviews.flatMap { $0.gestureRecognizers ?? [] })
+            .filter { $0.state != .possible }
+            .map { "\(type(of: $0)):\($0.state.rawValue)" }
+        log("region\(phase) animated=\(animated) active=\(states)")
+    }
+
     static func log(_ s: String) {
         logger.notice("[TDIAG] \(s, privacy: .public)")
         print("[TDIAG] \(s)")

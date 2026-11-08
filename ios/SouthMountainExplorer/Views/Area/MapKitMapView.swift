@@ -270,7 +270,8 @@ struct MapKitMapView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> MKMapView {
         let mv = MKMapView()
-        mv.delegate = context.coordinator
+        mv.delegate = MapTouchLab.noDelegate ? nil : context.coordinator  // DIAG ONLY
+        TouchDiag.log("lab switches noCamera=\(MapTouchLab.noCameraWrites) noOverlays=\(MapTouchLab.noOverlays) noDelegate=\(MapTouchLab.noDelegate) noTap=\(MapTouchLab.noSelectionTap) noSheetPan=\(MapTouchLab.noSheetPan)")  // DIAG ONLY
         mv.pointOfInterestFilter = .excludingAll
         mv.mapType = mapStyle.mkMapType
         mv.isPitchEnabled = false
@@ -295,13 +296,16 @@ struct MapKitMapView: UIViewRepresentable {
         mv.layoutMargins = UIEdgeInsets(top: 60, left: 0, bottom: 0, right: 0)
 
         // Initial camera (no animation — instant frame).
+        if !MapTouchLab.noCameraWrites {  // DIAG ONLY
         Self.applyCameraTarget(cameraTarget, to: mv, animated: false)
+        }
 
         context.coordinator.mapView = mv
         // Halos first, then trails — within MKMapView's `.aboveRoads`
         // overlay level, insertion order is z-order. Halos must
         // render UNDER trails so the user's past-hike highlight sits
         // beneath the colored trail outlines.
+        if !MapTouchLab.noOverlays {  // DIAG ONLY
         context.coordinator.rebuildHaloOverlays(on: mv, segments: haloSegments)
         context.coordinator.rebuildTrailOverlays(on: mv, from: area)
         context.coordinator.rebuildSelectedTrailWalkedOverlays(on: mv, segments: selectedTrailWalkedSegments)
@@ -312,6 +316,7 @@ struct MapKitMapView: UIViewRepresentable {
             context.coordinator.lastRecordingIdentity = rec.recordingId
                 ?? "\(rec.areaId)|\(rec.startedAt.timeIntervalSinceReferenceDate)"
         }
+        }  // DIAG ONLY noOverlays
         context.coordinator.lastAreaId = area.id
         context.coordinator.lastCameraTick = cameraTick
         context.coordinator.lastSelectedTrailId = selectedTrailId
@@ -329,8 +334,11 @@ struct MapKitMapView: UIViewRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap(_:)))
         tap.delegate = context.coordinator
+        if !MapTouchLab.noSelectionTap {  // DIAG ONLY
         mv.addGestureRecognizer(tap)
         context.coordinator.selectionTap = tap
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { MapTouchLab.disableSheetPans(near: mv) }  // DIAG ONLY
         // User camera gestures are detected from MapKit's own recognizers in
         // `regionWillChangeAnimated` (see `onUserCameraGestureBegan`) — no
         // extra recognizers that could compete with MapKit's pan / pinch.
@@ -358,6 +366,10 @@ struct MapKitMapView: UIViewRepresentable {
         // Layers that are (re)added below land above the planned route; the
         // route is moved back to the front once, after step 5.
         var layersReAdded = false
+        TouchDiag.mapUpdated()  // DIAG ONLY
+        if MapTouchLab.noSheetPan { MapTouchLab.disableSheetPans(near: mapView) }  // DIAG ONLY
+        repeat {  // DIAG ONLY: `break` skips steps 1-5 when noOverlays is on
+        if MapTouchLab.noOverlays { break }
         // 1) Trail overlays — only rebuild when the area itself changes.
         // (Trail set within an area is stable for the area's lifetime.)
         if coord.lastAreaId != area.id {
@@ -493,13 +505,19 @@ struct MapKitMapView: UIViewRepresentable {
         // Trail, halo and filter overlays added after the route would draw over
         // it, so move the route back to the front.
         if layersReAdded { coord.bringPlannedRouteToFront(on: mapView) }
+        } while false  // DIAG ONLY
 
         // 6) Camera moves. Only animate when the caller bumps the
         // tick — we don't want stale view-state updates to re-frame
         // the map. Bump the pending-programmatic counter so the
         // post-animation `regionDidChangeAnimated` knows this change
         // was ours, not a user gesture.
+        if coord.lastCameraTick != cameraTick, MapTouchLab.noCameraWrites {  // DIAG ONLY
+            TouchDiag.log("lab skipped camera write tick=\(cameraTick)")
+            coord.lastCameraTick = cameraTick
+        }
         if coord.lastCameraTick != cameraTick {
+            TouchDiag.log("camera write tick=\(cameraTick)")  // DIAG ONLY
             coord.pendingProgrammaticRegionChanges += 1
             Self.applyCameraTarget(cameraTarget, to: mapView, animated: true)
             coord.lastCameraTick = cameraTick
@@ -513,7 +531,7 @@ struct MapKitMapView: UIViewRepresentable {
         if mapView.showsUserLocation != showsUserLocation {
             mapView.showsUserLocation = showsUserLocation
         }
-        if mapView.userTrackingMode != userTrackingMode {
+        if mapView.userTrackingMode != userTrackingMode, !MapTouchLab.noCameraWrites {  // DIAG ONLY gate
             mapView.setUserTrackingMode(userTrackingMode, animated: true)
         }
         // Keep the facing cone pointed the right way on every heading update.
@@ -1263,6 +1281,7 @@ struct MapKitMapView: UIViewRepresentable {
         /// re-snap to the user dot (preserving the user's pinched zoom
         /// — see TrailMapView.updateTrackedPosition).
         func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            TouchDiag.region("DidChange", animated: animated, mapView)  // DIAG ONLY
             // The cone is drawn relative to the map's own rotation, so it has to
             // be re-applied whenever the map turns — otherwise rotating the map
             // by hand leaves the dot pointing at the old bearing.
@@ -1838,6 +1857,7 @@ struct MapKitMapView: UIViewRepresentable {
         /// recognizers is driving it, the user just took the camera: report
         /// it once per gesture.
         func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            TouchDiag.region("WillChange", animated: animated, mapView)  // DIAG ONLY
             let states = mapKitGestureRecognizers(of: mapView).map(\.state)
             if userCameraGestureLatch.regionWillChange(recognizerStates: states) {
                 parent.onUserCameraGestureBegan?()

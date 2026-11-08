@@ -83,6 +83,7 @@ struct ContentView: View {
     /// Banner-tap route for an in-progress walk (walks reopen WalkView,
     /// not the primary area's AreaView).
     @State private var showWalkCover = false
+    @State private var showMapTouchLab = MapTouchLab.openOnLaunch  // DIAG ONLY
     @State private var recordingControlVisibility = RecordingControlVisibility()
 
     var body: some View {
@@ -196,6 +197,13 @@ struct ContentView: View {
         // instead of the primary area's AreaView.
         .fullScreenCover(isPresented: $showWalkCover) {
             WalkView()
+        }
+        // DIAG ONLY: `-TrekdexBareMap 1` opens the Map Touch Lab at launch.
+        .fullScreenCover(isPresented: $showMapTouchLab) {
+            NavigationStack {
+                MapTouchLabView()
+                    .toolbar { Button("Close") { showMapTouchLab = false } }
+            }
         }
         .fullScreenCover(item: $areaJumpRoute) { route in
             NavigationStack {

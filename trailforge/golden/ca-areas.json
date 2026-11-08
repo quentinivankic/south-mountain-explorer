@@ -13139,9 +13139,20 @@
         61.39
       ],
       "center": [
-        60.68,
-        -137.852
+        60.551,
+        -137.24
       ],
+      "center_cluster": {
+        "trails": [
+          "Cottonwood Trail",
+          "Auriol Trail",
+          "Shorty Creek Trail",
+          "King's Throne Trail",
+          "Saint Elias Lake Trail",
+          "Dezadeash River Trail"
+        ],
+        "reason": "Kluane's trails sit in two clusters about 50 mi apart (Haines Road/Kathleen Lake east, Slims River/Sheep Creek west); the all-trails midpoint falls in trailless ground 11.8 mi from any trail. The east cluster holds 28.5 of 47.7 trail mi (60%), so the pin sits at the King's Throne/Cottonwood trailhead at Kathleen Lake."
+      },
       "tier": 1,
       "hold": null,
       "span_waiver": {
@@ -13180,7 +13191,7 @@
           "reason": "Parks Canada lists Thechàl Dhâl Ridge as an unmarked route, not a trail, and notes the Thechàl Dhâl face is closed to public access year-round."
         }
       ],
-      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Review remediation 2026-11-02 (OSM evidence in .agents/tasks/trekdex-canada-engine/kluane-osm-evidence.md): no named signed Kathleen Lake trail exists in OSM (only unnamed day-use paths; Kokanee boardwalk 0.6 mi unmapped by name), recorded as a known omission; the 30>23 count is candidate filtering, not geometric clipping, and every kept way is 100% inside the polygon; Cottonwood 16.4 mi, Auriol 3.2 mi (rest of the loop is tagged piste:type=nordic) and Slim's River West 9.3 mi are OSM-incomplete, not polygon-clipped, and are kept as the Parks Canada signature trails; Dezadeash River Trail is inside the polygon and on the Parks Canada list, kept with the official spelling. Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox/center are the qualify-proposed values (run 41573269069): 9 trails, 47.7 mi, 0 duplicates.",
+      "notes": "Territories batch 2026-11-02 (ca-terr); curated live-fix4 2026-11-02. Span waiver (3.992 x 1.338 deg park polygon, max_deg 4.5) is the engine opt-in merged in PR #728; hold cleared. Kept (Parks Canada trail list https://parks.canada.ca/pn-np/yt/kluane/activ/randonnee-hiking, yukonhiking.ca/regions/KluaneNationalPark): Saint Elias Lake, King's Throne, Sheep Creek, Cottonwood, Auriol, Bullion Plateau, Ä’äy Chù (Slim's River) West, Dezadeash River, Shorty Creek. Dropped by the lane: Mush Lake Road, winter-only ways, fragments under 0.6 mi (Soldier's Summit etc.). Review remediation 2026-11-02 (OSM evidence in .agents/tasks/trekdex-canada-engine/kluane-osm-evidence.md): no named signed Kathleen Lake trail exists in OSM (only unnamed day-use paths; Kokanee boardwalk 0.6 mi unmapped by name), recorded as a known omission; the 30>23 count is candidate filtering, not geometric clipping, and every kept way is 100% inside the polygon; Cottonwood 16.4 mi, Auriol 3.2 mi (rest of the loop is tagged piste:type=nordic) and Slim's River West 9.3 mi are OSM-incomplete, not polygon-clipped, and are kept as the Parks Canada signature trails; Dezadeash River Trail is inside the polygon and on the Parks Canada list, kept with the official spelling. Excluded here: unmarked routes/scrambles and duplicate OSM names. Live Alaska area kluane-wrangell-st-elias-glacier-bay-tatshenshini-alsek-ak holds Alaska trails only (lon -141.1 to -143.7), so no overlap. bbox is the qualify-proposed value (run 41573269069): 9 trails, 47.7 mi, 0 duplicates. Pin 2026-11-08 (live-fix7, center_cluster opt-in from PR #749): [60.68,-137.852] -> [60.551,-137.24], on King's Throne Trail at the Kathleen Lake trailhead (was 11.8 mi from any trail; now 0.02 mi). Gate box is the east-cluster bbox midpoint 60.5354,-137.2887 +/- 0.1 deg. Registry-only; 9 trails/47.7 mi unchanged.",
       "trail_name_fixes": [
         {
           "osm_name": "Dezedeash River Trail",

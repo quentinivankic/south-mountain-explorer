@@ -106,8 +106,9 @@ python3 serve/publish_areas.py \
   --no-boundary-fetch --no-elevation
 # publish_areas writes no geom for an area with no trail inside it ("no trails touch this area").
 test -f "$A/geom/$AREA_ID.json" || { echo "SAFETY BLOCK: $AREA_ID has no publishable trails after the Canada filter" >&2; exit 3; }
+# --registry applies the area's optional trail_id_pins opt-in (keep a live trail id); absent = no change.
 python3 ../scripts/ca_publish.py finish-publish --index "$A/index.json" --publish-index "$A/publish-index.json" \
-  --geom "$A/geom/$AREA_ID.json" --area-json "$A/area.json"
+  --geom "$A/geom/$AREA_ID.json" --area-json "$A/area.json" --registry "$ROOT/trailforge/golden/ca-areas.json"
 
 # The geom dir must hold exactly this area's file.
 test "$(ls "$A/geom")" = "$AREA_ID.json"

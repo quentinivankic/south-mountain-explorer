@@ -87,10 +87,10 @@ def test_center_cluster_registry_validation(tmp_path, bad):
                                             "Lookout Trail"]),
 ])
 def test_center_cluster_fits_the_three_live_two_cluster_parks(aid, cluster):
-    """Fixture opt-ins on the committed live geoms (registry untouched): a pin on the dominant cluster's
-    midpoint passes only with the opt-in."""
+    """Fixture opt-ins on the committed live geoms (any registry opt-in stripped first): a pin on the
+    dominant cluster's midpoint passes only with the opt-in."""
     geom = json.loads((ROOT / f"public/areas/geom/{aid}.json").read_text(encoding="utf-8"))
-    entry = ca.load_registry()["by_id"][aid]
+    entry = {k: v for k, v in ca.load_registry()["by_id"][aid].items() if k != "center_cluster"}
     pts = [p for t in geom["trails"] if t["name"] in cluster for s in t["segments"] for p in s]
     pin = [round((min(p[0] for p in pts) + max(p[0] for p in pts)) / 2, 3),
            round((min(p[1] for p in pts) + max(p[1] for p in pts)) / 2, 3)]

@@ -35,8 +35,11 @@ struct SouthMountainExplorerApp: App {
         // anonymous person per run, on the placeholder build "1").
         // Release = TestFlight / App Store = real users. Left on the
         // no-op backend in Debug, so events are captured but dropped.
+        TouchDiag.installIfEnabled()  // DIAG ONLY
         #if !DEBUG
-        if let backend = PostHogBackend.fromInfoPlist() {
+        if TouchDiag.skipPostHog {
+            TouchDiag.log("PostHog setup SKIPPED by -TrekdexDiagSkipPostHog")
+        } else if let backend = PostHogBackend.fromInfoPlist() {
             AnalyticsService.shared.configure(backend: backend)
         }
         #endif

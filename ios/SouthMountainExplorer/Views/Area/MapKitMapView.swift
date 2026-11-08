@@ -334,6 +334,7 @@ struct MapKitMapView: UIViewRepresentable {
         // User camera gestures are detected from MapKit's own recognizers in
         // `regionWillChangeAnimated` (see `onUserCameraGestureBegan`) — no
         // extra recognizers that could compete with MapKit's pan / pinch.
+        TouchDiag.mapCreated(mv)  // DIAG ONLY
         return mv
     }
 

@@ -31,7 +31,13 @@ final class PostHogBackend: AnalyticsBackend {
         // (Session replay is off by default, so it's left unset.)
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
+        if TouchDiag.enabled {  // DIAG ONLY
+            TouchDiag.log("posthog (version: see build log, 3.94.0 at diag build) screenViews=\(config.captureScreenViews) lifecycle=\(config.captureApplicationLifecycleEvents) sessionReplay=\(config.sessionReplay) surveys=\(config.surveys) elementInteractions=\(config.captureElementInteractions) swiftUIInteractions=\(config.captureSwiftUIElementInteractions) rageClick=\(config.rageClickConfig.enabled) swizzling=\(config.enableSwizzling) pushOpened=\(config.capturePushNotificationOpened) pushSubs=\(config.capturePushNotificationSubscriptions)")
+        }
         PostHogSDK.shared.setup(config)
+        if TouchDiag.enabled {  // DIAG ONLY
+            TouchDiag.log("posthog setup done rageClickActive=\(PostHogSDK.shared.isRageClickActive())")
+        }
     }
 
     func capture(_ event: AnalyticsEvent) {

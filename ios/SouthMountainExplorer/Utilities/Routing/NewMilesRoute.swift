@@ -112,10 +112,52 @@ enum NewMilesRoute {
         paceFactor: Double,
         shape: RoutePlanRequest.Shape
     ) -> RoutePlan {
-        guard let search = EdgeWalkSearch(
+        polishBest([plan], view: view, credit: candidates, completion: completion, limitSeconds: limit,
+                   maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape) ?? plan
+    }
+
+    /// Runs the detour search on every plan (one shared search, so distance
+    /// trees are built once) and returns the best result by `RouteScore`.
+    /// Ties keep the earlier plan. nil only when `plans` is empty.
+    static func polishBest(
+        _ plans: [RoutePlan],
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan? {
+        let search = EdgeWalkSearch(
             view: view, credit: candidates, completion: completion, limitSeconds: limit,
             maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
-        else { return plan }
+        var best: RoutePlan?
+        for plan in plans {
+            if PlanCancellation.isCancelled, best != nil { break }
+            let out = search.map {
+                polished(plan, search: $0, view: view, credit: candidates, completion: completion,
+                         limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+            } ?? plan
+            if let b = best,
+               !RouteScore.isBetter(score: out.score, efficiency: out.efficiency, seconds: out.metrics.seconds,
+                                    than: b.score, efficiency: b.efficiency, seconds: b.metrics.seconds) { continue }
+            best = out
+        }
+        return best
+    }
+
+    private static func polished(
+        _ plan: RoutePlan,
+        search: EdgeWalkSearch,
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan {
         let improved = search.improve(plan.steps)
         guard improved != plan.steps,
               let out = assemble(

@@ -14,7 +14,7 @@ import Foundation
 /// 1. `.completed`: the injected lookup says it is done.
 /// 2. `.noEdges`: the trail has no edge in the network (too short / unknown).
 /// 3. `.splitTooFar(gap)`: its own pieces are more than `maxSplitGapMeters`
-///    (0.25 mi) apart. Approved rule: "can't be finished in one route".
+///    (0.5 mi) apart. Approved rule: "can't be finished in one route".
 /// 4. `.piecesNotConnected(gap)`: pieces closer than that, but the network has
 ///    no path joining them (Task 1 bridges gaps up to 30 m, and up to 180 m between pieces of the same trail, so only wider gaps land here). The planner
 ///    walks network edges only, and an off-network hop between pieces is not
@@ -32,9 +32,12 @@ import Foundation
 /// "Required length" is network length (shared edges included, a self-retracing
 /// trail counted once), never `Trail.distanceMi`.
 struct TrailEligibility: Sendable {
-    /// 0.25 mi: pieces of one trail farther apart than this cannot be finished
-    /// in one route.
-    static let maxSplitGapMeters = 402.336
+    /// 0.5 mi: pieces of one trail farther apart than this cannot be finished
+    /// in one route. (Round 3 raised it from 0.25 mi: the walk between pieces
+    /// is real network walking that the planner costs exactly, and on South
+    /// Mountain Bajada, Las Lomitas and Alta, 551 to 668 m apart, were being
+    /// walked in full without credit. Guadalupe Perimeter, 1423 m, stays out.)
+    static let maxSplitGapMeters = 804.672
 
     enum Trip: Sendable, Equatable {
         /// Back at the start. Reach prefilter radius is half the budget.

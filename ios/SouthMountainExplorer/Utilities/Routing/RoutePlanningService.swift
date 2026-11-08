@@ -15,6 +15,9 @@ enum RoutePlanningService {
     static let roundingSeconds = 300.0
     /// Exact single-trail plans tried for the closest finish at most.
     private static let maxClosestEvaluations = 15
+    /// Whole-trail plans (best of each distinct finished-trail set) that get
+    /// the detour search before the best route is picked.
+    static let polishedWholePlans = 8
 
     static func planOutcome(_ request: PlanOutcomeRequest) -> PlanOutcome {
         let limit = request.timeLimitSeconds
@@ -33,7 +36,8 @@ enum RoutePlanningService {
             network: request.network, candidates: inLimit, completion: request.completion,
             timeLimitSeconds: limit, maxGainFt: request.maxGainFt,
             paceFactor: request.paceFactor, shape: request.shape)
-        if !inLimit.isEmpty, let whole = RoutePlanner.plan(base), !PlanCancellation.isCancelled {
+        let wholes = inLimit.isEmpty ? [] : RoutePlanner.planTop(base, count: polishedWholePlans)
+        if !wholes.isEmpty, !PlanCancellation.isCancelled {
             // A partial-trail walk over new ground competes on the same score.
             // When it wins (most of a whole-trail hike is repeat ground), it is the best.
             let partial = NewMilesRoute.plan(
@@ -42,10 +46,12 @@ enum RoutePlanningService {
                 paceFactor: request.paceFactor, shape: request.shape)
             // Both candidates get the edge-level detour search: turn onto
             // unfinished trail instead of walking old trail, partial trails allowed.
-            var best = NewMilesRoute.polish(
-                whole, view: request.network, credit: inLimit, completion: request.completion,
+            // Several whole-trail plans (different finished trails) are polished,
+            // because the detours can lift a plan that ranked lower before them.
+            var best = NewMilesRoute.polishBest(
+                wholes, view: request.network, credit: inLimit, completion: request.completion,
                 limitSeconds: limit, maxGainFt: request.maxGainFt,
-                paceFactor: request.paceFactor, shape: request.shape)
+                paceFactor: request.paceFactor, shape: request.shape) ?? wholes[0]
             if let p = partial,
                RouteScore.isBetter(score: p.score, efficiency: p.efficiency, seconds: p.metrics.seconds,
                                    than: best.score, efficiency: best.efficiency, seconds: best.metrics.seconds) {

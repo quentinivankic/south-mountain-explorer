@@ -128,7 +128,7 @@ struct RoutePlanOutcomeTests {
         let t = [
             K.trail("A", [(0, 0), (500, 0)]),                                    // completed
             K.trail("Z", [(5000, 5000), (5500, 5000)]),                          // other half of the network
-            K.trail("W", [[(2000, 2000), (2100, 2000)], [(2700, 2000), (2800, 2000)]]), // pieces 600 m apart
+            K.trail("W", [[(2000, 2000), (2100, 2000)], [(3100, 2000), (3200, 2000)]]), // pieces 1000 m apart
         ]
         let o = RoutePlanningService.planOutcome(try request(t, completed: ["A"], limit: 3600))
         guard case .noCandidates(let s) = o else { Issue.record("expected noCandidates"); return }

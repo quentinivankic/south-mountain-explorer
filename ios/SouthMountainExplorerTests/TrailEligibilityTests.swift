@@ -43,7 +43,7 @@ struct TrailEligibilityTests {
     /// The scene most tests share. Start is at (0,0), the west end of A.
     ///   A: (0,0)-(500,0)        B: (500,0)-(500,500)     C: (0,0)-(0,-300)
     ///   K: (0,-300)-(400,-300)  Q: two pieces off K, ~200 m apart, joined only through K
-    ///   S: two pieces 600 m apart (split far)   P: two pieces 250 m apart, no path (over the 180 m same-trail bridge)
+    ///   S: two pieces 1000 m apart (split far)   P: two pieces 250 m apart, no path (over the 180 m same-trail bridge)
     ///   Z: far island    L: (500,500)-(500,5500), 5 km beyond B
     private static func scene() -> [Trail] {
         [
@@ -52,7 +52,7 @@ struct TrailEligibilityTests {
             trail("C", [[(0, 0), (0, -300)]]),
             trail("K", [[(0, -300), (400, -300)]]),
             trail("Q", [[(100, -300), (100, -350)], [(300, -300), (300, -350)]]),
-            trail("S", [[(1000, 1000), (1100, 1000)], [(1700, 1000), (1800, 1000)]]),
+            trail("S", [[(1000, 1000), (1100, 1000)], [(2100, 1000), (2200, 1000)]]),
             trail("P", [[(2000, 0), (2100, 0)], [(2350, 0), (2450, 0)]]),
             trail("Z", [[(3000, 3000), (3500, 3000)]]),
             trail("L", [[(500, 500), (500, 5500)]]),
@@ -110,20 +110,20 @@ struct TrailEligibilityTests {
         guard case .splitTooFar(let gap)? = reason(r, "S") else {
             Issue.record("expected splitTooFar, got \(String(describing: reason(r, "S")))"); return
         }
-        #expect(gap > 590 && gap < 610)
+        #expect(gap > 990 && gap < 1010)
         #expect(Reason.splitTooFar(maxGapMeters: gap).label == "can't be finished in one route")
     }
 
-    @Test func splitGapBoundaryIsQuarterMile() throws {
-        // 402 m apart is allowed through the split rule (then fails on
-        // connectivity); 403 m is split-too-far.
+    @Test func splitGapBoundaryIsHalfMile() throws {
+        // 804 m apart is allowed through the split rule (then fails on
+        // connectivity); 806 m is split-too-far. (Round 3 moved it from 0.25 mi.)
         func gapReason(_ gap: Double) throws -> Reason? {
             let t = Self.trail("G", [[(0, 3000), (100, 3000)], [(100 + gap, 3000), (200 + gap, 3000)]])
             return try Self.run([Self.trail("A", [[(0, 0), (500, 0)]]), t]).excluded
                 .first { $0.key == Self.key("G") }?.reason
         }
-        if case .piecesNotConnected? = try gapReason(402) {} else { Issue.record("402 m should not be splitTooFar") }
-        if case .splitTooFar? = try gapReason(404) {} else { Issue.record("404 m should be splitTooFar") }
+        if case .piecesNotConnected? = try gapReason(804) {} else { Issue.record("804 m should not be splitTooFar") }
+        if case .splitTooFar? = try gapReason(806) {} else { Issue.record("806 m should be splitTooFar") }
     }
 
     @Test func piecesNotConnectedIsExcludedWithGap() throws {
@@ -330,9 +330,15 @@ struct TrailEligibilityTests {
             }
             if hours == 4 { cheapest = r.candidates.prefix(10).map(\.key) }
             // Structural exclusions do not depend on the budget.
-            for id in ["guadalupe-perimeter", "bajada-trail", "las-lomitas-trail", "alta-trail"] {
-                let e = try #require(r.excluded.first(where: { $0.key.trailId == id }))
-                if case .splitTooFar = e.reason {} else { Issue.record("\(id): \(e.reason)") }
+            // Guadalupe Perimeter (pieces 1423 m apart) stays split too far. Bajada
+            // (668 m), Las Lomitas (632 m) and Alta (551 m) are under the 0.5 mi
+            // rule since round 3, so they are never excluded for the split.
+            let g = try #require(r.excluded.first(where: { $0.key.trailId == "guadalupe-perimeter" }))
+            if case .splitTooFar = g.reason {} else { Issue.record("guadalupe-perimeter: \(g.reason)") }
+            for id in ["bajada-trail", "las-lomitas-trail", "alta-trail"] {
+                if let e = r.excluded.first(where: { $0.key.trailId == id }), case .splitTooFar = e.reason {
+                    Issue.record("\(id) is still split too far")
+                }
             }
             // The 177 m internal gap is now closed by the same-trail bridge, so
             // National Trail is no longer excluded as piecesNotConnected.

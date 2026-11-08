@@ -151,4 +151,12 @@ enum RoutePlanner {
         guard let engine = RoutePlanEngine(request) else { return nil }
         return engine.run()
     }
+
+    /// The best plan first (same as `plan`), then the best plan of up to
+    /// `count - 1` other finished-trail sets. Empty when `plan` is nil.
+    static func planTop(_ request: RoutePlanRequest, count: Int) -> [RoutePlan] {
+        guard request.timeLimitSeconds > 0, request.timeLimitSeconds.isFinite,
+              let engine = RoutePlanEngine(request) else { return [] }
+        return engine.runTop(count)
+    }
 }

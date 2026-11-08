@@ -183,8 +183,11 @@ struct RoutePlanRound2QualityTests {
             let v = seg[seg.count / 2]
             let view = try TrailNetworkSnapper(network: net).insert(
                 start: .pin(lat: v[0] + 0.0002, lon: v[1]), end: nil)
-            let wide = TrailEligibility.evaluate(
-                network: view, trails: inputs, completion: .none, options: .init(budgetSeconds: limit))
+            // The scenario generator keeps the round 2 split rule (0.25 mi), so
+            // the "sparse" open sets stay the ones the baseline was measured on.
+            var pick = TrailEligibility.Options(budgetSeconds: limit)
+            pick.maxSplitGapMeters = 402.336
+            let wide = TrailEligibility.evaluate(network: view, trails: inputs, completion: .none, options: pick)
             let reach = wide.candidates.map(\.key.trailId).sorted()
             var open = Set<String>()
             var k = i % 3

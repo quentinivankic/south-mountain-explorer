@@ -43,7 +43,30 @@ extension RoutePlanEngine {
     /// Seeds polished by local search.
     static let polishedSeeds = 6
 
-    func run() -> RoutePlan? {
+    func run() -> RoutePlan? { runTop(1).first }
+    /// The best plan, then the best plan of each other finished-trail set the
+    /// search met (seeds and polished results), best first, at most `count`.
+    /// The first entry is always what `run()` returns. The detour search
+    /// (`EdgeWalkSearch`) can turn a plan that ranks lower here into the best
+    /// route, so Plan a Hike polishes several of these, not just the first.
+    func runTop(_ count: Int) -> [RoutePlan] {
+        guard count > 0, let (best, pool) = search() else { return [] }
+        var bestPerSet: [[Int]: PlanState] = [:]
+        for s in pool where !s.eval.finished.isEmpty {
+            let set = s.eval.finished.sorted()
+            if let b = bestPerSet[set], !better(s, b) { continue }
+            bestPerSet[set] = s
+        }
+        let firstSet = best.eval.finished.sorted()
+        let others = bestPerSet.filter { $0.key != firstSet }.map(\.value).sorted { a, b in
+            if better(a, b) { return true }
+            if better(b, a) { return false }
+            return a.order.lexicographicallyPrecedes(b.order)
+        }
+        return ([best] + others.prefix(count - 1)).compactMap { assemble($0) }
+    }
+    /// Best polished state plus every seed and polished state (for `runTop`).
+    private func search() -> (PlanState, [PlanState])? {
         if PlanCancellation.isCancelled { return nil }
         prepare()
         guard !jobs.isEmpty, let empty = makeState(order: []) else { return nil }
@@ -70,13 +93,15 @@ extension RoutePlanEngine {
             return a < b
         }
         var best: PlanState?
+        var pool = unique
         for i in ranked.prefix(Self.polishedSeeds) {
             if PlanCancellation.isCancelled { return nil }
             let polished = localSearch(unique[i])
+            pool.append(polished)
             if best == nil || better(polished, best!) { best = polished }
         }
         guard let state = best, !state.eval.finished.isEmpty else { return nil }
-        return assemble(state)
+        return (state, pool)
     }
 
     /// Jobs that can run alone, cheapest per finished trail first (ties by index).

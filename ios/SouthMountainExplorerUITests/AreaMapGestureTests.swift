@@ -15,6 +15,12 @@ final class AreaMapGestureTests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["--uitest-seed"]
+        // Optional map style (TEST_RUNNER_MAPSTYLE=satellite|hybrid|standard),
+        // injected via the UserDefaults argument domain so it survives the seed wipe.
+        if let style = ProcessInfo.processInfo.environment["MAPSTYLE"], !style.isEmpty {
+            app.launchArguments += ["-summit:map-style", style]
+            print("MAPGESTURE style=\(style)")
+        }
         app.launch()
         // Let the launch burst settle before the first accessibility query.
         sleep(20)

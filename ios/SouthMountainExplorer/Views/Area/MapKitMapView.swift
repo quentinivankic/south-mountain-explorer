@@ -272,7 +272,10 @@ struct MapKitMapView: UIViewRepresentable {
         let mv = MKMapView()
         mv.delegate = context.coordinator
         mv.pointOfInterestFilter = .excludingAll
-        mv.mapType = mapStyle.mkMapType
+        // Configuration API, not legacy `mapType` — see
+        // `MapStylePreference.makeMapConfiguration` (iOS 27.3 satellite pan bug).
+        mv.preferredConfiguration = mapStyle.makeMapConfiguration()
+        context.coordinator.appliedMapStyle = mapStyle
         mv.isPitchEnabled = false
         mv.isRotateEnabled = true
         mv.showsCompass = true
@@ -505,9 +508,9 @@ struct MapKitMapView: UIViewRepresentable {
         }
 
         // 7) User-location + tracking mode.
-        let targetMapType = mapStyle.mkMapType
-        if mapView.mapType != targetMapType {
-            mapView.mapType = targetMapType
+        if coord.appliedMapStyle != mapStyle {
+            mapView.preferredConfiguration = mapStyle.makeMapConfiguration()
+            coord.appliedMapStyle = mapStyle
         }
         if mapView.showsUserLocation != showsUserLocation {
             mapView.showsUserLocation = showsUserLocation
@@ -882,6 +885,9 @@ struct MapKitMapView: UIViewRepresentable {
         var lastVisibleTrailIds: Set<String>? = nil
         var lastCompletedTrailIds: Set<String> = []
         var lastCameraTick: Int = -1
+        /// Style last pushed to `preferredConfiguration`; configurations
+        /// aren't Equatable, so `updateUIView` diffs on this instead.
+        var appliedMapStyle: MapStylePreference? = nil
         var lastHaloHashes: [Int] = []
         var lastLiveTrailSnappedHash: Int = 0
         /// The live user-location view, so heading updates can rotate it

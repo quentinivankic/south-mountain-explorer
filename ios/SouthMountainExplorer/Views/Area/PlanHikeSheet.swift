@@ -11,7 +11,9 @@ struct PlanHikeSheet: View {
     /// Starts a normal recording (Task 10). The caller closes the sheet if it began.
     let onStartHike: () -> Void
     let onClose: () -> Void
-
+    /// The sheet sits at its slim bar (route drawn, swiped down): only the
+    /// summary line and Start hike show.
+    var isCollapsed = false
     @Environment(AreaDataService.self) private var areas
     @Environment(ProgressService.self) private var progress
     @Environment(RecordingService.self) private var recording
@@ -33,13 +35,15 @@ struct PlanHikeSheet: View {
                         gate: PlanStartGate.evaluate(
                             hasActiveRecording: recording.activeRecording != nil,
                             hasRecoveryIssue: recording.recoveryIssue != nil),
-                        onStart: onStartHike)
+                        onStart: onStartHike,
+                        isCollapsed: isCollapsed)
                 } else {
                     formView
                 }
             }
             .navigationTitle(controller.preview.isShowing ? "Your route" : "Plan a Hike")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(isCollapsed ? .hidden : .visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { onClose() }

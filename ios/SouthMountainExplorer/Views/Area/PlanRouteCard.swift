@@ -39,6 +39,8 @@ struct PlanRouteCard: View {
     let display: PlanResultDisplay
     let gate: PlanStartGate
     let onStart: () -> Void
+    /// Slim bar: the summary line and Start hike only, so the map stays in view.
+    var isCollapsed = false
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showTrails = false
@@ -50,6 +52,43 @@ struct PlanRouteCard: View {
     }
 
     var body: some View {
+        if isCollapsed { collapsedBar } else { card }
+    }
+
+    /// What a swipe down leaves: one summary line and Start hike. Swipe up for the card.
+    private var collapsedBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let route = selectedRoute {
+                Text(route.summary)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel(route.spoken)
+                    .accessibilityHint("Swipe up for the route details.")
+                    .accessibilityIdentifier("plan-collapsed-summary")
+            }
+            startButton
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("plan-collapsed-bar")
+    }
+
+    private var startButton: some View {
+        Button(action: onStart) {
+            Text("Start hike")
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(!gate.isAllowed)
+        .accessibilityIdentifier("plan-start-hike")
+        .accessibilityHint("Starts recording a normal hike.")
+    }
+
+    private var card: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 if controller.preview.options.count > 1 { alternativesPicker }
@@ -168,16 +207,7 @@ struct PlanRouteCard: View {
                 ? AnyLayout(VStackLayout(spacing: 8))
                 : AnyLayout(HStackLayout(spacing: 12))
             layout {
-                Button(action: onStart) {
-                    Text("Start hike")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!gate.isAllowed)
-                .accessibilityIdentifier("plan-start-hike")
-                .accessibilityHint("Starts recording a normal hike.")
-
+                startButton
                 Button {
                     controller.edit()
                 } label: {

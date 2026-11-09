@@ -375,7 +375,7 @@ extension RoutePlanEngine {
         }
 
         var newMeters = 0.0
-        for id in edgeIds where isNewEdge[id] { newMeters += net.edges[id].lengthMeters }
+        for id in edgeIds { newMeters += newMetersByEdge[id] }
         let requiredMeters = edgeIds.reduce(0.0) { $0 + net.edges[$1].lengthMeters }
         return PlanJob(index: index, key: key, name: name, members: members, owner: owner, edgeIds: edgeIds,
                        requiredMeters: requiredMeters, nodes: boundary, keyIndex: [], cover: cover,

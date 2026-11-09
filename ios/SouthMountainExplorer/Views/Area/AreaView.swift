@@ -2156,11 +2156,16 @@ struct AreaView: View {
                 controller: planHike,
                 onDropPin: { target in beginPlanPick(target) },
                 onStartHike: { startPlannedHike() },
-                onClose: { showPlanHike = false }
+                onClose: { showPlanHike = false },
+                isCollapsed: planHike.preview.isShowing && planDetent == planCollapsedDetent
             )
+            // With a route drawn, swiping down stops at a slim bar (summary and
+            // Start hike) instead of closing: only Done or Clear removes the plan.
             .presentationDetents(
-                [.medium, .large],
+                planHike.preview.isShowing ? [planCollapsedDetent, .medium, .large] : [.medium, .large],
                 selection: $planDetent)
+            .interactiveDismissDisabled(planHike.preview.isShowing)
+            // The map stays pannable under the card and the bar.
             .presentationBackgroundInteraction(
                 planHike.preview.isShowing ? .enabled(upThrough: planCardDetent) : .automatic)
             .presentationDragIndicator(.visible)
@@ -2230,6 +2235,12 @@ struct AreaView: View {
     /// Resting stop for the route card: half the screen, so the summary, the
     /// trails list and the button bar fit. `planRouteFitInsets` uses the same half.
     private var planCardDetent: PresentationDetent { .medium }
+
+    /// The slim bar a swipe down leaves while a route is drawn: the summary
+    /// line and Start hike. Taller at accessibility text sizes.
+    private var planCollapsedDetent: PresentationDetent {
+        .height(dynamicTypeSize.isAccessibilitySize ? 260 : 150)
+    }
 
     /// Where the planned route should sit on screen: above the Plan card on a
     /// phone, clear of the side panel on wide layouts (from the card's measured frame).

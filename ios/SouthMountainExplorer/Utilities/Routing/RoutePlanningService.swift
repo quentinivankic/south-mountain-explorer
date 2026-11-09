@@ -19,7 +19,13 @@ enum RoutePlanningService {
     /// the detour search before the best route is picked.
     static let polishedWholePlans = 8
 
-    static func planOutcome(_ request: PlanOutcomeRequest) -> PlanOutcome {
+    static func planOutcome(_ unresolved: PlanOutcomeRequest) -> PlanOutcome {
+        // New metres per edge (saved tracks against the network) once, for every step below.
+        let request = PlanOutcomeRequest(
+            network: unresolved.network, trails: unresolved.trails,
+            completion: unresolved.completion.resolved(for: unresolved.network.network),
+            timeLimitSeconds: unresolved.timeLimitSeconds, maxGainFt: unresolved.maxGainFt,
+            paceFactor: unresolved.paceFactor, shape: unresolved.shape)
         let limit = request.timeLimitSeconds
         let trip: TrailEligibility.Trip = request.shape == .loop ? .loop : .oneWay
         // One eligibility pass at a 24 h budget: every trail that could ever be

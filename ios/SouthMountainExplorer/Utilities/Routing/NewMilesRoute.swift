@@ -34,10 +34,9 @@ enum NewMilesRoute {
         let finish: Int? = shape == .loop ? start : view.end?.nodeId
         let costs = RouteCosts(network: net, paceFactor: paceFactor)
 
-        var done = Set<TrailNetwork.TrailKey>()
-        for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
-        let isNew = net.edges.map { $0.kind == .trail && $0.trailKeys.contains { !done.contains($0) } }
-
+        // New metres per edge: only the part of an uncompleted trail no saved track walked.
+        let newM = net.newMetersByEdge(completion)
+        let isNew = newM.map { $0 > 0 }
         // Way home: reversed network Dijkstra from the finish.
         var rev: TrailNetwork?
         var back: ShortestPaths?
@@ -67,7 +66,7 @@ enum NewMilesRoute {
                     let ret = homeSeconds(b)
                     guard ret.isFinite, t + cost + ret <= limit - 1e-6, cost > 0 else { continue }
                     if let cap = maxGainFt, g + tree.gainFt[a] + w.gainFt + homeGain(b) > cap + 1e-9 { continue }
-                    let score = w.meters / cost
+                    let score = newM[e.id] / cost
                     if best == nil || score > best!.score + 1e-12 {
                         best = (score, e.id, dir, a, b)
                     }
@@ -186,8 +185,10 @@ enum NewMilesRoute {
         guard !steps.isEmpty else { return nil }
         var done = Set<TrailNetwork.TrailKey>()
         for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
-        let isNew = net.edges.map { $0.kind == .trail && $0.trailKeys.contains { !done.contains($0) } }
-        guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: paceFactor, completed: done),
+        let newM = net.newMetersByEdge(completion)
+        let isNew = newM.map { $0 > 0 }
+        guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: paceFactor, completed: done,
+                                         newMetersByEdge: newM),
               metrics.isContinuous, metrics.seconds <= limit + 1e-3, metrics.newMeters > 0
         else { return nil }
         if let cap = maxGainFt, metrics.gainFt > cap + 1e-6 { return nil }

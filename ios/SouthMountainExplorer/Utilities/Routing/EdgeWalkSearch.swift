@@ -73,6 +73,8 @@ final class EdgeWalkSearch {
     private let startNode: Int
     private let finishNode: Int?
     private let isNew: [Bool]
+    /// New part of each edge, metres (only unwalked ground of uncompleted trails).
+    private let newMeters: [Double]
     private let candidateEdges: [[Int]]
     private let edgeCandidates: [Int: [Int]]
     private var fwdTrees: [Int: ShortestPaths] = [:]
@@ -96,9 +98,8 @@ final class EdgeWalkSearch {
         costs = RouteCosts(network: net, paceFactor: paceFactor)
         rev = net.reversedForRouting()
         revCosts = RouteCosts(network: rev, paceFactor: paceFactor)
-        var done = Set<TrailNetwork.TrailKey>()
-        for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
-        isNew = net.edges.map { $0.kind == .trail && $0.trailKeys.contains { !done.contains($0) } }
+        newMeters = net.newMetersByEdge(completion)
+        isNew = newMeters.map { $0 > 0 }
         candidateEdges = credit.map(\.edgeIds)
         var map: [Int: [Int]] = [:]
         for (ci, c) in credit.enumerated() { for e in c.edgeIds { map[e, default: []].append(ci) } }
@@ -151,7 +152,7 @@ final class EdgeWalkSearch {
             if stamp[s.edgeId] != gen {
                 stamp[s.edgeId] = gen
                 walked.append(s.edgeId)
-                if isNew[s.edgeId] { e.newMeters += w.meters }
+                e.newMeters += newMeters[s.edgeId]
             }
         }
         guard e.seconds <= limit + 1e-6 else { return nil }

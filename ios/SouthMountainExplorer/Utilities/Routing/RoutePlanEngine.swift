@@ -50,8 +50,10 @@ final class RoutePlanEngine {
     let finishNode: Int?
     let limit: Double
     let maxGain: Double?
-    /// true for trail edges with at least one uncompleted trail.
+    /// true for trail edges with unwalked ground on an uncompleted trail.
     let isNewEdge: [Bool]
+    /// New part of each edge, metres: unwalked ground of uncompleted trails.
+    let newMetersByEdge: [Double]
     let completedKeys: Set<TrailNetwork.TrailKey>
 
     var jobs: [PlanJob] = []
@@ -95,9 +97,8 @@ final class RoutePlanEngine {
         var done = Set<TrailNetwork.TrailKey>()
         for k in net.trailKeys where request.completion.isComplete(k) { done.insert(k) }
         completedKeys = done
-        isNewEdge = net.edges.map { e in
-            e.kind == .trail && e.trailKeys.contains { !done.contains($0) }
-        }
+        newMetersByEdge = net.newMetersByEdge(request.completion)
+        isNewEdge = newMetersByEdge.map { $0 > 0 }
         stamp = [Int](repeating: 0, count: net.edges.count)
     }
 

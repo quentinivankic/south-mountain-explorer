@@ -233,7 +233,7 @@ extension RoutePlanEngine {
         for st in steps { total += net.edges[st.edgeId].lengthMeters }
         for st in steps where stamp[st.edgeId] != gen {
             stamp[st.edgeId] = gen
-            if isNewEdge[st.edgeId] { newMeters += net.edges[st.edgeId].lengthMeters }
+            newMeters += newMetersByEdge[st.edgeId]
         }
     }
 

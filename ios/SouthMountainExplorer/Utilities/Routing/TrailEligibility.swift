@@ -117,16 +117,42 @@ struct TrailEligibility: Sendable {
 /// `ProgressService` (a main-actor singleton) directly.
 struct TrailCompletionLookup: Sendable {
     let isComplete: @Sendable (TrailNetwork.TrailKey) -> Bool
+    /// Saved tracks: on a trail that is not complete, only the unwalked part of
+    /// each edge is new ground (`WalkedGround`).
+    let walked: WalkedGround
+    /// New metres per edge of one network, filled by `resolved(for:)` so the
+    /// track test runs once per plan instead of once per candidate route.
+    let edgeNewMeters: [Double]?
 
-    init(_ isComplete: @escaping @Sendable (TrailNetwork.TrailKey) -> Bool) {
+    init(_ isComplete: @escaping @Sendable (TrailNetwork.TrailKey) -> Bool, walked: WalkedGround = .none) {
         self.isComplete = isComplete
+        self.walked = walked
+        self.edgeNewMeters = nil
     }
 
-    init(completed: Set<TrailNetwork.TrailKey>) {
+    init(completed: Set<TrailNetwork.TrailKey>, walked: WalkedGround = .none) {
         self.isComplete = { completed.contains($0) }
+        self.walked = walked
+        self.edgeNewMeters = nil
+    }
+
+    private init(_ base: TrailCompletionLookup, edgeNewMeters: [Double]) {
+        isComplete = base.isComplete
+        walked = base.walked
+        self.edgeNewMeters = edgeNewMeters
     }
 
     static let none = TrailCompletionLookup(completed: [])
+
+    /// The same lookup with saved tracks attached.
+    func with(walked: WalkedGround) -> TrailCompletionLookup {
+        TrailCompletionLookup(isComplete, walked: walked)
+    }
+
+    /// The same lookup with new metres per edge computed once for `network`.
+    func resolved(for network: TrailNetwork) -> TrailCompletionLookup {
+        TrailCompletionLookup(self, edgeNewMeters: network.newMetersByEdge(self))
+    }
 
     /// App adapter: snapshots `ProgressService.isComplete(_:areaId:)` (id match
     /// first, then geometry fingerprint) for every trail, once, on the main

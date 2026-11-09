@@ -61,6 +61,8 @@ final class PlanHikeController {
     private var preparedAreaId: String?
     private var run: Task<Void, Never>?
     private var lastPlanned: PlanHikeInputs?
+    /// Saved hikes, read at plan time so only ground no track walked counts as new.
+    private weak var recording: RecordingService?
 
     /// Spot list and personal pace, once per area. Cheap to call on every open.
     func prepare(
@@ -68,6 +70,7 @@ final class PlanHikeController {
         userLocation: (lat: Double, lon: Double)? = nil
     ) async {
         inputs.normalizeClimb(units: units)
+        self.recording = recording
         if preparedAreaId != area.id {
             preparedAreaId = area.id
             let lots = ParkingPoolService.shared.merged(with: area.parking, forAnyOf: area.trails, within: 400)
@@ -180,6 +183,7 @@ final class PlanHikeController {
         let snapshot = inputs
         lastPlanned = snapshot
         let personal = personalPace
+        let recording = self.recording
         state = .planning("Loading trails…")
         if loader == nil { loader = PlanningNetworkLoader(areas: areas) }
         let loader = self.loader!
@@ -194,9 +198,15 @@ final class PlanHikeController {
             let completions = progress.completions
             let fingerprints = progress.completedFingerprints
             let merged = input.merged
+            let history = await recording?.loadHistory() ?? []
+            guard !Task.isCancelled else { return }
             let completion = await Task.detached(priority: .userInitiated) {
-                merged.completion(TrailCompletionLookup.snapshot(
-                    completions: completions, fingerprints: fingerprints, trails: merged.allInputs))
+                // Whole trails marked complete, plus the ground the saved tracks walked
+                // (the same tracks the progress bars come from).
+                let walked = WalkedGround(paths: history.map(\.path))
+                return merged.completion(TrailCompletionLookup.snapshot(
+                    completions: completions, fingerprints: fingerprints, trails: merged.allInputs)
+                    .with(walked: walked))
             }.value
             guard !Task.isCancelled else { return }
             let request = PlanRun(

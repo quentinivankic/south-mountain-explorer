@@ -789,7 +789,7 @@ struct MapKitMapView: UIViewRepresentable {
 
         var haloOverlays: [MKPolyline] = []
         // Planned route preview (Task 10). Casing + line per segment.
-        var plannedRouteOverlays: [PlannedRoutePolyline] = []
+        var plannedRouteOverlays: [MKPolyline] = []
         var plannedRouteAnnotations: [PlannedRouteAnnotation] = []
         var lastPlannedRoute: PlannedRoute?
         func applyPlannedRoute(_ route: PlannedRoute?, on mapView: MKMapView) {
@@ -806,6 +806,15 @@ struct MapKitMapView: UIViewRepresentable {
                     pl.isCasing = casing
                     plannedRouteOverlays.append(pl)
                 }
+            }
+            // Walking-direction chevrons over the whole route, on top of the line.
+            var walk: [CLLocationCoordinate2D] = []
+            for c in route.segments.flatMap(\.coords) {
+                if let l = walk.last, l.latitude == c.lat, l.longitude == c.lon { continue }
+                walk.append(CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon))
+            }
+            if walk.count >= 2 {
+                plannedRouteOverlays.append(PlannedRouteArrowsPolyline(coordinates: walk, count: walk.count))
             }
             mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
             func note(_ c: PlannedRoute.Coord, _ role: PlannedRouteAnnotation.Role, _ title: String) {
@@ -1699,6 +1708,9 @@ struct MapKitMapView: UIViewRepresentable {
                     applyTrailStyle(renderer: r, trailId: trailId)
                 }
                 return r
+            }
+            if let arrows = overlay as? PlannedRouteArrowsPolyline {
+                return PlannedRouteArrowsRenderer(polyline: arrows)
             }
             if let route = overlay as? PlannedRoutePolyline {
                 let r = MKPolylineRenderer(polyline: route)

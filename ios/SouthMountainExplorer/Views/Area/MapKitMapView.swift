@@ -81,6 +81,76 @@ final class PlannedRoutePolyline: MKPolyline {
     var kind: PlannedRoute.Kind = .trail
     var isCasing = false
 }
+
+/// The map's current screen points per map point, shared by the line
+/// renderers. Satellite and hybrid use realistic elevation (the iOS 27.3 pan
+/// fix), and on a terrain map MapKit draws overlay tiles at a power-of-two
+/// tile zoom scale and stretches them to the screen's, so a fixed `lineWidth`
+/// drew about 1.4-1.8x too thick and changed as you zoomed. Stroking against
+/// the screen's scale keeps every line at its `lineWidth` in screen points at
+/// every zoom. `nil` (flat maps) = MapKit's own stroke, unchanged.
+final class LineDisplayZoomScale: Sendable {
+    private let lock = OSAllocatedUnfairLock<MKZoomScale?>(initialState: nil)
+    var value: MKZoomScale? {
+        get { lock.withLock { $0 } }
+        set { lock.withLock { $0 = newValue } }
+    }
+
+    /// Screen points per map point. `visibleMapRect` is the bounding box of
+    /// the (possibly rotated) view, whose width is
+    /// `(w·|cos h| + h·|sin h|) / scale`, so solving for scale keeps a rotated
+    /// map the same as an unrotated one. `nil` when the inputs are degenerate.
+    static func zoomScale(viewSize: CGSize, visibleMapWidth: Double, headingDegrees: Double) -> MKZoomScale? {
+        let radians = headingDegrees * .pi / 180
+        let boxPoints = Double(viewSize.width) * abs(cos(radians))
+            + Double(viewSize.height) * abs(sin(radians))
+        guard boxPoints > 0, visibleMapWidth > 0, visibleMapWidth.isFinite,
+              boxPoints.isFinite else { return nil }
+        return MKZoomScale(boxPoints / visibleMapWidth)
+    }
+
+    /// Redraw only when the scale moved by more than 2%, so a pan (same scale)
+    /// never re-rasterizes the lines.
+    static func needsRedraw(from old: MKZoomScale?, to new: MKZoomScale?) -> Bool {
+        switch (old, new) {
+        case (nil, nil): return false
+        case let (o?, n?): return abs(n / o - 1) > 0.02
+        default: return true
+        }
+    }
+}
+
+/// Used only on realistic-elevation maps: any MapKit renderer subclass is
+/// drawn as raster tiles, while the stock renderers on a flat map are drawn as
+/// crisp vectors at the right width already.
+final class ScreenWidthPolylineRenderer: MKPolylineRenderer {
+    var displayZoomScale: LineDisplayZoomScale?
+    override func applyStrokeProperties(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        super.applyStrokeProperties(to: context, atZoomScale: zoomScale)
+        if let scale = displayZoomScale?.value { context.setLineWidth(lineWidth / scale) }
+    }
+}
+
+extension ScreenWidthPolylineRenderer {
+    convenience init(polyline: MKPolyline, displayZoomScale: LineDisplayZoomScale) {
+        self.init(polyline: polyline)
+        self.displayZoomScale = displayZoomScale
+    }
+}
+
+final class ScreenWidthMultiPolylineRenderer: MKMultiPolylineRenderer {
+    var displayZoomScale: LineDisplayZoomScale?
+    override func applyStrokeProperties(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        super.applyStrokeProperties(to: context, atZoomScale: zoomScale)
+        if let scale = displayZoomScale?.value { context.setLineWidth(lineWidth / scale) }
+    }
+}
+extension ScreenWidthMultiPolylineRenderer {
+    convenience init(multiPolyline: MKMultiPolyline, displayZoomScale: LineDisplayZoomScale) {
+        self.init(multiPolyline: multiPolyline)
+        self.displayZoomScale = displayZoomScale
+    }
+}
 /// Start / end marker or "Off-trail" / "Unverified connection" tag of the
 /// planned route preview.
 final class PlannedRouteAnnotation: MKPointAnnotation {
@@ -276,6 +346,7 @@ struct MapKitMapView: UIViewRepresentable {
         // `MapStylePreference.makeMapConfiguration` (iOS 27.3 satellite pan bug).
         mv.preferredConfiguration = mapStyle.makeMapConfiguration()
         context.coordinator.appliedMapStyle = mapStyle
+        context.coordinator.lineRenderersRealistic = Coordinator.usesScreenWidthLines(mv)
         mv.isPitchEnabled = false
         mv.isRotateEnabled = true
         mv.showsCompass = true
@@ -511,6 +582,8 @@ struct MapKitMapView: UIViewRepresentable {
         if coord.appliedMapStyle != mapStyle {
             mapView.preferredConfiguration = mapStyle.makeMapConfiguration()
             coord.appliedMapStyle = mapStyle
+            coord.refreshLineDisplayZoomScale(on: mapView, redraw: true)
+            coord.reloadLineRenderersIfElevationChanged(on: mapView)
         }
         if mapView.showsUserLocation != showsUserLocation {
             mapView.showsUserLocation = showsUserLocation
@@ -888,6 +961,56 @@ struct MapKitMapView: UIViewRepresentable {
         /// Style last pushed to `preferredConfiguration`; configurations
         /// aren't Equatable, so `updateUIView` diffs on this instead.
         var appliedMapStyle: MapStylePreference? = nil
+        /// Screen scale the line renderers stroke against (see
+        /// `LineDisplayZoomScale`); set only while elevation is realistic.
+        let lineDisplayZoomScale = LineDisplayZoomScale()
+        /// Scale the lines were last redrawn at.
+        var lineRedrawZoomScale: MKZoomScale?
+        /// Elevation the current line renderers were built for.
+        var lineRenderersRealistic: Bool?
+
+        static func usesScreenWidthLines(_ mapView: MKMapView) -> Bool {
+            mapView.preferredConfiguration.elevationStyle == .realistic
+        }
+
+        /// Flat and realistic maps need different renderer classes (see
+        /// `ScreenWidthPolylineRenderer`). When the style crosses between
+        /// them, re-add every overlay in its current level and order so
+        /// MapKit asks for fresh renderers.
+        func reloadLineRenderersIfElevationChanged(on mapView: MKMapView) {
+            let realistic = Self.usesScreenWidthLines(mapView)
+            defer { lineRenderersRealistic = realistic }
+            guard let built = lineRenderersRealistic, built != realistic else { return }
+            let roads = mapView.overlays(in: .aboveRoads)
+            let labels = mapView.overlays(in: .aboveLabels)
+            mapView.removeOverlays(roads + labels)
+            trailRenderers.removeAll(keepingCapacity: true)
+            mapView.addOverlays(roads, level: .aboveRoads)
+            mapView.addOverlays(labels, level: .aboveLabels)
+        }
+
+        /// Track the map's on-screen scale for the line renderers. Every frame
+        /// of a gesture only stores the value (tiles MapKit draws mid-gesture
+        /// use it); `redraw` re-rasterizes the existing lines once, when the
+        /// scale actually changed.
+        func refreshLineDisplayZoomScale(on mapView: MKMapView, redraw: Bool) {
+            var scale: MKZoomScale?
+            if mapView.preferredConfiguration.elevationStyle == .realistic {
+                // Not `convert(_:toCoordinateFrom:)`: on a terrain map it
+                // returns a scale that lags or snaps away from the screen's.
+                scale = LineDisplayZoomScale.zoomScale(
+                    viewSize: mapView.bounds.size,
+                    visibleMapWidth: mapView.visibleMapRect.size.width,
+                    headingDegrees: mapView.camera.heading
+                )
+            }
+            lineDisplayZoomScale.value = scale
+            guard redraw, LineDisplayZoomScale.needsRedraw(from: lineRedrawZoomScale, to: scale) else { return }
+            lineRedrawZoomScale = scale
+            for overlay in mapView.overlays {
+                mapView.renderer(for: overlay)?.setNeedsDisplay()
+            }
+        }
         var lastHaloHashes: [Int] = []
         var lastLiveTrailSnappedHash: Int = 0
         /// The live user-location view, so heading updates can rotate it
@@ -1272,6 +1395,7 @@ struct MapKitMapView: UIViewRepresentable {
             // be re-applied whenever the map turns — otherwise rotating the map
             // by hand leaves the dot pointing at the old bearing.
             applyHeadingRotation(on: mapView)
+            refreshLineDisplayZoomScale(on: mapView, redraw: true)
             userCameraGestureLatch.regionDidChange()
             if pendingProgrammaticRegionChanges > 0 {
                 pendingProgrammaticRegionChanges -= 1
@@ -1279,6 +1403,10 @@ struct MapKitMapView: UIViewRepresentable {
                 return
             }
             parent.onUserGestureRegionChange?()
+        }
+
+        func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
+            refreshLineDisplayZoomScale(on: mapView, redraw: false)
         }
 
         func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
@@ -1708,7 +1836,9 @@ struct MapKitMapView: UIViewRepresentable {
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             if let multi = overlay as? MKMultiPolyline {
-                let r = MKMultiPolylineRenderer(multiPolyline: multi)
+                let r = Self.usesScreenWidthLines(mapView)
+                    ? ScreenWidthMultiPolylineRenderer(multiPolyline: multi, displayZoomScale: lineDisplayZoomScale)
+                    : MKMultiPolylineRenderer(multiPolyline: multi)
                 if let trailId = trailIdByOverlay[ObjectIdentifier(multi)] {
                     trailRenderers[trailId] = r
                     applyTrailStyle(renderer: r, trailId: trailId)
@@ -1716,7 +1846,9 @@ struct MapKitMapView: UIViewRepresentable {
                 return r
             }
             if let route = overlay as? PlannedRoutePolyline {
-                let r = MKPolylineRenderer(polyline: route)
+                let r = Self.usesScreenWidthLines(mapView)
+                    ? ScreenWidthPolylineRenderer(polyline: route, displayZoomScale: lineDisplayZoomScale)
+                    : MKPolylineRenderer(polyline: route)
                 let dashed = route.kind != .trail
                 r.lineJoin = .round
                 r.lineCap = dashed ? .butt : .round
@@ -1731,7 +1863,9 @@ struct MapKitMapView: UIViewRepresentable {
                 return r
             }
             if let pl = overlay as? MKPolyline {
-                let r = MKPolylineRenderer(polyline: pl)
+                let r = Self.usesScreenWidthLines(mapView)
+                    ? ScreenWidthPolylineRenderer(polyline: pl, displayZoomScale: lineDisplayZoomScale)
+                    : MKPolylineRenderer(polyline: pl)
                 r.lineCap = .round
                 r.lineJoin = .round
                 if pl is RecordingPolyline {

@@ -15417,10 +15417,10 @@
         -79.875
       ],
       "tier": 2,
-      "hold": null,
+      "hold": "needs-rescope",
       "est_trails": 3,
       "est_mi": 12.0,
-      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/eskerlakes/activities) lists four trails: Prospector's Trail (1.4 km), Lonesome Bog Trail (1.5 km boardwalk loop round Sausage Lake), Recreation Trail (1.5 km) and Trapper's Trail (9 km loop that returns on the Fire Road). Kept: Trappers' Trail (99% inside; OSM 10.1 mi is longer than the 9 km agency figure because the mapped way includes the Fire Road leg), Lonesome Bog Trail and Recreation Trail. Prospector's Trail is dropped by the engine (0.29 mi fragment): known omission. The trapper's-cabin spur is closed (agency)."
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/eskerlakes/activities) lists Prospector's Trail (1.4 km), Lonesome Bog Trail (1.5 km boardwalk loop round Sausage Lake), Recreation Trail (1.5 km) and Trapper's Trail (9 km loop that links up to a section of the Fire Road); the Fire Road is described separately (about 9 km south to north) and the trail to the trapper's cabin is closed until further notice. The OSM ways named Trappers' Trail total 10.1 mi: the agency loop is w1551831939 + w1551831940 + w579376790 (5.42 mi, about 8.7 km), but the same name also covers w1311496538 (4.01 mi dead end north to the park edge, the northern Fire Road, not part of Trapper's Trail) and w1311497581 (0.81 mi dead-end spur past Gourlay Lake, alignment approximate, probably the closed cabin trail; unverified). exclude_trails selects whole names only, so the extra 4.8 mi cannot be trimmed in the registry: needs a rescope (loop-only Trapper's Trail) before shipping. Shipping Lonesome Bog and Recreation alone would drop the signature trail."
     },
     {
       "id": "ferris-provincial-park-ca-on",
@@ -15435,34 +15435,54 @@
         44.35
       ],
       "center": [
-        44.291,
+        44.296,
         -77.795
       ],
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 3.7,
-      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/ferris/activities) lists the Drumlin Trail System (three looped trails: Blue 1.2 km, White 2.5 km, Red 2.5 km), Ranney Falls Trail (1 km loop) and River Gorge Trail (3.5 km loop, yellow markers, over the Ranney Gorge Suspension Bridge). Kept: Drumlin White Trail, Drumlin Red Trail (100% inside) and River Gorge Trail System (route relation of the agency River Gorge Trail). Excluded: Mapletree Loop, Valley Loop, Drumlin Ridge Loop (unlisted relation names), River Gorge Trail ways (duplicate of the relation, 61%). Known omissions: Drumlin Blue Trail (not mapped by name) and Ranney Falls Trail (0.30 mi fragment, dropped by the engine). The Great Trail (Northumberland) is dropped as long-distance. Pin moved from 44.293,-77.796 to the kept-trail vertex nearest the curated trail-extent midpoint (44.291,-77.795).",
+      "est_trails": 3,
+      "est_mi": 3.9,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/ferris/activities) lists the Drumlin Trail System (three looped trails: Blue 1.2 km, White 2.5 km, Red 2.5 km), Ranney Falls Trail (1 km loop) and River Gorge Trail (3.5 km loop, yellow markers, over the Ranney Gorge Suspension Bridge). Kept: the three Drumlin loops from their colour-tagged OSM route relations, renamed to the agency names (Drumlin Ridge Loop r17395077 -> Drumlin Blue Trail, Valley Loop r17395078 -> Drumlin White Trail, Mapletree Loop r17395079 -> Drumlin Red Trail); the partial name-stitched Drumlin White/Red way pieces are excluded. Replay lengths: Blue 0.97 mi, White 1.32 mi, Red 1.65 mi (agency 0.75 / 1.55 / 1.55 mi). The three loops are a stacked system and share 28-39% of their length at 25 m (no loop is a sub-piece of another). The Drumlin ways carry bicycle=yes and are shared with the Drumlin Mountain Bike Route r17395076, but they are the agency hiking loops. Excluded: River Gorge Trail System (r14439844, only 78% inside the park polygon, would ship at 1.28 mi against the 3.5 km agency loop; no waiver) and the River Gorge Trail ways (61%). Known omissions: River Gorge Trail (boundary polygon clips it) and Ranney Falls Trail (0.30 mi fragment, dropped by the engine). The Great Trail (Northumberland) is dropped as long-distance. Pin moved from the T1 draft 44.293,-77.796 to the kept-trail vertex nearest the curated trail-extent midpoint (44.296,-77.795).",
       "exclude_trails": [
         {
-          "id": "n:Mapletree Loop",
-          "name": "Mapletree Loop",
-          "reason": "Not on the agency trail list read for this batch; unverified name (route relation; the Ontario Parks list is the Drumlin system, Ranney Falls and River Gorge)"
+          "id": "n:Drumlin White Trail",
+          "name": "Drumlin White Trail",
+          "reason": "Partial name-stitched piece (1.12 mi, 72% of the agency 2.5 km loop); the whole White loop ships as the Valley Loop route relation r17395078 renamed Drumlin White Trail"
         },
         {
-          "id": "n:Valley Loop",
-          "name": "Valley Loop",
-          "reason": "Not on the agency trail list read for this batch; unverified name (route relation, bicycle=yes)"
-        },
-        {
-          "id": "n:Drumlin Ridge Loop",
-          "name": "Drumlin Ridge Loop",
-          "reason": "Not on the agency trail list read for this batch; unverified name (route relation over the Drumlin trail ways; the agency names the Blue, White and Red loops)"
+          "id": "n:Drumlin Red Trail",
+          "name": "Drumlin Red Trail",
+          "reason": "Partial name-stitched piece (1.04 mi, 67% of the agency 2.5 km loop); the whole Red loop ships as the Mapletree Loop route relation r17395079 renamed Drumlin Red Trail"
         },
         {
           "id": "n:River Gorge Trail",
           "name": "River Gorge Trail",
-          "reason": "Duplicate piece of the kept River Gorge Trail System relation (agency River Gorge Trail); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (61%)"
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (61%); duplicate pieces of the River Gorge Trail System relation"
+        },
+        {
+          "id": "n:River Gorge Trail System",
+          "name": "River Gorge Trail System",
+          "reason": "Boundary-clipped: route relation r14439844 is 2.00 mi and only 78% lies inside the park polygon w1065366783 (whole-route rule, no waiver); it would ship at 1.28 mi against the agency 3.5 km loop"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Drumlin Ridge Loop",
+          "name": "Drumlin Blue Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395077 (colour=blue, 100% inside) is the agency Drumlin Blue loop (1.2 km)"
+        },
+        {
+          "osm_name": "Valley Loop",
+          "name": "Drumlin White Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395078 (colour=white, 100% inside) is the agency Drumlin White loop (2.5 km)"
+        },
+        {
+          "osm_name": "Mapletree Loop",
+          "name": "Drumlin Red Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395079 (colour=red, 99% inside) is the agency Drumlin Red loop (2.5 km)"
         }
       ]
     },

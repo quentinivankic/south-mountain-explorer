@@ -2941,6 +2941,222 @@
         "Silver Spray Trail",
         "Swamp Bypass Trail"
       ]
+    },
+    "cultus-lake-provincial-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 11.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Dilema",
+        "Dilema (short)",
+        "Footpeg Trail",
+        "Horse Trail Loop",
+        "Lakeland",
+        "Lakeside Trail",
+        "Notorizer",
+        "Sanctuary Trail",
+        "Sunny Side Up",
+        "Trail to Seven Sisters",
+        "Watt Creek Ridge Trail",
+        "Watt Creek Trail",
+        "Wild Hazel"
+      ]
+    },
+    "pinecone-burke-provincial-park-ca-bc": {
+      "trail_count": 7,
+      "total_mi": 17.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bean",
+        "Bennie Lake Trail",
+        "Big Boy Tyme",
+        "Black Tooth Tony",
+        "Bocefus",
+        "Bot 2.0",
+        "Bullet Dodger",
+        "Burke Ridge Trail",
+        "Chainsaw",
+        "Chunder Thighs",
+        "Coquitlam Lake View Trail Lower Fork",
+        "Coquitlam River Connector",
+        "Defrauder Falls Trail",
+        "Deliverance",
+        "Dennet-VLT Connector",
+        "Downey",
+        "Empty Spaces",
+        "Escalator",
+        "Fat Neck",
+        "Fern Trails",
+        "Fool's Gold Route",
+        "Forbidden Canoe",
+        "Frank's",
+        "Garbage",
+        "Get Some",
+        "Grinder",
+        "Grow Op Connector",
+        "Home Brew",
+        "Lens Distortion",
+        "Line Trail",
+        "LoaMG",
+        "Lower Elevator",
+        "Lower Vic's",
+        "Mamquam Pass Trail",
+        "Mental Floss",
+        "Misery Whip",
+        "Moka Express",
+        "Motor Axe",
+        "Mow It Down",
+        "Munro Overlook",
+        "Nescafe",
+        "Old Frank's Trail",
+        "Old Widgeon Bowl Trail",
+        "Overtime",
+        "Pinecone Trail",
+        "Pony",
+        "Recycled",
+        "Ridden Art",
+        "Sandinista",
+        "Sawblade"
+      ]
+    },
+    "sasquatch-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 4.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "stave-west-forest-and-recreation-area-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "5 Slabs",
+        "Carved Cuts",
+        "Carved Deere",
+        "Creekside Trail",
+        "Devil's Advocate",
+        "Devil's Lake Trail",
+        "Hamburger Hill",
+        "John's Trail",
+        "Lakeside Trail Loop",
+        "Mount Crickmer Trail (Under Construction)",
+        "PBR",
+        "Rockwell Pass",
+        "Skidder",
+        "Snakes and Ladders",
+        "Tsuga",
+        "Woodlot Mainline"
+      ]
+    },
+    "sxotsaqel-chilliwack-lake-provincial-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 13.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chilliwack River Ecological Reserve Trail",
+        "Flora Pass Trail",
+        "Goat Ridge Trail",
+        "Hanging Lake Route",
+        "Lindeman Wall Approach",
+        "Mount Lindeman Route",
+        "Mount Webb Trail",
+        "Saddle Trail",
+        "Trans Canada Trail"
+      ]
+    },
+    "tantalus-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 3.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alpha Mountain Trail",
+        "Mount Niobe Trail",
+        "Ossa Mountain Route",
+        "Sigurd Creek Trail"
+      ]
+    },
+    "birkenhead-lake-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 5.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Goat Lookout Trail",
+        "Mount Gandalf Trail",
+        "Mount John Decker Trail"
+      ]
+    },
+    "tetrahedron-provincial-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 11.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "cowichan-river-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 13.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cowichan Valley Trail",
+        "Trans-Canada Trail - Cowichan Valley Trail",
+        "Vancouver Island Trail"
+      ]
+    },
+    "gowlland-tod-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 6.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cascade Trail",
+        "Danger Trail",
+        "Emma Dixon Trail",
+        "Georges Trip",
+        "Gnartridge",
+        "Guardrail",
+        "Hawk",
+        "Holmes Peak Bypass",
+        "Joe's Berms",
+        "John's Bump",
+        "McKenzie Bight Trail",
+        "Middle Trail",
+        "New Middle Trail",
+        "Prosperity",
+        "Stuffed Kitty",
+        "Swipe Right",
+        "The Old Trail",
+        "The Urge",
+        "Watchdog",
+        "West Access",
+        "Will the Thrill",
+        "Willis Point"
+      ]
+    },
+    "ruckle-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chris Hatfield Trail"
+      ]
+    },
+    "saysutshun-newcastle-island-marine-provincial-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 5.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Lakeside Trail"
+      ]
     }
   }
 }

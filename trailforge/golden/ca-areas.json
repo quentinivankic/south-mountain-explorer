@@ -9357,7 +9357,7 @@
       ],
       "tier": 1,
       "hold": "needs-rescope",
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope.",
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 6 trails / 5.3 mi, identical to 2026-11-02 (Cyprus Lake 2.11, Georgian Bay 0.84, Horse Lake 0.72, Wild Garden 0.62, Halfway Log Dump 0.56, Marr Lake 0.50); the Grotto / Indian Head Cove shoreline is Bruce Trail (excluded, MANDATE decision 5). Stays held.",
       "keep_trails": [
         {
           "name": "Marr Lake Trail",
@@ -9455,7 +9455,7 @@
       ],
       "tier": 1,
       "hold": "needs-rescope",
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail page read (https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking): Marsh Boardwalk, DeLaurier, Woodland Nature, West Beach Footpath present; Tilden Woods, Tip Trail and three footpaths (Cactus Field, Redbud, Sparrow Field) waived as official standalone walks. Not mapped by name (known omissions): Chinquapin Oak Trail, Shuster Trail. Review 708: HELD needs-rescope. Tip Trail ships 0.17 of 0.62 mi and Chinquapin Oak Trail (4 km) is absent; hold until OSM supports both or the stub is accepted. Retry 2026-11-02 (ca-missing): replay 9 trails / 5.9 mi. OSM scan: Tip Trail is 0.16 mi of 0.62 official, Shuster Trail is 0.02 mi, Chinquapin Oak is unnamed (only unnamed paths remain). No registry-only route; still HOLD needs-rescope.",
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada trail page read (https://parks.canada.ca/pn-np/on/pelee/activ/randonnee-hiking): Marsh Boardwalk, DeLaurier, Woodland Nature, West Beach Footpath present; Tilden Woods, Tip Trail and three footpaths (Cactus Field, Redbud, Sparrow Field) waived as official standalone walks. Not mapped by name (known omissions): Chinquapin Oak Trail, Shuster Trail. Review 708: HELD needs-rescope. Tip Trail ships 0.17 of 0.62 mi and Chinquapin Oak Trail (4 km) is absent; hold until OSM supports both or the stub is accepted. Retry 2026-11-02 (ca-missing): replay 9 trails / 5.9 mi. OSM scan: Tip Trail is 0.16 mi of 0.62 official, Shuster Trail is 0.02 mi, Chinquapin Oak is unnamed (only unnamed paths remain). No registry-only route; still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 9 trails / 5.9 mi, identical to 2026-11-02; Tip Trail still 0.17 mi of 0.62, Shuster Trail still a fragment, Chinquapin Oak still unnamed in OSM. Stays held.",
       "keep_trails": [
         {
           "name": "Tilden Woods Trail",
@@ -9502,7 +9502,7 @@
       ],
       "tier": 1,
       "hold": "few-trails",
-      "notes": "ON curation 2026-11-02. Only one whole trail: Donevan Trail (2.4 mi) at Landons Bay. Fitzsimmons Trail is 64% inside the polygon (2.2 of 3.4 mi), so it fails the whole-route rule; the other Parks Canada trails (Jones Creek loops, Mallorytown Landing Smoky Fire and Six Nations) are not in this polygon or not mapped by name. Mallorytown Landing is a separate polygon (w689808006). Needs a rescope or OSM completion. Source: https://parks.canada.ca/pn-np/on/1000/activ/randon-hike ca-new3 2026-11-02: Re-replay: 2 trails / 4.6 mi (Donevan 2.4 whole; Fitzsimmons 2.2 of about 3.4 mi, a stub); flagship Mallorytown Landing / Jones Creek trails absent; hold stands."
+      "notes": "ON curation 2026-11-02. Only one whole trail: Donevan Trail (2.4 mi) at Landons Bay. Fitzsimmons Trail is 64% inside the polygon (2.2 of 3.4 mi), so it fails the whole-route rule; the other Parks Canada trails (Jones Creek loops, Mallorytown Landing Smoky Fire and Six Nations) are not in this polygon or not mapped by name. Mallorytown Landing is a separate polygon (w689808006). Needs a rescope or OSM completion. Source: https://parks.canada.ca/pn-np/on/1000/activ/randon-hike ca-new3 2026-11-02: Re-replay: 2 trails / 4.6 mi (Donevan 2.4 whole; Fitzsimmons 2.2 of about 3.4 mi, a stub); flagship Mallorytown Landing / Jones Creek trails absent; hold stands. Re-check 2026-11-10 (ON Phase A): replay 2 trails / 4.6 mi, identical (Donevan 2.41; Fitzsimmons 2.17 mi, 64% of its 3.37 mi OSM length inside). Stays held."
     },
     {
       "id": "rouge-national-urban-park-ca-on",
@@ -12453,7 +12453,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Killbear PP: replay 2 trails / 2.6 mi (Twin Points, Lookout Point 1.7 of 2.2 mi). Ontario Parks (https://www.ontarioparks.ca/park/killbear/activities) lists 4: Lighthouse Point Trail (0.5 mi) and the 6 km Recreational Trail are not shipped by name, so a completionist could not finish the park honestly. ca-new3 2026-11-02: Re-replay: 2 trails / 2.6 mi (Lookout Point 1.7 of 2.2); hold stands."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Killbear PP: replay 2 trails / 2.6 mi (Twin Points, Lookout Point 1.7 of 2.2 mi). Ontario Parks (https://www.ontarioparks.ca/park/killbear/activities) lists 4: Lighthouse Point Trail (0.5 mi) and the 6 km Recreational Trail are not shipped by name, so a completionist could not finish the park honestly. ca-new3 2026-11-02: Re-replay: 2 trails / 2.6 mi (Lookout Point 1.7 of 2.2); hold stands. Re-check 2026-11-10 (ON Phase A): replay 2 trails / 2.6 mi, identical. Ontario Parks (https://www.ontarioparks.ca/park/killbear/activities) still lists Twin Points (1.6 km), Lookout Point (3.5 km), Lighthouse Point (800 m; OSM fragment) and the 6 km Recreational Trail (not mapped by name). Stays held."
     },
     {
       "id": "quetico-provincial-park-ca-on",
@@ -12524,7 +12524,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Murphys Point PP: replay 2 trails / 3.3 mi (Point, Sylvain); official list not read (page fetch returned no match). ca-new3 2026-11-02: Re-replay: 2 trails / 3.3 mi; still no official list read; hold stands."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Murphys Point PP: replay 2 trails / 3.3 mi (Point, Sylvain); official list not read (page fetch returned no match). ca-new3 2026-11-02: Re-replay: 2 trails / 3.3 mi; still no official list read; hold stands. Re-check 2026-11-10 (ON Phase A): replay 2 trails / 3.3 mi, identical. Official list now read (https://www.ontarioparks.ca/park/murphyspoint/activities): Point Trail 5.5 km, Sylvan Trail 2.5 km, Lally Homestead 800 m, Silver Queen Mine 2 km, Beaver Pond 1 km, McParlan House / Loon Lake Loop 1.8 km, plus 6 km of the Rideau Trail (long-distance). OSM ships only Point and Sylvain; Silver Queen Mine, Beaver Pond and Loon Lake Loop are fragments or removed. Stays held."
     },
     {
       "id": "bonnechere-provincial-park-ca-on",
@@ -12592,7 +12592,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Short Hills PP: replay 5 trails but Laura Secord Trail and the Laura Secord Legacy (long-distance) duplicate each other and 'Walking Trail #2' is generic; no official list read. ca-new3 2026-11-02: Re-replay: 5 trails / 6.2 mi; Swayze Falls Trail (signature) absent, two Laura Secord entries and 'Walking Trail #2' would need excluding, leaving 2 trails; hold stands."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Short Hills PP: replay 5 trails but Laura Secord Trail and the Laura Secord Legacy (long-distance) duplicate each other and 'Walking Trail #2' is generic; no official list read. ca-new3 2026-11-02: Re-replay: 5 trails / 6.2 mi; Swayze Falls Trail (signature) absent, two Laura Secord entries and 'Walking Trail #2' would need excluding, leaving 2 trails; hold stands. Re-check 2026-11-10 (ON Phase A): replay 5 trails / 6.2 mi, identical; Laura Secord Trail and Laura Secord Legacy Trail still duplicate each other (35% / long-distance legacy route), Walking Trail #2 is generic and 66% inside; Ontario Parks activities page has no hiking section (non-operating park). Two trails after exclusions; stays held."
     },
     {
       "id": "sauble-falls-provincial-park-ca-on",
@@ -12616,7 +12616,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mississagi PP: replay 4 trails but MacKenzie Trail is 6.8 of 13.7 mi (22 km official), Helenbar Lookout 2.6 of 4.3 mi, JimChrist (11 km) is absent (https://www.ontarioparks.ca/park/mississagi/activities). Stubs of signature trails; held."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mississagi PP: replay 4 trails but MacKenzie Trail is 6.8 of 13.7 mi (22 km official), Helenbar Lookout 2.6 of 4.3 mi, JimChrist (11 km) is absent (https://www.ontarioparks.ca/park/mississagi/activities). Stubs of signature trails; held. Re-check 2026-11-10 (ON Phase A): replay 4 trails / 16.9 mi, identical. Official list now read (https://www.ontarioparks.ca/park/mississagi/activities): Flack Lake Nature Trail 0.8 km, Helenbar Lookout 7 km, MacKenzie 22 km, Semiwite Creek 1.2 km, JimChrist 11 km, Cobre Lake 11 km (outside the park). OSM MacKenzie 6.82 mi of 13.7, Helenbar 2.61 mi of 4.3; JimChrist and Flack Lake absent. Stubs of signature trails; stays held."
     },
     {
       "id": "ottawa-river-provincial-park-ca-on",
@@ -15348,6 +15348,470 @@
       "est_trails": 3,
       "est_mi": 5.1,
       "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/schoen-lake-park/): no maintained trails, only rugged unmarked routes (Schoen Creek, Nisnak Lake, Mt. Schoen). OSM: Nisnak Lake Trail 2.07 mi; Upper Adam Main is a gravel logging road (track); Mount Schoen Trail is an alpine route (sac_scale=alpine_hiking, trail_visibility=bad). One unmarked route."
+    },
+    {
+      "id": "balsam-lake-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58242255,
+      "name": "Balsam Lake Provincial Park",
+      "bbox": [
+        -78.94,
+        44.56,
+        -78.8,
+        44.69
+      ],
+      "center": [
+        44.625,
+        -78.873
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 4.2,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/balsamlake/activities) lists four trails: Lookout Trail (2.1 km), Lorie's Link Trail (1.7 km), Woodland Trail (4.2 km) and Pond Loop Trail (1.8 km). Kept: Lookout Loop, Lorie's Link Trail and Pond Loop (99-100% inside). Excluded: Woodland Loop (47% inside the park polygon). Known omission: Woodland Trail. Pin moved from 44.63,-78.867 to the kept-trail vertex nearest the curated trail-extent midpoint (44.625,-78.873).",
+      "exclude_trails": [
+        {
+          "id": "n:Woodland Loop",
+          "name": "Woodland Loop",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (47%: 1.22 of 2.57 mi)"
+        }
+      ]
+    },
+    {
+      "id": "earl-rowe-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14187267,
+      "name": "Earl Rowe Provincial Park",
+      "bbox": [
+        -79.97,
+        44.1,
+        -79.83,
+        44.22
+      ],
+      "center": [
+        44.159,
+        -79.908
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 6.4,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/earlrowe/activities) lists Fletcher's Mill Pond Trail (1.5 km), Rainbow Run (11 km shared walk/bike loop round the whole park), Little Trail (0.5 km), Lookout Trail (4 km loop) and the Riverside Campground Trail. OSM splits Rainbow Run into three differently named pieces (Rainbow Run Trail 2.64 mi, the misspelt Raibow Run Trail 2.20 mi, Rainbow Run Trail / Resource Trail 0.67 mi); Lookout Trail is 69% inside; Fletcher's Pond and Little Trail are fragments. Shipping would list one loop as three trails: needs a rescope (one Rainbow Run route) first."
+    },
+    {
+      "id": "esker-lakes-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 850727368,
+      "name": "Esker Lakes Provincial Park",
+      "bbox": [
+        -79.96,
+        48.23,
+        -79.81,
+        48.41
+      ],
+      "center": [
+        48.326,
+        -79.875
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 12.0,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/eskerlakes/activities) lists Prospector's Trail (1.4 km), Lonesome Bog Trail (1.5 km boardwalk loop round Sausage Lake), Recreation Trail (1.5 km) and Trapper's Trail (9 km loop that links up to a section of the Fire Road); the Fire Road is described separately (about 9 km south to north) and the trail to the trapper's cabin is closed until further notice. The OSM ways named Trappers' Trail total 10.1 mi: the agency loop is w1551831939 + w1551831940 + w579376790 (5.42 mi, about 8.7 km), but the same name also covers w1311496538 (4.01 mi dead end north to the park edge, the northern Fire Road, not part of Trapper's Trail) and w1311497581 (0.81 mi dead-end spur past Gourlay Lake, alignment approximate, probably the closed cabin trail; unverified). exclude_trails selects whole names only, so the extra 4.8 mi cannot be trimmed in the registry: needs a rescope (loop-only Trapper's Trail) before shipping. Shipping Lonesome Bog and Recreation alone would drop the signature trail."
+    },
+    {
+      "id": "ferris-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1065366783,
+      "name": "Ferris Provincial Park",
+      "bbox": [
+        -77.85,
+        44.23,
+        -77.73,
+        44.35
+      ],
+      "center": [
+        44.296,
+        -77.795
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.9,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/ferris/activities) lists the Drumlin Trail System (three looped trails: Blue 1.2 km, White 2.5 km, Red 2.5 km), Ranney Falls Trail (1 km loop) and River Gorge Trail (3.5 km loop, yellow markers, over the Ranney Gorge Suspension Bridge). Kept: the three Drumlin loops from their colour-tagged OSM route relations, renamed to the agency names (Drumlin Ridge Loop r17395077 -> Drumlin Blue Trail, Valley Loop r17395078 -> Drumlin White Trail, Mapletree Loop r17395079 -> Drumlin Red Trail); the partial name-stitched Drumlin White/Red way pieces are excluded. Replay lengths: Blue 0.97 mi, White 1.32 mi, Red 1.65 mi (agency 0.75 / 1.55 / 1.55 mi). The three loops are a stacked system and share 28-39% of their length at 25 m (no loop is a sub-piece of another). The Drumlin ways carry bicycle=yes and are shared with the Drumlin Mountain Bike Route r17395076, but they are the agency hiking loops. Excluded: River Gorge Trail System (r14439844, only 78% inside the park polygon, would ship at 1.28 mi against the 3.5 km agency loop; no waiver) and the River Gorge Trail ways (61%). Known omissions: River Gorge Trail (boundary polygon clips it) and Ranney Falls Trail (0.30 mi fragment, dropped by the engine). The Great Trail (Northumberland) is dropped as long-distance. Pin moved from the T1 draft 44.293,-77.796 to the kept-trail vertex nearest the curated trail-extent midpoint (44.296,-77.795).",
+      "exclude_trails": [
+        {
+          "id": "n:Drumlin White Trail",
+          "name": "Drumlin White Trail",
+          "reason": "Partial name-stitched piece (1.12 mi, 72% of the agency 2.5 km loop); the whole White loop ships as the Valley Loop route relation r17395078 renamed Drumlin White Trail"
+        },
+        {
+          "id": "n:Drumlin Red Trail",
+          "name": "Drumlin Red Trail",
+          "reason": "Partial name-stitched piece (1.04 mi, 67% of the agency 2.5 km loop); the whole Red loop ships as the Mapletree Loop route relation r17395079 renamed Drumlin Red Trail"
+        },
+        {
+          "id": "n:River Gorge Trail",
+          "name": "River Gorge Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (61%); duplicate pieces of the River Gorge Trail System relation"
+        },
+        {
+          "id": "n:River Gorge Trail System",
+          "name": "River Gorge Trail System",
+          "reason": "Boundary-clipped: route relation r14439844 is 2.00 mi and only 78% lies inside the park polygon w1065366783 (whole-route rule, no waiver); it would ship at 1.28 mi against the agency 3.5 km loop"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Drumlin Ridge Loop",
+          "name": "Drumlin Blue Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395077 (colour=blue, 100% inside) is the agency Drumlin Blue loop (1.2 km)"
+        },
+        {
+          "osm_name": "Valley Loop",
+          "name": "Drumlin White Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395078 (colour=white, 100% inside) is the agency Drumlin White loop (2.5 km)"
+        },
+        {
+          "osm_name": "Mapletree Loop",
+          "name": "Drumlin Red Trail",
+          "source": "https://www.ontarioparks.ca/park/ferris/activities",
+          "reason": "OSM route relation r17395079 (colour=red, 99% inside) is the agency Drumlin Red loop (2.5 km)"
+        }
+      ]
+    },
+    {
+      "id": "grundy-lake-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 3339217,
+      "name": "Grundy Lake Provincial Park",
+      "bbox": [
+        -80.63,
+        45.86,
+        -80.42,
+        46.03
+      ],
+      "center": [
+        45.924,
+        -80.556
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 6.6,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/grundylake/activities) lists four trails: Swan Lake Trail (1.5 km loop, nature reserve boardwalk), Gut Lake Trail (2.5 km), Beaver Dams Trail (3.6 km, heron rookery) and Pakeshkag Lake Trail (2.6 km each way, multi-use, also a backcountry portage). All four kept (99-100% inside). Complete against the agency list."
+    },
+    {
+      "id": "halfway-lake-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 15020826,
+      "name": "Halfway Lake Provincial Park",
+      "bbox": [
+        -81.75,
+        46.81,
+        -81.57,
+        47.0
+      ],
+      "center": [
+        46.924,
+        -81.656
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 13.0,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/halfwaylake/activities) lists four trails: Moose Ridge (2 km), Echo Pond (6 km), Hawk Ridge (15 km, the park's longest, with interior campsites) and Osprey Heights (6 km, lookout over Antrim Lake). All four kept (99-100% inside; OSM ways tagged foot=designated, trail_visibility=excellent). Complete against the agency list."
+    },
+    {
+      "id": "kettle-lakes-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 431914469,
+      "name": "Kettle Lakes Provincial Park",
+      "bbox": [
+        -80.94,
+        48.5,
+        -80.8,
+        48.64
+      ],
+      "center": [
+        48.563,
+        -80.873
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 5,
+      "est_mi": 5.9,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/kettlelakes/activities) lists four hiking trails (Kettle 2 km, Tamarack 2 km, Wintergreen 1.5 km, Oh-Say-Ya-Wah-Kaw 3 km) plus 14 km of biking trails. OSM: Kettle Trail 1.15 mi and Oh-Say-Yah-Wah-Kaw Trail 0.80 mi; Tamarack is a 0.54 mi fragment, Wintergreen is not mapped; the Yellow, Blue and Red Loop trails are not on the hiking list (the bike loops). Two listed trails / 1.95 mi: below the floor."
+    },
+    {
+      "id": "misery-bay-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 854674616,
+      "name": "Misery Bay Provincial Park",
+      "bbox": [
+        -82.81,
+        45.72,
+        -82.64,
+        45.86
+      ],
+      "center": [
+        45.789,
+        -82.717
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 9.5,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/miserybay/activities) lists over 15 km of trails: Coastal Alvar Trail (8 km loop), Inland Alvar Trail (5 km loop), Misery Bay Trail (5 km loop from the Coastal Alvar shoreline) and Mac's Bay Trail (2 km return). Kept: Coastal Alvar, Inland Alvar and Mac's Bay trails (99-100% inside). Known omission: Misery Bay Trail (not mapped by name)."
+    },
+    {
+      "id": "pancake-bay-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 856153816,
+      "name": "Pancake Bay Provincial Park",
+      "bbox": [
+        -84.77,
+        46.9,
+        -84.56,
+        47.03
+      ],
+      "center": [
+        46.976,
+        -84.692
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.8,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Engine refusal: two OSM boundary ways carry the name Pancake Bay Provincial Park (w856153815, w856153816), so check-boundary-unique refuses (name-collision). Ontario Parks (https://www.ontarioparks.ca/park/pancakebay/activities) lists the Pancake Bay Nature Trail (3.5 km) and the Lookout Trail (14 km; 7 km return to the Edmund Fitzgerald lookout). Needs a boundary rescope (no OSM edits now)."
+    },
+    {
+      "id": "pigeon-river-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11731044,
+      "name": "Pigeon River Provincial Park",
+      "bbox": [
+        -89.67,
+        47.95,
+        -89.48,
+        48.08
+      ],
+      "center": [
+        48.009,
+        -89.581
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 5.2,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/pigeonriver/activities) lists the Boardwalk Trail (350 m), Finger Point Trail (2.5 km one way), High Falls Trail (2 km loop to the High Falls viewpoint), Middle Falls Walk (700 m), Lookout Trail (1.6 km one way) and the Logging Road Trail (from the Middle Falls access). Kept: Finger Point Trail (99%), High Falls Trail (83% inside, 1.09 of 1.31 mi: waiver, the park's flagship trail to the High Falls viewpoint, with no sibling Canadian area) and Old Logging Road Trail (the agency Logging Road Trail, 100%). Excluded: the two Middle Falls / High Falls connector names (unlisted). Known omissions: Lookout Trail and Middle Falls Walk (not mapped by name), Boardwalk Trail (0.2 mi, dropped by the engine). The Grand Portage State Park (Minnesota) trails across the river are separate US trails. Pin moved from 48.009,-89.582 to the kept-trail vertex nearest the curated trail-extent midpoint (48.009,-89.581).",
+      "exclude_trails": [
+        {
+          "id": "n:Middle Falls to High Falls Trail",
+          "name": "Middle Falls to High Falls Trail",
+          "reason": "Not on the agency trail list read for this batch; unverified name (connector between the falls; the agency lists the Middle Falls Walk, 700 m, from the Middle Falls parking)"
+        },
+        {
+          "id": "n:High Falls to Middle Falls Trail",
+          "name": "High Falls to Middle Falls Trail",
+          "reason": "Not on the agency trail list read for this batch; unverified name (same connector, the other direction's name)"
+        }
+      ]
+    },
+    {
+      "id": "queen-elizabeth-ii-wildlands-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 902981,
+      "name": "Queen Elizabeth II Wildlands Provincial Park",
+      "bbox": [
+        -79.26,
+        44.67,
+        -78.75,
+        44.98
+      ],
+      "center": [
+        44.891,
+        -78.876
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 10.8,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Non-operating park (Ontario Parks page has no activities content). The main OSM trails are Ganaraska Trail sections: Ganaraska (Wilderness) 29.9 mi, Ganaraska (Devil's Lake) 3.3 mi, Ganaraska (Queen's Corridor) 2.3 mi and the Ragged Rapid side trail (66% inside), all parts of a 500 km long-distance trail (excluded, same rule as the Bruce Trail). Left: High Falls Loop 6.1 mi and the Queen Elizabeth Wildlands relation (41% inside). One trail after the long-distance rule."
+    },
+    {
+      "id": "rushing-river-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 11789993,
+      "name": "Rushing River Provincial Park",
+      "bbox": [
+        -94.29,
+        49.62,
+        -94.16,
+        49.74
+      ],
+      "center": [
+        49.683,
+        -94.221
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 2.8,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/rushingriver/activities) lists Beaver Pond Trail (1.1 km), Granite Knoll Trail (2.7 km), Lower Rapids Trail (1.8 km) and Pine Ridge Trail (500 m). OSM: Beaver Pond Trail 100% inside; Granite Knoll and Lower Rapids are each 81% inside (Lower Rapids starts at the Highway 71 entrance lot). One whole trail; the two clipped trails are not flagship trails, so no waiver."
+    },
+    {
+      "id": "samuel-de-champlain-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 425745463,
+      "name": "Samuel de Champlain Provincial Park",
+      "bbox": [
+        -78.96,
+        46.23,
+        -78.77,
+        46.37
+      ],
+      "center": [
+        46.299,
+        -78.859
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 7,
+      "est_mi": 9.2,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/samueldechamplain/activities) lists the Etienne Trail System (four loops, 2.5 to 9 km) and the Wabashkiki Trail (1 km loop). OSM names the Etienne ways by the loops that share them (Nature Loop, Nature-Geology Loop, Nature-History Loop, Nature-Geology-History Loop, History Loop), so the assembled trails are shared segments, not the four agency loops; the Kag Trail relation (9.4 mi, operator Ontario Parks) is not on the page; Wabashkiki is a 0.47 mi fragment. Needs a rescope to whole loops."
+    },
+    {
+      "id": "springwater-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 58244352,
+      "name": "Springwater Provincial Park",
+      "bbox": [
+        -79.83,
+        44.38,
+        -79.71,
+        44.49
+      ],
+      "center": [
+        44.435,
+        -79.767
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 4.2,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/springwater/activities) names no trails: about 10 km of multi-use trails (cycling on all but the 1.5 km children's interpretive trail; Nordic skiing in winter). OSM has colour-named pieces (Red 2.14 mi, Green 0.77, Yellow 0.64, Purple 0.61; Blue is a fragment) plus combined 'Red Trail;Blue Trail' style shared segments. No agency list to check against; needs a rescope."
+    },
+    {
+      "id": "uxbridge-urban-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 19127141,
+      "name": "Uxbridge Urban Provincial Park",
+      "bbox": [
+        -79.21,
+        43.99,
+        -79.04,
+        44.14
+      ],
+      "center": [
+        44.075,
+        -79.138
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.1,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Ontario Parks (https://www.ontarioparks.ca/park/uxbridgeurban/activities) lists Yellow (2.6 km), Orange (3.6 km), Blue (3.7 km), Green (4.5 km) and Purple (2.1 km) trails. OSM (local replay with a keep_park_boundary opt-in, not committed while held: r19127141 is leisure=park, operator Ontario Parks, so the workflow prefilter drops it without one) gives Blue 1.26 mi (54% of the agency length), Yellow 1.03 mi, Orange 0.81 mi (79% inside); Green and Purple are not mapped by name, and the adjoining Skytop Private Trails are access=private (removed). Every kept trail would be a stub: needs OSM completion."
+    },
+    {
+      "id": "voyageur-provincial-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14194596,
+      "name": "Voyageur Provincial Park",
+      "bbox": [
+        -74.52,
+        45.49,
+        -74.34,
+        45.63
+      ],
+      "center": [
+        45.557,
+        -74.413
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 4.3,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Ontario Parks (https://www.ontarioparks.ca/park/voyageur/activities) lists Coureur des Bois Trail (1.5 km loop, the main hiking trail with interpretive plaques), Outaouais Trail (2.7 km linear along Iroquois Bay) and Wàwàshkeshì Trail (3.6 km loop with the Iroquois Bay overlook), plus an unnamed campground-to-day-use walking link. All three named trails kept (87-99% inside). Complete against the named agency list."
+    },
+    {
+      "id": "la-cloche-ridge-conservation-reserve-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 19163018,
+      "name": "La Cloche Ridge Conservation Reserve",
+      "bbox": [
+        -82.01,
+        46.04,
+        -81.72,
+        46.18
+      ],
+      "center": [
+        46.115,
+        -81.792
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). HOLD. Provincial conservation reserve; no agency trail list. OSM: Heaven's Gate Trail (Heaven's Gate NR) is 60% inside (it belongs to the adjoining Heaven's Gate Nature Reserve), Florence Lake Trail 0.69 mi, Grab Lake Trail fragments, Dump Road Access (road). One trail."
+    },
+    {
+      "id": "torrance-barrens-conservation-reserve-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 14993007,
+      "name": "Torrance Barrens Conservation Reserve",
+      "bbox": [
+        -79.6,
+        44.88,
+        -79.41,
+        45.03
+      ],
+      "center": [
+        44.946,
+        -79.514
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 6.2,
+      "notes": "ON curation 2026-11-10 (Phase A, chat/ca-a-on; T1 draft from scripts/ca_discover.py on main a04e3c2e5). SHIP. Provincial conservation reserve (Ontario MNRF) and Dark-Sky Preserve. No agency trail list is published online; Discover Muskoka (https://www.discovermuskoka.ca/listings/torrance-barrens-455/) describes three well-marked trails for hiking and mountain biking, matching the three named OSM trails. Kept: Torrance Barrens Trail (route relation, 85% inside, interpretive panels) and Pine Ridge Loop Trail (99%, blue blazes). Excluded: Barrens Extension (73% inside). Names not verified against a written agency list. Pin moved from 44.949,-79.521 to the kept-trail vertex nearest the curated trail-extent midpoint (44.946,-79.514).",
+      "exclude_trails": [
+        {
+          "id": "n:Barrens Extension",
+          "name": "Barrens Extension",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (73%)"
+        }
+      ]
     }
   ]
 }

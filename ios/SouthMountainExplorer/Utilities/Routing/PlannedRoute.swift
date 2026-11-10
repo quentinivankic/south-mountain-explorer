@@ -43,6 +43,16 @@ struct PlannedRoute: Equatable, Sendable {
     let start: Coord?
     /// Only for one-way hikes. A loop ends where it started.
     let end: Coord?
+    /// Numbered "where to go" legs (round 6), in walking order. Empty when
+    /// the route was built without the network nodes.
+    var steps: [PlanStep] = []
+
+    /// The same route with its numbered steps.
+    func with(steps: [PlanStep]) -> PlannedRoute {
+        var copy = self
+        copy.steps = steps
+        return copy
+    }
 
     var isEmpty: Bool { segments.isEmpty }
 

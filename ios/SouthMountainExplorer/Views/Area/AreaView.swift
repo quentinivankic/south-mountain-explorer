@@ -518,7 +518,8 @@ struct AreaView: View {
                     onPickCoordinate: planPickHandler,
                     plannedRoute: planHike.preview.selected?.route,
                     plannedRouteFitTick: planHike.fitTick,
-                    plannedRouteFitInsets: planRouteFitInsets
+                    plannedRouteFitInsets: planRouteFitInsets,
+                    plannedRouteStep: planHike.selectedStep
                 )
                 .ignoresSafeArea()
                 .accessibilityHidden(loadingOverlayVisible)
@@ -1167,7 +1168,8 @@ struct AreaView: View {
                     onPickCoordinate: planPickHandler,
                     plannedRoute: planHike.preview.selected?.route,
                     plannedRouteFitTick: planHike.fitTick,
-                    plannedRouteFitInsets: planRouteFitInsets
+                    plannedRouteFitInsets: planRouteFitInsets,
+                    plannedRouteStep: planHike.selectedStep
                 )
                 .ignoresSafeArea(edges: [.top, .bottom, .trailing])
                 .accessibilityHidden(loadingOverlayVisible)

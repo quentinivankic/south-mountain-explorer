@@ -30,8 +30,12 @@ final class PlanHikeController {
             // Any new state drops the old route; `plan` loads the new one after.
             preview = PlanPreview()
             hikeStarted = false
+            selectedStep = nil
         }
     }
+    /// Index into the drawn route's `steps` that is highlighted and zoomed to
+    /// (round 6). nil shows the whole route.
+    private(set) var selectedStep: Int?
     /// Which planned route is drawn on the map (Task 10).
     private(set) var preview = PlanPreview()
     /// The Plan sheet's frame in window coordinates, measured by the sheet.
@@ -150,7 +154,29 @@ final class PlanHikeController {
     }
 
     func selectRoute(id: String) {
-        if preview.select(id: id) { fitTick &+= 1 }
+        if preview.select(id: id) {
+            selectedStep = nil
+            fitTick &+= 1
+        }
+    }
+
+    /// Highlights one step's leg and zooms to it. Tapping the selected step
+    /// again goes back to the whole route.
+    func selectStep(_ index: Int?) {
+        settleFit?.cancel()
+        let count = preview.selected?.route.steps.count ?? 0
+        if let index, index >= 0, index < count, index != selectedStep {
+            selectedStep = index
+        } else {
+            selectedStep = nil
+        }
+        fitTick &+= 1
+    }
+
+    /// The leg the camera should frame: the selected step, else nil (whole route).
+    var focusCoords: [PlannedRoute.Coord]? {
+        guard let i = selectedStep, let steps = preview.selected?.route.steps, i < steps.count else { return nil }
+        return steps[i].coords
     }
 
     /// Test seam: load route options without running the planner.
@@ -160,6 +186,7 @@ final class PlanHikeController {
         settleFit?.cancel()
         settleFit = nil
         preview.clear()
+        selectedStep = nil
         hikeStarted = false
     }
 
@@ -279,11 +306,14 @@ private struct PlanRun: Sendable {
         var options: [PlanPreview.Option] = []
         if case .planned(let best, let alts) = outcome {
             let edges = view.network.edges
+            let names = Dictionary(trails.map { ($0.key, $0.trail.name) }, uniquingKeysWith: { first, _ in first })
+            func route(_ plan: RoutePlan) -> PlannedRoute {
+                PlannedRouteBuilder.build(plan: plan, edges: edges, completion: completion)
+                    .with(steps: PlanStepBuilder.steps(plan: plan, network: view.network, names: names))
+            }
             options = PlanPreview.options(
-                best: PlannedRouteBuilder.build(plan: best, edges: edges, completion: completion),
-                alternatives: alts.map {
-                    ($0.label.title, PlannedRouteBuilder.build(plan: $0.plan, edges: edges, completion: completion))
-                })
+                best: route(best),
+                alternatives: alts.map { ($0.label.title, route($0.plan)) })
         }
         return .success(Done(outcome: outcome, context: context, options: options))
     }

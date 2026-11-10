@@ -299,6 +299,9 @@ struct PlanResultDisplay: Equatable {
         let climbLine: String
         /// Set when most of the route is repeat ground (new miles under 30%).
         let lowValueNote: String?
+        /// Where the distance comes from, adding up to it:
+        /// "3.48 new + 0.87 repeat + 0.06 off-trail = 4.41 mi".
+        var breakdown: String = ""
     }
 
     struct Alternative: Equatable {
@@ -387,8 +390,64 @@ struct PlanResultDisplay: Equatable {
                 : "Mostly trails you have done: \(newText.dropLast(unit.count + 1)) new \(unit) in \(total)."
         }
         if let low { spoken += " " + low }
+        let parts = breakdown(m, units: units)
+        spoken += " " + parts.spoken
         return Route(title: title, trailNames: names, stats: stats, flags: flags, flagCount: flagCount,
-                     spoken: spoken, summary: summary, climbLine: climb, lowValueNote: low)
+                     spoken: spoken, summary: summary, climbLine: climb, lowValueNote: low,
+                     breakdown: parts.text)
+    }
+
+    /// One part of the distance breakdown, in hundredths of the display unit.
+    struct BreakdownPart: Equatable {
+        let label: String
+        let hundredths: Int
+    }
+
+    /// Splits the route distance into new trail, repeat trail (walked before or
+    /// earlier this hike), off-trail connectors and unverified connections.
+    /// Rounded by largest remainder so the shown parts add up exactly to the
+    /// shown total. Parts that round to zero are left out.
+    static func breakdownParts(_ m: RouteMetrics, units: UnitsPreference) -> (parts: [BreakdownPart], totalHundredths: Int) {
+        let unit = units == .imperial ? 1609.344 : 1000.0
+        let raw: [(String, Double)] = [
+            ("new", m.newMeters),
+            ("repeat", max(0, m.trailMeters - m.newMeters)),
+            ("off-trail", m.connectorMeters),
+            ("unverified", m.bridgeMeters),
+        ]
+        let scaled = raw.map { max(0, $0.1) / unit * 100 }
+        let total = Int((m.meters / unit * 100).rounded())
+        var shares = scaled.map { Int($0.rounded(.down)) }
+        var left = total - shares.reduce(0, +)
+        // Hand the leftover hundredths to the largest remainders (ties: list order).
+        let order = scaled.indices.sorted {
+            let a = scaled[$0] - Double(shares[$0]), b = scaled[$1] - Double(shares[$1])
+            return a != b ? a > b : $0 < $1
+        }
+        var i = 0
+        while left > 0, !order.isEmpty {
+            shares[order[i % order.count]] += 1
+            left -= 1
+            i += 1
+        }
+        while left < 0, let j = shares.indices.filter({ shares[$0] > 0 }).min(by: {
+            (scaled[$0] - Double(shares[$0])) < (scaled[$1] - Double(shares[$1]))
+        }) {
+            shares[j] -= 1
+            left += 1
+        }
+        let parts = raw.indices.compactMap { shares[$0] > 0 ? BreakdownPart(label: raw[$0].0, hundredths: shares[$0]) : nil }
+        return (parts, total)
+    }
+
+    /// "3.48 new + 0.87 repeat + 0.06 off-trail = 4.41 mi", plus a spoken form.
+    static func breakdown(_ m: RouteMetrics, units: UnitsPreference) -> (text: String, spoken: String) {
+        let (parts, total) = breakdownParts(m, units: units)
+        let unit = UnitFormatter.distanceSuffix(units: units)
+        func v(_ h: Int) -> String { String(format: "%d.%02d", h / 100, h % 100) }
+        let text = parts.map { "\(v($0.hundredths)) \($0.label)" }.joined(separator: " + ") + " = \(v(total)) \(unit)"
+        let spoken = "Distance is " + parts.map { "\(v($0.hundredths)) \(unit) \($0.label)" }.joined(separator: ", ") + "."
+        return (text, spoken)
     }
 
     /// "Kachina Access · 7.4 mi · 2 h 57 m · 1.0 new mi". With several trails:

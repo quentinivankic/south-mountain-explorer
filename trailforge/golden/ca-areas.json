@@ -12405,7 +12405,7 @@
       "center": null,
       "tier": 2,
       "hold": "mtb-centre",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Elk Falls PP: replay 8 trails, mostly mountain-bike names (Dean Martin, Foreplay, Lower Deliverance, Alligator Rock)."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Elk Falls PP: replay 8 trails, mostly mountain-bike names (Dean Martin, Foreplay, Lower Deliverance, Alligator Rock). Re-check 2026-11-10 (BC-3): replay 8 trails / 7.9 mi, still mostly bike names (Dean Martin, Alligator Rock, Lower Deliverance, Foreplay, Ridge Trail: the pumphouse network). BC Parks (https://bcparks.ca/elk-falls-park/) describes a 6 km trail system to Elk, Moose and Deer falls and the Canyon View Trail; the trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/elk_falls_trailmap_934fd617ad.pdf) separates walk trails from bike/hike trails. Walking trails in OSM: Canyon View Trail 67% inside, Millennium Trail 56%, Beaver Pond Trail 0.89 mi (96%). One whole walking trail. Stays held."
     },
     {
       "id": "sooke-potholes-provincial-park-ca-bc",
@@ -14675,6 +14675,679 @@
       "est_trails": 6,
       "est_mi": 10.1,
       "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/coquihalla-summit-recreation-area/) and the South Fraser trail report list only the Falls Lake Trail (0.9-1.5 km; 0.49 mi OSM fragment). The well-known summit hikes are peak routes and mostly broken in OSM: Needle Peak relation r9983014 kept 0.65 of 2.72 mi (24%), Zoa Peak clipped fragment, Markhor/Yak-Thar/Markor-Needle informal=yes routes, Kettle Valley Railway 68% (long-distance rail trail). Needs a rescope (Needle/Zoa/Yak as whole routes) before shipping."
+    },
+    {
+      "id": "ancient-forest-chun-t-oh-whudujut-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8648409,
+      "name": "Ancient Forest/Chun T’oh Whudujut Provincial Park",
+      "bbox": [
+        -121.49,
+        53.65,
+        -121.07,
+        53.89
+      ],
+      "center": [
+        53.76,
+        -121.265
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 8.5,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/ancient-forest-chun-toh-whudujut-park/) lists the Universal Access Trail (450 m boardwalk), the Ancient Forest Boardwalk Trail (2.3 km) and the Driscoll Ridge Trail (15.5 km strenuous loop to the ridge). Kept: Driscoll Ridge Trail (90% inside) and Treebeard Loop (the boardwalk loop past the Treebeard cedar, highway=footway, 100% inside). The other boardwalk pieces (Big Tree Loop 0.35 mi, Universal Boardwalk 0.28 mi) are dropped by the engine as fragments under 0.6 mi."
+    },
+    {
+      "id": "atlin-teix-gi-aan-tlein-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226675,
+      "name": "Atlin/Téix’gi Aan Tlein Provincial Park",
+      "bbox": [
+        -134.53,
+        58.81,
+        -133.3,
+        59.68
+      ],
+      "center": [
+        59.123,
+        -133.906
+      ],
+      "center_cluster": {
+        "trails": [
+          "Mt Adams Trail",
+          "Llewellyn Glacier Lookout"
+        ],
+        "reason": "Atlin's trails sit in two clusters about 30 mi apart (Sloko and Llewellyn inlets at the south end of Atlin Lake; the Taku Tram between Scotia Bay and Taku Landing to the north); the all-trails midpoint falls on Atlin Lake, 14.0 mi from any trail. The south cluster holds 3.32 of 5.55 trail mi (60%), so the pin sits on the Mt Adams Trail at Sloko Inlet."
+      },
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 6.5,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/atlin-aa-tlein-teixi-park/) and park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/atlin_map_4bbc884054.pdf) list the four hiking trails: Llewellyn Glacier Lookout (800 m), Mt. Adams Trail (4.5 km), Sloko Lake Trail (2 km) and the Shortest Railway Trail (4 km walk on the old Taku Tram line). Kept: Mt Adams Trail, Taku Tram (Shortest Railway Trail) and Llewellyn Glacier Lookout (99-100% inside). Excluded: Sloco Lake Trail (position approximate) (OSM flags its own geometry as approximate). Boat or float-plane access only (Atlin Lake). Pin moved from 59.359,-133.905 (all-trails extent midpoint, away from every trail) to a center_cluster pin on the dominant cluster (59.123,-133.906).",
+      "exclude_trails": [
+        {
+          "id": "n:Sloco Lake Trail (position approximate)",
+          "name": "Sloco Lake Trail (position approximate)",
+          "reason": "OSM name itself says the geometry is approximate; a GPS trail with a self-declared approximate position is not shipped (agency Sloko Lake Trail, 2 km, is a known omission)"
+        }
+      ]
+    },
+    {
+      "id": "babine-mountains-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236725,
+      "name": "Babine Mountains Provincial Park",
+      "bbox": [
+        -127.2,
+        54.77,
+        -126.67,
+        55.09
+      ],
+      "center": [
+        54.878,
+        -126.881
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 10,
+      "est_mi": 34.0,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/babine-mountains-park/) and brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/babine_mountains_brochure_a82259323b.pdf) list Lyon Creek (11 km), Harvey Mountain (5 km), McCabe (10 km), Silver King (9 km), Fletcher-Gardiner (13.5 km), Onion Mountain (8.6 km), Little Joe Creek (8.4 km) with the Eagle Pass Trail (2 km), Cronin Creek Road/Trail (15 km), Hyland Pass Trail (2.2 km) and Higgins Creek Trail (5.5 km). Kept: Lyon Creek, McCabe, Little Joe Creek (90%), Higgins Creek, Harvey Mountain, Hyland Pass and Eagle Pass trails. Excluded: Fletcher-Gardiner (65% inside), Blix Route (not listed), Onion Mountain (18%). Known omissions: Silver King Trail and Cronin Creek Trail (old mining roads, not in the OSM trail set by name inside the polygon). Pin moved from 54.909,-126.87 to the kept-trail vertex nearest the curated trail-extent midpoint (54.878,-126.881).",
+      "exclude_trails": [
+        {
+          "id": "n:Fletcher-Gardiner Trail",
+          "name": "Fletcher-Gardiner Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (65%; the first half is an old cat-track from the Driftwood Road parking area)"
+        },
+        {
+          "id": "n:Blix Route",
+          "name": "Blix Route",
+          "reason": "Not on the agency list or map read for this batch; unverified name (route, not in the BC Parks brochure)"
+        },
+        {
+          "id": "n:Onion Montain Trail",
+          "name": "Onion Montain Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (18%; the Onion Mountain road/trail lies mostly in the Babine Mountains trails protected area)"
+        }
+      ]
+    },
+    {
+      "id": "babine-mountains-provincial-park-trails-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236724,
+      "name": "Babine Mountains Provincial Park Trails Protected Area",
+      "bbox": [
+        -126.96,
+        54.74,
+        -126.71,
+        54.98
+      ],
+      "center": [
+        54.802,
+        -126.87
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 2.4,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. The protected area is the access-trail corridor of Babine Mountains Park (no BC Parks page of its own; the park brochure lists its trails). Every OSM trail here is mostly outside it: Onion Mountain 37%, New Cronin 18%, Little Onion Mountain 42% (track), Cronin Creek Road/Trail 14%. Nothing whole to ship; the trails belong to the park."
+    },
+    {
+      "id": "big-creek-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226791,
+      "name": "Big Creek Provincial Park",
+      "bbox": [
+        -123.38,
+        51.06,
+        -122.92,
+        51.53
+      ],
+      "center": [
+        51.169,
+        -123.158
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 6,
+      "est_mi": 22.3,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/big-creek-park/): a large network of unmaintained trails, unmarked and usually very wet, used mostly for horse access via Relay and Tyaughton creeks; no trail list. OSM: Graveyard Creek 98%, Big Creek 100%, Elbow Pass 96% (on the South Chilcotin trail summary), Tyoax Creek 88%, Big Creek Lorna, Grant Creek 68%, Little Graveyard 69%, Relay Creek 29%, Lorna Pass 35%. Unsigned network: needs a rescope against a trail source before shipping."
+    },
+    {
+      "id": "crooked-river-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2233262,
+      "name": "Crooked River Provincial Park",
+      "bbox": [
+        -122.78,
+        54.41,
+        -122.59,
+        54.54
+      ],
+      "center": [
+        54.478,
+        -122.695
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 5.3,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/crooked-river-park/) and brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/crooked_river_park_brochure_71ba171919.pdf): 9 km of marked trail, three main trails (Square Lake, Crooked River, Bear Lake loop), and Livingston Springs, the year-round cold spring the brochure says visitors should not miss. Kept: Bear Lake Trail, Square Lake Trail, Crooked River Trail (97% of its OSM length inside). Known omission: OSM has two same-name Crooked River Trail pieces, way 543999109 (0.82 mi) and way 543999103 (0.92 mi); publish keeps only way 543999109 (same-name publish dedupe), so about 0.92 mi of the agency trail is not in the app. Engine follow-up outside this release and Livingstone Springs Trail (the trail to the brochure's Livingston Springs)."
+    },
+    {
+      "id": "dragon-mountain-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8635882,
+      "name": "Dragon Mountain Provincial Park",
+      "bbox": [
+        -122.44,
+        52.8,
+        -122.27,
+        52.96
+      ],
+      "center": [
+        52.891,
+        -122.355
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 4.9,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/dragon-mountain-park/) has no hiking section (viewscape and deer-winter-range park; e-bikes on signed trails). OSM names are the Quesnel bike network (Rock in the Park bicycle=yes, 7 Dwarves, Rockasaurus, OZ, The Camel's Toe, Hewitt's)."
+    },
+    {
+      "id": "jackman-flats-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 167554105,
+      "name": "Jackman Flats Provincial Park",
+      "bbox": [
+        -119.47,
+        52.87,
+        -119.3,
+        53.01
+      ],
+      "center": [
+        52.938,
+        -119.384
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.0,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks brochure map (https://nrs.objectstore.gov.bc.ca/kuwyyf/jackman_flats_brochure_0f0fdaea5a.pdf) names Big Dune Trail (6.2 km) and Juniper Trail (3.4 km); the page asks visitors to keep to designated trails. Kept: Juniper Trail (relation) and Big Dune Trail (both 100% inside). Big Dune is shorter in OSM (1.69 mi) than the brochure figure."
+    },
+    {
+      "id": "kakwa-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236079,
+      "name": "Kakwa Provincial Park",
+      "bbox": [
+        -120.76,
+        53.74,
+        -119.95,
+        54.35
+      ],
+      "center": [
+        54.055,
+        -120.129
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 21.6,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/kakwa-park/): hiking routes exist but are unmarked and not maintained; bikes only on the main trail from the boundary to Kakwa Lake. OSM: Deadhorse Meadows Tote Trail (highway=track, 76% inside), Jarvis Lakes route, La Glace Lake route (trail_visibility=no); Great Divide Trail sections dropped by the engine. Unmarked routes: needs a rescope."
+    },
+    {
+      "id": "marble-range-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 62079441,
+      "name": "Marble Range Provincial Park",
+      "bbox": [
+        -121.99,
+        50.99,
+        -121.65,
+        51.36
+      ],
+      "center": [
+        51.167,
+        -121.82
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 7.3,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/marble-range-park/): trails are rough and steep, not maintained and very infrequently patrolled; no trail list. OSM: Wild Horse Ridge 71% inside, Porcupine Creek Trail (Recreation Sites and Trails BC) 66%, Mt. Bowman Trail (unlisted). Nothing whole and listed."
+    },
+    {
+      "id": "monkman-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 7590848,
+      "name": "Monkman Provincial Park",
+      "bbox": [
+        -121.48,
+        54.35,
+        -120.85,
+        54.85
+      ],
+      "center": [
+        54.706,
+        -121.173
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 15.8,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/monkman-park/), visitor brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/Monkman_visitor_brochure_Dec_2009_d6279b5718.pdf) and trail sheets (https://nrs.objectstore.gov.bc.ca/kuwyyf/monkman_stone_corral_be59ac167f.pdf, https://nrs.objectstore.gov.bc.ca/kuwyyf/monkman_lake_joan_f85c6f2153.pdf): 3 km trail from the campground to Kinuseo Falls, the 63 km Monkman (Memorial) Lake Trail past the Cascades (7 km day hike to the Murray River crossing), the Stone Corral trail (3-4 km loop) and the Lake Joan / Canary Falls trail (2 km return). Kept: Monkman Lake Trail (relation, operator=BC Parks; 81% inside, the park's flagship trail with no sibling area: the trail continues 10 km past the southern boundary to Hobi's cabin), Kinuseo Falls Trail, Stone Corral Trail (relation, 81% inside, 1.00 of 1.23 mi; waiver: the agency Stone Corral interpretive loop with its own trail sheet, no sibling area; the clipped part leaves the loop open in the app) and Lake Joan Trail. Excluded: The Stone Corral Trail (duplicate), Kinuseo Falls Upper Trail (unlisted name), Cascades Campsite Trail (campsite spur).",
+      "exclude_trails": [
+        {
+          "id": "n:The Stone Corral Trail",
+          "name": "The Stone Corral Trail",
+          "reason": "Duplicate: 100% of it lies on the kept Stone Corral Trail relation"
+        },
+        {
+          "id": "n:Kinuseo Falls Upper Trail",
+          "name": "Kinuseo Falls Upper Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (viewpoint spur; BC Parks lists the falls viewpoints, not this name)"
+        },
+        {
+          "id": "n:Cascades Campsite Trail",
+          "name": "Cascades Campsite Trail",
+          "reason": "Short spur to a backcountry campsite off the Monkman Lake Trail, not a listed trail"
+        }
+      ]
+    },
+    {
+      "id": "mount-edziza-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226768,
+      "name": "Mount Edziza Provincial Park",
+      "bbox": [
+        -131.26,
+        57.22,
+        -130.32,
+        58.09
+      ],
+      "center": [
+        57.593,
+        -130.514
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 12.2,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/mount-edziza-park/): one hiking trail, Mowdade Lake to Buckley Lake, and overland routes that are not regularly maintained. OSM: Chakima Creek trail (10.5 mi, not on the page) and kinaskan lake - mowdade lake (16% inside). The listed trail is not in the OSM set; needs a rescope."
+    },
+    {
+      "id": "mount-pope-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2233265,
+      "name": "Mount Pope Provincial Park",
+      "bbox": [
+        -124.45,
+        54.41,
+        -124.21,
+        54.57
+      ],
+      "center": [
+        54.479,
+        -124.308
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 4,
+      "est_mi": 7.7,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/mount-pope-park/) describes one 6.5 km hiking trail to the peak (gazebo); bikes only on that trail. OSM: Mt. Pope Trail 3.86 mi (99%); Nature's Own, Skyline and New Climbing Trail are unlisted (climbing access / local network) and the Fort St. James bike fragments are dropped. One agency trail: iconic one-trail candidate."
+    },
+    {
+      "id": "mount-terry-fox-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2235399,
+      "name": "Mount Terry Fox Provincial Park",
+      "bbox": [
+        -119.33,
+        52.87,
+        -119.17,
+        53.01
+      ],
+      "center": [
+        52.927,
+        -119.256
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 3.8,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/mount-terry-fox-park/) describes one very challenging trail to Mt. Terry Fox (10-12 h return). OSM: Mount Terry Fox Trail 73% inside, Teepee Lake Loop 32%, Mount Terry Fox (Old Trail) 15%. Nothing whole to ship."
+    },
+    {
+      "id": "muncho-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2225665,
+      "name": "Muncho Lake Provincial Park",
+      "bbox": [
+        -126.12,
+        58.68,
+        -125.3,
+        59.3
+      ],
+      "center": [
+        58.955,
+        -125.761
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.7,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/muncho-lake-park/) refers hikers to Tourism Northern Rockies for the trail list (not machine-readable for this batch); the park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/muncho_lake_park_map_80d3eeee98.pdf) shows hiking symbols and the Muncho Lake Viewpoint, and the brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/muncho_lake_brochure_9fd9377523.pdf) describes short walks to long wilderness hikes and a mineral-lick loop. Kept: Red Rock Canyon Trail, Stone's Sheep Trail and Muncho Lake Viewpoint Trail (97-99% inside; the standard Alaska Highway hikes in the park). Agency names not verified against a written list. Mineral Lick Trail dropped by the engine (0.58 mi fragment)."
+    },
+    {
+      "id": "naikoon-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236338,
+      "name": "Naikoon Provincial Park",
+      "bbox": [
+        -132.15,
+        53.52,
+        -131.59,
+        54.25
+      ],
+      "center": [
+        54.076,
+        -131.733
+      ],
+      "center_cluster": {
+        "trails": [
+          "Cape Fife Trail"
+        ],
+        "reason": "Naikoon's trails sit about 31 mi apart (Cape Fife Trail from Tow Hill in the north; Pesuta Shipwreck Trail at Tlell in the south); the all-trails midpoint falls in trailless bog 15.6 mi from any trail. Cape Fife holds 5.75 of 8.56 trail mi (67%), so the pin sits on the Cape Fife Trail."
+      },
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 8.6,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/naikoon-park/) lists Tow Hill/Blow Hole Boardwalk, Cape Fife Trail (10 km one way, well marked), White Creek Trail, Pesuta Shipwreck Trail (6 km one way), Misty Meadows and the 90 km East Beach route; Cape Fife trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/naikoon_park_cape_fife_trail_map_20180620_74bf083bc5.pdf). Kept: Cape Fife Trail and Pesuta Shipwreck Trail (98-100% inside). Known omissions: Tow Hill boardwalk, White Creek and Misty Meadows (not in the OSM trail set by name); East Beach is a long-distance beach route. Pin moved from 53.836,-131.81 (all-trails extent midpoint, away from every trail) to a center_cluster pin on the dominant cluster (54.076,-131.733)."
+    },
+    {
+      "id": "pine-le-moray-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2225790,
+      "name": "Pine Le Moray Provincial Park",
+      "bbox": [
+        -122.82,
+        55.18,
+        -122.25,
+        55.57
+      ],
+      "center": [
+        55.461,
+        -122.692
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.1,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/pine-le-moray-park/): no developed trails; the Mount Murray trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/Pine_Le_Moray_murray_mountain_trail_map_8f5ab1164c.pdf) shows one trail, Mount Murray Trail (4.3 km to the peak). OSM: Mount Murray Trail 1.80 mi (96%); Murray Range Trail is unlisted. One trail."
+    },
+    {
+      "id": "seven-sisters-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236730,
+      "name": "Seven Sisters Protected Area",
+      "bbox": [
+        -128.44,
+        54.75,
+        -128.05,
+        55.13
+      ],
+      "center": [
+        54.895,
+        -128.312
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 8.7,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/seven-sisters-protected-area/) and brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/seven_sisters_park_brochure_0f1713ae5a.pdf) list Oliver Creek (17 km, old mining road to the alpine basin), Watson Lake(s) (3 km, well maintained), Hell's Bells (4 km), Cedarvale (3 km), Whiskey Creek (7.2 km), Boulder Creek (not maintained) and Coyote Creek (outside the park). Kept: Oliver Creek Trail, Whiskey Creek Trail and Watson Lake Trail (96-100% of their OSM length inside). Excluded: Hell's Bells (31% inside). Known omission: Cedarvale Trail (not in OSM by name). OSM maps only the lower parts of Oliver Creek and Whiskey Creek. Pin moved from 54.906,-128.317 to the kept-trail vertex nearest the curated trail-extent midpoint (54.895,-128.312).",
+      "exclude_trails": [
+        {
+          "id": "n:Hell's Bells Trail",
+          "name": "Hell's Bells Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (31%)"
+        }
+      ]
+    },
+    {
+      "id": "south-chilcotin-mountains-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226805,
+      "name": "South Chilcotin Mountains Provincial Park",
+      "bbox": [
+        -123.41,
+        50.86,
+        -122.75,
+        51.26
+      ],
+      "center": [
+        51.049,
+        -122.967
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 17,
+      "est_mi": 76.6,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks trail summary (https://nrs.objectstore.gov.bc.ca/kuwyyf/south_chilcotin_mountains_park_trail_summary_db4328f6b5.pdf, December 2019) lists the major trails: Gun Creek, Gun Meadows, Warner Pass, Spruce Lake, High Trail (with South Branch), Tyaughton Creek, Deer Pass, Open Heart, WD, Relay Creek, Little Paradise (AKA Manson Creek), Castle Pass, Elbow and Lorna Pass, Lower and Mid Grasslands, Camel Pass, Lick Creek, B&F Creek and Taylor Creek; hikers, horses and bikes share them (https://bcparks.ca/south-chilcotin-mountains-park/). Kept (17): High Trail (84.7% inside; waiver: the summary's High Trail ends outside the park near Tyaughton Lake, so the in-park 10.8 of 12.7 mi is the agency trail), Gun Creek Trail plus Lower Gun Creek Trail and Mid Gun Creek Trail (flagship waiver: three OSM sections of the summary's Gun Creek Trail, Jewel Bridge trailhead to the Deer Pass/Warner Pass junction past Trigger Lake; Gun Creek 83% inside, Lower Gun Creek 81% inside with its out-of-park part below the boundary clipped, Mid Gun Creek 100% inside and joins Gun Creek, Deer Pass and Warner Pass; the eastern 8 km is an old roadbed to Gun Creek Road), Lower/Mid/Upper Tyaughton Creek Trail (three OSM sections of the summary's Tyaughton Creek Trail), Deer Pass, Little Paradise Creek and Manson Creek (two adjoining OSM halves of the Little Paradise AKA Manson Creek trail), Castle Pass, Lick Creek, High Trail South (the South Branch), Spruce Lake Main, WD Trail, Lower Grasslands Trail, Gun Meadows. Excluded: clipped trails (Relay Creek, Warner Pass, Lorna Pass, Relay Col, Little Graveyard, Camel Pass, Upper Grasslands), unlisted names (Lizard Creek, SpruceCreek, LS Bluffs), Ridge-o-rama (bike name), Tyoax Pass Connector. Known omissions: Open Heart, B&F Creek, Taylor Creek, Warner Pass (clipped). Cinnabar Mining Road dropped by the engine. Pin moved from 51.056,-123.024 to the kept-trail vertex nearest the curated trail-extent midpoint (51.049,-122.967).",
+      "exclude_trails": [
+        {
+          "id": "n:Relay Creek Trail",
+          "name": "Relay Creek Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (71%; continues to Twin Lakes in Big Creek Park)"
+        },
+        {
+          "id": "n:Warner Pass Trail",
+          "name": "Warner Pass Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (28% of the OSM same-name trail; it continues over the pass outside the park)"
+        },
+        {
+          "id": "n:Lizard Creek Trail",
+          "name": "Lizard Creek Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        },
+        {
+          "id": "n:SpruceCreek Trail",
+          "name": "SpruceCreek Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        },
+        {
+          "id": "n:Lorna Pass Trail",
+          "name": "Lorna Pass Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (65%; shared with Big Creek Park)"
+        },
+        {
+          "id": "n:Relay Col",
+          "name": "Relay Col",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (58%); not on the trail summary"
+        },
+        {
+          "id": "n:Ridge-o-rama (West)",
+          "name": "Ridge-o-rama (West)",
+          "reason": "Mountain-bike trail name, not on the agency trail list"
+        },
+        {
+          "id": "n:Little Graveyard Trail",
+          "name": "Little Graveyard Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (31%; a Big Creek Park trail)"
+        },
+        {
+          "id": "n:LS Bluffs Trail",
+          "name": "LS Bluffs Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        },
+        {
+          "id": "n:Upper Grasslands",
+          "name": "Upper Grasslands",
+          "reason": "Not on the agency list or map read for this batch; unverified name (the summary lists Lower and Mid Grasslands); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (81%)"
+        },
+        {
+          "id": "n:Tyoax Pass Connector",
+          "name": "Tyoax Pass Connector",
+          "reason": "Connector, not a listed trail"
+        },
+        {
+          "id": "n:Camel Pass Trail",
+          "name": "Camel Pass Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (77%)"
+        }
+      ]
+    },
+    {
+      "id": "stone-mountain-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226568,
+      "name": "Stone Mountain Provincial Park",
+      "bbox": [
+        -124.96,
+        58.41,
+        -124.56,
+        58.77
+      ],
+      "center": [
+        58.632,
+        -124.701
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.0,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/stone-mountain-park/) lists frontcountry hikes from Summit Lake (Erosion Pillars ~1 km, Summit Peak 5 km return, Flower Springs 5.7 km return) and the MacDonald Creek Valley (35 km) and Wokkpash loop (70 km) backcountry trips; the park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/stone_mountain_park_map_fee67563ae.pdf) also names the Microwave Tower Trail and Baba Canyon Trail. Kept: Flower Springs Lake Trail, Baba Canyon Trail, Summit Peak Trail and Microwave Tower Trail (91-100% inside). Excluded: MacDonald Creek Valley Trail (70% inside). Known omission: Erosion Pillars Trail (not in the OSM trail set). Summit Peak Trail Alternative Descent dropped by the engine (fragment). Pin moved from 58.678,-124.735 to the kept-trail vertex nearest the curated trail-extent midpoint (58.632,-124.701).",
+      "exclude_trails": [
+        {
+          "id": "n:MacDonald Creek Valley Trail",
+          "name": "MacDonald Creek Valley Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (70%; the 35 km backcountry trail continues into Northern Rocky Mountains Park)"
+        }
+      ]
+    },
+    {
+      "id": "sugarbowl-grizzly-den-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236083,
+      "name": "Sugarbowl-Grizzly Den Provincial Park",
+      "bbox": [
+        -121.77,
+        53.67,
+        -121.43,
+        54.0
+      ],
+      "center": [
+        53.849,
+        -121.619
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 14.4,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/sugarbowl_grizzlyden_brochure_53146eed08.pdf) lists the marked trails: Sugarbowl Mountain (9 km to the peak), Viking Ridge (6.5 km to the summit), the Viking-Sugarbowl circuit, Grizzly Den (9 km), Raven Lake (4.7 km) and the Raven Lake-Grizzly Den circuit. Kept: Sugarbowl Mountain Trail and Viking Ridge Trail (100% inside), and Grizzly Den Trail (OSM Grizzly Trail, renamed from the brochure; flagship waiver: 83% inside, the park's namesake trail with no sibling area, its trailhead on the Hungary Creek FSR just outside the polygon). Excluded: Raven Lake Trail (69%, trailhead on the Hungary Creek FSR outside the polygon). Pin moved from 53.828,-121.579 to the kept-trail vertex nearest the curated trail-extent midpoint (53.849,-121.619).",
+      "exclude_trails": [
+        {
+          "id": "n:Raven Lake Trail",
+          "name": "Raven Lake Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (69%)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Grizzly Trail",
+          "name": "Grizzly Den Trail",
+          "source": "https://nrs.objectstore.gov.bc.ca/kuwyyf/sugarbowl_grizzlyden_brochure_53146eed08.pdf",
+          "reason": "BC Parks brochure lists the marked trail as Grizzly Den (9 km)"
+        }
+      ]
+    },
+    {
+      "id": "ts-il-os-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226806,
+      "name": "Tŝ'ilʔoŝ Provincial Park",
+      "bbox": [
+        -124.43,
+        50.82,
+        -123.41,
+        51.68
+      ],
+      "center": [
+        51.137,
+        -123.776
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.5,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/tsilos-park/): the Yohetta/Tchaikazan loop (5-7 day trek, reduced maintenance, 4WD access) and the Tullin Trail. OSM: Tchaikazan River Trail 65% inside, Spectrum Pass Trail 1.65 mi (one section of the loop); Tullin and Yohetta not in the OSM set. One trail."
+    },
+    {
+      "id": "west-twin-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2236085,
+      "name": "West Twin Provincial Park",
+      "bbox": [
+        -120.71,
+        53.21,
+        -120.34,
+        53.53
+      ],
+      "center": [
+        53.296,
+        -120.464
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.4,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/west-twin-park/) lists Boulder Mountain Trail (off Highway 16) and Ozalenka Valley Trail (7 km to the cabin). OSM: Ozalenka Valley Trail 96% inside; Boulder Mountain Trail 60% (trailhead outside the polygon). One trail after the whole-route rule."
+    },
+    {
+      "id": "schoen-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227939,
+      "name": "Schoen Lake Provincial Park",
+      "bbox": [
+        -126.41,
+        50.09,
+        -126.08,
+        50.28
+      ],
+      "center": [
+        50.17,
+        -126.188
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). HOLD. BC Parks (https://bcparks.ca/schoen-lake-park/): no maintained trails, only rugged unmarked routes (Schoen Creek, Nisnak Lake, Mt. Schoen). OSM: Nisnak Lake Trail 2.07 mi; Upper Adam Main is a gravel logging road (track); Mount Schoen Trail is an alpine route (sac_scale=alpine_hiking, trail_visibility=bad). One unmarked route."
     }
   ]
 }

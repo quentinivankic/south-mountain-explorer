@@ -3337,6 +3337,140 @@
         "Three Rings",
         "Tombstone"
       ]
+    },
+    "ancient-forest-chun-t-oh-whudujut-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 8.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Big Tree Loop",
+        "Universal Boardwalk",
+        "Waterfall"
+      ]
+    },
+    "atlin-teix-gi-aan-tlein-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 5.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sloco Lake Trail (position approximate)"
+      ]
+    },
+    "babine-mountains-provincial-park-ca-bc": {
+      "trail_count": 7,
+      "total_mi": 26.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Blix Route",
+        "Fletcher-Gardiner Trail",
+        "Onion Montain Trail",
+        "Silver King Trail"
+      ]
+    },
+    "crooked-river-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "jackman-flats-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 4.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "monkman-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 15.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Cascades Campsite Trail",
+        "Kinuseo Falls Lower Trail",
+        "Kinuseo Falls Upper Trail",
+        "The Stone Corral Trail",
+        "Trail to Devil's Creek campsite"
+      ]
+    },
+    "muncho-lake-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 3.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Mineral Lick Trail"
+      ]
+    },
+    "naikoon-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 8.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "(low tide only)"
+      ]
+    },
+    "seven-sisters-protected-area-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 7.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Hell's Bells Trail"
+      ]
+    },
+    "south-chilcotin-mountains-provincial-park-ca-bc": {
+      "trail_count": 17,
+      "total_mi": 76.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Camel Pass Trail",
+        "Elbow Pass",
+        "Graveyard Creek Trail",
+        "High Trail Connector",
+        "LS Bluffs Trail",
+        "Little Graveyard Trail",
+        "Lizard Creek Trail",
+        "Lorna Pass Trail",
+        "Molly Dog",
+        "Relay Col",
+        "Relay Creek Trail",
+        "Ridge-o-rama (West)",
+        "Spruce Dock",
+        "Spruce Lake West Trail",
+        "SpruceCreek Trail",
+        "Tyoax Creek Trail",
+        "Tyoax Pass Connector",
+        "Upper Grasslands",
+        "Warner Pass Trail"
+      ]
+    },
+    "stone-mountain-provincial-park-ca-bc": {
+      "trail_count": 4,
+      "total_mi": 11.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Erosion Pillar Trail",
+        "MacDonald Creek Valley Trail",
+        "Old Path",
+        "Summit Peak Trail Alternative Descent"
+      ]
+    },
+    "sugarbowl-grizzly-den-provincial-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 14.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Raven Lake Trail"
+      ]
     }
   }
 }

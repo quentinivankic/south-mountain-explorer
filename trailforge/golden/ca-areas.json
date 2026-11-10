@@ -8366,7 +8366,7 @@
       ],
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "BC curation 2026-11-02. Whole park. BC Parks lists Diamond Head (Elfin Lakes), Black Tusk / Garibaldi Lake (Rubble Creek, Taylor Meadows), Cheakamus Lake, Singing Pass, Russet Lake and Wedgemount Lake (https://bcparks.ca/garibaldi-park/). Present: Black Tusk, Panorama Ridge, Garibaldi Lake, Elfin Lakes, Cheakamus Lake, Helm Creek, Mamquam Lake and named scrambles. Wedgemount Lake, High Note and Overlord are boundary-clipped and excluded. Whistler-side mountain-bike names are all sub-0.6 mi stubs and dropped. OSM splits the main trails into partly unnamed ways, so several distances are shorter than the official ones. HELD 2026-11-02 (review #707): Garibaldi Lake 1.31 mi, Elfin Lakes 2.21, Black Tusk 1.49 and Panorama Ridge 1.68 are disjoint OSM stubs of 5.6-9 mi routes and Wedgemount is clipped; same defect as Joffre. Needs OSM completion before shipping. Known omission (review #707): Wedgemount Lake. Retry 2026-11-02 (ca-missing): replay unchanged, 19 trails / 45.5 mi. No registry-only route: OSM has no hiking relation for the named trails, only name-stitched ways (Garibaldi Lake Trail 13 ways / 5.8 mi but 1.3 mi assembles, Singing Pass Trail 7.3 mi and Taylor Meadows 2.0 mi are absent from the replay), so Black Tusk, Garibaldi Lake, Panorama Ridge and Elfin Lakes stay stubs. Still HOLD; needs OSM relations or an engine stitch rule.",
+      "notes": "BC curation 2026-11-02. Whole park. BC Parks lists Diamond Head (Elfin Lakes), Black Tusk / Garibaldi Lake (Rubble Creek, Taylor Meadows), Cheakamus Lake, Singing Pass, Russet Lake and Wedgemount Lake (https://bcparks.ca/garibaldi-park/). Present: Black Tusk, Panorama Ridge, Garibaldi Lake, Elfin Lakes, Cheakamus Lake, Helm Creek, Mamquam Lake and named scrambles. Wedgemount Lake, High Note and Overlord are boundary-clipped and excluded. Whistler-side mountain-bike names are all sub-0.6 mi stubs and dropped. OSM splits the main trails into partly unnamed ways, so several distances are shorter than the official ones. HELD 2026-11-02 (review #707): Garibaldi Lake 1.31 mi, Elfin Lakes 2.21, Black Tusk 1.49 and Panorama Ridge 1.68 are disjoint OSM stubs of 5.6-9 mi routes and Wedgemount is clipped; same defect as Joffre. Needs OSM completion before shipping. Known omission (review #707): Wedgemount Lake. Retry 2026-11-02 (ca-missing): replay unchanged, 19 trails / 45.5 mi. No registry-only route: OSM has no hiking relation for the named trails, only name-stitched ways (Garibaldi Lake Trail 13 ways / 5.8 mi but 1.3 mi assembles, Singing Pass Trail 7.3 mi and Taylor Meadows 2.0 mi are absent from the replay), so Black Tusk, Garibaldi Lake, Panorama Ridge and Elfin Lakes stay stubs. Still HOLD; needs OSM relations or an engine stitch rule. Re-check 2026-11-10 (BC-1): replay unchanged, 19 trails / 45.5 mi; Garibaldi Lake 1.31 mi (23% of its 5.76 mi of named ways), Elfin Lakes 2.21 (31%), Black Tusk 1.49 and Panorama Ridge 1.68 are still disjoint stubs. Stays held (needs OSM completion).",
       "exclude_trails": [
         {
           "id": "n:Black Tusk/Cinder Flats Trail",
@@ -12228,7 +12228,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mount Arrowsmith Massif RP: replay 3 trails (Saddle Trail, Main Gulley Route, The Bumps); the signature Judges Route is absent."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mount Arrowsmith Massif RP: replay 3 trails (Saddle Trail, Main Gulley Route, The Bumps); the signature Judges Route is absent. Re-check 2026-11-10 (BC-1): replay 3 trails / 4.1 mi (Saddle Trail, Main Gulley Route in 132 pieces, The Bumps); the signature Judges Route is still absent. Stays held."
     },
     {
       "id": "alice-lake-provincial-park-ca-bc",
@@ -12264,7 +12264,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mount Maxwell PP: replay 6 trails with numbered local names (#3 Girlfriend, #4 Armand, #8 Sunshine) and no official list read."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Mount Maxwell PP: replay 6 trails with numbered local names (#3 Girlfriend, #4 Armand, #8 Sunshine) and no official list read. Re-check 2026-11-10 (BC-1): replay 6 trails / 6.0 mi (#4 Armand, Gary, Rim, #3 Girlfriend, #8 Sunshine, Mountain; operator=BC Parks). BC Parks (https://bcparks.ca/mount-maxwell-park/) says about 6 km of maintained trails from the parking lot with no names; the OSM set is club-numbered and longer than the official network. Stays held: no official names to verify against."
     },
     {
       "id": "wittys-lagoon-regional-park-ca-bc",
@@ -12288,7 +12288,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Thetis Lake RP (r1793712, leisure=park): prefilter drops the boundary (found []), same as East Sooke."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Thetis Lake RP (r1793712, leisure=park): prefilter drops the boundary (found []), same as East Sooke. Re-check 2026-11-10 (BC-1): a local replay with the park boundary merged in gives 16 trails / 17.0 mi, and the CRD map (https://www.crd.ca/media/file/thetis-lake-regional-park) names Upper/Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Phelps, Scafe Hill Loop, Lighthouse, Lewis Clark and Trillium (about 10 ship-quality trails). Blocked: r1793712 is leisure=park with no operator tag, so keep_park_boundary (needs both) refuses and the workflow prefilter drops the boundary. Needs an OSM operator tag (no OSM edits now) or a lane change. Stays held."
     },
     {
       "id": "elk-falls-provincial-park-ca-bc",
@@ -12324,7 +12324,7 @@
       "center": null,
       "tier": 2,
       "hold": "mtb-centre",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Sooke Mountain PP: replay 3 trails (Clapper, Idiot, Upper Rampart), mountain-bike style names."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Sooke Mountain PP: replay 3 trails (Clapper, Idiot, Upper Rampart), mountain-bike style names. Re-check 2026-11-10 (BC-1): replay 3 trails / 2.6 mi (Clapper, Upper Rampart, Idiot), bike-style names, under 2.5 mi. Stays held."
     },
     {
       "id": "wasaga-beach-provincial-park-ca-on",
@@ -13339,6 +13339,657 @@
       "tier": 2,
       "hold": "few-trails",
       "notes": "Territories batch 2026-11-02 (ca-terr). Way w662169371 (Iqaluit). Registry name carries the Inuktitut syllabics because the way's name tag must match exactly; the id is ASCII. Replay: SAFETY BLOCK, no publishable trails after the Canada filter. Katannilik Territorial Park, Blackstone and Twin Falls Gorge have no polygon or named trail in the Geofabrik extracts (Blackstone is a campground node only)."
+    },
+    {
+      "id": "alaksen-national-wildlife-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 14118445,
+      "name": "Alaksen National Wildlife Area",
+      "bbox": [
+        -123.24,
+        49.04,
+        -123.11,
+        49.16
+      ],
+      "center": [
+        49.108,
+        -123.173
+      ],
+      "tier": 1,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 2.6,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. Two short gravel footways (Roberts Bank Trail 1.7 mi, Triangle Loop 1.0 mi) on the CWS Alaksen NWA headquarters land (weekday hours in OSM). A local birder or hiker goes to the adjacent George C. Reifel Migratory Bird Sanctuary, which has no named trails in this polygon; not a hiking destination at the bar. canada.ca page timed out (not read)."
+    },
+    {
+      "id": "cultus-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230175,
+      "name": "Cultus Lake Provincial Park",
+      "bbox": [
+        -122.07,
+        48.95,
+        -121.88,
+        49.12
+      ],
+      "center": [
+        49.042,
+        -121.973
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 16.4,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/cultus-lake-park/) lists five main trails: Teapot Hill, Seven Sisters, Cultus Lake Horse Trail (a hiking trail also used by horses and bikes), Giant Douglas-fir and Maple Bay; all five ship (the last two by keep_trails waiver). International Ridge Trail (to Mount Amadis, bicycle=no) also ships: the park's best-known ridge hike, not on the five-trail list. Excluded: Sanctuary (clipped), Wild Hazel and Dilema (bike), Horse Trail Loop and Watt Creek Trail (horse-network variants), Watt Creek Ridge Trail (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Sanctuary Trail",
+          "name": "Sanctuary Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (68%); not on the BC Parks list"
+        },
+        {
+          "id": "n:Wild Hazel",
+          "name": "Wild Hazel",
+          "reason": "Mountain-bike trail name, not on the agency hiking list (bicycle trail, not on the BC Parks list)"
+        },
+        {
+          "id": "n:Dilema",
+          "name": "Dilema",
+          "reason": "Recreation Sites and Trails BC bike trail (bicycle=designated), 57% inside; not a park hiking trail"
+        },
+        {
+          "id": "n:Horse Trail Loop",
+          "name": "Horse Trail Loop",
+          "reason": "Loop variant of the Cultus Lake Horse Trail network; the main Horse Trail is kept"
+        },
+        {
+          "id": "n:Watt Creek Trail",
+          "name": "Watt Creek Trail",
+          "reason": "Bridleway connector of the horse-trail network to the Watt Creek trailhead; the main Horse Trail is kept"
+        },
+        {
+          "id": "n:Watt Creek Ridge Trail",
+          "name": "Watt Creek Ridge Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (BC Parks lists five main trails)"
+        }
+      ],
+      "keep_trails": [
+        {
+          "name": "Giant Douglas Fir Trail",
+          "source": "https://bcparks.ca/cultus-lake-park/",
+          "reason": "BC Parks lists the Giant Douglas-fir Trail as one of the park's five main trails (45-minute return walk); OSM piece is under the 0.6 mi floor"
+        },
+        {
+          "name": "Maple Bay Interpretive Trail",
+          "source": "https://bcparks.ca/cultus-lake-park/",
+          "reason": "BC Parks lists the Maple Bay self-guiding interpretive trail as one of the park's five main trails; OSM piece is under the 0.6 mi floor"
+        }
+      ]
+    },
+    {
+      "id": "liumchen-ecological-reserve-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1351682724,
+      "name": "Liumchen Ecological Reserve",
+      "bbox": [
+        -122.02,
+        48.95,
+        -121.8,
+        49.09
+      ],
+      "center": [
+        49.021,
+        -121.868
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 3.9,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. Ecological reserve; the BC Parks page (https://bcparks.ca/liumchen-ecological-reserve/) offers no recreation or trail information. Only Liumchen Lake Trail is whole; Liumchen Mountain (60% inside) and Windy Knob (49%) are clipped. Under the bar after the whole-route rule."
+    },
+    {
+      "id": "lower-seymour-conservation-reserve-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230598,
+      "name": "Lower Seymour Conservation Reserve",
+      "bbox": [
+        -123.07,
+        49.28,
+        -122.89,
+        49.5
+      ],
+      "center": [
+        49.397,
+        -122.983
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 9.0,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. Replay 36 trails / 41.9 mi, but the signature Metro Vancouver trails are missing or fragments: Fisherman's Trail is absent, Homestead Trail is a 0.57 mi fragment, Rice Lake loop absent (official map https://metrovancouver.org/services/water/Documents/lower-seymour-conservation-reserve-map.pdf). The output is dominated by the Seymour mountain-bike network and informal=yes routes (Suicide Jimmy, Neuralyzer, Magic Kingdom, Cambodia, Boulder, Old TNT...), a 4.5 mi road (Spur 4), Baden Powell (4% inside) and Dog Mountain Trail (a Mount Seymour Park trail). Needs a curated rescope (Fisherman's/Homestead/Rice Lake in OSM by name) before shipping."
+    },
+    {
+      "id": "pinecone-burke-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230601,
+      "name": "Pinecone Burke Provincial Park",
+      "bbox": [
+        -122.96,
+        49.25,
+        -122.49,
+        49.79
+      ],
+      "center": [
+        49.441,
+        -122.661
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 14,
+      "est_mi": 25.0,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/pinecone-burke-park/) gives no trail list (signage incomplete) and warns off the old Widgeon Falls Trail. Kept: Widgeon Lake Trail, Munro Lake Trail and Village-Lake Trail (operator=BC Parks in OSM), South Slope, Dennett Lake, Coquitlam Lake View and Woodland Walk (the standard Burke Mountain hikes, e.g. the South Slope / Dennett Lake / Village Lake loop). Excluded: the Burke Mountain mountain-bike and informal names, Fool's Gold Route (informal), variants and connectors, Burke Ridge (60% inside, known omission) and Pinecone Trail (clipped).",
+      "exclude_trails": [
+        {
+          "id": "n:Fool's Gold Route",
+          "name": "Fool's Gold Route",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route); 14.3 mi route with bad trail visibility"
+        },
+        {
+          "id": "n:Burke Ridge Trail",
+          "name": "Burke Ridge Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (60%; the route starts outside the park)"
+        },
+        {
+          "id": "n:Widgeon Bowl Trail",
+          "name": "Widgeon Bowl Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (route above Widgeon Lake)"
+        },
+        {
+          "id": "n:Old Widgeon Bowl Trail",
+          "name": "Old Widgeon Bowl Trail",
+          "reason": "Old alignment / variant of the Widgeon Bowl route"
+        },
+        {
+          "id": "n:Widgeon Falls Lower Trail",
+          "name": "Widgeon Falls Lower Trail",
+          "reason": "BC Parks advises against the old Widgeon Falls Trail (poor footbridges and stairs) and points visitors to the old road"
+        },
+        {
+          "id": "n:Coquitlam River Connector",
+          "name": "Coquitlam River Connector",
+          "reason": "Connector (variant word); partly informal"
+        },
+        {
+          "id": "n:Fern Trails",
+          "name": "Fern Trails",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route)"
+        },
+        {
+          "id": "n:Woodland Walk Upper Loop",
+          "name": "Woodland Walk Upper Loop",
+          "reason": "Loop variant of Woodland Walk (kept)"
+        },
+        {
+          "id": "n:Woodland Walk Lower Loop",
+          "name": "Woodland Walk Lower Loop",
+          "reason": "Loop variant of Woodland Walk (kept)"
+        },
+        {
+          "id": "n:Coquitlam Lake View Trail Lower Fork",
+          "name": "Coquitlam Lake View Trail Lower Fork",
+          "reason": "Fork variant of Coquitlam Lake View Trail (kept)"
+        },
+        {
+          "id": "n:Dennet-VLT Connector",
+          "name": "Dennet-VLT Connector",
+          "reason": "Connector (variant word)"
+        },
+        {
+          "id": "n:Line Trail",
+          "name": "Line Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        },
+        {
+          "id": "n:Pinecone Trail",
+          "name": "Pinecone Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (41%)"
+        },
+        {
+          "id": "n:Mow It Down",
+          "name": "Mow It Down",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        },
+        {
+          "id": "n:Mental Floss",
+          "name": "Mental Floss",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        },
+        {
+          "id": "n:Misery Whip",
+          "name": "Misery Whip",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        },
+        {
+          "id": "n:Nescafe",
+          "name": "Nescafe",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        },
+        {
+          "id": "n:Forbidden Canoe",
+          "name": "Forbidden Canoe",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        },
+        {
+          "id": "n:The Hammer",
+          "name": "The Hammer",
+          "reason": "Mountain-bike trail name, not on the agency hiking list; informal=yes"
+        }
+      ]
+    },
+    {
+      "id": "sasquatch-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230180,
+      "name": "Sasquatch Provincial Park",
+      "bbox": [
+        -121.8,
+        49.28,
+        -121.6,
+        49.42
+      ],
+      "center": [
+        49.343,
+        -121.694
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.1,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/sasquatch-park/) lists exactly three trails: Hicks Lake (about 4 km return), Deer Lake (about 2 km return) and the Beaver Pond Interpretive Trail (about 500 m); all three ship (Beaver Pond by keep_trails waiver).",
+      "keep_trails": [
+        {
+          "name": "Beaver Pond Trail",
+          "source": "https://bcparks.ca/sasquatch-park/",
+          "reason": "BC Parks lists the Beaver Pond Interpretive Trail (about 500 m loop) with Hicks Lake and Deer Lake trails; OSM piece is under the 0.6 mi floor"
+        }
+      ]
+    },
+    {
+      "id": "say-nuth-khaw-yum-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230597,
+      "name": "Say Nuth Khaw Yum Provincial Park",
+      "bbox": [
+        -122.97,
+        49.29,
+        -122.76,
+        49.56
+      ],
+      "center": [
+        49.371,
+        -122.844
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 9.9,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. The hikeable part of this water-access park is the BC Hydro trail network above Buntzen Lake (BC Parks https://bcparks.ca/say-nuth-khaw-yum-park-aka-indian-arm-park/ refers to the Buntzen Lake trails and Diez Vistas). Those routes straddle the park and the live Buntzen Lake Recreation Area: Halvor Lunden (Eagle Ridge) relation 72% inside, Halvor Lunden ways 65%, Diez Vistas 55%, Lakeview 48%, Buntzen Lake Trail 14%; only Dilly Dally and the Swan Falls spur are whole. A local names this destination 'Buntzen Lake', so the fix is a Buntzen Lake update (live area has 3 trails) or a joint area, not a separate Say Nuth Khaw Yum area. Follow-up, not in this batch."
+    },
+    {
+      "id": "stave-west-forest-and-recreation-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 13284609,
+      "name": "Stave West Forest & Recreation Area",
+      "bbox": [
+        -122.47,
+        49.17,
+        -122.25,
+        49.4
+      ],
+      "center": [
+        49.281,
+        -122.372
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 8.1,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. Crown recreation area (Mission Interpretive Forest; Recreation Sites and Trails BC / City of Mission). All six are signed named trails tagged with RSTBC or City of Mission operators or a hiking route relation: Devil's Lake Loop, 79 Grind (to Rolley Peak lookout), Rolley Falls, Mount Crickmer, Goldmine/Cabin and Roli Poli Oli (RSTBC link between Devil's Lake and Rolley Falls). No official per-trail list read (AllTrails secondary). Discovery flagged 'numbered' for 79 Grind, which is a proper name. The many bike and road-code names are dropped by the engine."
+    },
+    {
+      "id": "sxotsaqel-chilliwack-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230170,
+      "name": "Sx̱ótsaqel / Chilliwack Lake Provincial Park",
+      "bbox": [
+        -121.55,
+        48.95,
+        -121.33,
+        49.2
+      ],
+      "center": [
+        49.099,
+        -121.443
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 17.3,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/sxotsaqel-chilliwack-lake-park/) lists Lindeman Lake (3.4 km return), Greendrop Lake (10.4 km return), Flora Lake (14 km return), Radium Lake (16 km return) and the Greendrop-Flora section; all ship (the last as Flora Lake Connector Trail, operator=BC Parks). Trans Canada Trail is dropped by the engine (long-distance). Hanging Lake and the Eco Reserve routes are unmaintained per BC Parks and are OSM fragments. Excluded: Flora Pass Trail, Goat Ridge (informal, clipped), Saddle Trail (unverified).",
+      "exclude_trails": [
+        {
+          "id": "n:Flora Pass Trail",
+          "name": "Flora Pass Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route) in part; not on the BC Parks list"
+        },
+        {
+          "id": "n:Goat Ridge Trail",
+          "name": "Goat Ridge Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (61%)"
+        },
+        {
+          "id": "n:Saddle Trail",
+          "name": "Saddle Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        }
+      ]
+    },
+    {
+      "id": "tantalus-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226821,
+      "name": "Tantalus Provincial Park",
+      "bbox": [
+        -123.48,
+        49.69,
+        -123.12,
+        49.96
+      ],
+      "center": [
+        49.789,
+        -123.239
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 7.8,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/tantalus-park/) names the Lake Lovely Water hike (6.5 km) and the established trails from the cabin to Niobe Meadows and Lambda Lake Meadows. Shipped: Lake Lovely Water Trail and Niobe Meadows Trail. Lake Lovely Water Trail is 78% inside (2.43 of 3.11 mi); kept whole like Mount Seymour Trail because it is the park's only access trail and the outside part is the unmarked start on private land across the Squamish River (BC Parks). Lambda Lake Meadows is not mapped by name (known omission). Peak routes excluded (MANDATE decision 3). Pin moved from the discovery vertex [49.795, -123.276] (on the excluded Alpha Mountain Trail, 1.31 mi from any shipped trail) to a Lake Lovely Water Trail vertex at the shipped trails' extent midpoint.",
+      "exclude_trails": [
+        {
+          "id": "n:Alpha Mountain Trail",
+          "name": "Alpha Mountain Trail",
+          "reason": "Peak ascent (difficult_alpine_hiking) beyond the established trails; not on the BC Parks list"
+        },
+        {
+          "id": "n:Ossa Mountain Route",
+          "name": "Ossa Mountain Route",
+          "reason": "Peak route, not on the BC Parks list; 50% inside"
+        },
+        {
+          "id": "n:Mount Niobe Trail",
+          "name": "Mount Niobe Trail",
+          "reason": "Peak ascent above Niobe Meadows (informal=yes, alpine_hiking)"
+        },
+        {
+          "id": "n:Sigurd Creek Trail",
+          "name": "Sigurd Creek Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (26%; the Sigurd Creek trail lies mostly outside the park)"
+        }
+      ]
+    },
+    {
+      "id": "birkenhead-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238463,
+      "name": "Birkenhead Lake Provincial Park",
+      "bbox": [
+        -122.9,
+        50.46,
+        -122.61,
+        50.68
+      ],
+      "center": [
+        50.541,
+        -122.696
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.6,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/birkenhead-lake-park/) lists the Wilderness trail (2 km, old growth, joins the Birkenhead Lake Trail for a loop) and the Birkenhead Lake trail (8 km to the lake's north end). Shipped as OSM names Birkenhead Lake Trail (3.0 mi mapped, shorter than official) and Lakeshore Loop. Goat Lookout Trail (0.48 mi) and Mount John Decker (clipped) are fragments.",
+      "exclude_trails": [
+        {
+          "id": "n:Mount Gandalf Trail",
+          "name": "Mount Gandalf Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (56%)"
+        }
+      ]
+    },
+    {
+      "id": "duck-lake-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 11281935,
+      "name": "Duck Lake Protected Area",
+      "bbox": [
+        -124.52,
+        49.8,
+        -124.37,
+        49.94
+      ],
+      "center": [
+        49.869,
+        -124.442
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 6.6,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. BC Parks (https://bcparks.ca/duck-lake-protected-area/): about 9 km of hiking and mountain-bike trails, no names. OSM names are the Powell River bike network (Oil Can, Spur 7, Bob's Your Uncle, Ho Chih Minh, WD40, Ripped Bucket) with no hiking-only set to separate them. Larson's Landing and Mud Lake are plausible hikes but unverified."
+    },
+    {
+      "id": "spipiyus-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 167030832,
+      "name": "Spipiyus Provincial Park",
+      "bbox": [
+        -124.0,
+        49.58,
+        -123.83,
+        49.75
+      ],
+      "center": [
+        49.67,
+        -123.899
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 2.7,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. BC Parks (https://bcparks.ca/spipiyus-park/) says there are no designated hiking trails (deactivated logging roads only); the Mount Hallowell fire-lookout hike is the one destination (Steam Donkey 74% inside + Mount Hollowell Trail). One-trail iconic candidate for the allow-list policy, not a 2-trail area."
+    },
+    {
+      "id": "tetrahedron-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 167066440,
+      "name": "Tetrahedron Provincial Park",
+      "bbox": [
+        -123.72,
+        49.5,
+        -123.46,
+        49.7
+      ],
+      "center": [
+        49.595,
+        -123.629
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 11.7,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/tetrahedron-park/) describes hiking trails and cabins (camping only at the designated cabins) without a list. The five OSM trails are the cabin trails maintained by the Tetrahedron Outdoor Club: McNair Lake, Edwards Lake, Mount Steele, Mayne Lake and Batchelor Lake. All whole (100% inside)."
+    },
+    {
+      "id": "bodega-ridge-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8549523,
+      "name": "Bodega Ridge Provincial Park",
+      "bbox": [
+        -123.6,
+        48.9,
+        -123.46,
+        49.02
+      ],
+      "center": [
+        48.957,
+        -123.528
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 4.2,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. BC Parks (https://bcparks.ca/bodega-ridge-park/) describes one 4 km trail along the ridge. OSM Bodega Ridge Trail is 71% inside (clipped) and Paul LeBlond 59%; only Bodega Shoreline Trail is whole. Galiano's best-known hike: iconic one-trail candidate for the allow-list policy."
+    },
+    {
+      "id": "cowichan-river-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227715,
+      "name": "Cowichan River Provincial Park",
+      "bbox": [
+        -124.09,
+        48.7,
+        -123.73,
+        48.88
+      ],
+      "center": [
+        48.779,
+        -123.901
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 12.4,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/cowichan-river-park/) lists Stoltz Pool loop, the Skutz/66 Mile loop (8 km, both sides of the river) and the Cowichan River Footpath (about 20 km Glenora-Skutz Falls, parts on private land). Shipped: Cowichan River Footpath (9.3 of 10.3 mi mapped inside, 91%), Stoltz Trail, North Side Trail (route relation, operator BC Parks, 83%, the north half of the Skutz/66 Mile loop) and South Side Trail. Trans Canada Trail and 'Upper Loop' (generic) are dropped by the engine."
+    },
+    {
+      "id": "denman-island-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 7887424,
+      "name": "Denman Island Provincial Park",
+      "bbox": [
+        -124.88,
+        49.49,
+        -124.73,
+        49.63
+      ],
+      "center": [
+        49.555,
+        -124.812
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 2.2,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). HOLD. 3 short pieces / 2.2 mi: Pickles Road Trail 57% inside, Wren Trail 41%, Anthill a bike name. BC Parks page has no trail information. Under the bar."
+    },
+    {
+      "id": "gowlland-tod-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227687,
+      "name": "Gowlland Tod Provincial Park",
+      "bbox": [
+        -123.6,
+        48.45,
+        -123.4,
+        48.62
+      ],
+      "center": [
+        48.542,
+        -123.519
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 10.6,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/gowlland-tod-park/, 25 km of trails, three trailheads) and the BC Parks trail map, middle section (https://nrs.objectstore.gov.bc.ca/kuwyyf/gowlland_tod_trail_middle_map_9233e1f027.pdf, read via text extraction: Timberman, Jocelyn Hill, Lower Jocelyn Loop, Ridge, Cascade, McKenzie Bight, Emma Dickson). Shipped: Timberman, Ridgetop (OSM name for the map's Ridge Trail; not renamed, no spelling-only fix), Jocelyn Hill, Lower Jocelyn Loop, The Old Trail. Known omissions: Cascade Trail (0.37 mi fragment), McKenzie Bight Trail (0.56 of 0.72 mi, clipped), Emma Dickson (not mapped by name). Excluded: Middle Trail and Georges Trip (unverified), Will the Thrill (bike).",
+      "exclude_trails": [
+        {
+          "id": "n:Middle Trail",
+          "name": "Middle Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (not on the BC Parks middle-section trail map)"
+        },
+        {
+          "id": "n:Georges Trip",
+          "name": "Georges Trip",
+          "reason": "Not on the agency list or map read for this batch; unverified name"
+        },
+        {
+          "id": "n:Will the Thrill",
+          "name": "Will the Thrill",
+          "reason": "Mountain-bike trail name, not on the agency hiking list (bicycle=yes)"
+        }
+      ]
+    },
+    {
+      "id": "ruckle-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227625,
+      "name": "Ruckle Provincial Park",
+      "bbox": [
+        -123.46,
+        48.72,
+        -123.32,
+        48.85
+      ],
+      "center": [
+        48.783,
+        -123.394
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.2,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/ruckle-park/): more than 15 km of trails, a shoreline trail from the heritage farm to Yeo Point plus inland routes. Shipped: Coastline Trail, Hilltop Trail, Merganser Pond Trail (all operator=BC Parks in OSM). Chris Hatfield Trail (0.57 mi, clipped) is a fragment."
+    },
+    {
+      "id": "saysutshun-newcastle-island-marine-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8257237,
+      "name": "Saysutshun (Newcastle Island Marine) Provincial Park",
+      "bbox": [
+        -124.0,
+        49.13,
+        -123.87,
+        49.25
+      ],
+      "center": [
+        49.185,
+        -123.935
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.0,
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/saysutshun-newcastle-island-marine-park/): a 22 km signed trail system on the island. Shipped: Bate Point, Channel, Mallard Lake, Shoreline, Kanaka Bay and Tom Niven trails. Lakeside Trail (0.55 mi) is a fragment. No per-trail official list read."
     }
   ]
 }

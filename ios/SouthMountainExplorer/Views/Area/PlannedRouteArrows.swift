@@ -83,9 +83,6 @@ enum PlannedRouteArrows {
 final class PlannedRouteArrowsPolyline: MKPolyline {
     /// Walk through (round 7): arrows of the legs other than the current one.
     var isFaded = false
-    /// Split opposite chevrons onto either side of the line. Off when the
-    /// passes are already drawn in their own lanes (round 7).
-    var separatesOppositePasses = true
 }
 
 /// Draws `PlannedRouteArrows` chevrons for a `PlannedRouteArrowsPolyline`.
@@ -110,14 +107,13 @@ final class PlannedRouteArrowsRenderer: MKPolylineRenderer {
         let poly = polyline
         guard poly.pointCount >= 2, zoomScale > 0 else { return }
         let arrows = poly as? PlannedRouteArrowsPolyline
-        let separates = arrows?.separatesOppositePasses ?? true
         let fade: CGFloat = arrows?.isFaded == true ? Self.fadeAlpha : 1
         let unit = 1 / zoomScale
         let mapPoints = UnsafeBufferPointer(start: poly.points(), count: poly.pointCount)
         let pts = mapPoints.map { point(for: $0) }
         let chevrons = PlannedRouteArrows.place(
             along: pts, spacing: Self.spacingPoints * unit,
-            laneGap: separates ? Self.laneGapPoints * unit : 0, laneOffset: Self.laneOffsetPoints * unit)
+            laneGap: Self.laneGapPoints * unit, laneOffset: Self.laneOffsetPoints * unit)
         let visible = rect(for: mapRect).insetBy(dx: -20 * unit, dy: -20 * unit)
         let len = Self.lengthPoints * unit, half = Self.halfWidthPoints * unit
         context.setLineJoin(.round)

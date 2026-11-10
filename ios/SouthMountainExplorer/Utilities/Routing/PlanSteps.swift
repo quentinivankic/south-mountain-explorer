@@ -36,7 +36,7 @@ struct PlanStep: Equatable, Sendable {
     /// The walk ends after this leg.
     let isLast: Bool
     /// The plan steps (indices into `RoutePlan.steps`) this leg walks, so the
-    /// map can draw just this leg in its own lanes (round 7).
+    /// map can draw just this leg on its own (round 7).
     var walkRange: Range<Int> = 0..<0
 
     /// "Start on Fugleruten", "Left onto Fugleruten", "Right to stay on Fugleruten".

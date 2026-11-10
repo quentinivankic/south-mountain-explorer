@@ -825,64 +825,33 @@ struct MapKitMapView: UIViewRepresentable {
             mapView.addAnnotations(plannedRouteAnnotations)
         }
 
-        /// Screen points per map point the lanes were laid out at (round 7).
-        var plannedLaneScale: CGFloat?
-        /// Lanes are laid out again when the zoom moved more than this.
-        static let plannedLaneRelayout: CGFloat = 0.08
-
-        /// Screen points per map point. `visibleMapRect` is the bounding box of
-        /// the possibly rotated view, so the heading is taken out.
-        static func screenPointsPerMapPoint(_ mapView: MKMapView) -> CGFloat? {
-            let width = mapView.visibleMapRect.size.width
-            let h = mapView.camera.heading * .pi / 180
-            let box = Double(mapView.bounds.width) * abs(cos(h)) + Double(mapView.bounds.height) * abs(sin(h))
-            guard width > 0, width.isFinite, box > 0 else { return nil }
-            return CGFloat(box / width)
-        }
-
-        /// Side-by-side passes keep their few points of spacing on screen: when
-        /// the zoom changed, lay the lanes out again.
-        func refreshPlannedLanes(on mapView: MKMapView) {
-            guard let route = lastPlannedRoute, !route.isEmpty, route.hasLanes,
-                  let scale = Self.screenPointsPerMapPoint(mapView) else { return }
-            if let old = plannedLaneScale, abs(scale / old - 1) <= Self.plannedLaneRelayout { return }
-            rebuildPlannedOverlays(route, selected: lastPlannedStep, on: mapView)
-        }
-
         /// The route lines and arrows. With a step selected (Walk through), the
         /// whole route is drawn strongly faded and that leg is drawn again on
         /// top, bright, over a glow, with its own arrows.
         func rebuildPlannedOverlays(_ route: PlannedRoute?, selected: Int?, on mapView: MKMapView) {
             mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
             plannedRouteOverlays.removeAll(keepingCapacity: true)
-            guard let route, !route.isEmpty else { plannedLaneScale = nil; return }
-            let scale = Self.screenPointsPerMapPoint(mapView)
-            plannedLaneScale = scale
+            guard let route, !route.isEmpty else { return }
             let step = selected.flatMap { $0 >= 0 && $0 < route.steps.count ? route.steps[$0] : nil }
-            appendRouteLayers(route.segments, faded: step != nil, scale: scale)
+            appendRouteLayers(route.segments, faded: step != nil)
             if let step {
                 var leg = route.segments(of: step)
                 if leg.isEmpty, step.coords.count >= 2 {
                     leg = [.init(kind: step.kind, coords: step.coords, lengthMeters: step.meters)]
                 }
-                appendRouteLayers(leg, faded: false, scale: scale, glow: true)
+                appendRouteLayers(leg, faded: false, glow: true)
             }
             mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
         }
 
         /// Casings first, then done (faded) lines, then new lines, then the
         /// arrows, so where an out-and-back walks new ground and then repeats
-        /// it, the bright first pass stays on top. Each segment sits in its own
-        /// lane (`PlannedRouteLanes`), `scale` screen points per map point.
-        private func appendRouteLayers(_ segments: [PlannedRoute.Segment], faded: Bool,
-                                       scale: CGFloat?, glow: Bool = false) {
+        /// it, the bright first pass stays on top.
+        private func appendRouteLayers(_ segments: [PlannedRoute.Segment], faded: Bool, glow: Bool = false) {
             guard !segments.isEmpty else { return }
-            let laid = PlannedRouteLanes.layout(segments.map { seg in
-                (seg.coords.map { c -> CGPoint in
-                    let p = MKMapPoint(CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon))
-                    return CGPoint(x: p.x, y: p.y)
-                }, PlannedRouteLanes.offset(lane: seg.lane, pointsPerUnit: scale ?? 0))
-            }).map { $0.map { MKMapPoint(x: Double($0.x), y: Double($0.y)) } }
+            let laid = segments.map { seg in
+                seg.coords.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)) }
+            }
             let isDone: (PlannedRoute.Segment) -> Bool = { $0.kind == .trail && !$0.isNew }
             if glow {
                 for (i, seg) in segments.enumerated() where laid[i].count >= 2 {
@@ -904,7 +873,7 @@ struct MapKitMapView: UIViewRepresentable {
                     plannedRouteOverlays.append(pl)
                 }
             }
-            // Walking-direction chevrons along the laid-out lanes, in walking order.
+            // Walking-direction chevrons over the whole route, on top of the line.
             var walk: [MKMapPoint] = []
             for p in laid.joined() {
                 if let l = walk.last, l.x == p.x, l.y == p.y { continue }
@@ -913,9 +882,6 @@ struct MapKitMapView: UIViewRepresentable {
             if walk.count >= 2 {
                 let arrows = PlannedRouteArrowsPolyline(points: walk, count: walk.count)
                 arrows.isFaded = faded
-                // Lanes already split the passes; without a scale they sit on
-                // one line, so the chevrons split them instead.
-                arrows.separatesOppositePasses = scale == nil
                 plannedRouteOverlays.append(arrows)
             }
         }
@@ -1419,7 +1385,6 @@ struct MapKitMapView: UIViewRepresentable {
             // be re-applied whenever the map turns — otherwise rotating the map
             // by hand leaves the dot pointing at the old bearing.
             applyHeadingRotation(on: mapView)
-            refreshPlannedLanes(on: mapView)
             if pendingProgrammaticRegionChanges > 0 {
                 pendingProgrammaticRegionChanges -= 1
                 reportSelectedNearMarkerOcclusionIfNeeded(on: mapView)

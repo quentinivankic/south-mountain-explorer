@@ -280,8 +280,10 @@ private struct PlanRun: Sendable {
         if case .planned(let best, let alts) = outcome {
             let edges = view.network.edges
             options = PlanPreview.options(
-                best: PlannedRouteBuilder.build(plan: best, edges: edges),
-                alternatives: alts.map { ($0.label.title, PlannedRouteBuilder.build(plan: $0.plan, edges: edges)) })
+                best: PlannedRouteBuilder.build(plan: best, edges: edges, completion: completion),
+                alternatives: alts.map {
+                    ($0.label.title, PlannedRouteBuilder.build(plan: $0.plan, edges: edges, completion: completion))
+                })
         }
         return .success(Done(outcome: outcome, context: context, options: options))
     }

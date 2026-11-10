@@ -80,6 +80,8 @@ final class RecordingPolyline: MKPolyline {}
 final class PlannedRoutePolyline: MKPolyline {
     var kind: PlannedRoute.Kind = .trail
     var isCasing = false
+    /// Trail ground already walked (or walked earlier this hike): drawn faded.
+    var isDone = false
 }
 /// Start / end marker or "Off-trail" / "Unverified connection" tag of the
 /// planned route preview.
@@ -798,12 +800,19 @@ struct MapKitMapView: UIViewRepresentable {
             mapView.removeAnnotations(plannedRouteAnnotations)
             plannedRouteAnnotations.removeAll(keepingCapacity: true)
             guard let route, !route.isEmpty else { return }
-            for casing in [true, false] {
+            // Casings first, then done (faded) lines, then new lines, so where
+            // an out-and-back walks new ground and then repeats it, the
+            // bright first pass stays on top.
+            let isDone: (PlannedRoute.Segment) -> Bool = { $0.kind == .trail && !$0.isNew }
+            for pass in 0..<3 {
                 for seg in route.segments {
+                    if pass == 1, !isDone(seg) { continue }
+                    if pass == 2, isDone(seg) { continue }
                     let pts = seg.coords.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
                     let pl = PlannedRoutePolyline(coordinates: pts, count: pts.count)
                     pl.kind = seg.kind
-                    pl.isCasing = casing
+                    pl.isCasing = pass == 0
+                    pl.isDone = isDone(seg)
                     plannedRouteOverlays.append(pl)
                 }
             }
@@ -837,6 +846,8 @@ struct MapKitMapView: UIViewRepresentable {
             mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
         }
         static let plannedRouteColor = UIColor(red: 0.86, green: 0.0, blue: 0.52, alpha: 1)
+        /// Planned route ground already walked: the route color, faded.
+        static let plannedRouteDoneColor = plannedRouteColor.withAlphaComponent(0.35)
         static func plannedTagImage(_ text: String) -> UIImage {
             let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
             let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
@@ -1722,7 +1733,8 @@ struct MapKitMapView: UIViewRepresentable {
                     r.strokeColor = UIColor.white.withAlphaComponent(0.95)
                     r.lineWidth = 8
                 } else {
-                    r.strokeColor = Self.plannedRouteColor
+                    // Done ground: same hue and width, faded over the white casing.
+                    r.strokeColor = route.isDone ? Self.plannedRouteDoneColor : Self.plannedRouteColor
                     r.lineWidth = 4
                 }
                 return r

@@ -47,7 +47,22 @@ struct WalkedGround: Sendable {
     /// Share of the line, 0 to 1, that no saved track walked. 1 with no tracks
     /// or a line under two points.
     func unwalkedFraction(of line: [TrailNetwork.Coordinate]) -> Double {
-        guard let grid, line.count >= 2 else { return 1 }
+        Self.fraction(unwalkedRuns(of: line))
+    }
+
+    /// The unwalked share of a line from its `unwalkedRuns`.
+    static func fraction(_ r: (runs: [(from: Double, to: Double)], totalMeters: Double?)) -> Double {
+        guard let total = r.totalMeters, total > 0 else { return 1 }
+        return min(1, r.runs.reduce(0) { $0 + ($1.to - $1.from) } / total)
+    }
+
+    /// Where along the line (metres from its first point, by the same samples
+    /// as `unwalkedFraction`) no saved track walked, in order. `totalMeters`
+    /// is nil with no tracks or a line under two points: all of it is new.
+    /// The planned route draws its new and done runs from this, so the map
+    /// matches the new miles number ("Plan a Hike" round 5).
+    func unwalkedRuns(of line: [TrailNetwork.Coordinate]) -> (runs: [(from: Double, to: Double)], totalMeters: Double?) {
+        guard let grid, line.count >= 2 else { return ([], nil) }
         // Pieces between consecutive samples: length and walked flag.
         var pieces: [(meters: Double, walked: Bool)] = []
         var prevHit = grid.hasNeighbor(lat: line[0].lat, lon: line[0].lon, withinMeters: Self.bufferMeters)
@@ -66,20 +81,22 @@ struct WalkedGround: Sendable {
             }
         }
         let total = pieces.reduce(0) { $0 + $1.meters }
-        guard total > 0 else { return 1 }
-        var unwalked = 0.0
+        guard total > 0 else { return ([], 0) }
+        var runs: [(from: Double, to: Double)] = []
+        var at = 0.0
         var i = 0
         while i < pieces.count {
-            guard !pieces[i].walked else { i += 1; continue }
+            guard !pieces[i].walked else { at += pieces[i].meters; i += 1; continue }
             var j = i
             var run = 0.0
             while j < pieces.count, !pieces[j].walked { run += pieces[j].meters; j += 1 }
             // Walked on both sides and short: a dropout, not unwalked ground.
             let bounded = i > 0 && j < pieces.count
-            if !(bounded && run < Self.gapFillMeters) { unwalked += run }
+            if !(bounded && run < Self.gapFillMeters) { runs.append((at, at + run)) }
+            at += run
             i = j
         }
-        return min(1, unwalked / total)
+        return (runs, total)
     }
 }
 

@@ -67,6 +67,7 @@ struct PlanRouteCard: View {
                     .accessibilityHint("Swipe up for the route details.")
                     .accessibilityIdentifier("plan-collapsed-summary")
             }
+            if showsLegend, !dynamicTypeSize.isAccessibilitySize { legend.lineLimit(1) }
             startButton
         }
         .padding(.horizontal, 20)
@@ -74,6 +75,18 @@ struct PlanRouteCard: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("plan-collapsed-bar")
+    }
+
+    /// The drawn route has both new and already walked trail runs.
+    private var showsLegend: Bool { controller.preview.selected?.route.mixesNewAndDone ?? false }
+
+    /// How to read the two line shades. Visual only: the spoken summary already gives the new miles.
+    private var legend: some View {
+        Text("Bright = new, faded = done")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .accessibilityHidden(true)
+            .accessibilityIdentifier("plan-route-legend")
     }
 
     private var startButton: some View {
@@ -124,6 +137,7 @@ struct PlanRouteCard: View {
             Text(r.climbLine)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            if showsLegend { legend }
             if let low = r.lowValueNote {
                 Label(low, systemImage: "info.circle")
                     .font(.subheadline)

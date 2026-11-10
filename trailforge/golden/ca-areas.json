@@ -13552,7 +13552,7 @@
         {
           "id": "n:Line Trail",
           "name": "Line Trail",
-          "reason": "Not on the agency list or map read for this batch; unverified name"
+          "reason": "On the BC Parks Burke map, but the OSM ways are tagged abandoned / smoothness=impassable / foot=no (closed alignment)"
         },
         {
           "id": "n:Pinecone Trail",
@@ -13928,8 +13928,13 @@
       "hold": null,
       "est_trails": 7,
       "est_mi": 10.6,
-      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/gowlland-tod-park/, 25 km of trails, three trailheads) and the BC Parks trail map, middle section (https://nrs.objectstore.gov.bc.ca/kuwyyf/gowlland_tod_trail_middle_map_9233e1f027.pdf, read via text extraction: Timberman, Jocelyn Hill, Lower Jocelyn Loop, Ridge, Cascade, McKenzie Bight, Emma Dickson). Shipped: Timberman, Ridgetop (OSM name for the map's Ridge Trail; not renamed, no spelling-only fix), Jocelyn Hill, Lower Jocelyn Loop, The Old Trail. Known omissions: Cascade Trail (0.37 mi fragment), McKenzie Bight Trail (0.56 of 0.72 mi, clipped), Emma Dickson (not mapped by name). Excluded: Middle Trail and Georges Trip (unverified), Will the Thrill (bike).",
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/gowlland-tod-park/, 25 km of trails, three trailheads) and the BC Parks trail map, middle section (https://nrs.objectstore.gov.bc.ca/kuwyyf/gowlland_tod_trail_middle_map_9233e1f027.pdf, read via text extraction: Timberman, Jocelyn Hill, Lower Jocelyn Loop, Ridge, Cascade, McKenzie Bight, Emma Dickson). Shipped: Timberman, Ridgetop (OSM name for the map's Ridge Trail; not renamed, no spelling-only fix), Jocelyn Hill, Lower Jocelyn Loop. Known omissions: Cascade Trail (0.37 mi fragment), McKenzie Bight Trail (0.56 of 0.72 mi, clipped), Emma Dickson (not mapped by name). Excluded: Middle Trail and Georges Trip (unverified), Will the Thrill (bike), The Old Trail (not on the BC Parks north/middle/south maps; OSM smoothness=impassable; BC-1 blind review remediation).",
       "exclude_trails": [
+        {
+          "id": "n:The Old Trail",
+          "name": "The Old Trail",
+          "reason": "Not on the BC Parks north/middle/south trail maps; OSM smoothness=impassable (old alignment)"
+        },
         {
           "id": "n:Middle Trail",
           "name": "Middle Trail",

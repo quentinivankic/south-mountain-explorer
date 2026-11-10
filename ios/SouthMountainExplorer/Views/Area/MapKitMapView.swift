@@ -827,7 +827,8 @@ struct MapKitMapView: UIViewRepresentable {
 
         /// The route lines and arrows. With a step selected (Walk through), the
         /// whole route is drawn strongly faded and that leg is drawn again on
-        /// top, bright, over a glow, with its own arrows.
+        /// top, bright, with its own arrows (no glow; Quentin asked to drop
+        /// the yellow outline).
         func rebuildPlannedOverlays(_ route: PlannedRoute?, selected: Int?, on mapView: MKMapView) {
             mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
             plannedRouteOverlays.removeAll(keepingCapacity: true)
@@ -839,7 +840,7 @@ struct MapKitMapView: UIViewRepresentable {
                 if leg.isEmpty, step.coords.count >= 2 {
                     leg = [.init(kind: step.kind, coords: step.coords, lengthMeters: step.meters)]
                 }
-                appendRouteLayers(leg, faded: false, glow: true)
+                appendRouteLayers(leg, faded: false)
             }
             mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
         }

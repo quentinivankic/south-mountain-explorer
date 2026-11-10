@@ -30,6 +30,17 @@ struct PlannedRoute: Equatable, Sendable {
         /// by a saved track, on a trail not marked complete, and the first
         /// time this hike walks it. false for connectors and bridges.
         var isNew = true
+        /// Side-by-side pass (round 7): lanes to the walker's right where the
+        /// route walks this ground more than once (`PlannedRouteLanes`). 0
+        /// for ground walked once.
+        var lane: Double = 0
+    }
+
+    /// One walked edge's new or done stretch, before merging, tagged with
+    /// its index in the plan's steps (for drawing one numbered leg).
+    struct Piece: Equatable, Sendable {
+        let walkIndex: Int
+        let segment: Segment
     }
 
     struct Tag: Equatable, Sendable {
@@ -46,6 +57,16 @@ struct PlannedRoute: Equatable, Sendable {
     /// Numbered "where to go" legs (round 6), in walking order. Empty when
     /// the route was built without the network nodes.
     var steps: [PlanStep] = []
+    /// The unmerged pieces behind `segments`, in walking order.
+    var pieces: [Piece] = []
+
+    /// Ground walked more than once is drawn as side-by-side lanes.
+    var hasLanes: Bool { segments.contains { $0.lane != 0 } }
+
+    /// The merged segments of one numbered leg (`PlanStep.walkRange`).
+    func segments(of step: PlanStep) -> [Segment] {
+        PlannedRouteBuilder.merge(pieces.filter { step.walkRange.contains($0.walkIndex) }.map(\.segment))
+    }
 
     /// The same route with its numbered steps.
     func with(steps: [PlanStep]) -> PlannedRoute {
@@ -109,38 +130,46 @@ enum PlannedRouteBuilder {
                       completion: TrailCompletionLookup? = nil) -> PlannedRoute {
         var byId: [Int: TrailNetwork.Edge] = [:]
         for e in edges { byId[e.id] = e }
-        var kinds: [PlannedRoute.Kind] = []
-        var news: [Bool] = []
-        var coords: [[PlannedRoute.Coord]] = []
-        var lengths: [Double] = []
+        // Round 7: each walk of an edge gets its own lane (side-by-side passes).
+        let known = plan.steps.map { (edgeId: byId[$0.edgeId] == nil ? -1 : $0.edgeId, direction: $0.direction) }
+        let passes = PlannedRouteLanes.passes(known)
+        var out: [PlannedRoute.Piece] = []
         var seen = Set<Int>()
-        for step in plan.steps {
+        for (i, step) in plan.steps.enumerated() {
             guard let edge = byId[step.edgeId] else { continue }
             let firstPass = seen.insert(edge.id).inserted
             let k = kind(edge.kind)
             for piece in pieces(of: edge, direction: step.direction, firstPass: firstPass, completion: completion) {
-                let isNew = k == .trail && piece.isNew
-                if let last = kinds.last, last == k, news.last == isNew {
-                    var merged = coords[coords.count - 1]
-                    // The first vertex of a piece is the last vertex of the previous one.
-                    merged.append(contentsOf: merged.last == piece.coords.first ? Array(piece.coords.dropFirst()) : piece.coords)
-                    coords[coords.count - 1] = merged
-                    lengths[lengths.count - 1] += piece.meters
-                } else {
-                    kinds.append(k)
-                    news.append(isNew)
-                    coords.append(piece.coords)
-                    lengths.append(piece.meters)
-                }
+                out.append(.init(walkIndex: i, segment: .init(
+                    kind: k, coords: piece.coords, lengthMeters: piece.meters,
+                    isNew: k == .trail && piece.isNew, lane: passes[i].lane)))
             }
         }
-        let segments = kinds.indices.map {
-            PlannedRoute.Segment(kind: kinds[$0], coords: coords[$0], lengthMeters: lengths[$0], isNew: news[$0])
-        }
+        let segments = merge(out.map(\.segment))
         guard let first = segments.first?.coords.first, let last = segments.last?.coords.last else { return .empty }
-        return PlannedRoute(
+        var route = PlannedRoute(
             segments: segments, tags: tags(for: segments), start: first,
             end: plan.shape == .oneWay ? last : nil)
+        route.pieces = out
+        return route
+    }
+
+    /// Joins consecutive pieces of the same kind, shade and lane into one line.
+    static func merge(_ pieces: [PlannedRoute.Segment]) -> [PlannedRoute.Segment] {
+        var out: [PlannedRoute.Segment] = []
+        for p in pieces {
+            if let last = out.last, last.kind == p.kind, last.isNew == p.isNew, last.lane == p.lane {
+                var merged = last.coords
+                // The first vertex of a piece is the last vertex of the previous one.
+                merged.append(contentsOf: merged.last == p.coords.first ? Array(p.coords.dropFirst()) : p.coords)
+                out[out.count - 1] = .init(kind: last.kind, coords: merged,
+                                           lengthMeters: last.lengthMeters + p.lengthMeters,
+                                           isNew: last.isNew, lane: last.lane)
+            } else {
+                out.append(p)
+            }
+        }
+        return out
     }
 
     /// One walked edge as new / done pieces in walking order. Lengths are

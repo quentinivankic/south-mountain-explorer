@@ -80,7 +80,13 @@ enum PlannedRouteArrows {
 
 /// The overlay carrying the whole planned route in walking order, drawn as
 /// chevrons only (the route line itself is drawn by the other route overlays).
-final class PlannedRouteArrowsPolyline: MKPolyline {}
+final class PlannedRouteArrowsPolyline: MKPolyline {
+    /// Walk through (round 7): arrows of the legs other than the current one.
+    var isFaded = false
+    /// Split opposite chevrons onto either side of the line. Off when the
+    /// passes are already drawn in their own lanes (round 7).
+    var separatesOppositePasses = true
+}
 
 /// Draws `PlannedRouteArrows` chevrons for a `PlannedRouteArrowsPolyline`.
 /// A polyline renderer subclass so MapKit sizes its bounds like the route
@@ -93,6 +99,8 @@ final class PlannedRouteArrowsRenderer: MKPolylineRenderer {
     static let halfWidthPoints: CGFloat = 7
     static let laneGapPoints: CGFloat = 14
     static let laneOffsetPoints: CGFloat = 6
+    /// Walk through: faded legs keep this much of their opacity.
+    static let fadeAlpha: CGFloat = 0.22
     /// White with a dark shade of the route magenta for its edge: it sits on
     /// the magenta line, so it reads on satellite imagery and the standard map.
     static let fill = UIColor.white
@@ -101,18 +109,21 @@ final class PlannedRouteArrowsRenderer: MKPolylineRenderer {
     override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
         let poly = polyline
         guard poly.pointCount >= 2, zoomScale > 0 else { return }
+        let arrows = poly as? PlannedRouteArrowsPolyline
+        let separates = arrows?.separatesOppositePasses ?? true
+        let fade: CGFloat = arrows?.isFaded == true ? Self.fadeAlpha : 1
         let unit = 1 / zoomScale
         let mapPoints = UnsafeBufferPointer(start: poly.points(), count: poly.pointCount)
         let pts = mapPoints.map { point(for: $0) }
         let chevrons = PlannedRouteArrows.place(
             along: pts, spacing: Self.spacingPoints * unit,
-            laneGap: Self.laneGapPoints * unit, laneOffset: Self.laneOffsetPoints * unit)
+            laneGap: separates ? Self.laneGapPoints * unit : 0, laneOffset: Self.laneOffsetPoints * unit)
         let visible = rect(for: mapRect).insetBy(dx: -20 * unit, dy: -20 * unit)
         let len = Self.lengthPoints * unit, half = Self.halfWidthPoints * unit
         context.setLineJoin(.round)
         context.setLineWidth(1.5 * unit)
-        context.setStrokeColor(Self.edge.cgColor)
-        context.setFillColor(Self.fill.cgColor)
+        context.setStrokeColor(Self.edge.withAlphaComponent(fade).cgColor)
+        context.setFillColor(Self.fill.withAlphaComponent(fade).cgColor)
         for c in chevrons where visible.contains(c.point) {
             let cosA = cos(c.angle), sinA = sin(c.angle)
             func at(_ along: CGFloat, _ side: CGFloat) -> CGPoint {

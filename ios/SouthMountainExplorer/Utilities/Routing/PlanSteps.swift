@@ -35,6 +35,9 @@ struct PlanStep: Equatable, Sendable {
     let coords: [PlannedRoute.Coord]
     /// The walk ends after this leg.
     let isLast: Bool
+    /// The plan steps (indices into `RoutePlan.steps`) this leg walks, so the
+    /// map can draw just this leg in its own lanes (round 7).
+    var walkRange: Range<Int> = 0..<0
 
     /// "Start on Fugleruten", "Left onto Fugleruten", "Right to stay on Fugleruten".
     var instruction: String {
@@ -100,6 +103,8 @@ enum PlanStepBuilder {
         var staysOnTrail: Bool
         var meters: Double
         var coords: [PlannedRoute.Coord]
+        /// Indices into the plan's steps.
+        var walk: Range<Int>
     }
 
     /// The numbered steps for `plan` on `network` (the view the plan was made on).
@@ -109,9 +114,9 @@ enum PlanStepBuilder {
     static func steps(plan: RoutePlan, network: TrailNetwork,
                       names: [TrailNetwork.TrailKey: String]) -> [PlanStep] {
         let edges = network.edges
-        let walk: [(edge: TrailNetwork.Edge, dir: RouteDirection, info: RoutePlan.StepInfo?)] = plan.steps.enumerated().compactMap { i, s in
+        let walk: [(edge: TrailNetwork.Edge, dir: RouteDirection, info: RoutePlan.StepInfo?, index: Int)] = plan.steps.enumerated().compactMap { i, s in
             guard s.edgeId >= 0, s.edgeId < edges.count else { return nil }
-            return (edges[s.edgeId], s.direction, i < plan.stepInfo.count ? plan.stepInfo[i] : nil)
+            return (edges[s.edgeId], s.direction, i < plan.stepInfo.count ? plan.stepInfo[i] : nil, i)
         }
         guard !walk.isEmpty else { return [] }
 
@@ -152,7 +157,7 @@ enum PlanStepBuilder {
         var legs: [Leg] = []
         var current: Label? = nil
         for i in walk.indices {
-            let (edge, dir, _) = walk[i]
+            let (edge, dir, _, planIndex) = walk[i]
             let o = oriented(edge, dir)
             let lab = label(at: i, current: current)
             var begin: (action: PlanStep.Action, stays: Bool)? = nil
@@ -188,12 +193,14 @@ enum PlanStepBuilder {
             }
             if let begin {
                 legs.append(Leg(label: lab, action: begin.action, staysOnTrail: begin.stays,
-                                meters: edge.lengthMeters, coords: o.coords))
+                                meters: edge.lengthMeters, coords: o.coords,
+                                walk: planIndex..<(planIndex + 1)))
             } else {
                 legs[legs.count - 1].meters += edge.lengthMeters
                 var c = legs[legs.count - 1].coords
                 c.append(contentsOf: c.last == o.coords.first ? Array(o.coords.dropFirst()) : o.coords)
                 legs[legs.count - 1].coords = c
+                legs[legs.count - 1].walk = legs[legs.count - 1].walk.lowerBound..<(planIndex + 1)
             }
             current = lab
         }
@@ -213,7 +220,7 @@ enum PlanStepBuilder {
             return PlanStep(number: i + 1, action: leg.action, kind: kind, trailName: name,
                             staysOnTrail: leg.staysOnTrail, meters: leg.meters,
                             at: leg.coords.first ?? .init(lat: 0, lon: 0), coords: leg.coords,
-                            isLast: i == legs.count - 1)
+                            isLast: i == legs.count - 1, walkRange: leg.walk)
         }
     }
 
@@ -230,6 +237,7 @@ enum PlanStepBuilder {
                 var merged = prev
                 for leg in [legs[i], legs[i + 1]] {
                     merged.meters += leg.meters
+                    merged.walk = merged.walk.lowerBound..<leg.walk.upperBound
                     merged.coords.append(contentsOf: merged.coords.last == leg.coords.first ? Array(leg.coords.dropFirst()) : leg.coords)
                 }
                 out[out.count - 1] = merged
@@ -272,4 +280,51 @@ enum PlanStepBuilder {
         let last = pts[pts.count - 1]
         return TurnCueGeometry.distance(first, last) > 0.5 ? TurnCueGeometry.bearing(from: first, to: last) : nil
     }
+}
+
+/// "Walk through" (round 7): step through the route one numbered leg at a
+/// time. `index` nil is the whole-route view.
+struct PlanWalkThrough: Equatable, Sendable {
+    private(set) var count: Int
+    private(set) var index: Int?
+
+    init(count: Int = 0) {
+        self.count = max(0, count)
+        index = nil
+    }
+
+    var isActive: Bool { index != nil }
+    var canGoBack: Bool { (index ?? 0) > 0 }
+    var canGoNext: Bool { index.map { $0 + 1 < count } ?? false }
+    /// "Step 3 of 9".
+    var counter: String? { index.map { "Step \($0 + 1) of \(count)" } }
+
+    /// Starts at `step` (0-based), clamped into the route. false when the
+    /// route has no steps.
+    @discardableResult
+    mutating func enter(at step: Int = 0) -> Bool {
+        guard count > 0 else { index = nil; return false }
+        index = min(max(0, step), count - 1)
+        return true
+    }
+
+    @discardableResult
+    mutating func next() -> Bool {
+        guard let i = index, i + 1 < count else { return false }
+        index = i + 1
+        return true
+    }
+
+    @discardableResult
+    mutating func back() -> Bool {
+        guard let i = index, i > 0 else { return false }
+        index = i - 1
+        return true
+    }
+
+    /// Back to the whole route.
+    mutating func exit() { index = nil }
+
+    /// What VoiceOver reads on each step: "Step 3 of 9. 3. Left onto Lake Loop, 0.8 mi".
+    static func announcement(counter: String, line: String) -> String { "\(counter). \(line)" }
 }

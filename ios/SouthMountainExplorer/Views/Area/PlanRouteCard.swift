@@ -57,14 +57,22 @@ struct PlanRouteCard: View {
     }
 
     var body: some View {
-        if isCollapsed { collapsedBar } else { card }
+        Group {
+            if isCollapsed { collapsedBar } else { card }
+        }
+        // VoiceOver reads each Walk through step as it comes up.
+        .onChange(of: controller.walkThrough.index) { _, index in
+            guard let index, index < steps.count, let counter = controller.walkThrough.counter else { return }
+            AccessibilityNotification.Announcement(
+                PlanWalkThrough.announcement(counter: counter, line: steps[index].line(units: units))).post()
+        }
     }
 
     /// What a swipe down leaves: one summary line and Start hike. Swipe up for the card.
     private var collapsedBar: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let i = controller.selectedStep, i < steps.count {
-                collapsedStep(i)
+                walkThroughPanel(i)
             } else if let route = selectedRoute {
                 Text(route.summary)
                     .font(.subheadline.weight(.semibold))
@@ -75,7 +83,14 @@ struct PlanRouteCard: View {
                     .accessibilityIdentifier("plan-collapsed-summary")
             }
             if showsLegend, controller.selectedStep == nil, !dynamicTypeSize.isAccessibilitySize { legend.lineLimit(1) }
-            startButton
+            HStack(spacing: 8) {
+                if controller.walkThrough.isActive {
+                    walkNavButtons
+                } else if !steps.isEmpty {
+                    walkThroughButton
+                }
+                startButton
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 18)
@@ -84,30 +99,82 @@ struct PlanRouteCard: View {
         .accessibilityIdentifier("plan-collapsed-bar")
     }
 
-    /// The selected step in the bar, with previous and next, so the route can
-    /// be followed leg by leg while the map stays in view.
-    private func collapsedStep(_ i: Int) -> some View {
-        HStack(spacing: 4) {
-            stepNavButton("chevron.left", label: "Previous step", enabled: i > 0) { controller.selectStep(i - 1) }
-            Text(steps[i].line(units: units))
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("plan-collapsed-step")
-            stepNavButton("chevron.right", label: "Next step", enabled: i + 1 < steps.count) { controller.selectStep(i + 1) }
+    // MARK: - Walk through
+
+    /// The current Walk through step: "Step 3 of 9" over the step text, and
+    /// an Exit button back to the whole route.
+    private func walkThroughPanel(_ i: Int) -> some View {
+        HStack(alignment: .top, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(controller.walkThrough.counter ?? "")
+                    .font(.caption.weight(.bold).monospacedDigit())
+                    .foregroundStyle(Self.routeColor)
+                    .accessibilityIdentifier("plan-walk-counter")
+                Text(steps[i].line(units: units))
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("plan-collapsed-step")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            Button {
+                controller.exitWalkThrough()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Exit walk through")
+            .accessibilityHint("Shows the whole route again.")
+            .accessibilityIdentifier("plan-walk-exit")
         }
     }
 
-    private func stepNavButton(_ symbol: String, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .frame(width: 44, height: 44)
+    /// "Walk through": steps through the route one leg at a time.
+    private var walkThroughButton: some View {
+        Button {
+            controller.startWalkThrough()
+        } label: {
+            Label("Walk through", systemImage: "list.number")
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(enabled ? Color.accentColor : Color.secondary)
+        .buttonStyle(.bordered)
+        .accessibilityLabel("Walk through the route")
+        .accessibilityHint("Shows the route one step at a time.")
+        .accessibilityIdentifier("plan-walk-through")
+    }
+
+    /// Back and Next for Walk through.
+    private var walkNavButtons: some View {
+        HStack(spacing: 8) {
+            walkNavButton("Back", symbol: "chevron.left", label: "Previous step",
+                          enabled: controller.walkThrough.canGoBack, id: "plan-walk-back") { controller.previousStep() }
+            walkNavButton("Next", symbol: "chevron.right", label: "Next step",
+                          enabled: controller.walkThrough.canGoNext, id: "plan-walk-next") { controller.nextStep() }
+        }
+    }
+
+    private func walkNavButton(_ title: String, symbol: String, label: String, enabled: Bool, id: String,
+                               action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .labelStyle(.titleAndIcon)
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(minWidth: 44, minHeight: 44)
+        }
+        .buttonStyle(.bordered)
         .disabled(!enabled)
         .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
     }
 
     /// The drawn route has both new and already walked trail runs.
@@ -137,6 +204,10 @@ struct PlanRouteCard: View {
     private var card: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                if let i = controller.selectedStep, i < steps.count {
+                    walkThroughPanel(i)
+                    HStack(spacing: 8) { walkNavButtons }
+                }
                 if controller.preview.options.count > 1 { alternativesPicker }
                 if let route = selectedRoute { summary(route) }
                 ForEach(display.notes, id: \.self) { note in
@@ -203,7 +274,10 @@ struct PlanRouteCard: View {
         .accessibilityLabel(r.spoken)
         .accessibilityIdentifier("plan-route-card")
 
-        if !steps.isEmpty { stepList }
+        if !steps.isEmpty {
+            if !controller.walkThrough.isActive { walkThroughButton }
+            stepList
+        }
 
         if r.trailNames.count > 1 {
             DisclosureGroup(isExpanded: $showTrails) {
@@ -225,8 +299,8 @@ struct PlanRouteCard: View {
     // MARK: - Steps
 
     /// "1. Start on X, 0.6 mi", "2. Left onto Y, 1.1 mi", ... The numbers
-    /// match the badges on the map. Tapping a step highlights its leg and
-    /// zooms to it; tapping it again shows the whole route.
+    /// match the badges on the map. Tapping a step starts Walk through at
+    /// that step.
     private var stepList: some View {
         DisclosureGroup(isExpanded: $showSteps) {
             VStack(alignment: .leading, spacing: 0) {
@@ -281,7 +355,7 @@ struct PlanRouteCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(step.line(units: units))
-        .accessibilityHint(selected ? "Shows the whole route." : "Highlights this part on the map.")
+        .accessibilityHint("Walks through the route from this step.")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("plan-step-\(step.number)")
     }

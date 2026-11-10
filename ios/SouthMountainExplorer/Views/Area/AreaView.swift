@@ -2174,6 +2174,10 @@ struct AreaView: View {
             .onChange(of: planHike.preview.isShowing) { _, showing in
                 planDetent = showing ? planCardDetent : .medium
             }
+            // Walk through drops to the slim bar so the leg is framed on a big map.
+            .onChange(of: planHike.walkThroughStartTick) { _, _ in
+                if planHike.preview.isShowing { planDetent = planCollapsedDetent }
+            }
         }
         .onChange(of: isRecording) { _, nowRecording in
             // The route is a passive guide for the recording it started; it

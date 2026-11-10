@@ -30,12 +30,18 @@ final class PlanHikeController {
             // Any new state drops the old route; `plan` loads the new one after.
             preview = PlanPreview()
             hikeStarted = false
-            selectedStep = nil
+            walkThrough = PlanWalkThrough()
         }
     }
-    /// Index into the drawn route's `steps` that is highlighted and zoomed to
-    /// (round 6). nil shows the whole route.
-    private(set) var selectedStep: Int?
+    /// "Walk through" (round 7): the numbered leg shown on its own, bright,
+    /// with the rest of the route faded. Inactive shows the whole route.
+    private(set) var walkThrough = PlanWalkThrough()
+    /// Index into the drawn route's `steps` that is highlighted and zoomed to.
+    /// nil shows the whole route.
+    var selectedStep: Int? { walkThrough.index }
+    /// Bumped when Walk through starts, so the sheet can drop to the slim bar
+    /// and leave the map in view.
+    private(set) var walkThroughStartTick = 0
     /// Which planned route is drawn on the map (Task 10).
     private(set) var preview = PlanPreview()
     /// The Plan sheet's frame in window coordinates, measured by the sheet.
@@ -155,22 +161,55 @@ final class PlanHikeController {
 
     func selectRoute(id: String) {
         if preview.select(id: id) {
-            selectedStep = nil
+            walkThrough = PlanWalkThrough()
             fitTick &+= 1
         }
     }
 
-    /// Highlights one step's leg and zooms to it. Tapping the selected step
-    /// again goes back to the whole route.
+    /// Tapping a step in the list: Walk through from that step. nil goes
+    /// back to the whole route.
     func selectStep(_ index: Int?) {
-        settleFit?.cancel()
-        let count = preview.selected?.route.steps.count ?? 0
-        if let index, index >= 0, index < count, index != selectedStep {
-            selectedStep = index
-        } else {
-            selectedStep = nil
+        guard let index else { exitWalkThrough(); return }
+        startWalkThrough(at: index)
+    }
+
+    /// Starts Walk through at `step` (0-based): that leg bright and framed,
+    /// the rest faded.
+    func startWalkThrough(at step: Int = 0) {
+        let wasActive = walkThrough.isActive
+        var w = PlanWalkThrough(count: preview.selected?.route.steps.count ?? 0)
+        guard w.enter(at: step) else { return }
+        walkThrough = w
+        refit()
+        if !wasActive {
+            walkThroughStartTick &+= 1
+            // The sheet drops to the bar; frame the leg again once it settles.
+            settleRefit()
         }
+    }
+
+    func nextStep() { if walkThrough.next() { refit() } }
+    func previousStep() { if walkThrough.back() { refit() } }
+
+    /// Leaves Walk through and shows the whole route again.
+    func exitWalkThrough() {
+        guard walkThrough.isActive else { return }
+        walkThrough.exit()
+        refit()
+    }
+
+    private func refit() {
+        settleFit?.cancel()
         fitTick &+= 1
+    }
+
+    private func settleRefit() {
+        settleFit = Task { [weak self] in
+            guard let delay = self?.settleDelay else { return }
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, self.preview.isShowing else { return }
+            self.fitTick &+= 1
+        }
     }
 
     /// The leg the camera should frame: the selected step, else nil (whole route).
@@ -186,7 +225,7 @@ final class PlanHikeController {
         settleFit?.cancel()
         settleFit = nil
         preview.clear()
-        selectedStep = nil
+        walkThrough = PlanWalkThrough()
         hikeStarted = false
     }
 

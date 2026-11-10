@@ -3471,6 +3471,83 @@
       "forbidden_names": [
         "Raven Lake Trail"
       ]
+    },
+    "balsam-lake-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Pond Loop / Woodland Loop",
+        "Woodland Loop"
+      ]
+    },
+    "ferris-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Drumlin Ridge Trail",
+        "Mapletree Trail",
+        "Meadow Loop",
+        "Milkweed Trail",
+        "Ranney Falls Loop",
+        "Ranney Falls Trail",
+        "River Gorge Trail",
+        "River Gorge Trail System",
+        "The Great Trail (Northumberland)"
+      ]
+    },
+    "grundy-lake-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "halfway-lake-provincial-park-ca-on": {
+      "trail_count": 4,
+      "total_mi": 13.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Portage"
+      ]
+    },
+    "misery-bay-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 9.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "pigeon-river-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Boardwalk Trail",
+        "High Falls to Middle Falls Trail",
+        "Middle Falls to High Falls Trail"
+      ]
+    },
+    "torrance-barrens-conservation-reserve-ca-on": {
+      "trail_count": 2,
+      "total_mi": 4.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Barrens Extension"
+      ]
+    },
+    "voyageur-provincial-park-ca-on": {
+      "trail_count": 3,
+      "total_mi": 4.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

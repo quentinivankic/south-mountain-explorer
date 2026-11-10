@@ -3,7 +3,8 @@ import Foundation
 /// Top-level, UI-free entry for Plan a Hike ("Plan a Hike", Task 6).
 ///
 /// `planOutcome` runs Task 4 eligibility and the Task 5 planner and answers one
-/// of three ways: a best route plus alternatives, "nothing fits" (honest
+/// of three ways: a best route (the higher `RouteScore` of the whole-trail plan
+/// and the new-ground walk) plus alternatives, "nothing fits" (honest
 /// message, the exact time the closest trail needs, and a fallback that walks
 /// the most new ground), or "nothing to plan" (counts per reason). Pure and
 /// deterministic.
@@ -14,8 +15,17 @@ enum RoutePlanningService {
     static let roundingSeconds = 300.0
     /// Exact single-trail plans tried for the closest finish at most.
     private static let maxClosestEvaluations = 15
+    /// Whole-trail plans (best of each distinct finished-trail set) that get
+    /// the detour search before the best route is picked.
+    static let polishedWholePlans = 8
 
-    static func planOutcome(_ request: PlanOutcomeRequest) -> PlanOutcome {
+    static func planOutcome(_ unresolved: PlanOutcomeRequest) -> PlanOutcome {
+        // New metres per edge (saved tracks against the network) once, for every step below.
+        let request = PlanOutcomeRequest(
+            network: unresolved.network, trails: unresolved.trails,
+            completion: unresolved.completion.resolved(for: unresolved.network.network),
+            timeLimitSeconds: unresolved.timeLimitSeconds, maxGainFt: unresolved.maxGainFt,
+            paceFactor: unresolved.paceFactor, shape: unresolved.shape)
         let limit = request.timeLimitSeconds
         let trip: TrailEligibility.Trip = request.shape == .loop ? .loop : .oneWay
         // One eligibility pass at a 24 h budget: every trail that could ever be
@@ -32,8 +42,29 @@ enum RoutePlanningService {
             network: request.network, candidates: inLimit, completion: request.completion,
             timeLimitSeconds: limit, maxGainFt: request.maxGainFt,
             paceFactor: request.paceFactor, shape: request.shape)
-        if !inLimit.isEmpty, let best = RoutePlanner.plan(base), !PlanCancellation.isCancelled {
-            let alts = RouteAlternatives.build(best: best, base: base, request: request, credit: inLimit)
+        let wholes = inLimit.isEmpty ? [] : RoutePlanner.planTop(base, count: polishedWholePlans)
+        if !wholes.isEmpty, !PlanCancellation.isCancelled {
+            // A partial-trail walk over new ground competes on the same score.
+            // When it wins (most of a whole-trail hike is repeat ground), it is the best.
+            let partial = NewMilesRoute.plan(
+                view: request.network, credit: inLimit, completion: request.completion,
+                limitSeconds: limit, maxGainFt: request.maxGainFt,
+                paceFactor: request.paceFactor, shape: request.shape)
+            // Both candidates get the edge-level detour search: turn onto
+            // unfinished trail instead of walking old trail, partial trails allowed.
+            // Several whole-trail plans (different finished trails) are polished,
+            // because the detours can lift a plan that ranked lower before them.
+            var best = NewMilesRoute.polishBest(
+                wholes, view: request.network, credit: inLimit, completion: request.completion,
+                limitSeconds: limit, maxGainFt: request.maxGainFt,
+                paceFactor: request.paceFactor, shape: request.shape) ?? wholes[0]
+            if let p = partial,
+               RouteScore.isBetter(score: p.score, efficiency: p.efficiency, seconds: p.metrics.seconds,
+                                   than: best.score, efficiency: best.efficiency, seconds: best.metrics.seconds) {
+                best = p
+            }
+            let alts = RouteAlternatives.build(
+                best: best, base: base, request: request, credit: inLimit, newMiles: partial)
             return .planned(best: best, alternatives: alts)
         }
         // Cancelled mid-search: skip the extra planning below, the caller discards this.

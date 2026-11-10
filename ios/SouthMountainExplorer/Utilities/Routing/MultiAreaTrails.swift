@@ -41,10 +41,10 @@ struct MergedTrails: Sendable {
     func completion(_ base: TrailCompletionLookup) -> TrailCompletionLookup {
         let copies = self.copies
         let test = base.isComplete
-        return TrailCompletionLookup { key in
+        return TrailCompletionLookup({ key in
             if test(key) { return true }
             return copies[key]?.contains(where: test) ?? false
-        }
+        }, walked: base.walked)
     }
 }
 

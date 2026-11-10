@@ -25,8 +25,13 @@ struct RouteMetrics: Sendable, Equatable {
     var trailKeys: [TrailNetwork.TrailKey] { metersByTrail.keys.sorted() }
 
     /// nil when a step names an edge that does not exist.
+    ///
+    /// `newMetersByEdge` (from `TrailNetwork.newMetersByEdge`) gives the new
+    /// part of each edge, so a partly walked trail counts only its unwalked
+    /// ground. Without it, an edge with an uncompleted trail is new in full.
     init?(network: TrailNetwork, steps: [RouteStep], paceFactor: Double = 1.0,
-          completed: Set<TrailNetwork.TrailKey> = []) {
+          completed: Set<TrailNetwork.TrailKey> = [], newMetersByEdge: [Double]? = nil) {
+        let perEdge = newMetersByEdge.flatMap { $0.count == network.edges.count ? $0 : nil }
         var seenNew = Set<Int>()
         var at: Int? = nil
         for s in steps {
@@ -44,7 +49,9 @@ struct RouteMetrics: Sendable, Equatable {
             }
             if e.kind == .trail {
                 for k in e.trailKeys { metersByTrail[k, default: 0] += w.meters }
-                if e.trailKeys.contains(where: { !completed.contains($0) }), seenNew.insert(e.id).inserted {
+                if let perEdge {
+                    if perEdge[e.id] > 0, seenNew.insert(e.id).inserted { newMeters += perEdge[e.id] }
+                } else if e.trailKeys.contains(where: { !completed.contains($0) }), seenNew.insert(e.id).inserted {
                     newMeters += w.meters
                 }
             }

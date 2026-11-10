@@ -22,7 +22,7 @@ extension RoutePlanEngine {
         if let f = finishK { add(leg(prev, f), nil) }
 
         guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: request.paceFactor,
-                                         completed: completedKeys),
+                                         completed: completedKeys, newMetersByEdge: newMetersByEdge),
               metrics.isContinuous,
               metrics.seconds <= limit + 1e-3,
               maxGain.map({ metrics.gainFt <= $0 + 1e-3 }) ?? true

@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// "Plan a Hike" (Release A, Task 9): inputs, a Plan button, and a plain text
-/// result. Drawing the route on the map and starting it are later tasks.
+/// "Plan a Hike": a start, a time, and one Plan button. Extras (climb limit,
+/// pace, loop or one-way) sit under "More options". A finished plan replaces
+/// the form with `PlanRouteCard` and is drawn on the map right away.
 struct PlanHikeSheet: View {
     let area: Area
     let controller: PlanHikeController
@@ -10,16 +11,19 @@ struct PlanHikeSheet: View {
     /// Starts a normal recording (Task 10). The caller closes the sheet if it began.
     let onStartHike: () -> Void
     let onClose: () -> Void
-
+    /// The sheet sits at its slim bar (route drawn, swiped down): only the
+    /// summary line and Start hike show.
+    var isCollapsed = false
     @Environment(AreaDataService.self) private var areas
     @Environment(ProgressService.self) private var progress
     @Environment(RecordingService.self) private var recording
+    @Environment(LocationService.self) private var location
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+    @State private var showMore = false
+    @State private var customTime = false
 
     private static let dropID = "drop"
-    private static let pinID = "pin"
-    private static let resultAnchor = "plan-result-anchor"
 
     var body: some View {
         NavigationStack {
@@ -31,13 +35,15 @@ struct PlanHikeSheet: View {
                         gate: PlanStartGate.evaluate(
                             hasActiveRecording: recording.activeRecording != nil,
                             hasRecoveryIssue: recording.recoveryIssue != nil),
-                        onStart: onStartHike)
+                        onStart: onStartHike,
+                        isCollapsed: isCollapsed)
                 } else {
                     formView
                 }
             }
             .navigationTitle(controller.preview.isShowing ? "Your route" : "Plan a Hike")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(isCollapsed ? .hidden : .visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { onClose() }
@@ -47,7 +53,10 @@ struct PlanHikeSheet: View {
             }
         }
         .background(WindowFrameReader { controller.updateCardFrame($0) })
-        .task { await controller.prepare(area: area, recording: recording, units: units) }
+        .task {
+            let here = location.userLocation.map { (lat: $0.latitude, lon: $0.longitude) }
+            await controller.prepare(area: area, recording: recording, units: units, userLocation: here)
+        }
         .onChange(of: controller.inputs) { _, _ in controller.inputsChanged() }
         .onDisappear {
             controller.cancel()
@@ -58,61 +67,64 @@ struct PlanHikeSheet: View {
     }
 
     private var formView: some View {
-        ScrollViewReader { proxy in
-            Form {
-                startSection
-                limitsSection
-                paceSection
-                shapeSection
-                resultSection
+        Form {
+            Section {
+                startRow
+                timeRow
             }
-            // A finished plan lands below the inputs; bring it into view.
-            .onChange(of: controller.resultVersion) { _, _ in
-                withAnimation { proxy.scrollTo(Self.resultAnchor, anchor: .top) }
+            Section {
+                DisclosureGroup(isExpanded: $showMore) {
+                    climbRows
+                    paceRows
+                    shapeRows
+                } label: {
+                    Text("More options")
+                        .frame(minHeight: 44, alignment: .leading)
+                }
+                .accessibilityIdentifier("plan-more-options")
             }
+            outcomeSection
         }
+        .contentMargins(.top, 4, for: .scrollContent)
         .safeAreaInset(edge: .bottom, spacing: 0) { runBar }
     }
 
-    // MARK: - Start / end
+    // MARK: - Start
 
-    private var startSection: some View {
-        Section {
-            spotPicker(
-                title: "Start", id: "plan-start-picker", pin: controller.startPin, target: .start,
-                selection: controller.inputs.start,
-                set: { controller.inputs.start = $0 })
-        } header: {
-            Text("Where")
-        } footer: {
-            Text("Pick a trailhead or parking spot, or drop a pin on the map.")
-        }
+    private var startRow: some View {
+        spotPicker(
+            title: "Start", id: "plan-start-picker",
+            specials: [controller.hereSpot, controller.startPin].compactMap { $0 }, target: .start,
+            selection: controller.inputs.start,
+            set: { controller.inputs.start = $0 })
     }
 
+    /// `specials` are the options that are not in the lot list: your location
+    /// and the dropped pin.
     private func spotPicker(
-        title: String, id: String, pin: PlanSpot?, target: PlanPinTarget,
+        title: String, id: String, specials: [PlanSpot], target: PlanPinTarget,
         selection: StartPoint?, set: @escaping (StartPoint?) -> Void
     ) -> some View {
+        let all = specials + controller.spots
         let current: String? = {
             guard let selection else { return nil }
-            if let pin, pin.point == selection { return Self.pinID }
-            return controller.spots.first { $0.point == selection }?.id
+            return all.first { $0.point == selection }?.id
         }()
+        let hasPin = specials.contains { $0.id == "pin" }
         let binding = Binding<String?>(
             get: { current },
             set: { new in
                 switch new {
                 case Self.dropID?: onDropPin(target)
-                case Self.pinID?: set(pin?.point)
-                case let spotID?: set(controller.spots.first { $0.id == spotID }?.point)
+                case let spotID?: set(all.first { $0.id == spotID }?.point)
                 case nil: set(nil)
                 }
             })
         return Picker(title, selection: binding) {
             Text("Choose…").tag(String?.none)
-            // Pin options first: the lot list can run to dozens of rows.
-            Text(pin == nil ? "Drop a pin…" : "Move the pin…").tag(Optional(Self.dropID))
-            if let pin { Text(pin.title).tag(Optional(Self.pinID)) }
+            // Special options first: the lot list can run to dozens of rows.
+            ForEach(specials) { spot in Text(spot.title).tag(Optional(spot.id)) }
+            Text(hasPin ? "Move the pin…" : "Drop a pin…").tag(Optional(Self.dropID))
             ForEach(controller.spots) { spot in Text(spot.title).tag(Optional(spot.id)) }
         }
         .pickerStyle(.menu)
@@ -121,94 +133,114 @@ struct PlanHikeSheet: View {
         .accessibilityHint("Choose a trailhead, a parking spot, or drop a pin on the map.")
     }
 
-    // MARK: - Time and climb
+    // MARK: - Time
 
-    private var limitsSection: some View {
+    private var timeRow: some View {
         @Bindable var controller = controller
-        return Section {
-            Picker("Time limit", selection: $controller.inputs.timeLimitMinutes) {
-                ForEach(controller.inputs.timeOptions(), id: \.self) { m in
-                    Text(PlanText.duration(Double(m) * 60)).tag(m)
+        let current = controller.inputs.timeLimitMinutes
+        let customSelected = customTime || !controller.inputs.timeIsChip
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Time")
+            layout {
+                ForEach(PlanHikeInputs.timeChipMinutes, id: \.self) { m in
+                    PlanChip(
+                        title: PlanText.duration(Double(m) * 60),
+                        isSelected: !customSelected && current == m,
+                        spokenLabel: "\(PlanText.duration(Double(m) * 60)) time limit",
+                        identifier: "plan-time-\(m)",
+                        fillsWidth: dynamicTypeSize.isAccessibilitySize
+                    ) {
+                        customTime = false
+                        controller.inputs.timeLimitMinutes = m
+                    }
                 }
+                PlanChip(
+                    title: "Custom", isSelected: customSelected,
+                    spokenLabel: "Custom time limit", identifier: "plan-time-custom",
+                    fillsWidth: dynamicTypeSize.isAccessibilitySize
+                ) { customTime = true }
             }
-            .pickerStyle(.menu)
-            .frame(minHeight: 44)
-            .accessibilityIdentifier("plan-time-limit")
-
-            Toggle("Limit the climb", isOn: $controller.inputs.limitClimb)
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("plan-max-climb-toggle")
-
-            if controller.inputs.limitClimb {
-                Picker("Max climb", selection: $controller.inputs.climbValue) {
-                    ForEach(PlanHikeInputs.climbOptions(units: units), id: \.self) { v in
-                        Text("\(v) \(UnitFormatter.elevationSuffix(units: units))").tag(v)
+            if customSelected {
+                Picker("Custom time", selection: $controller.inputs.timeLimitMinutes) {
+                    ForEach(controller.inputs.timeOptions(), id: \.self) { m in
+                        Text(PlanText.duration(Double(m) * 60)).tag(m)
                     }
                 }
                 .pickerStyle(.menu)
                 .frame(minHeight: 44)
-                .accessibilityIdentifier("plan-max-climb-picker")
+                .accessibilityIdentifier("plan-time-limit")
             }
-        } header: {
-            Text("Limits")
         }
+        .padding(.vertical, 4)
     }
 
-    // MARK: - Pace
+    // MARK: - More options
 
     @ViewBuilder
-    private var paceSection: some View {
+    private var climbRows: some View {
         @Bindable var controller = controller
-        Section {
-            if let personal = controller.personalPace {
-                Picker("Pace", selection: $controller.inputs.pace) {
-                    Text("Default").tag(PlanPaceChoice.standard)
-                    Text("My pace").tag(PlanPaceChoice.mine)
+        Toggle("Limit the climb", isOn: $controller.inputs.limitClimb)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("plan-max-climb-toggle")
+        if controller.inputs.limitClimb {
+            Picker("Max climb", selection: $controller.inputs.climbValue) {
+                ForEach(PlanHikeInputs.climbOptions(units: units), id: \.self) { v in
+                    Text("\(v) \(UnitFormatter.elevationSuffix(units: units))").tag(v)
                 }
-                .pickerStyle(.segmented)
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("plan-pace-picker")
-                if controller.inputs.pace == .mine {
-                    Text(personal.summary)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("plan-pace-summary")
-                }
-            } else {
-                LabeledContent("Pace", value: "Default")
-                    .frame(minHeight: 44)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("plan-pace-picker")
             }
-        } header: {
-            Text("Pace")
-        } footer: {
-            if controller.personalPace == nil {
-                Text("\"My pace\" appears after a few recorded hikes.")
-            }
+            .pickerStyle(.menu)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("plan-max-climb-picker")
         }
     }
 
-    // MARK: - Shape
-
-    private var shapeSection: some View {
+    @ViewBuilder
+    private var paceRows: some View {
         @Bindable var controller = controller
-        return Section {
-            shapePicker($controller.inputs.shape)
-
-            if controller.inputs.shape == .oneWay {
-                spotPicker(
-                    title: "End", id: "plan-end-picker", pin: controller.endPin, target: .end,
-                    selection: controller.inputs.end,
-                    set: { controller.inputs.end = $0 })
+        if let personal = controller.personalPace {
+            Picker("Pace", selection: $controller.inputs.pace) {
+                Text("Default").tag(PlanPaceChoice.standard)
+                Text("My pace").tag(PlanPaceChoice.mine)
             }
-        } header: {
-            Text("Shape")
-        } footer: {
-            Text(controller.inputs.shape == .loop
-                 ? "Loop returns to where you started."
-                 : "One-way finishes at the end you pick.")
+            .pickerStyle(.segmented)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("plan-pace-picker")
+            if controller.inputs.pace == .mine {
+                Text(personal.summary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("plan-pace-summary")
+            }
+        } else {
+            LabeledContent("Pace", value: "Default")
+                .frame(minHeight: 44)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("plan-pace-picker")
+            Text("\"My pace\" appears after a few recorded hikes.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
+    }
+
+    @ViewBuilder
+    private var shapeRows: some View {
+        @Bindable var controller = controller
+        shapePicker($controller.inputs.shape)
+        if controller.inputs.shape == .oneWay {
+            spotPicker(
+                title: "End", id: "plan-end-picker",
+                specials: [controller.endPin].compactMap { $0 }, target: .end,
+                selection: controller.inputs.end,
+                set: { controller.inputs.end = $0 })
+        }
+        Text(controller.inputs.shape == .loop
+             ? "Loop returns to where you started."
+             : "One-way finishes at the end you pick.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -273,44 +305,43 @@ struct PlanHikeSheet: View {
         return ""
     }
 
-    // MARK: - Result
+    // MARK: - Outcome without a route
 
+    /// Errors, "nothing fits" and "nothing to plan". A planned route is shown
+    /// by `PlanRouteCard` instead.
     @ViewBuilder
-    private var resultSection: some View {
+    private var outcomeSection: some View {
         switch controller.state {
         case .idle, .planning:
             EmptyView()
         case .failed(let message):
-            Section("Result") {
+            Section {
                 Label(message, systemImage: "exclamationmark.triangle")
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("plan-result")
             }
-            .id(Self.resultAnchor)
         case .planned(let outcome, let context):
-            let display = PlanResultDisplay.make(outcome: outcome, context: context, units: units)
+            let d = PlanResultDisplay.make(outcome: outcome, context: context, units: units)
             Section {
-                resultBody(display)
-            } header: {
-                Text("Result")
+                outcomeBody(d)
             }
-            .id(Self.resultAnchor)
         }
     }
 
     @ViewBuilder
-    private func resultBody(_ d: PlanResultDisplay) -> some View {
-        Text(d.headline)
-            .font(.headline)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityIdentifier("plan-result")
-
+    private func outcomeBody(_ d: PlanResultDisplay) -> some View {
+        // The message already opens with the headline; show one or the other.
         if let message = d.message {
             Text(message)
                 .font(.subheadline)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("plan-result-message")
+        } else {
+            Text(d.headline)
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("plan-result")
         }
 
         if let replan = d.replan {
@@ -324,31 +355,16 @@ struct PlanHikeSheet: View {
             .accessibilityIdentifier("plan-replan-button")
         }
 
-        if d.kind == .planned, controller.preview.canShow {
-            Button {
-                controller.showOnMap()
-            } label: {
-                Label("Show on map", systemImage: "map")
-                    .frame(maxWidth: .infinity, minHeight: 44)
+        if let fallback = d.fallback {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(fallback.title).font(.subheadline.weight(.semibold))
+                Text(fallback.summary).font(.subheadline)
+                Text(fallback.climbLine).font(.footnote).foregroundStyle(.secondary)
             }
-            .buttonStyle(.borderedProminent)
-            .accessibilityIdentifier("plan-show-on-map")
-            .accessibilityHint("Draws the route on the map.")
-        }
-
-        if let route = d.route { routeView(route, showTitle: false) }
-        if let fallback = d.fallback { routeView(fallback, showTitle: true) }
-
-        if !d.alternatives.isEmpty {
-            DisclosureGroup {
-                ForEach(d.alternatives.indices, id: \.self) { i in
-                    alternativeView(d.alternatives[i])
-                }
-            } label: {
-                Text(d.alternatives.count == 1 ? "Show alternatives (1)" : "Show alternatives (\(d.alternatives.count))")
-                    .frame(minHeight: 44, alignment: .leading)
-            }
-            .accessibilityIdentifier("plan-alternatives")
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(fallback.spoken)
+            .accessibilityIdentifier("plan-fallback")
         }
 
         ForEach(d.notes, id: \.self) { note in
@@ -358,60 +374,6 @@ struct PlanHikeSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("plan-note")
         }
-    }
-
-    private func routeView(_ r: PlanResultDisplay.Route, showTitle: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if showTitle {
-                Text(r.title).font(.subheadline.weight(.semibold))
-            }
-            if !r.trailNames.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Finishes")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    ForEach(r.trailNames.indices, id: \.self) { i in
-                        Text(r.trailNames[i]).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            ForEach(r.stats, id: \.label) { stat in
-                LabeledContent(stat.label, value: stat.value)
-            }
-            ForEach(r.flags, id: \.self) { flag in
-                Label(flag, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(r.spoken)
-        .accessibilityIdentifier(showTitle ? "plan-fallback" : "plan-route")
-    }
-
-    private func alternativeView(_ a: PlanResultDisplay.Alternative) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(a.title).font(.subheadline.weight(.semibold))
-            Text(a.why).font(.footnote).foregroundStyle(.secondary)
-            Text(a.route.stats.map(\.value).joined(separator: " · "))
-                .font(.footnote)
-            if !a.route.trailNames.isEmpty {
-                Text(a.route.trailNames.joined(separator: ", "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            ForEach(a.route.flags, id: \.self) { flag in
-                Label(flag, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
-            }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(a.title). \(a.why). \(a.route.spoken)")
-        .accessibilityIdentifier("plan-alternative-row")
     }
 }
 

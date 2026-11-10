@@ -43,9 +43,8 @@ struct RoutePlanOutcomeSouthMountainTests {
     /// Runs, prints, and checks every plan in the outcome against the limits.
     @discardableResult
     private static func demo(_ title: String, _ w: World, _ req: PlanOutcomeRequest) -> (PlanOutcome, Double) {
-        let t0 = Date()
-        let out = RoutePlanningService.planOutcome(req)
-        let dt = Date().timeIntervalSince(t0)
+        // One outcome (best route plus its alternatives), in CPU time of this thread.
+        let (out, dt) = PlanTiming.cpuSeconds { RoutePlanningService.planOutcome(req) }
         var plans: [(String, RoutePlan)] = []
         switch out {
         case .planned(let best, let alts):
@@ -71,7 +70,11 @@ struct RoutePlanOutcomeSouthMountainTests {
             let m = RouteMetrics(network: w.view.network, steps: p.steps, completed: Set(w.view.network.trailKeys.filter(req.completion.isComplete)))
             #expect(m?.newMeters == p.metrics.newMeters, "\(title) \(name) metrics")
         }
-        #expect(dt < 3.0, "\(title) took \(dt) s")
+        // Laptop Debug worst (4 h, nothing done, with all alternatives): 2.4 to 2.9 s CPU.
+        let limit = PlanTiming.limit(4.0)
+        print("T6PERF \(title): \(String(format: "%.2f", dt)) s CPU, limit \(String(format: "%.2f", limit)) s " +
+              "(machine factor \(String(format: "%.2f", PlanTiming.machineFactor)), calibration \(String(format: "%.3f", PlanTiming.calibrationSeconds)) s)")
+        #expect(dt < limit, "\(title) took \(dt) s CPU, limit \(limit) s")
         return (out, dt)
     }
 

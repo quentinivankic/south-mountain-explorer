@@ -89,9 +89,10 @@ struct RoutePlan: Sendable {
 
 /// The Plan a Hike route planner.
 ///
-/// Goal: from a start, finish as many WHOLE uncompleted trails as possible,
-/// then walk more new ground, then less time, inside a time limit and an
-/// optional gain limit. A trail is finished only when every one of its
+/// Goal: from a start, find the walk with the best `RouteScore` (new miles,
+/// a bonus per whole uncompleted trail finished, a cost per repeat mile),
+/// then higher efficiency, then less time, inside a time limit and an
+/// optional gain limit. At least one whole trail must be finished. A trail is finished only when every one of its
 /// required edges is in the walk. Completed trails may be walked as
 /// connectors. Only network edges are used (bridges and the connector
 /// included, and flagged in the result).
@@ -99,7 +100,7 @@ struct RoutePlan: Sendable {
 /// Algorithm (heuristic, deterministic, no randomness, no clock):
 ///
 /// 1. **Jobs.** Each candidate trail is a job: "walk all its required edges".
-///    A job has up to 7 boundary nodes (its ends, junctions, the nodes nearest
+///    A job has up to 10 boundary nodes (its ends, junctions, the nodes nearest
 ///    the start / finish, and the start / end if on the trail). For every
 ///    (entry, exit) pair of boundary nodes the cheapest known covering walk is
 ///    built:
@@ -119,7 +120,7 @@ struct RoutePlan: Sendable {
 ///    the start and the finish gives time and gain between any two of them.
 /// 4. **Greedy insertion.** Start from the direct start-to-finish walk. Repeatedly
 ///    insert the pending job at the best position and variant, by
-///    (trails finished + small new-miles bonus) per extra second, while time
+///    (new miles + per-trail bonus) per extra second, while time
 ///    and gain stay in limits including the return leg. After every insertion
 ///    the exact walk is checked and trails it finished incidentally are
 ///    credited. Several seeds are built (three scorings, plus "this trail
@@ -130,8 +131,8 @@ struct RoutePlan: Sendable {
 ///    then greedy refill" (trades one trail for two cheaper ones). After every
 ///    order change the best entry / exit of every job is re-chosen by dynamic
 ///    programming, so each trail is tried in both directions. A move is kept
-///    only if the objective strictly improves: more trails finished, then
-///    more new metres, then less time. Capped by a solve counter.
+///    only if the objective strictly improves (see `RouteScore`). Capped by a
+///    solve counter.
 ///
 /// Ties break by trail key, so input order never matters.
 ///
@@ -149,5 +150,13 @@ enum RoutePlanner {
         guard request.timeLimitSeconds > 0, request.timeLimitSeconds.isFinite else { return nil }
         guard let engine = RoutePlanEngine(request) else { return nil }
         return engine.run()
+    }
+
+    /// The best plan first (same as `plan`), then the best plan of up to
+    /// `count - 1` other finished-trail sets. Empty when `plan` is nil.
+    static func planTop(_ request: RoutePlanRequest, count: Int) -> [RoutePlan] {
+        guard request.timeLimitSeconds > 0, request.timeLimitSeconds.isFinite,
+              let engine = RoutePlanEngine(request) else { return [] }
+        return engine.runTop(count)
     }
 }

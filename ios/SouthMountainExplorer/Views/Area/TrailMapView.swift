@@ -169,6 +169,8 @@ struct TrailMapView: View {
     var plannedRoute: PlannedRoute? = nil
     var plannedRouteFitTick: Int = 0
     var plannedRouteFitInsets: MapViewportInsets = .zero
+    /// Index into `plannedRoute.steps` to highlight; a fit then frames that leg.
+    var plannedRouteStep: Int? = nil
 
     @Environment(ProgressService.self) private var progress
     @Environment(LocationService.self) private var location
@@ -284,7 +286,8 @@ struct TrailMapView: View {
         onPickCoordinate: ((CLLocationCoordinate2D) -> Void)? = nil,
         plannedRoute: PlannedRoute? = nil,
         plannedRouteFitTick: Int = 0,
-        plannedRouteFitInsets: MapViewportInsets = .zero
+        plannedRouteFitInsets: MapViewportInsets = .zero,
+        plannedRouteStep: Int? = nil
     ) {
         self.area = area
         self.activeRecording = activeRecording
@@ -302,6 +305,7 @@ struct TrailMapView: View {
         self.plannedRoute = plannedRoute
         self.plannedRouteFitTick = plannedRouteFitTick
         self.plannedRouteFitInsets = plannedRouteFitInsets
+        self.plannedRouteStep = plannedRouteStep
         // Compute the initial camera target synchronously so the
         // first frame paints the right region — no flash to a
         // default location before .onAppear fires.
@@ -336,6 +340,7 @@ struct TrailMapView: View {
                 selectedTrailId: $selectedTrailId,
                 onPickCoordinate: onPickCoordinate,
                 plannedRoute: plannedRoute,
+                plannedRouteSelectedStep: plannedRouteStep,
                 showAllParking: showAllParking,
                 // Read HERE, in a View body, so observation is registered and the
                 // map re-renders the moment the pool lands.
@@ -1103,9 +1108,11 @@ struct TrailMapView: View {
     /// Uses the existing selected-route fit math and `setCameraTarget`; no
     /// state of its own, and the user's next gesture owns the camera again.
     private func fitPlannedRoute() {
-        guard let route = plannedRoute, !route.isEmpty,
-              let target = Self.selectedRouteRegion(
-                points: route.allCoords.map { (lat: $0.lat, lon: $0.lon) },
+        guard let route = plannedRoute, !route.isEmpty else { return }
+        // A selected step frames just its leg; otherwise the whole route.
+        let focus = plannedRouteStep.flatMap { $0 < route.steps.count ? route.steps[$0].coords : nil }
+        guard let target = Self.selectedRouteRegion(
+                points: (focus ?? route.allCoords).map { (lat: $0.lat, lon: $0.lon) },
                 viewportInsets: plannedRouteFitInsets,
                 screenHeight: viewportSize.height,
                 screenWidth: viewportSize.width

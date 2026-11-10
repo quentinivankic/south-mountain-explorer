@@ -35,7 +35,8 @@ struct PlanOutcomeRequest: Sendable {
 /// What "Plan a Hike" shows after Plan is tapped.
 enum PlanOutcome: Sendable {
     /// At least one whole trail fits. `alternatives` has up to 3 genuinely
-    /// different routes, each inside the same limits.
+    /// different routes, each inside the same limits. `best.isLowValue` says
+    /// when most of the best route is repeat ground.
     case planned(best: RoutePlan, alternatives: [RouteAlternative])
     /// There are trails to do, but none fits in the time (or climb) limit.
     case nothingFits(NothingFits)
@@ -51,9 +52,9 @@ struct RouteAlternative: Sendable {
         /// Short chip text.
         var title: String {
             switch self {
-            case .shortest: return "Shortest"
-            case .leastClimb: return "Least climb"
-            case .mostNewMiles: return "Most new miles"
+            case .shortest: return "Shorter"
+            case .leastClimb: return "Less climb"
+            case .mostNewMiles: return "More new"
             }
         }
     }
@@ -116,6 +117,12 @@ enum PlanText {
     }
 
     static func miles(_ meters: Double) -> String { String(format: "%.1f mi", meters / 1609.344) }
+
+    /// "7.4 mi" or "11.8 km" with `decimals` places.
+    static func distance(_ meters: Double, units: UnitsPreference, decimals: Int = 1) -> String {
+        let value = units == .imperial ? meters / 1609.344 : meters / 1000
+        return String(format: "%.\(decimals)f ", value) + UnitFormatter.distanceSuffix(units: units)
+    }
 
     static func trailCount(_ n: Int) -> String { n == 1 ? "1 trail" : "\(n) trails" }
 

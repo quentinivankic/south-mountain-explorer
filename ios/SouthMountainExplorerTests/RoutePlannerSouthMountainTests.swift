@@ -55,9 +55,8 @@ struct RoutePlannerSouthMountainTests {
             options: .init(budgetSeconds: hours * 3600, trip: shape == .loop ? .loop : .oneWay))
         let req = RoutePlanRequest(network: view, candidates: elig.candidates, completion: done,
                                    timeLimitSeconds: hours * 3600, maxGainFt: maxGain, shape: shape)
-        let t0 = Date()
-        let plan = RoutePlanner.plan(req)
-        return Run(plan: plan, elig: elig, view: view, request: req, seconds: Date().timeIntervalSince(t0))
+        let (plan, seconds) = PlanTiming.cpuSeconds { RoutePlanner.plan(req) }
+        return Run(plan: plan, elig: elig, view: view, request: req, seconds: seconds)
     }
 
     private static func describe(_ title: String, _ r: Run, _ budget: Double) {
@@ -99,7 +98,7 @@ struct RoutePlannerSouthMountainTests {
             Self.describe("none done, loop, \(Int(hours)) h", r, hours * 3600)
             problems += Self.check(r, budget: hours * 3600).map { "none \(hours) h: \($0)" }
             #expect(r.plan != nil)
-            #expect(r.seconds < 2.0, "planning took \(r.seconds) s")
+            #expect(r.seconds < PlanTiming.limit(2.0), "planning took \(r.seconds) s CPU")
             if hours == 4 { tenNearest = r.elig.candidates.prefix(10).map(\.key) }
         }
         #expect(tenNearest.count == 10)
@@ -107,7 +106,7 @@ struct RoutePlannerSouthMountainTests {
             let r = try Self.run(w, hours: hours, completed: Set(tenNearest))
             Self.describe("10 nearest done, loop, \(Int(hours)) h", r, hours * 3600)
             problems += Self.check(r, budget: hours * 3600).map { "10 done \(hours) h: \($0)" }
-            #expect(r.seconds < 2.0, "planning took \(r.seconds) s")
+            #expect(r.seconds < PlanTiming.limit(2.0), "planning took \(r.seconds) s CPU")
             for k in tenNearest { #expect(!(r.plan?.finishedTrailKeys.contains(k) ?? false)) }
         }
         let capped = try Self.run(w, hours: 2, maxGain: 500)
@@ -130,7 +129,7 @@ struct RoutePlannerSouthMountainTests {
             print("T5DEMO   one-way candidates=\(r.elig.candidates.count) excluded=\(r.elig.excluded.count)")
             print("T5PROBLEMS one-way \(Self.check(r, budget: 7200))")
             #expect(Self.check(r, budget: 7200) == [])
-            #expect(r.seconds < 2.0)
+            #expect(r.seconds < PlanTiming.limit(2.0))
             if let p = r.plan { #expect(p.endNodeId == r.view.end?.nodeId) }
         } catch {
             print("T5DEMO one-way Bursera -> National Trail lot: end point could not join the network: \(error)")
@@ -138,7 +137,8 @@ struct RoutePlannerSouthMountainTests {
     }
 
     /// 4 h from every third parking lot (different halves of the park and
-    /// different candidate counts); each plan must finish in under 2 s.
+    /// different candidate counts). The slowest single plan must take under
+    /// 2 s of CPU on the laptop, scaled by `PlanTiming.machineFactor` elsewhere.
     @Test func fourHourPlansFromManyTrailheadsStayFast() throws {
         let geom = try Self.load()
         let inputs = geom.trails.map { TrailNetwork.Input(areaId: geom.id, trail: $0) }
@@ -152,17 +152,17 @@ struct RoutePlannerSouthMountainTests {
             let elig = TrailEligibility.evaluate(network: view, trails: inputs, completion: .none,
                                                  options: .init(budgetSeconds: 4 * 3600))
             let req = RoutePlanRequest(network: view, candidates: elig.candidates, timeLimitSeconds: 4 * 3600)
-            let t0 = Date()
-            let plan = RoutePlanner.plan(req)
-            let dt = Date().timeIntervalSince(t0)
+            let (plan, dt) = PlanTiming.cpuSeconds { RoutePlanner.plan(req) }
             worst = max(worst, dt)
             if plan != nil { planned += 1 }
             let r = Run(plan: plan, elig: elig, view: view, request: req, seconds: dt)
             problems += Self.check(r, budget: 4 * 3600).map { "\(lot.name ?? "lot"): \($0)" }
         }
-        print("T5PERF 4 h from \(planned) trailheads: worst \(String(format: "%.2f", worst)) s")
+        let limit = PlanTiming.limit(2.0)
+        print("T5PERF 4 h from \(planned) trailheads: worst \(String(format: "%.2f", worst)) s CPU, " +
+              "limit \(String(format: "%.2f", limit)) s (machine factor \(String(format: "%.2f", PlanTiming.machineFactor)), calibration \(String(format: "%.3f", PlanTiming.calibrationSeconds)) s)")
         #expect(problems == [])
-        #expect(worst < 2.0, "slowest plan took \(worst) s")
+        #expect(worst < limit, "slowest plan took \(worst) s CPU, limit \(limit) s")
     }
 
     @Test func southMountainPlanIsDeterministic() throws {

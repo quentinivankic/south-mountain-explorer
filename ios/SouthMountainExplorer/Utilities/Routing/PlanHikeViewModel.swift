@@ -24,6 +24,8 @@ struct PlanHikeInputs: Equatable, Sendable {
     static let baseTimeOptionsMinutes: [Int] =
         Array(stride(from: 15, through: 120, by: 15)) + Array(stride(from: 150, through: 480, by: 30))
     static let defaultTimeMinutes = 120
+    /// The quick time chips: 1 h, 2 h, 3 h, 4 h. "Custom" covers everything else.
+    static let timeChipMinutes = [60, 120, 180, 240]
     static let maxTimeMinutes = 24 * 60
     /// An end closer than this to the start is the same place.
     static let minStartEndMeters = 30.0
@@ -59,6 +61,9 @@ struct PlanHikeInputs: Equatable, Sendable {
     // MARK: Time
 
     var timeLimitSeconds: Double { Double(timeLimitMinutes) * 60 }
+
+    /// true when the time is one of the quick chips.
+    var timeIsChip: Bool { Self.timeChipMinutes.contains(timeLimitMinutes) }
 
     /// The picker list. Keeps the current value (a re-plan can land off the grid).
     func timeOptions() -> [Int] {
@@ -202,8 +207,47 @@ enum PlanSpotBuilder {
         return best?.name
     }
 
+    /// A dropped pin. Never shows raw coordinates.
     static func pinSpot(lat: Double, lon: Double) -> PlanSpot {
-        PlanSpot(id: "pin", point: .pin(lat: lat, lon: lon), title: String(format: "Dropped pin (%.4f, %.4f)", lat, lon))
+        PlanSpot(id: "pin", point: .pin(lat: lat, lon: lon), title: "Dropped pin")
+    }
+
+    static let hereTitle = "Your location"
+
+    /// The user's own position as a start option.
+    static func hereSpot(lat: Double, lon: Double) -> PlanSpot {
+        PlanSpot(id: "here", point: .pin(lat: lat, lon: lon, name: hereTitle), title: hereTitle)
+    }
+
+    /// Where a new plan starts: the user's location when it is close enough to
+    /// a trail to snap to, else the trailhead (or parking spot) nearest to the
+    /// user, else nearest to the area's centre. nil when there is nothing to offer.
+    static func defaultStart(
+        user: (lat: Double, lon: Double)?, spots: [PlanSpot], trails: [Trail],
+        areaCenter: (lat: Double, lon: Double), maxTrailMeters: Double
+    ) -> PlanSpot? {
+        if let user, let d = nearestTrailMeters(lat: user.lat, lon: user.lon, trails: trails), d <= maxTrailMeters {
+            return hereSpot(lat: user.lat, lon: user.lon)
+        }
+        let ref = user ?? areaCenter
+        func dist(_ s: PlanSpot) -> Double { Area.meters(ref.lat, ref.lon, s.point.lat, s.point.lon) }
+        func isTrailhead(_ s: PlanSpot) -> Bool { if case .trailhead = s.point { return true } else { return false } }
+        let pool = spots.contains(where: isTrailhead) ? spots.filter(isTrailhead) : spots
+        return pool.min { (dist($0), $0.id) < (dist($1), $1.id) }
+    }
+
+    /// Straight-line metres from a point to the nearest trail vertex.
+    static func nearestTrailMeters(lat: Double, lon: Double, trails: [Trail]) -> Double? {
+        var best: Double?
+        for t in trails {
+            for seg in t.segments {
+                for p in seg where p.count >= 2 {
+                    let d = Area.meters(lat, lon, p[0], p[1])
+                    if best == nil || d < best! { best = d }
+                }
+            }
+        }
+        return best
     }
 }
 
@@ -249,6 +293,15 @@ struct PlanResultDisplay: Equatable {
         let flagCount: Int
         /// One sentence for VoiceOver.
         let spoken: String
+        /// "Kachina Access · 7.4 mi · 2 h 57 m · 1.0 new mi".
+        let summary: String
+        /// "1963 ft climb".
+        let climbLine: String
+        /// Set when most of the route is repeat ground (new miles under 30%).
+        let lowValueNote: String?
+        /// Where the distance comes from, adding up to it:
+        /// "3.48 new + 0.87 repeat + 0.06 off-trail = 4.41 mi".
+        var breakdown: String = ""
     }
 
     struct Alternative: Equatable {
@@ -277,14 +330,18 @@ struct PlanResultDisplay: Equatable {
         let notes = Self.notes(context, units: units)
         switch outcome {
         case .planned(let best, let alts):
-            let route = Self.route(best, title: "Your hike", units: units)
+            let hasShorter = alts.contains { $0.label == .shortest }
+            let route = Self.route(best, title: "Your hike", units: units, isBest: true, offersShorter: hasShorter)
             let alternatives = alts.map {
-                Alternative(title: $0.label.title, why: $0.why, route: Self.route($0.plan, title: $0.label.title, units: units))
+                Alternative(title: $0.label.title, why: $0.why,
+                            route: Self.route($0.plan, title: $0.label.title, units: units, isBest: false))
             }
             let n = best.finished.count
             return PlanResultDisplay(
                 kind: .planned,
-                headline: "Finishes \(PlanText.trailCount(n)) in \(PlanText.duration(best.metrics.seconds))",
+                headline: n == 0
+                    ? "\(PlanText.miles(best.metrics.newMeters)) of new trail in \(PlanText.duration(best.metrics.seconds))"
+                    : "Finishes \(PlanText.trailCount(n)) in \(PlanText.duration(best.metrics.seconds))",
                 message: nil, route: route, alternatives: alternatives, replan: nil, fallback: nil, notes: notes)
         case .nothingFits(let n):
             let replan = n.replanSeconds.map {
@@ -305,7 +362,8 @@ struct PlanResultDisplay: Equatable {
 
     // MARK: Pieces
 
-    static func route(_ plan: RoutePlan, title: String, units: UnitsPreference) -> Route {
+    static func route(_ plan: RoutePlan, title: String, units: UnitsPreference,
+                      isBest: Bool = false, offersShorter: Bool = false) -> Route {
         let m = plan.metrics
         let names = plan.finished.map(\.name)
         let newLabel = units == .imperial ? "New miles" : "New km"
@@ -319,7 +377,93 @@ struct PlanResultDisplay: Equatable {
         var spoken = "\(title). \(stats.map { "\($0.label) \($0.value)" }.joined(separator: ", "))."
         spoken += names.isEmpty ? " Finishes no whole trail." : " Finishes \(PlanText.trailCount(names.count)): \(names.joined(separator: ", "))."
         if !flags.isEmpty { spoken += " Includes \(flags.joined(separator: " and "))." }
-        return Route(title: title, trailNames: names, stats: stats, flags: flags, flagCount: flagCount, spoken: spoken)
+        let summary = summaryLine(plan, units: units)
+        let climb = "\(UnitFormatter.elevation(feet: m.gainFt, units: units)) climb"
+        var low: String?
+        if plan.isLowValue {
+            let newText = PlanText.distance(m.newMeters, units: units, decimals: 2)
+            let total = PlanText.distance(m.meters, units: units)
+            let unit = UnitFormatter.distanceSuffix(units: units)
+            low = isBest
+                ? "Most trails near here are done. Best is \(newText.dropLast(unit.count + 1)) new \(unit) in \(total)."
+                    + (offersShorter ? " Try Shorter for a closer option." : "")
+                : "Mostly trails you have done: \(newText.dropLast(unit.count + 1)) new \(unit) in \(total)."
+        }
+        if let low { spoken += " " + low }
+        let parts = breakdown(m, units: units)
+        spoken += " " + parts.spoken
+        return Route(title: title, trailNames: names, stats: stats, flags: flags, flagCount: flagCount,
+                     spoken: spoken, summary: summary, climbLine: climb, lowValueNote: low,
+                     breakdown: parts.text)
+    }
+
+    /// One part of the distance breakdown, in hundredths of the display unit.
+    struct BreakdownPart: Equatable {
+        let label: String
+        let hundredths: Int
+    }
+
+    /// Splits the route distance into new trail, repeat trail (walked before or
+    /// earlier this hike), off-trail connectors and unverified connections.
+    /// Rounded by largest remainder so the shown parts add up exactly to the
+    /// shown total. Parts that round to zero are left out.
+    static func breakdownParts(_ m: RouteMetrics, units: UnitsPreference) -> (parts: [BreakdownPart], totalHundredths: Int) {
+        let unit = units == .imperial ? 1609.344 : 1000.0
+        let raw: [(String, Double)] = [
+            ("new", m.newMeters),
+            ("repeat", max(0, m.trailMeters - m.newMeters)),
+            ("off-trail", m.connectorMeters),
+            ("unverified", m.bridgeMeters),
+        ]
+        let scaled = raw.map { max(0, $0.1) / unit * 100 }
+        let total = Int((m.meters / unit * 100).rounded())
+        var shares = scaled.map { Int($0.rounded(.down)) }
+        var left = total - shares.reduce(0, +)
+        // Hand the leftover hundredths to the largest remainders (ties: list order).
+        let order = scaled.indices.sorted {
+            let a = scaled[$0] - Double(shares[$0]), b = scaled[$1] - Double(shares[$1])
+            return a != b ? a > b : $0 < $1
+        }
+        var i = 0
+        while left > 0, !order.isEmpty {
+            shares[order[i % order.count]] += 1
+            left -= 1
+            i += 1
+        }
+        while left < 0, let j = shares.indices.filter({ shares[$0] > 0 }).min(by: {
+            (scaled[$0] - Double(shares[$0])) < (scaled[$1] - Double(shares[$1]))
+        }) {
+            shares[j] -= 1
+            left += 1
+        }
+        let parts = raw.indices.compactMap { shares[$0] > 0 ? BreakdownPart(label: raw[$0].0, hundredths: shares[$0]) : nil }
+        return (parts, total)
+    }
+
+    /// "3.48 new + 0.87 repeat + 0.06 off-trail = 4.41 mi", plus a spoken form.
+    static func breakdown(_ m: RouteMetrics, units: UnitsPreference) -> (text: String, spoken: String) {
+        let (parts, total) = breakdownParts(m, units: units)
+        let unit = UnitFormatter.distanceSuffix(units: units)
+        func v(_ h: Int) -> String { String(format: "%d.%02d", h / 100, h % 100) }
+        let text = parts.map { "\(v($0.hundredths)) \($0.label)" }.joined(separator: " + ") + " = \(v(total)) \(unit)"
+        let spoken = "Distance is " + parts.map { "\(v($0.hundredths)) \(unit) \($0.label)" }.joined(separator: ", ") + "."
+        return (text, spoken)
+    }
+
+    /// "Kachina Access · 7.4 mi · 2 h 57 m · 1.0 new mi". With several trails:
+    /// "Kachina Access +2 more".
+    static func summaryLine(_ plan: RoutePlan, units: UnitsPreference) -> String {
+        let names = plan.finished.map(\.name)
+        let lead: String
+        switch names.count {
+        case 0: lead = "Your hike"
+        case 1: lead = names[0]
+        default: lead = "\(names[0]) +\(names.count - 1) more"
+        }
+        let unit = UnitFormatter.distanceSuffix(units: units)
+        let newValue = PlanText.distance(plan.metrics.newMeters, units: units).dropLast(unit.count + 1)
+        return [lead, PlanText.distance(plan.metrics.meters, units: units),
+                PlanText.duration(plan.metrics.seconds), "\(newValue) new \(unit)"].joined(separator: " · ")
     }
 
     /// Distinct connector / unverified-bridge edges the walk uses.

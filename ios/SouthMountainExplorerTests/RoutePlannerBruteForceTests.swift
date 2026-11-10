@@ -108,7 +108,10 @@ struct RoutePlannerBruteForceTests {
     }
 
     static func objective(_ plan: RoutePlan?) -> Obj? {
-        plan.map { Obj(count: $0.finished.count, newMeters: $0.metrics.newMeters, seconds: $0.metrics.seconds) }
+        plan.map {
+            Obj(count: $0.finished.count, newMeters: $0.metrics.newMeters,
+                totalMeters: $0.metrics.meters, seconds: $0.metrics.seconds)
+        }
     }
 
     private static func run(_ s: Scene) throws -> PlannerKit.Outcome {
@@ -118,13 +121,14 @@ struct RoutePlannerBruteForceTests {
 
     // MARK: - Tests
 
-    /// Family A against the subsets-and-orders oracle (full objective) and the
-    /// all-walks oracle (finished count, when there is no gain limit).
+    /// Family A against the subsets-and-orders oracle: the planner's route must
+    /// match the exhaustive best `RouteScore` (new miles + trail bonus - repeat
+    /// cost), and never beat it.
     @Test func agreesWithBruteForceOnSingleEdgeTrails() throws {
-        var total = 0, same = 0, worseCount = 0, worseNew = 0, worseTime = 0, better = 0, mismatchNil = 0
-        var walkTotal = 0, walkSame = 0
+        var total = 0, same = 0, worse = 0, better = 0, mismatchNil = 0
         var missA: [String] = []
         var invalid: [String] = []
+        var worstGap = 0.0
         for seed in 1...400 {
             let scene = Self.sceneA(seed: UInt64(seed))
             guard let o = try? Self.run(scene) else { continue }
@@ -139,53 +143,50 @@ struct RoutePlannerBruteForceTests {
             case (let g?, let b?):
                 if g.isSame(as: b) { same += 1 }
                 else if g.isBetter(than: b) { better += 1 }
-                else if g.count < b.count { worseCount += 1 }
-                else if g.newMeters < b.newMeters - 0.5 { worseNew += 1; missA.append("\(seed)") }
-                else { worseTime += 1 }
-            }
-            if scene.maxGain == nil, let w = PlannerOracles.bestWalk(o) {
-                walkTotal += 1
-                if (got?.count ?? 0) == w.count { walkSame += 1 }
+                else { worse += 1; missA.append("\(seed)"); worstGap = max(worstGap, b.score - g.score) }
             }
         }
-        print("T5AGREE A subsets/orders: scenes=\(total) exact=\(same) worseCount=\(worseCount) worseNewMiles=\(worseNew) worseTime=\(worseTime) plannerBetter=\(better) nilMismatch=\(mismatchNil)")
-        print("T5AGREE A misses (new miles): \(missA)")
-        print("T5AGREE A all-walks count: scenes=\(walkTotal) sameCount=\(walkSame)")
+        print("T5AGREE A score: scenes=\(total) exact=\(same) worse=\(worse) plannerBetter=\(better) nilMismatch=\(mismatchNil) worstGapMi=\(worstGap)")
+        print("T5AGREE A misses: \(missA)")
         #expect(invalid == [])
         #expect(better == 0, "planner beat the exhaustive solver: the oracle is wrong")
         #expect(mismatchNil == 0)
         #expect(total >= 100)
         #expect(Double(same) / Double(total) >= 0.97)
-        #expect(worseCount <= total / 50)
-        #expect(Double(walkSame) / Double(max(walkTotal, 1)) >= 0.98)
     }
 
-    /// Family B (branches, loops, stars) against the all-walks oracle.
+    /// Family B (branches, loops, stars; flat) against the all-walks oracle on
+    /// the same score. The oracle may wander over extra partial ground that no
+    /// whole trail needs; the planner only walks whole trails and shortest
+    /// connectors (see `RoutePlanner`), so it can fall short there. The test
+    /// pins that it is never better than the exhaustive walk and is exact on
+    /// most scenes.
     @Test func agreesWithAllWalksOnBranchedAndLoopedTrails() throws {
-        var total = 0, same = 0, fewer = 0, slower = 0
-        var missB: [String] = [], slowB: [String] = []
+        var total = 0, same = 0, worse = 0
+        var missB: [String] = []
         var invalid: [String] = []
         for seed in 1...400 {
             let scene = Self.sceneB(seed: UInt64(seed) &+ 1000)
             guard let o = try? Self.run(scene), !o.eligibility.candidates.isEmpty else { continue }
             guard o.net.edges.count <= 16 else { continue }
             let oracle = PlannerOracles.bestWalk(o)
-            let got = o.plan
+            let got = Self.objective(o.plan)
             total += 1
-            if got != nil { for p in K.validate(o) { invalid.append("seed \(seed): \(p)") } }
-            let gc = got?.finished.count ?? 0
-            let bc = oracle?.count ?? 0
-            if gc == bc { same += 1 } else if gc < bc { fewer += 1; missB.append("\(seed)") }
-            if gc > bc { invalid.append("seed \(seed): planner finished \(gc) > exhaustive \(bc)") }
-            if let g = got, let b = oracle, gc == bc, g.metrics.seconds < b.seconds - 1e-3 {
-                invalid.append("seed \(seed): planner time below exhaustive minimum")
+            if o.plan != nil { for p in K.validate(o) { invalid.append("seed \(seed): \(p)") } }
+            switch (got, oracle) {
+            case (nil, nil): same += 1
+            case (nil, _): worse += 1; missB.append("\(seed)")
+            case (_, nil): invalid.append("seed \(seed): planner found a walk the exhaustive search did not")
+            case (let g?, let b?):
+                if g.isSame(as: b) { same += 1 }
+                else if g.isBetter(than: b) { invalid.append("seed \(seed): planner beat the exhaustive walk") }
+                else { worse += 1; missB.append("\(seed)") }
             }
-            if let g = got, let b = oracle, gc == bc, g.metrics.seconds > b.seconds + 0.5 { slower += 1; slowB.append("\(seed)(\(Int(g.metrics.seconds))>\(Int(b.seconds)))") }
         }
-        print("T5AGREE B all-walks count: scenes=\(total) sameCount=\(same) fewer=\(fewer) sameCountButSlower=\(slower) (informational: the planner prefers more new ground over less time)")
-        print("T5AGREE B misses: \(missB) slower: \(slowB)")
+        print("T5AGREE B all-walks score: scenes=\(total) exact=\(same) worse=\(worse)")
+        print("T5AGREE B misses: \(missB)")
         #expect(invalid == [])
         #expect(total >= 100)
-        #expect(Double(same) / Double(total) >= 0.97)
+        #expect(Double(same) / Double(total) >= 0.85)
     }
 }

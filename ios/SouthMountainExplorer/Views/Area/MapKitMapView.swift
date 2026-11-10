@@ -80,6 +80,12 @@ final class RecordingPolyline: MKPolyline {}
 final class PlannedRoutePolyline: MKPolyline {
     var kind: PlannedRoute.Kind = .trail
     var isCasing = false
+    /// Trail ground already walked (or walked earlier this hike): drawn faded.
+    var isDone = false
+    /// The selected step's leg: a wide glow drawn under the route line.
+    var isHighlight = false
+    /// Walk through: the rest of the route, drawn strongly faded.
+    var isFaded = false
 }
 
 /// The map's current screen points per map point, shared by the line
@@ -154,8 +160,11 @@ extension ScreenWidthMultiPolylineRenderer {
 /// Start / end marker or "Off-trail" / "Unverified connection" tag of the
 /// planned route preview.
 final class PlannedRouteAnnotation: MKPointAnnotation {
-    enum Role { case start, end, tag(PlannedRoute.Kind) }
+    enum Role { case start, end, tag(PlannedRoute.Kind), step }
     var role: Role = .start
+    /// Step badges: the step numbers that begin here ("3" or "3, 9").
+    var stepNumbers: [Int] = []
+    var isSelectedStep = false
 }
 
 /// A trailhead parking / access pin (see `Area.parking`). A distinct class lets
@@ -208,6 +217,8 @@ struct MapKitMapView: UIViewRepresentable {
     /// "Plan a Hike" route preview, drawn above the trail lines and below the
     /// recording line. nil draws nothing.
     var plannedRoute: PlannedRoute? = nil
+    /// Index into `plannedRoute.steps` whose leg is highlighted. nil = none.
+    var plannedRouteSelectedStep: Int? = nil
     /// Show every lot in the area rather than only the selected trail's few.
     /// Off by default — see StorageKeys.showAllParking for why the per-trail
     /// gate stays strict and this exists alongside it.
@@ -483,6 +494,9 @@ struct MapKitMapView: UIViewRepresentable {
         if coord.lastPlannedRoute != plannedRoute {
             coord.applyPlannedRoute(plannedRoute, on: mapView)
             coord.lastPlannedRoute = plannedRoute
+            coord.applyPlannedSteps(plannedRoute, selected: plannedRouteSelectedStep, on: mapView)
+        } else if coord.lastPlannedStep != plannedRouteSelectedStep {
+            coord.applyPlannedSteps(plannedRoute, selected: plannedRouteSelectedStep, on: mapView)
         }
         // 3) Live halo — rebuild when the per-segment hash changes.
         // TrailMapView throttles recompute to ~1 Hz so this rebuild
@@ -873,25 +887,15 @@ struct MapKitMapView: UIViewRepresentable {
 
         var haloOverlays: [MKPolyline] = []
         // Planned route preview (Task 10). Casing + line per segment.
-        var plannedRouteOverlays: [PlannedRoutePolyline] = []
+        var plannedRouteOverlays: [MKPolyline] = []
         var plannedRouteAnnotations: [PlannedRouteAnnotation] = []
         var lastPlannedRoute: PlannedRoute?
+        /// Start / end markers and Off-trail tags. The lines are built by
+        /// `rebuildPlannedOverlays` (from `applyPlannedSteps`).
         func applyPlannedRoute(_ route: PlannedRoute?, on mapView: MKMapView) {
-            mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
-            plannedRouteOverlays.removeAll(keepingCapacity: true)
             mapView.removeAnnotations(plannedRouteAnnotations)
             plannedRouteAnnotations.removeAll(keepingCapacity: true)
             guard let route, !route.isEmpty else { return }
-            for casing in [true, false] {
-                for seg in route.segments {
-                    let pts = seg.coords.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                    let pl = PlannedRoutePolyline(coordinates: pts, count: pts.count)
-                    pl.kind = seg.kind
-                    pl.isCasing = casing
-                    plannedRouteOverlays.append(pl)
-                }
-            }
-            mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
             func note(_ c: PlannedRoute.Coord, _ role: PlannedRouteAnnotation.Role, _ title: String) {
                 let a = PlannedRouteAnnotation()
                 a.coordinate = CLLocationCoordinate2D(latitude: c.lat, longitude: c.lon)
@@ -904,6 +908,68 @@ struct MapKitMapView: UIViewRepresentable {
             if let e = route.end { note(e, .end, "Planned route end") }
             mapView.addAnnotations(plannedRouteAnnotations)
         }
+
+        /// The route lines and arrows. With a step selected (Walk through), the
+        /// whole route is drawn strongly faded and that leg is drawn again on
+        /// top, bright, over a glow, with its own arrows.
+        func rebuildPlannedOverlays(_ route: PlannedRoute?, selected: Int?, on mapView: MKMapView) {
+            mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
+            plannedRouteOverlays.removeAll(keepingCapacity: true)
+            guard let route, !route.isEmpty else { return }
+            let step = selected.flatMap { $0 >= 0 && $0 < route.steps.count ? route.steps[$0] : nil }
+            appendRouteLayers(route.segments, faded: step != nil)
+            if let step {
+                var leg = route.segments(of: step)
+                if leg.isEmpty, step.coords.count >= 2 {
+                    leg = [.init(kind: step.kind, coords: step.coords, lengthMeters: step.meters)]
+                }
+                appendRouteLayers(leg, faded: false, glow: true)
+            }
+            mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
+        }
+
+        /// Casings first, then done (faded) lines, then new lines, then the
+        /// arrows, so where an out-and-back walks new ground and then repeats
+        /// it, the bright first pass stays on top.
+        private func appendRouteLayers(_ segments: [PlannedRoute.Segment], faded: Bool, glow: Bool = false) {
+            guard !segments.isEmpty else { return }
+            let laid = segments.map { seg in
+                seg.coords.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)) }
+            }
+            let isDone: (PlannedRoute.Segment) -> Bool = { $0.kind == .trail && !$0.isNew }
+            if glow {
+                for (i, seg) in segments.enumerated() where laid[i].count >= 2 {
+                    let g = PlannedRoutePolyline(points: laid[i], count: laid[i].count)
+                    g.isHighlight = true
+                    g.kind = seg.kind
+                    plannedRouteOverlays.append(g)
+                }
+            }
+            for pass in 0..<3 {
+                for (i, seg) in segments.enumerated() where laid[i].count >= 2 {
+                    if pass == 1, !isDone(seg) { continue }
+                    if pass == 2, isDone(seg) { continue }
+                    let pl = PlannedRoutePolyline(points: laid[i], count: laid[i].count)
+                    pl.kind = seg.kind
+                    pl.isCasing = pass == 0
+                    pl.isDone = isDone(seg)
+                    pl.isFaded = faded
+                    plannedRouteOverlays.append(pl)
+                }
+            }
+            // Walking-direction chevrons over the whole route, on top of the line.
+            var walk: [MKMapPoint] = []
+            for p in laid.joined() {
+                if let l = walk.last, l.x == p.x, l.y == p.y { continue }
+                walk.append(p)
+            }
+            if walk.count >= 2 {
+                let arrows = PlannedRouteArrowsPolyline(points: walk, count: walk.count)
+                arrows.isFaded = faded
+                plannedRouteOverlays.append(arrows)
+            }
+        }
+
         /// Trail overlays re-added by a filter change land above the route;
         /// put the route back on top of them.
         func bringPlannedRouteToFront(on mapView: MKMapView) {
@@ -911,7 +977,68 @@ struct MapKitMapView: UIViewRepresentable {
             mapView.removeOverlays(plannedRouteOverlays as [MKOverlay])
             mapView.addOverlays(plannedRouteOverlays, level: .aboveRoads)
         }
+
+        // Round 6: numbered step badges. Round 7: in Walk through only the
+        // current step's badge shows.
+        var plannedStepAnnotations: [PlannedRouteAnnotation] = []
+        var lastPlannedStep: Int?
+        /// Steps starting within this distance share one badge ("3, 9").
+        static let stepBadgeMergeMeters = 12.0
+        func applyPlannedSteps(_ route: PlannedRoute?, selected: Int?, on mapView: MKMapView) {
+            lastPlannedStep = selected
+            rebuildPlannedOverlays(route, selected: selected, on: mapView)
+            mapView.removeAnnotations(plannedStepAnnotations)
+            plannedStepAnnotations.removeAll()
+            guard let route, !route.steps.isEmpty else { return }
+            let walking = selected.map { $0 >= 0 && $0 < route.steps.count } ?? false
+            for (i, step) in route.steps.enumerated() {
+                let selectedHere = i == selected
+                if walking, !selectedHere { continue }
+                if let a = plannedStepAnnotations.first(where: {
+                    Area.meters($0.coordinate.latitude, $0.coordinate.longitude, step.at.lat, step.at.lon) < Self.stepBadgeMergeMeters
+                }) {
+                    a.stepNumbers.append(step.number)
+                    a.isSelectedStep = a.isSelectedStep || selectedHere
+                    a.title = (a.title ?? "") + ". Step \(step.number): \(step.instruction)"
+                    continue
+                }
+                let a = PlannedRouteAnnotation()
+                a.coordinate = CLLocationCoordinate2D(latitude: step.at.lat, longitude: step.at.lon)
+                a.role = .step
+                a.stepNumbers = [step.number]
+                a.isSelectedStep = selectedHere
+                a.title = "Step \(step.number): \(step.instruction)"
+                plannedStepAnnotations.append(a)
+            }
+            mapView.addAnnotations(plannedStepAnnotations)
+        }
+        /// A small numbered badge: white with a route-colored ring, or filled
+        /// when it is the selected step.
+        static func stepBadgeImage(_ numbers: [Int], selected: Bool) -> UIImage {
+            let text = numbers.map(String.init).joined(separator: ", ")
+            let font = UIFont.systemFont(ofSize: selected ? 13 : 11, weight: .bold)
+            let fg = selected ? UIColor.white : plannedRouteColor
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: fg]
+            let size = (text as NSString).size(withAttributes: attrs)
+            let h = ceil(size.height) + (selected ? 8 : 5)
+            let w = max(h, ceil(size.width) + (selected ? 12 : 9))
+            let rect = CGRect(x: 0, y: 0, width: w, height: h)
+            return UIGraphicsImageRenderer(size: rect.size).image { _ in
+                let shape = UIBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), cornerRadius: (h - 2) / 2)
+                (selected ? plannedRouteColor : UIColor.white).setFill()
+                shape.fill()
+                (selected ? UIColor.white : plannedRouteColor).setStroke()
+                shape.lineWidth = selected ? 2 : 1.5
+                shape.stroke()
+                (text as NSString).draw(at: CGPoint(x: (w - size.width) / 2, y: (h - size.height) / 2), withAttributes: attrs)
+            }
+        }
         static let plannedRouteColor = UIColor(red: 0.86, green: 0.0, blue: 0.52, alpha: 1)
+        /// Planned route ground already walked: the route color, faded.
+        static let plannedRouteDoneColor = plannedRouteColor.withAlphaComponent(0.35)
+        /// Walk through: the legs other than the current one keep this much
+        /// of their opacity.
+        static let plannedFade: CGFloat = PlannedRouteArrowsRenderer.fadeAlpha
         static func plannedTagImage(_ text: String) -> UIImage {
             let font = UIFont.systemFont(ofSize: 11, weight: .semibold)
             let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.white]
@@ -1681,6 +1808,26 @@ struct MapKitMapView: UIViewRepresentable {
             }
             if let planned = annotation as? PlannedRouteAnnotation {
                 switch planned.role {
+                case .step:
+                    let id = "planned-route-step"
+                    let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                        ?? MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    view.annotation = annotation
+                    view.image = Self.stepBadgeImage(planned.stepNumbers, selected: planned.isSelectedStep)
+                    view.canShowCallout = false
+                    // Badges give way to each other when zoomed out (MapKit
+                    // hides the colliding lower-priority ones); earlier steps
+                    // win. The selected step always shows.
+                    view.collisionMode = .circle
+                    let first = Float(planned.stepNumbers.min() ?? 1)
+                    view.displayPriority = planned.isSelectedStep
+                        ? .required : MKFeatureDisplayPriority(rawValue: max(300, 740 - first))
+                    view.zPriority = planned.isSelectedStep ? .max : .defaultSelected
+                    view.centerOffset = .zero
+                    view.isAccessibilityElement = true
+                    view.accessibilityLabel = planned.title
+                    view.accessibilityIdentifier = "plan-route-step-badge"
+                    return view
                 case .tag:
                     let id = "planned-route-tag"
                     let view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
@@ -1845,6 +1992,9 @@ struct MapKitMapView: UIViewRepresentable {
                 }
                 return r
             }
+            if let arrows = overlay as? PlannedRouteArrowsPolyline {
+                return PlannedRouteArrowsRenderer(polyline: arrows)
+            }
             if let route = overlay as? PlannedRoutePolyline {
                 let r = Self.usesScreenWidthLines(mapView)
                     ? ScreenWidthPolylineRenderer(polyline: route, displayZoomScale: lineDisplayZoomScale)
@@ -1853,11 +2003,19 @@ struct MapKitMapView: UIViewRepresentable {
                 r.lineJoin = .round
                 r.lineCap = dashed ? .butt : .round
                 if dashed { r.lineDashPattern = [9, 7] }
-                if route.isCasing {
-                    r.strokeColor = UIColor.white.withAlphaComponent(0.95)
+                if route.isHighlight {
+                    // Selected step: a wide warm glow around the leg.
+                    r.lineDashPattern = nil
+                    r.lineCap = .round
+                    r.strokeColor = UIColor.systemYellow.withAlphaComponent(0.9)
+                    r.lineWidth = 16
+                } else if route.isCasing {
+                    r.strokeColor = UIColor.white.withAlphaComponent(0.95 * (route.isFaded ? Self.plannedFade : 1))
                     r.lineWidth = 8
                 } else {
-                    r.strokeColor = Self.plannedRouteColor
+                    // Done ground: same hue and width, faded over the white casing.
+                    let color = route.isDone ? Self.plannedRouteDoneColor : Self.plannedRouteColor
+                    r.strokeColor = route.isFaded ? color.withAlphaComponent(color.cgColor.alpha * Self.plannedFade) : color
                     r.lineWidth = 4
                 }
                 return r

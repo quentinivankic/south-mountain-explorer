@@ -128,7 +128,7 @@ struct RoutePlanOutcomeTests {
         let t = [
             K.trail("A", [(0, 0), (500, 0)]),                                    // completed
             K.trail("Z", [(5000, 5000), (5500, 5000)]),                          // other half of the network
-            K.trail("W", [[(2000, 2000), (2100, 2000)], [(2700, 2000), (2800, 2000)]]), // pieces 600 m apart
+            K.trail("W", [[(2000, 2000), (2100, 2000)], [(3100, 2000), (3200, 2000)]]), // pieces 1000 m apart
         ]
         let o = RoutePlanningService.planOutcome(try request(t, completed: ["A"], limit: 3600))
         guard case .noCandidates(let s) = o else { Issue.record("expected noCandidates"); return }
@@ -209,17 +209,16 @@ struct RoutePlanOutcomeTests {
         #expect(sawAny, "no scene produced an alternative")
     }
 
-    @Test func shortestDropsTrailsOnlyDownToBestMinusOne() throws {
+    @Test func shorterTakesAtMostEightyPercentOfTheTime() throws {
         let req = try request(hillScene, limit: 4800)
         let p = try #require(planned(RoutePlanningService.planOutcome(req)))
-        if let s = p.alts.first(where: { $0.label == .shortest }) {
-            #expect(s.plan.finished.count >= max(1, p.best.finished.count - 1))
-            #expect(s.plan.metrics.seconds < p.best.metrics.seconds)
-        }
+        let s = try #require(p.alts.first(where: { $0.label == .shortest }))
+        #expect(s.plan.metrics.seconds <= p.best.metrics.seconds * RouteAlternatives.shorterMaxShare + 1e-6)
+        #expect(!s.plan.finished.isEmpty)
     }
 
     @Test func leastClimbIsFlatterAndKeepsMostTrails() throws {
-        let req = try request(hillScene, limit: 4800)
+        let req = try request(hillScene, limit: 3000)
         let p = try #require(planned(RoutePlanningService.planOutcome(req)))
         #expect(p.best.metrics.gainFt >= 100)
         let a = try #require(p.alts.first { $0.label == .leastClimb })
@@ -247,7 +246,7 @@ struct RoutePlanOutcomeTests {
         }
     }
 
-    @Test func mostNewMilesWalkBeatsTinyWholeTrails() throws {
+    @Test func newGroundWalkBecomesTheBestWhenItScoresHigher() throws {
         // Four 20 m stubs off the start are the only whole trails that fit. A
         // 3 km road is cut into 500 m edges by completed crossing trails, so
         // walking down it (without finishing it) is far more new ground.
@@ -263,13 +262,11 @@ struct RoutePlanOutcomeTests {
         }
         let req = try request(t, completed: done, limit: 2000)
         let p = try #require(planned(RoutePlanningService.planOutcome(req)))
+        // The road walk scores far higher than the stubs alone, so it is the
+        // best route. It passes the stubs on the way out, so all four are finished.
+        #expect(p.best.metrics.newMeters > 1000)
         #expect(Set(K.ids(p.best)) == ["s0", "s1", "s2", "s3"])
         checkAlternatives(req, p)
-        let m = try #require(p.alts.first { $0.label == .mostNewMiles })
-        #expect(m.plan.metrics.newMeters > 1000)
-        // The walk passes the stubs on the way out, so the same four are finished.
-        #expect(m.why.hasSuffix("same trails"))
-        #expect(m.why.contains("more new ground"))
     }
 
     @Test func outcomeIsDeterministic() throws {

@@ -30,8 +30,18 @@ final class PlanHikeController {
             // Any new state drops the old route; `plan` loads the new one after.
             preview = PlanPreview()
             hikeStarted = false
+            walkThrough = PlanWalkThrough()
         }
     }
+    /// "Walk through" (round 7): the numbered leg shown on its own, bright,
+    /// with the rest of the route faded. Inactive shows the whole route.
+    private(set) var walkThrough = PlanWalkThrough()
+    /// Index into the drawn route's `steps` that is highlighted and zoomed to.
+    /// nil shows the whole route.
+    var selectedStep: Int? { walkThrough.index }
+    /// Bumped when Walk through starts, so the sheet can drop to the slim bar
+    /// and leave the map in view.
+    private(set) var walkThroughStartTick = 0
     /// Which planned route is drawn on the map (Task 10).
     private(set) var preview = PlanPreview()
     /// The Plan sheet's frame in window coordinates, measured by the sheet.
@@ -54,15 +64,23 @@ final class PlanHikeController {
     /// Dropped pins keep their own list entry so the pickers can show them.
     private(set) var startPin: PlanSpot?
     private(set) var endPin: PlanSpot?
+    /// The user's own position, offered as a start when it is near a trail.
+    private(set) var hereSpot: PlanSpot?
 
     private var loader: PlanningNetworkLoader?
     private var preparedAreaId: String?
     private var run: Task<Void, Never>?
     private var lastPlanned: PlanHikeInputs?
+    /// Saved hikes, read at plan time so only ground no track walked counts as new.
+    private weak var recording: RecordingService?
 
     /// Spot list and personal pace, once per area. Cheap to call on every open.
-    func prepare(area: Area, recording: RecordingService, units: UnitsPreference) async {
+    func prepare(
+        area: Area, recording: RecordingService, units: UnitsPreference,
+        userLocation: (lat: Double, lon: Double)? = nil
+    ) async {
         inputs.normalizeClimb(units: units)
+        self.recording = recording
         if preparedAreaId != area.id {
             preparedAreaId = area.id
             let lots = ParkingPoolService.shared.merged(with: area.parking, forAnyOf: area.trails, within: 400)
@@ -71,12 +89,34 @@ final class PlanHikeController {
             inputs.normalizeClimb(units: units)
             startPin = nil
             endPin = nil
+            hereSpot = nil
             state = .idle
         }
+        applyDefaultStart(area: area, userLocation: userLocation)
         let pace = await PersonalPace.load(using: recording)
         personalPace = pace
         inputs.reconcilePace(personal: pace)
     }
+
+    /// Fills an empty start: the user's location if it is near a trail, else
+    /// the nearest trailhead. Never replaces a start the user chose.
+    func applyDefaultStart(area: Area, userLocation: (lat: Double, lon: Double)?) {
+        if let u = userLocation,
+           let d = PlanSpotBuilder.nearestTrailMeters(lat: u.lat, lon: u.lon, trails: area.trails),
+           d <= Self.maxHereMeters {
+            hereSpot = PlanSpotBuilder.hereSpot(lat: u.lat, lon: u.lon)
+        } else {
+            hereSpot = nil
+        }
+        guard inputs.start == nil else { return }
+        let pick = PlanSpotBuilder.defaultStart(
+            user: userLocation, spots: spots, trails: area.trails,
+            areaCenter: (area.centerLat, area.centerLon), maxTrailMeters: Self.maxHereMeters)
+        inputs.start = pick?.point
+    }
+
+    /// The user's position counts as "at the trails" within this distance.
+    static let maxHereMeters = 500.0
 
     func setPin(_ target: PlanPinTarget, lat: Double, lon: Double) {
         let spot = PlanSpotBuilder.pinSpot(lat: lat, lon: lon)
@@ -112,8 +152,70 @@ final class PlanHikeController {
         }
     }
 
+    /// Back to the inputs from a result: removes the route and keeps the inputs.
+    func edit() {
+        cancel()
+        clearRoute()
+        state = .idle
+    }
+
     func selectRoute(id: String) {
-        if preview.select(id: id) { fitTick &+= 1 }
+        if preview.select(id: id) {
+            walkThrough = PlanWalkThrough()
+            fitTick &+= 1
+        }
+    }
+
+    /// Tapping a step in the list: Walk through from that step. nil goes
+    /// back to the whole route.
+    func selectStep(_ index: Int?) {
+        guard let index else { exitWalkThrough(); return }
+        startWalkThrough(at: index)
+    }
+
+    /// Starts Walk through at `step` (0-based): that leg bright and framed,
+    /// the rest faded.
+    func startWalkThrough(at step: Int = 0) {
+        let wasActive = walkThrough.isActive
+        var w = PlanWalkThrough(count: preview.selected?.route.steps.count ?? 0)
+        guard w.enter(at: step) else { return }
+        walkThrough = w
+        refit()
+        if !wasActive {
+            walkThroughStartTick &+= 1
+            // The sheet drops to the bar; frame the leg again once it settles.
+            settleRefit()
+        }
+    }
+
+    func nextStep() { if walkThrough.next() { refit() } }
+    func previousStep() { if walkThrough.back() { refit() } }
+
+    /// Leaves Walk through and shows the whole route again.
+    func exitWalkThrough() {
+        guard walkThrough.isActive else { return }
+        walkThrough.exit()
+        refit()
+    }
+
+    private func refit() {
+        settleFit?.cancel()
+        fitTick &+= 1
+    }
+
+    private func settleRefit() {
+        settleFit = Task { [weak self] in
+            guard let delay = self?.settleDelay else { return }
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, self.preview.isShowing else { return }
+            self.fitTick &+= 1
+        }
+    }
+
+    /// The leg the camera should frame: the selected step, else nil (whole route).
+    var focusCoords: [PlannedRoute.Coord]? {
+        guard let i = selectedStep, let steps = preview.selected?.route.steps, i < steps.count else { return nil }
+        return steps[i].coords
     }
 
     /// Test seam: load route options without running the planner.
@@ -123,6 +225,7 @@ final class PlanHikeController {
         settleFit?.cancel()
         settleFit = nil
         preview.clear()
+        walkThrough = PlanWalkThrough()
         hikeStarted = false
     }
 
@@ -146,6 +249,7 @@ final class PlanHikeController {
         let snapshot = inputs
         lastPlanned = snapshot
         let personal = personalPace
+        let recording = self.recording
         state = .planning("Loading trails…")
         if loader == nil { loader = PlanningNetworkLoader(areas: areas) }
         let loader = self.loader!
@@ -160,9 +264,15 @@ final class PlanHikeController {
             let completions = progress.completions
             let fingerprints = progress.completedFingerprints
             let merged = input.merged
+            let history = await recording?.loadHistory() ?? []
+            guard !Task.isCancelled else { return }
             let completion = await Task.detached(priority: .userInitiated) {
-                merged.completion(TrailCompletionLookup.snapshot(
-                    completions: completions, fingerprints: fingerprints, trails: merged.allInputs))
+                // Whole trails marked complete, plus the ground the saved tracks walked
+                // (the same tracks the progress bars come from).
+                let walked = WalkedGround(paths: history.map(\.path))
+                return merged.completion(TrailCompletionLookup.snapshot(
+                    completions: completions, fingerprints: fingerprints, trails: merged.allInputs)
+                    .with(walked: walked))
             }.value
             guard !Task.isCancelled else { return }
             let request = PlanRun(
@@ -178,6 +288,8 @@ final class PlanHikeController {
             case .success(let done):
                 self.state = .planned(done.outcome, done.context)
                 self.preview.load(done.options)
+                // The route goes on the map as soon as it is ready.
+                self.showOnMap()
             case .failure(let err): self.state = .failed(PlanHikeMessages.startError(err.error, isEnd: err.isEnd, units: units))
             }
             self.run = nil
@@ -233,9 +345,14 @@ private struct PlanRun: Sendable {
         var options: [PlanPreview.Option] = []
         if case .planned(let best, let alts) = outcome {
             let edges = view.network.edges
+            let names = Dictionary(trails.map { ($0.key, $0.trail.name) }, uniquingKeysWith: { first, _ in first })
+            func route(_ plan: RoutePlan) -> PlannedRoute {
+                PlannedRouteBuilder.build(plan: plan, edges: edges, completion: completion)
+                    .with(steps: PlanStepBuilder.steps(plan: plan, network: view.network, names: names))
+            }
             options = PlanPreview.options(
-                best: PlannedRouteBuilder.build(plan: best, edges: edges),
-                alternatives: alts.map { ($0.label.title, PlannedRouteBuilder.build(plan: $0.plan, edges: edges)) })
+                best: route(best),
+                alternatives: alts.map { ($0.label.title, route($0.plan)) })
         }
         return .success(Done(outcome: outcome, context: context, options: options))
     }

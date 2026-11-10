@@ -34,10 +34,9 @@ enum NewMilesRoute {
         let finish: Int? = shape == .loop ? start : view.end?.nodeId
         let costs = RouteCosts(network: net, paceFactor: paceFactor)
 
-        var done = Set<TrailNetwork.TrailKey>()
-        for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
-        let isNew = net.edges.map { $0.kind == .trail && $0.trailKeys.contains { !done.contains($0) } }
-
+        // New metres per edge: only the part of an uncompleted trail no saved track walked.
+        let newM = net.newMetersByEdge(completion)
+        let isNew = newM.map { $0 > 0 }
         // Way home: reversed network Dijkstra from the finish.
         var rev: TrailNetwork?
         var back: ShortestPaths?
@@ -67,7 +66,7 @@ enum NewMilesRoute {
                     let ret = homeSeconds(b)
                     guard ret.isFinite, t + cost + ret <= limit - 1e-6, cost > 0 else { continue }
                     if let cap = maxGainFt, g + tree.gainFt[a] + w.gainFt + homeGain(b) > cap + 1e-9 { continue }
-                    let score = w.meters / cost
+                    let score = newM[e.id] / cost
                     if best == nil || score > best!.score + 1e-12 {
                         best = (score, e.id, dir, a, b)
                     }
@@ -91,7 +90,105 @@ enum NewMilesRoute {
             steps.append(contentsOf: home.reversed())
         }
 
-        guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: paceFactor, completed: done),
+        guard let greedy = assemble(
+            steps: steps, view: view, credit: candidates, completion: completion,
+            limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+        else { return nil }
+        return polish(
+            greedy, view: view, credit: candidates, completion: completion,
+            limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+    }
+
+    /// Runs the edge-level detour search (`EdgeWalkSearch`) on `plan` and
+    /// returns the result when it scores better, else `plan` unchanged.
+    static func polish(
+        _ plan: RoutePlan,
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan {
+        polishBest([plan], view: view, credit: candidates, completion: completion, limitSeconds: limit,
+                   maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape) ?? plan
+    }
+
+    /// Runs the detour search on every plan (one shared search, so distance
+    /// trees are built once) and returns the best result by `RouteScore`.
+    /// Ties keep the earlier plan. nil only when `plans` is empty.
+    static func polishBest(
+        _ plans: [RoutePlan],
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan? {
+        let search = EdgeWalkSearch(
+            view: view, credit: candidates, completion: completion, limitSeconds: limit,
+            maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+        var best: RoutePlan?
+        for plan in plans {
+            if PlanCancellation.isCancelled, best != nil { break }
+            let out = search.map {
+                polished(plan, search: $0, view: view, credit: candidates, completion: completion,
+                         limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape)
+            } ?? plan
+            if let b = best,
+               !RouteScore.isBetter(score: out.score, efficiency: out.efficiency, seconds: out.metrics.seconds,
+                                    than: b.score, efficiency: b.efficiency, seconds: b.metrics.seconds) { continue }
+            best = out
+        }
+        return best
+    }
+
+    private static func polished(
+        _ plan: RoutePlan,
+        search: EdgeWalkSearch,
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan {
+        let improved = search.improve(plan.steps)
+        guard improved != plan.steps,
+              let out = assemble(
+                steps: improved, view: view, credit: candidates, completion: completion,
+                limitSeconds: limit, maxGainFt: maxGainFt, paceFactor: paceFactor, shape: shape),
+              RouteScore.isBetter(score: out.score, efficiency: out.efficiency, seconds: out.metrics.seconds,
+                                  than: plan.score, efficiency: plan.efficiency, seconds: plan.metrics.seconds)
+        else { return plan }
+        return out
+    }
+
+    /// Metrics, finished trails and step info for a continuous walk. nil when
+    /// the walk is empty, broken, outside the limits, or covers no new ground.
+    static func assemble(
+        steps: [RouteStep],
+        view: TrailNetworkWithEndpoints,
+        credit candidates: [TrailEligibility.Candidate],
+        completion: TrailCompletionLookup,
+        limitSeconds limit: Double,
+        maxGainFt: Double?,
+        paceFactor: Double,
+        shape: RoutePlanRequest.Shape
+    ) -> RoutePlan? {
+        let net = view.network
+        let start = view.start.nodeId
+        guard !steps.isEmpty else { return nil }
+        var done = Set<TrailNetwork.TrailKey>()
+        for k in net.trailKeys where completion.isComplete(k) { done.insert(k) }
+        let newM = net.newMetersByEdge(completion)
+        let isNew = newM.map { $0 > 0 }
+        guard let metrics = RouteMetrics(network: net, steps: steps, paceFactor: paceFactor, completed: done,
+                                         newMetersByEdge: newM),
               metrics.isContinuous, metrics.seconds <= limit + 1e-3, metrics.newMeters > 0
         else { return nil }
         if let cap = maxGainFt, metrics.gainFt > cap + 1e-6 { return nil }

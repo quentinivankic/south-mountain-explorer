@@ -12107,11 +12107,116 @@
       "state": "Canada",
       "relation_id": 2228302,
       "name": "Kalamalka Lake Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -119.41,
+        50.06,
+        -119.14,
+        50.27
+      ],
+      "center": [
+        50.197,
+        -119.262
+      ],
       "tier": 2,
-      "hold": "mtb-centre",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Kalamalka Lake PP: 23 replay trails are mostly mountain-bike network names (Be Kind, Big Ed, Flovid, Parabola, Stone Free, Twisted Sisters...). Hiking set (Cosens Bay, Juniper, Cougar Canyon, High Rim) not separable without a verified list."
+      "hold": null,
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Kalamalka Lake PP: 23 replay trails are mostly mountain-bike network names (Be Kind, Big Ed, Flovid, Parabola, Stone Free, Twisted Sisters...). Hiking set (Cosens Bay, Juniper, Cougar Canyon, High Rim) not separable without a verified list. Re-check 2026-11-10 (BC-2): RELEASED (hold mtb-centre -> null). The BC Parks page (https://bcparks.ca/kalamalka-lake-park/) lists the hiking trails: Bear Valley (1 km), Coldstream (2.5 km), Cosens Bay (2.5 km), Crest (1 km), Grassland (1.5 km) and Juniper (1.5 km); the park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/kalamalka_lake_park_map_ef2fa85195.pdf) draws hiking trails (red) at Twin Bays / Juniper Bay / Rattlesnake Point and the Cougar Canyon access, and every other named trail as multi-use (bike). Kept: Cosens Bay Trail, Crest Trail, Juniper Trail and Cougar Canyon Trail (map hiking trail to the Cougar Canyon area). Excluded: 19 multi-use / bike-network names (High Rim sections, Lookout, Corral, Sidewinder, Pali Gap, Stone Free...). Known omissions: Coldstream and Bear Valley (not in OSM by name), Grassland (0.39 mi fragment). bbox = prepare-areas proposed bbox; pin = kept-trail vertex nearest the curated trail-extent midpoint (50.197,-119.262).",
+      "exclude_trails": [
+        {
+          "id": "n:High Rim Trail - Upper Kal Park",
+          "name": "High Rim Trail - Upper Kal Park",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Pali Gap",
+          "name": "Pali Gap",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Coming Round the Mountain",
+          "name": "Coming Round the Mountain",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Stone Free",
+          "name": "Stone Free",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:High Rim Trail - Lower Kal Park",
+          "name": "High Rim Trail - Lower Kal Park",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Stone Free Again",
+          "name": "Stone Free Again",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Lookout Trail",
+          "name": "Lookout Trail",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Big Ed",
+          "name": "Big Ed",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Be Kind",
+          "name": "Be Kind",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Corral Trail",
+          "name": "Corral Trail",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Tombstone",
+          "name": "Tombstone",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Gingerly",
+          "name": "Gingerly",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:The Wall",
+          "name": "The Wall",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Flovid",
+          "name": "Flovid",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Parabola",
+          "name": "Parabola",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Rotten Cabin",
+          "name": "Rotten Cabin",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Twisted Sisters",
+          "name": "Twisted Sisters",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Sidewinder Trail",
+          "name": "Sidewinder Trail",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        },
+        {
+          "id": "n:Cosen's Bay Express",
+          "name": "Cosen's Bay Express",
+          "reason": "Multi-use (bike) trail on the BC Parks Kalamalka map, not on the park page's hiking list"
+        }
+      ]
     },
     {
       "id": "myra-bellevue-provincial-park-ca-bc",
@@ -12123,7 +12228,7 @@
       "center": null,
       "tier": 2,
       "hold": "mtb-centre",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Myra-Bellevue PP: 31 replay trails are mostly mountain-bike names (Race Classic, Surf 'N Turf, Swamp Thing...). Needs a verified hiking list."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Myra-Bellevue PP: 31 replay trails are mostly mountain-bike names (Race Classic, Surf 'N Turf, Swamp Thing...). Needs a verified hiking list. Re-check 2026-11-10 (BC-2): replay 30 trails / 58.3 mi, almost all bicycle=designated bike names (Race Classic, Vapour, Earring, Hillbilly...). BC Parks (https://bcparks.ca/myra-bellevue-park/) says there are no maps of hiking trails (FOSS sells one) and names only the Kettle Valley Railway (2% of the long rail trail inside). Stays held."
     },
     {
       "id": "skagit-valley-provincial-park-ca-bc",
@@ -12135,7 +12240,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Skagit Valley PP: replay 5 trails / 19.9 mi (Centennial, Chittenden Meadow, Galene Lakes, Nepopekum Creek, Skyline II) but the park's signature Skagit River Trail is absent and Centennial is the long BC Centennial Trail. Held until the signature trail is mapped by name."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Skagit Valley PP: replay 5 trails / 19.9 mi (Centennial, Chittenden Meadow, Galene Lakes, Nepopekum Creek, Skyline II) but the park's signature Skagit River Trail is absent and Centennial is the long BC Centennial Trail. Held until the signature trail is mapped by name. Re-check 2026-11-10 (BC-2): replay 5 trails / 19.9 mi, unchanged (Centennial, Galene Lakes, Skyline II 17% inside, Chittenden Meadow, Nepopekum Creek). The South Fraser trail report (https://nrs.objectstore.gov.bc.ca/kuwyyf/south_fraser_trail_report_b2a960c19b.pdf) lists the Skagit River Trail (14.5 km, open with caution) and Chittenden Meadows Trail as CLOSED; the Skagit River Trail is still absent from the replay. Stays held."
     },
     {
       "id": "bugaboo-provincial-park-ca-bc",
@@ -12147,7 +12252,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Bugaboo PP: replay 3 trails (Bugaboo Spires, Cobalt Lake twice as two same-name pieces); only 2 distinct names and the duplicate cannot be dropped by name. ca-new3 2026-11-02: Re-replay: 2 trails / 4.5 mi (Bugaboo Spires Trail 3.1, Cobalt Lake Trail 1.35 in 12 pieces); the standard hut route is the Conrad Kain Hut Trail (7.4 km return), so 'Bugaboo Spires Trail' is an unconfirmed name and Cobalt Lake is a stub; hold stands."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Bugaboo PP: replay 3 trails (Bugaboo Spires, Cobalt Lake twice as two same-name pieces); only 2 distinct names and the duplicate cannot be dropped by name. ca-new3 2026-11-02: Re-replay: 2 trails / 4.5 mi (Bugaboo Spires Trail 3.1, Cobalt Lake Trail 1.35 in 12 pieces); the standard hut route is the Conrad Kain Hut Trail (7.4 km return), so 'Bugaboo Spires Trail' is an unconfirmed name and Cobalt Lake is a stub; hold stands. Re-check 2026-11-10 (BC-2): replay 2 trails / 4.5 mi, unchanged (Bugaboo Spires Trail 3.1; Cobalt Lake Trail 1.35 of its 4.53 mi of named ways, two same-name pieces). BC Parks (https://bcparks.ca/bugaboo-park/) lists Conrad Kain Hut (5 km) and Cobalt Lake (8.5 km). Stays held."
     },
     {
       "id": "purcell-wilderness-conservancy-provincial-park-ca-bc",
@@ -12159,7 +12264,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Purcell Wilderness Conservancy PP: replay 7 trails but Coppercrown and Fry Creek appear as overlapping pairs (Coppercrown Mountain/Coppercrown Trail, Fry Creek Canyon/Fry Creek) and no official list was read. Held."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Purcell Wilderness Conservancy PP: replay 7 trails but Coppercrown and Fry Creek appear as overlapping pairs (Coppercrown Mountain/Coppercrown Trail, Fry Creek Canyon/Fry Creek) and no official list was read. Held. Re-check 2026-11-10 (BC-2): replay 7 trails / 55.7 mi, unchanged (Earl Grey 30.2 mi traverse, Dutch Creek 11.4, Dewar Creek, Coppercrown and Fry Creek pairs). BC Parks (https://bcparks.ca/purcell-wilderness-conservancy-park/): no facilities or marked trails, unimproved horse trails and routes. Stays held."
     },
     {
       "id": "tweedsmuir-provincial-park-ca-bc",
@@ -13016,7 +13121,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "ca-new3 2026-11-02: Replay: 2 trails / 2.5 mi, both climbing-crag names (Ward 1, Sourkraut); Skaha Bluffs is a climbing area, not a signed hike."
+      "notes": "ca-new3 2026-11-02: Replay: 2 trails / 2.5 mi, both climbing-crag names (Ward 1, Sourkraut); Skaha Bluffs is a climbing area, not a signed hike. Re-check 2026-11-10 (BC-2): replay 2 trails / 2.5 mi, unchanged (Ward 1, Sourkraut: climbing-crag access names). BC Parks (https://bcparks.ca/skaha-bluffs-park/) describes only climbing access trails. Stays held."
     },
     {
       "id": "buntzen-lake-recreation-area-ca-bc",
@@ -13995,6 +14100,581 @@
       "est_trails": 3,
       "est_mi": 3.0,
       "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks (https://bcparks.ca/saysutshun-newcastle-island-marine-park/): a 22 km signed trail system on the island. Shipped: Bate Point, Channel, Mallard Lake, Shoreline, Kanaka Bay and Tom Niven trails. Lakeside Trail (0.55 mi) is a fragment. No per-trail official list read."
+    },
+    {
+      "id": "akamina-kishinena-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2553677,
+      "name": "Akamina-Kishinena Provincial Park",
+      "bbox": [
+        -114.37,
+        48.95,
+        -114.0,
+        49.18
+      ],
+      "center": [
+        49.018,
+        -114.091
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 20.7,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/akamina-kishinena-park/) and trail conditions report (https://nrs.objectstore.gov.bc.ca/kuwyyf/akamina_kishinena_trail_report_abd38383a8.pdf) list Forum Lake, Wall Lake, Wall Lake Loop Trail (Horse Trail) and the Akamina Ridge Route (18 km full loop, experienced hikers) plus the Akamina Pass roadbed access. Kept: Forum Lake Trail, Wall Lake Trail, Wall Lake Loop (Horse Trail), and the two OSM-named halves of the Akamina Ridge loop (Akamina Ridge Trail from Forum Lake, Akamina Ridge Route along the ridge; adjoining, no overlap). Excluded: Festubert Mountain Route/Trail (peak routes, clipped, not listed), Akamina Pass Trail (old roadbed, 62% inside). Great Divide Trail sections dropped by the engine. Pin moved from 49.066,-114.109 to the kept-trail vertex nearest the curated trail-extent midpoint (49.018,-114.091).",
+      "exclude_trails": [
+        {
+          "id": "n:Festubert Mountain Route",
+          "name": "Festubert Mountain Route",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (48%)"
+        },
+        {
+          "id": "n:Festubert Mountain Trail",
+          "name": "Festubert Mountain Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (67%)"
+        },
+        {
+          "id": "n:Akamina Pass Trail",
+          "name": "Akamina Pass Trail",
+          "reason": "Old access roadbed from Waterton over Akamina Pass (cyclists use it); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (62%)"
+        }
+      ]
+    },
+    {
+      "id": "bear-creek-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2229872,
+      "name": "Bear Creek Provincial Park",
+      "bbox": [
+        -119.58,
+        49.87,
+        -119.46,
+        49.98
+      ],
+      "center": [
+        49.929,
+        -119.523
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 3.4,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/bear_creek_trail_54d08c724b.pdf) shows one hike, the Bear Creek Canyon (Canyon Rim) Trail (2.5 km loop, Mid-Canyon cut-off) plus a 15-minute Loop Trail; OSM has Canyon Rim Trail 1.43 mi. Upper Orchard Loop and Bear Creek Lookout are not on the BC Parks map. One agency trail after curation: campground nature trail, under the bar."
+    },
+    {
+      "id": "brent-mountain-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 11313342,
+      "name": "Brent Mountain Protected Area",
+      "bbox": [
+        -120.08,
+        49.38,
+        -119.82,
+        49.58
+      ],
+      "center": [
+        49.478,
+        -119.896
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 4,
+      "est_mi": 6.1,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/brent-mountain-protected-area/) lists Shatford Creek Trail (about 10 km) and Brent Mountain Trail (about 5 km). Only Brent Mountain Trail is whole (92% inside); Shatford Creek (49%), June Creek (46%) and Skulaow Creek (49%) start outside the polygon. One trail after the whole-route rule."
+    },
+    {
+      "id": "columbia-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238691,
+      "name": "Columbia Lake Provincial Park",
+      "bbox": [
+        -115.91,
+        50.23,
+        -115.79,
+        50.36
+      ],
+      "center": [
+        50.298,
+        -115.846
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 4.2,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/columbia-lake-park/) calls the park a staging area for hikes along the east side of Columbia Lake; no trail list. OSM: Spirit Trail 14% inside (the long Lake Columbia Spirit Trail), Upper BS (bike-style name, 37%), Spirit Trail DoubleTrack (track). Nothing whole and named to ship."
+    },
+    {
+      "id": "gilpin-grasslands-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228234,
+      "name": "Gilpin Grasslands Provincial Park",
+      "bbox": [
+        -118.38,
+        48.95,
+        -118.22,
+        49.08
+      ],
+      "center": [
+        49.009,
+        -118.305
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 5.1,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/gilpin-grasslands-park/): several unmarked trails for hiking and mountain biking, no names. OSM: Bundschu Trail (86%) and a 9% slice of the Columbia & Western Rail Trail (long-distance rail trail). One trail."
+    },
+    {
+      "id": "gladstone-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228235,
+      "name": "Gladstone Provincial Park",
+      "bbox": [
+        -118.47,
+        49.06,
+        -118.08,
+        49.47
+      ],
+      "center": [
+        49.164,
+        -118.261
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 18.6,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/gladstone-park/) lists Deer Point Trail to Troy Creek (11.3 km), Xenia Lake Trail (4 km), Sandner Creek Trail (9 km), Mt. Faith Trail (18.4 km), Mt. Gladstone Trail (6 km) and Peter Lake Trail (inaccessible). Kept: Deer Point Trail, Xenia Lake Trail, Mount Gladstone hiking trail (OSM name of Mt. Gladstone Trail). Excluded: Burnt Basin Trail (84% inside, not listed). Known omissions: Sandner Creek (0.58 mi OSM fragment), Mt. Faith (not in OSM by name).",
+      "exclude_trails": [
+        {
+          "id": "n:Burnt Basin Trail",
+          "name": "Burnt Basin Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (84%); not on the BC Parks trail list"
+        }
+      ]
+    },
+    {
+      "id": "graystokes-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 167152414,
+      "name": "Graystokes Provincial Park",
+      "bbox": [
+        -118.99,
+        49.82,
+        -118.73,
+        50.13
+      ],
+      "center": [
+        49.955,
+        -118.861
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 4.9,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. The BC Parks park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/graystokes_park_map_bd77908e91.pdf) names exactly three hiking trails, St. Margaret Lake Trail, Jubilee Mtn Trail and Lemon Trail ('Motorized Vehicles not Permitted on Hiking Trails'); all three ship, each 98-100% inside and tagged operator=BC Parks, foot=yes, bicycle=no in OSM. The Kettle Graystokes snowmobile trails are dropped by the engine. Access road through the park is not maintained (high-clearance 4WD); the page has no hiking text."
+    },
+    {
+      "id": "height-of-the-rockies-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228049,
+      "name": "Height of the Rockies Provincial Park",
+      "bbox": [
+        -115.55,
+        50.19,
+        -114.9,
+        50.78
+      ],
+      "center": [
+        50.529,
+        -115.243
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 16,
+      "est_mi": 58.5,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks trail conditions report (https://nrs.objectstore.gov.bc.ca/kuwyyf/height_of_the_rockies_trail_report_a228f8e444.pdf) lists Joffre Creek Trail, Palliser Route, Queen Mary Trail, Ralph Lake Trail, Middle Fork/White River (to Sylvan Pass), Forsyth Creek Trail (Connor Lakes), Maiyuk Trail (Connor Lakes) and the Beattie Lake / Leroy Creek route; the park has no signage (https://bcparks.ca/height-of-the-rockies-park/). Kept: Joffre Creek Trail, Palliser River Trail, Middle Fork/White River Trail, Maiyuk Creek Trail (Connor Lakes), Queen Mary Lake Trail (80% inside: the park's flagship lake trail, no sibling area, same exception as Tantalus/Cowichan). Excluded: eight peak routes, Sylvan Pass (informal), Beatty Lake (impassable col route), Forsyth Creek (54%), Northover Ridge (38%), Queen Mary hill spurs. Great Divide Trail sections dropped by the engine. Known omission: Ralph Lake Trail (not in OSM by name). Pin moved from 50.482,-115.24 to the kept-trail vertex nearest the curated trail-extent midpoint (50.529,-115.243).",
+      "exclude_trails": [
+        {
+          "id": "n:Mount King George Trail",
+          "name": "Mount King George Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Sylvan Pass Trail",
+          "name": "Sylvan Pass Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route) in part; the listed Middle Fork/White River trail already reaches Sylvan Pass"
+        },
+        {
+          "id": "n:Beatty Lake Trail",
+          "name": "Beatty Lake Trail",
+          "reason": "BC Parks lists Beattie Lake / Leroy Creek as a ROUTE with the north side of Beatty Col impassable; OSM trail_visibility=no"
+        },
+        {
+          "id": "n:Forsyth Creek Trail (Connor Lakes)",
+          "name": "Forsyth Creek Trail (Connor Lakes)",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (54%; the listed route follows a deactivated road to the park boundary); Connor Lakes ships via Maiyuk Creek"
+        },
+        {
+          "id": "n:Mount Abruzzi Route",
+          "name": "Mount Abruzzi Route",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped); informal=yes"
+        },
+        {
+          "id": "n:Mount Prince Albert S Route",
+          "name": "Mount Prince Albert S Route",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Mount Prince George Trail",
+          "name": "Mount Prince George Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Northover Ridge Trail",
+          "name": "Northover Ridge Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (38%; a Kananaskis ridge route)"
+        },
+        {
+          "id": "n:Queen Mary Lake South Hill Trail",
+          "name": "Queen Mary Lake South Hill Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (side spur near Queen Mary Lake)"
+        },
+        {
+          "id": "n:Mount Worthington Trail",
+          "name": "Mount Worthington Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Queen Mary Lake North Hill Route",
+          "name": "Queen Mary Lake North Hill Route",
+          "reason": "Not on the agency list or map read for this batch; unverified name (side route near Queen Mary Lake)"
+        },
+        {
+          "id": "n:Mount Robertson Trail",
+          "name": "Mount Robertson Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Mount McHarg Route",
+          "name": "Mount McHarg Route",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        }
+      ]
+    },
+    {
+      "id": "monashee-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228309,
+      "name": "Monashee Provincial Park",
+      "bbox": [
+        -118.5,
+        50.39,
+        -118.09,
+        50.69
+      ],
+      "center": [
+        50.494,
+        -118.234
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 13.7,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/monashee-park/) lists Spectrum Creek access (6 km), Little Peters (5 km) and Big Peters (9 km) trails to Peters Lake, and alpine routes from Big Peters: Margie Lake, Fawn Lake, South Caribou Pass and Mount Fosthall. Kept: Peters Lake Trail, Margie Lake Route, Fawn Lake Monashee (Fawn Lake), South Caribou Pass Trail (all 100% inside). Excluded: Spectrum Lake Trail (29% inside, known omission: the access trail), Mount Fosthall (technical summit route), Sol Lake and Infinity (not listed, clipped). Pin moved from 50.498,-118.241 to the kept-trail vertex nearest the curated trail-extent midpoint (50.494,-118.234).",
+      "exclude_trails": [
+        {
+          "id": "n:Spectrum Lake Trail",
+          "name": "Spectrum Lake Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (29%; the Spectrum Creek access trail runs mostly outside the park polygon)"
+        },
+        {
+          "id": "n:Sol Lake Trail",
+          "name": "Sol Lake Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name; Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (82%)"
+        },
+        {
+          "id": "n:Infinity Trail",
+          "name": "Infinity Trail",
+          "reason": "Not on the agency list or map read for this batch; unverified name (bicycle=designated); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (52%)"
+        },
+        {
+          "id": "n:Mount Fosthall Trail",
+          "name": "Mount Fosthall Trail",
+          "reason": "Summit route: BC Parks notes technical equipment may be required (peak routes and scrambles are dropped)"
+        }
+      ]
+    },
+    {
+      "id": "mount-fernie-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228051,
+      "name": "Mount Fernie Provincial Park",
+      "bbox": [
+        -115.16,
+        49.43,
+        -115.04,
+        49.55
+      ],
+      "center": [
+        49.489,
+        -115.104
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 2.5,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/mount-fernie-park/) gives no hiking list and points to the Fernie Mountain Bike Club. OSM names are the Fernie bike network (Lazy Lizard Connector, Gorby, Hedonism, Dem Bones, Stove...), mostly clipped fragments."
+    },
+    {
+      "id": "pilot-bay-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228247,
+      "name": "Pilot Bay Provincial Park",
+      "bbox": [
+        -116.94,
+        49.57,
+        -116.79,
+        49.7
+      ],
+      "center": [
+        49.632,
+        -116.862
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.5,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks map (https://nrs.objectstore.gov.bc.ca/kuwyyf/pilot_bay_map_16cfcb2089.pdf) shows the peninsula hiking trails to the lighthouse and Boomer's Landing, but in OSM both named trails are clipped by the park polygon (Lake Shore Trail 2.40 of 3.69 mi = 65%, Boomer's Landing Trail 1.14 of 2.03 mi = 56%). Needs a boundary / trail-geometry check before shipping."
+    },
+    {
+      "id": "silver-star-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228312,
+      "name": "Silver Star Provincial Park",
+      "bbox": [
+        -119.19,
+        50.28,
+        -118.95,
+        50.47
+      ],
+      "center": [
+        50.377,
+        -119.086
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 12.4,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/silver-star-park/): Nordic ski and snowmobile trails open to summer hiking, singletrack maintained by the North Okanagan Cycling Society. OSM names are bike trails (Spanky's Descent, Hammered Cow, Rock Is The New Berm, Soup To Nuts, Upper Dagmal)."
+    },
+    {
+      "id": "skihist-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230710,
+      "name": "Skihist Provincial Park",
+      "bbox": [
+        -121.58,
+        50.18,
+        -121.45,
+        50.31
+      ],
+      "center": [
+        50.248,
+        -121.509
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.2,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/skihist-park/): about 8 km of trails from the campground top-loop trailhead, one to Gladwin Lookout (1.5 h return) and a loop above the campground back to the Cariboo Wagon Road (2-3 h). Kept: Gladwin Lookout Trail and Upper Loop Trail (100% inside, foot=yes, bicycle=no). Excluded: Cariboo Wagon Trail (62% inside). 2 trails / 2.5 mi, at the floor. Pin moved from 50.25,-121.511 to the kept-trail vertex nearest the curated trail-extent midpoint (50.248,-121.509).",
+      "exclude_trails": [
+        {
+          "id": "n:Cariboo Wagon Trail",
+          "name": "Cariboo Wagon Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (62%); the loop's return along the old Cariboo Wagon Road"
+        }
+      ]
+    },
+    {
+      "id": "south-okanagan-grasslands-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2229884,
+      "name": "South Okanagan Grasslands Protected Area",
+      "bbox": [
+        -119.78,
+        48.95,
+        -119.45,
+        49.22
+      ],
+      "center": [
+        49.039,
+        -119.558
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 6,
+      "est_mi": 7.1,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/south-okanagan-grasslands-protected-area/) lists two trails at Mount Kobau: Mt. Kobau Lookout Trail (short; 0.41 mi OSM fragment) and the 3 km Chopaka Lookout Trail (OSM Chopaka View Lookout Trail 1.69 mi). Together 2.1 mi, under the floor. The rest of the OSM set is bike names (Upside Down, Upper Cherry Popper, Tricky Bits) or unlisted (Nighthawk Hill, Strawberry Creek track)."
+    },
+    {
+      "id": "stein-valley-nlaka-pamux-heritage-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230711,
+      "name": "Stein Valley Nlaka’pamux Heritage Park",
+      "bbox": [
+        -122.37,
+        50.03,
+        -121.58,
+        50.48
+      ],
+      "center": [
+        50.307,
+        -121.841
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 16.1,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks Stein hiking page (https://bcparks.ca/stein-valley-nlakapamux-heritage-park/hiking/) and brochure (https://nrs.objectstore.gov.bc.ca/kuwyyf/stein_valley_brochure_d174525f71.pdf): the main valley trail from the Lytton trailhead with 13 designated camps (Lower/Mid/Upper Stein), the Cottonwood Creek / Blowdown Pass wilderness route north from Cottonwood Camp, Elton Lake route, and Stryen Creek (Closed). Kept: Stein Valley Trail (17.2 mi, operator=BC Parks; the 47 mi Stein Valley Traverse is dropped by the engine as long-distance) and Cottonwood Creek Trail (operator=BC Parks). Excluded: Stryen Creek trails (closed), Skihist Mountain (peak), Brimful Lake (45%), North Shore and Bluff (informal=yes, not listed). Pin moved from 50.289,-121.842 to the kept-trail vertex nearest the curated trail-extent midpoint (50.307,-121.841).",
+      "exclude_trails": [
+        {
+          "id": "n:Stryen Creek Trail",
+          "name": "Stryen Creek Trail",
+          "reason": "BC Parks Stein hiking page lists Stryen Creek as Closed"
+        },
+        {
+          "id": "n:Stryen Creek East Fork Trail",
+          "name": "Stryen Creek East Fork Trail",
+          "reason": "BC Parks Stein hiking page lists Stryen Creek (and its forks) as Closed"
+        },
+        {
+          "id": "n:Stryen/Stein Divide Ridge Route",
+          "name": "Stryen/Stein Divide Ridge Route",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route); Stryen Creek is closed"
+        },
+        {
+          "id": "n:Skihist Mountain Trail",
+          "name": "Skihist Mountain Trail",
+          "reason": "Peak ascent route, not on the agency trail list (peak routes and scrambles are dropped)"
+        },
+        {
+          "id": "n:Brimful Lake Trail",
+          "name": "Brimful Lake Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (45%)"
+        },
+        {
+          "id": "n:North Shore Trail",
+          "name": "North Shore Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route)"
+        },
+        {
+          "id": "n:Bluff Trail",
+          "name": "Bluff Trail",
+          "reason": "Tagged informal=yes in OSM and not on the agency list (unsigned route)"
+        }
+      ]
+    },
+    {
+      "id": "tplaqin-enderby-cliffs-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2228301,
+      "name": "Tplaqín/Enderby Cliffs Provincial Park",
+      "bbox": [
+        -119.16,
+        50.51,
+        -118.98,
+        50.69
+      ],
+      "center": [
+        50.591,
+        -119.081
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 5.4,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/tplaqin-enderby-cliffs-park/) describes one hiking-only trail, the Tplaqin (Enderby Cliffs) Trail to the top of the cliffs. OSM splits it into Tplaqin Trail (3.78 mi) and Enderby Cliffs Trail (1.60 mi) which starts where Tplaqin ends; one agency trail, not two. Iconic one-trail candidate for the allow-list policy."
+    },
+    {
+      "id": "west-arm-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8635236,
+      "name": "West Arm Provincial Park",
+      "bbox": [
+        -117.31,
+        49.37,
+        -116.89,
+        49.65
+      ],
+      "center": [
+        49.516,
+        -117.246
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 6.8,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/west-arm-park/) mentions only the unmaintained Lasca Creek trail. OSM names are the Nelson bike network (Una Canuma, Paper Bag, Middle Earth, Svoboda Traverse, Log Jam, Frog Jam; bicycle=yes)."
+    },
+    {
+      "id": "white-lake-grasslands-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2229888,
+      "name": "White Lake Grasslands Protected Area",
+      "bbox": [
+        -119.71,
+        49.18,
+        -119.48,
+        49.41
+      ],
+      "center": [
+        49.285,
+        -119.581
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 13.7,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/white-lake-grasslands-protected-area/): limited, unmarked wilderness trails; describes the White Lake Trail past Mahoney Lake to Mt. Keogan. OSM: White Lake Trail - East 65%, White Lake Loop 27%, 5 Lakes Lookout 68%, McIntyre Bluff 74% (clipped); Go East Old Man, Guy's Cache and Dogtown are unlisted (bike-style). Needs a rescope."
+    },
+    {
+      "id": "coquihalla-summit-recreation-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230174,
+      "name": "Coquihalla Summit Recreation Area",
+      "bbox": [
+        -121.22,
+        49.5,
+        -120.95,
+        49.69
+      ],
+      "center": [
+        49.581,
+        -121.088
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 6,
+      "est_mi": 10.1,
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). HOLD. BC Parks (https://bcparks.ca/coquihalla-summit-recreation-area/) and the South Fraser trail report list only the Falls Lake Trail (0.9-1.5 km; 0.49 mi OSM fragment). The well-known summit hikes are peak routes and mostly broken in OSM: Needle Peak relation r9983014 kept 0.65 of 2.72 mi (24%), Zoa Peak clipped fragment, Markhor/Yak-Thar/Markor-Needle informal=yes routes, Kettle Valley Railway 68% (long-distance rail trail). Needs a rescope (Needle/Zoa/Yak as whole routes) before shipping."
     }
   ]
 }

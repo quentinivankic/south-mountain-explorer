@@ -109,6 +109,18 @@ struct PlanProgressReplayTests {
         #expect(t.count(.offExpected) == 0)
         #expect(t.count(.skippedAhead) == 0)
         #expect(m.cursorMeters > r.length - 20)
+
+        // Task 3: the guide on the same walk. Every turn cued at the turn in
+        // order, one turn-around cue, no off-route warning, one finish.
+        var e = PlanGuideEngineTests.engine(r)
+        let g2 = PlanGuideEngineTests.run(&e, w.fixes)
+        let atTurn = g2.of(.atJunction)
+        print("REPLAY: national trail guide cues = \(g2.cues.count) offRoute = \(g2.of(.offTrail).count) " +
+              "completed = \(g2.completed.count)")
+        #expect(atTurn.map(\.junctionId) == Array(1..<r.markers.count).map(Optional.some))
+        #expect(atTurn.filter { $0.symbol == .turnAround }.count == 1)
+        #expect(g2.of(.offTrail).isEmpty)
+        #expect(g2.completed.count == 1)
     }
 
     // MARK: - Real recorded hikes (local only, never committed)
@@ -209,7 +221,7 @@ struct PlanProgressReplayTests {
         let data = try Data(contentsOf: URL(fileURLWithPath: Self.historyPath))
         let hikes = try JSONDecoder().decode([Hike].self, from: data)
         var nets: [String: (TrailNetwork, Snapper)] = [:], missing: Set<String> = []
-        var replayed = 0
+        var replayed = 0, guideOffRoute = 0, guideCompleted = 0
         for (i, h) in hikes.enumerated() where h.path.count >= 100 && !missing.contains(h.areaId) {
             if nets[h.areaId] == nil {
                 guard let g = Self.geom(h.areaId) else { missing.insert(h.areaId); continue }
@@ -237,9 +249,18 @@ struct PlanProgressReplayTests {
             #expect(t.cursorNeverMovedBack, "hike \(i)")
             #expect(reached > 0.95, "hike \(i)")
             #expect(matched > 0.9, "hike \(i)")
+            // Task 3: the guide on the same fixes. Counts only.
+            var e = PlanGuideEngineTests.engine(r)
+            let g = PlanGuideEngineTests.run(&e, fixes)
+            print("REPLAY: real hike \(i) guide atTurn = \(g.of(.atJunction).count) of \(r.markers.count - 1) " +
+                  "offRoute = \(g.of(.offTrail).count) gpsWeak = \(g.of(.gpsWeak).count) " +
+                  "completed = \(g.completed.count)")
+            guideOffRoute += g.of(.offTrail).count
+            guideCompleted += g.completed.count
             replayed += 1
         }
-        print("REPLAY: real hikes replayed = \(replayed) of \(hikes.count)")
+        print("REPLAY: real hikes replayed = \(replayed) of \(hikes.count) " +
+              "guide offRoute total = \(guideOffRoute) completed = \(guideCompleted)")
         #expect(replayed > 0)
     }
 }

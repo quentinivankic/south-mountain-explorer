@@ -72,7 +72,8 @@ enum LiveActivityNextTurnFormatter {
             case .turnRight: arrow = .turnRight
             case .sharpLeft: arrow = .sharpLeft
             case .sharpRight: arrow = .sharpRight
-            case .offTrail, .backOnTrail, .gpsWeak: return nil
+            // Plan a Hike arrows come with the Live Activity step row (task 6).
+            case .straight, .turnAround, .offTrail, .backOnTrail, .gpsWeak: return nil
             }
             let action = TurnCuePhrasing.action(turn.symbol)
             let cap = TurnCuePhrasing.capitalized(action)

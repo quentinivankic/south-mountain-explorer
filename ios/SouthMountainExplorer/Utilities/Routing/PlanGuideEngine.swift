@@ -146,6 +146,14 @@ struct PlanGuideEngine: Sendable {
         advisory = currentAdvisory()
     }
 
+    /// After a relaunch: back on saved step `index`, tracking forward from
+    /// its start. A guide that had finished stays finished (no second buzz).
+    mutating func restore(toStep index: Int, isComplete complete: Bool) {
+        move(toStep: index)
+        isComplete = complete
+        advisory = currentAdvisory()
+    }
+
     /// True once the event's turn is behind you, or the notice no longer
     /// applies. Adapters drop stale cues instead of speaking them late.
     func isStale(_ event: TurnCueEvent) -> Bool {

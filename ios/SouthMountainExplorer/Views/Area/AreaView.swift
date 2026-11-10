@@ -2256,7 +2256,8 @@ struct AreaView: View {
             controlsBottom: measuredMapControlsBottom)
     }
     /// Start hike: a normal roam recording through the usual guards. The
-    /// route stays on the map as a passive guide until that recording ends.
+    /// route stays on the map until that recording ends, and its steps go to
+    /// the guide (saved, so a relaunch resumes it).
     private func startPlannedHike() {
         guard PlanStartGate.evaluate(
             hasActiveRecording: recording.activeRecording != nil,
@@ -2264,6 +2265,10 @@ struct AreaView: View {
         tryStartRecording()
         if isRecording {
             planHike.markHikeStarted()
+            if let steps = planHike.preview.selected?.route.steps,
+               let recordingId = recording.activeRecording?.recordingId {
+                TurnCueCoordinator.shared.beginPlanGuide(steps: steps, recordingId: recordingId)
+            }
             showPlanHike = false
         }
     }

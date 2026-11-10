@@ -40,6 +40,7 @@ final class TurnCueCoordinator {
     @ObservationIgnored private let speaker: TurnCueSpeaker
     @ObservationIgnored private let haptics: TurnCueHaptics
     @ObservationIgnored private let notifier: TurnCueNotifier
+    @ObservationIgnored private let planStore: PlanGuideStore
     @ObservationIgnored private let callObserver = CXCallObserver()
     @ObservationIgnored private var started = false
     @ObservationIgnored private var currentKey: Key?
@@ -49,6 +50,9 @@ final class TurnCueCoordinator {
     @ObservationIgnored private var routeCache: [String: TurnCueRoute] = [:]
     @ObservationIgnored private var planEngine: PlanGuideEngine?
     @ObservationIgnored private var planSource: PlanSource?
+    /// The recording the saved plan was last checked against, so the file is
+    /// read once per recording, not on every fix.
+    @ObservationIgnored private var storeCheckedFor: String??
 
     private enum Key: Equatable {
         case trail(recordingId: String, areaId: String, trailId: String)
@@ -66,6 +70,10 @@ final class TurnCueCoordinator {
         let recordingId: String
         let route: PlanGuideRoute
         let session: UUID
+        /// What is saved so the guide survives a relaunch.
+        var snapshot: PlanGuideSnapshot
+        /// Brought back from the store after a relaunch: resume at the saved step.
+        let restored: Bool
     }
 
     init(
@@ -75,8 +83,10 @@ final class TurnCueCoordinator {
         defaults: UserDefaults = .standard,
         speaker: TurnCueSpeaker? = nil,
         haptics: TurnCueHaptics? = nil,
-        notificationCenter: (any TurnCueNotificationCenter)? = nil
+        notificationCenter: (any TurnCueNotificationCenter)? = nil,
+        planStore: PlanGuideStore? = nil
     ) {
+        self.planStore = planStore ?? .live()
         self.recording = recording
         self.location = location
         self.areas = areas
@@ -115,7 +125,9 @@ final class TurnCueCoordinator {
         // The plan's recording ended (or another one started): the guide goes with it.
         if let plan = planSource, case .plan(_, plan.session) = currentKey, recordingId != plan.recordingId {
             planSource = nil
+            planStore.clear()
         }
+        restoreSavedPlanIfNeeded(activeRecordingId: recordingId)
         let key: Key?
         if let plan = planSource, plan.recordingId == recordingId {
             key = .plan(recordingId: plan.recordingId, session: plan.session)
@@ -152,16 +164,26 @@ final class TurnCueCoordinator {
 
     // MARK: - Plan guide
 
-    /// Start hike from a plan: guide `route` for recording `recordingId`
-    /// instead of trail cues. Ends with that recording or `endPlanGuide()`.
-    func beginPlanGuide(route: PlanGuideRoute, recordingId: String) {
-        planSource = PlanSource(recordingId: recordingId, route: route, session: UUID())
+    /// Start hike from a plan: guide `steps` for recording `recordingId`
+    /// instead of trail cues, and save them so a relaunch resumes the guide.
+    /// Ends with that recording or `endPlanGuide()`. false when the steps
+    /// have nothing to walk.
+    @discardableResult
+    func beginPlanGuide(steps: [PlanStep], recordingId: String) -> Bool {
+        guard !recordingId.isEmpty, let route = PlanGuideRoute(steps: steps) else { return false }
+        let snapshot = PlanGuideSnapshot(recordingId: recordingId, steps: steps)
+        planStore.save(snapshot)
+        storeCheckedFor = .some(recordingId)
+        planSource = PlanSource(recordingId: recordingId, route: route, session: UUID(),
+                                snapshot: snapshot, restored: false)
         reconcile()
+        return true
     }
 
     /// Exit: ends the guide; the recording keeps going.
     func endPlanGuide() {
         planSource = nil
+        planStore.clear()
         reconcile()
     }
 
@@ -173,11 +195,49 @@ final class TurnCueCoordinator {
         speaker.cancelAll()
         bannerCue = nil
         planGuide = e.status
+        savePlanProgress(e)
+    }
+
+    /// After a relaunch: the saved plan for the active recording becomes the
+    /// guide again. A plan saved for a recording that is no longer active is
+    /// dropped. Checked once per recording.
+    private func restoreSavedPlanIfNeeded(activeRecordingId: String?) {
+        guard planSource == nil, storeCheckedFor != .some(activeRecordingId) else { return }
+        storeCheckedFor = .some(activeRecordingId)
+        guard let saved = planStore.load() else { return }
+        switch PlanGuideStore.decide(saved, activeRecordingId: activeRecordingId) {
+        case .keep:
+            break
+        case .discard:
+            planStore.clear()
+        case .restore:
+            guard let steps = saved.planSteps, let route = PlanGuideRoute(steps: steps) else {
+                planStore.clear()
+                return
+            }
+            coordinatorLog.notice("plan guide restored at step \(saved.stepIndex + 1)")
+            planSource = PlanSource(recordingId: saved.recordingId, route: route, session: UUID(),
+                                    snapshot: saved, restored: true)
+        }
+    }
+
+    /// Saves the guide's step when it changes, so a relaunch resumes there.
+    private func savePlanProgress(_ e: PlanGuideEngine) {
+        guard var plan = planSource,
+              plan.snapshot.stepIndex != e.stepIndex || plan.snapshot.isComplete != e.isComplete else { return }
+        plan.snapshot.stepIndex = e.stepIndex
+        plan.snapshot.isComplete = e.isComplete
+        planSource = plan
+        planStore.save(plan.snapshot)
     }
 
     private func runPlan(_ key: Key, route: PlanGuideRoute) async {
         guard currentKey == key else { return }
-        let e = PlanGuideEngine(route: route, config: PlanGuideConfig(units: currentUnits()))
+        var e = PlanGuideEngine(route: route, config: PlanGuideConfig(units: currentUnits()))
+        if let plan = planSource, plan.restored {
+            // Resume on the saved step, searching forward from its start.
+            e.restore(toStep: plan.snapshot.stepIndex, isComplete: plan.snapshot.isComplete)
+        }
         planEngine = e
         planGuide = e.status
         // Start from "now" so a fix cached before the guide started is replayed once.
@@ -200,6 +260,7 @@ final class TurnCueCoordinator {
             update = e.tick(now: now.timeIntervalSince1970)
         }
         planEngine = e
+        savePlanProgress(e)
         for event in update.events {
             deliver(event, now: now)
         }

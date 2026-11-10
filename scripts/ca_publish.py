@@ -68,6 +68,7 @@ PROVINCES = {
 HOLD_REASONS = {
     "island", "np-nested", "name-collision", "duplicate-of-live", "needs-rescope",
     "merge-pending", "mtb-centre", "curated-do-not-ship", "few-trails", "municipal-deferred",
+    "discovery-draft",  # unreviewed row from scripts/ca_discover.py; cleared only by per-area curation
 }
 # Curated per-area exclusions (registry `exclude_trails`): {"id": "n:<name>" | "n*:<name>", "name",
 # "reason"}; applied by scripts/ca_trail_filter.py (fail closed on no match). The generic assembler

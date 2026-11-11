@@ -7233,11 +7233,19 @@
       "state": "Canada",
       "relation_id": 6057547,
       "name": "Cold Lake Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -110.24,
+        54.38,
+        -109.96,
+        54.75
+      ],
+      "center": [
+        54.469,
+        -110.124
+      ],
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. 3 candidates (Campground Trail, Lakeshore Trail, Main Road Trail) are campground/road-style names with no official source; not a hiking set."
+      "hold": null,
+      "notes": "AB curation 2026-11-02. 3 candidates (Campground Trail, Lakeshore Trail, Main Road Trail) are campground/road-style names with no official source; not a hiking set. Re-check 2026-11-11 (AB Phase A): RELEASED (hold few-trails -> ship). The earlier hold said the three names had no official source; they do: the Alberta Parks Cold Lake park map (https://www.albertaparks.ca/media/wc2ldl0x/cold-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/cold-lake-pp/) labels Lakeshore Trail, Campground Trail and Main Road Trail, and the park page gives 9 km of formal hiking/biking trails. OSM: Lakeshore Trail 2.09 mi, Campground Trail 2.01 mi, Main Road Trail 1.57 mi (98-99% inside) = 5.67 mi = 9.1 km, the whole formal network. Informal trails in the north of the park are unmaintained and not mapped by name. Pin moved from 54.6,-110.1 to the kept-trail vertex nearest the curated trail-extent midpoint (54.469,-110.124)."
     },
     {
       "id": "lesser-slave-lake-provincial-park-ca-ab",
@@ -7269,7 +7277,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble.",
+      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble. Re-check 2026-11-11 (AB Phase A): identical replay 2 / 4.9: Luscar Mountain Scramble 2.49 mi (scramble) and Cardinal Divide Ridge Trail 2.43 mi (OSM 'Cardinal Divide Ridge Route', a scramble GPS track). Alberta Parks trail table (https://www.albertaparks.ca/parks/central/whitehorse-wpp/information-facilities/trails/) lists Cadomin Cave (closed), Cardinal Divide East/West, Cardinal Headwaters, Drummond, Fiddle Pass, Whitehorse Creek Falls, Lower/Upper Whitehorse Creek, Leyland Basin, Prospect Creek; none is mapped whole under its listed name inside the polygon. Stays held.",
       "exclude_trails": [
         {
           "id": "n:Whitehorse Creek Trails",
@@ -7715,7 +7723,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. Deadhorse Meadows Tote Trail is boundary-clipped (4.0 of 16.8 mi); only Kakwa Falls Viewpoint Trail (0.65 mi) remains."
+      "notes": "AB curation 2026-11-02. Deadhorse Meadows Tote Trail is boundary-clipped (4.0 of 16.8 mi); only Kakwa Falls Viewpoint Trail (0.65 mi) remains. Re-check 2026-11-11 (AB Phase A): identical replay 2 / 4.6 (Deadhorse Meadows Tote Trail 24% inside, Kakwa Falls Viewpoint Trail 0.65 mi). Alberta Parks (https://www.albertaparks.ca/parks/north/kakwa-wpp/): about 100 km of trails are mapped but not well marked. Stays held."
     },
     {
       "id": "beauvais-lake-provincial-park-ca-ab",
@@ -10503,7 +10511,7 @@
       ],
       "tier": 1,
       "hold": "few-trails",
-      "notes": "QC curation 2026-11-02. Only Les Falaises (0.72 mi, Parks Canada 1.2 km loop) is a whole official trail. Le Petit Percé (0.64 mi mapped vs 3.8 km official) and Les Cypripèdes (0.64 mi mapped vs 10.8 km official) are partial stubs, not whole routes; Poète Jomphe (0.17 mi) and Anse des Érosions (0.35 mi) are sub-0.6 mi pieces; La Lumière, Campanules, Samuel and the shoreline hikes are not mapped by name. Parks Canada list read (https://parks.canada.ca/pn-np/qc/mingan/activ/randonnee_hiking). Needs OSM naming. ca-new3 2026-11-02: Re-replay: 3 trails / 2.0 mi, all stubs (0.6 to 0.7 mi vs Parks Canada 1.2, 3.8, 10.8 km); hold stands."
+      "notes": "QC curation 2026-11-02. Only Les Falaises (0.72 mi, Parks Canada 1.2 km loop) is a whole official trail. Le Petit Percé (0.64 mi mapped vs 3.8 km official) and Les Cypripèdes (0.64 mi mapped vs 10.8 km official) are partial stubs, not whole routes; Poète Jomphe (0.17 mi) and Anse des Érosions (0.35 mi) are sub-0.6 mi pieces; La Lumière, Campanules, Samuel and the shoreline hikes are not mapped by name. Parks Canada list read (https://parks.canada.ca/pn-np/qc/mingan/activ/randonnee_hiking). Needs OSM naming. ca-new3 2026-11-02: Re-replay: 3 trails / 2.0 mi, all stubs (0.6 to 0.7 mi vs Parks Canada 1.2, 3.8, 10.8 km); hold stands. Re-check 2026-11-10 (QC Phase A): replay 3 trails / 2.0 mi, identical (same extract). Rando Québec / Balise (https://baliseqc.ca/3S/explorer/duplessis/reserve-de-parc-national-de-larchipel-de-mingan-LR0418) lists Île Quarry Les Falaises 1.4 km (OSM 0.72 mi, whole), Le Petit Percé 3.8 km loop (OSM 0.64 mi stub), Randonnée des Cypripèdes 10.9 km (OSM 0.64 mi stub) and the littoral hikes (not mapped). One whole trail; stays held."
     },
     {
       "id": "parc-national-du-mont-tremblant-ca-qc",
@@ -10579,7 +10587,7 @@
       ],
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "HOLD (QC2 2026-11-02): signature gap. Mont Albert and Mont Jacques-Cartier, the park's flagship summit hikes, are mapped in OSM only as ways named for the SIA/IAT Grande Traversée (long-distance, excluded by rule) or as unnamed paths, so neither can be kept by name; Gaspésie without them would not satisfy a local expert. Ids are fine after the accent fold (checked on the 9 candidate trails). Unhold once the two summit trails carry their own names in OSM. Signature gap: Mont Albert and Mont Jacques-Cartier absent; needs rescope even after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omissions: Mont Jacques-Cartier, Mont Albert, Lac-aux-Américains and Mont Xalibu are not mapped by name in OSM; the IAT (Grande Traversée) is long-distance and dropped.",
+      "notes": "HOLD (QC2 2026-11-02): signature gap. Mont Albert and Mont Jacques-Cartier, the park's flagship summit hikes, are mapped in OSM only as ways named for the SIA/IAT Grande Traversée (long-distance, excluded by rule) or as unnamed paths, so neither can be kept by name; Gaspésie without them would not satisfy a local expert. Ids are fine after the accent fold (checked on the 9 candidate trails). Unhold once the two summit trails carry their own names in OSM. Signature gap: Mont Albert and Mont Jacques-Cartier absent; needs rescope even after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Known omissions: Mont Jacques-Cartier, Mont Albert, Lac-aux-Américains and Mont Xalibu are not mapped by name in OSM; the IAT (Grande Traversée) is long-distance and dropped. Re-check 2026-11-10 (QC Phase A): replay 9 trails / 36.0 mi, identical (same extract). Rando Québec / Balise (https://baliseqc.ca/3S/explorer/gaspesie/parc-national-de-la-gaspesie-LR0119) lists 18 trails incl. Mont Jacques-Cartier (8 km), Mont Albert (la montée 11.7 km, le tour 17.2 km), Mont Xalibu, Lac aux Américains, Chute Sainte-Anne; Mont Albert and Mont Jacques-Cartier are still not mapped under their own names. Signature gap stands; stays held.",
       "exclude_trails": [
         {
           "id": "n:Sentier d'hiver",
@@ -10987,7 +10995,7 @@
       ],
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "HOLD (QC2 2026-11-02): signature gap. Sentier de la Statue (the park's iconic Baie-Éternité day hike) is 1.4 of 2.0 mi inside the park polygon; a test run without the exclusion shipped it truncated at the boundary (+1.3 mi), which is not a whole route. Le Fjord and Les Caps ship whole but the park would lack the Statue. Ids are fine after the accent fold. Unhold if the boundary or the shipped route can be made whole. Signature gap: Statue trail excluded as boundary-clipped (38-68% inside); rescue after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier de la Statue, Montagne Blanche and La Pinède are 38-68% inside the polygon (excluded as clipped).",
+      "notes": "HOLD (QC2 2026-11-02): signature gap. Sentier de la Statue (the park's iconic Baie-Éternité day hike) is 1.4 of 2.0 mi inside the park polygon; a test run without the exclusion shipped it truncated at the boundary (+1.3 mi), which is not a whole route. Le Fjord and Les Caps ship whole but the park would lack the Statue. Ids are fine after the accent fold. Unhold if the boundary or the shipped route can be made whole. Signature gap: Statue trail excluded as boundary-clipped (38-68% inside); rescue after id fix. QC curation 2026-11-02. Whole park. Sépaq trail pages return HTTP 403 to automated fetches, so the official Sépaq list was NOT read for this park; the trail set is what OSM maps under the park polygon (Sépaq-operated), unverified against Sépaq's list. Winter-only (hiver/raquette), approach, duplicate and boundary-clipped routes excluded; IAT and Sentier national legs dropped by the engine. Sentier de la Statue, Montagne Blanche and La Pinède are 38-68% inside the polygon (excluded as clipped). Re-check 2026-11-10 (QC Phase A): replay 6 trails / 52.3 mi, identical (same extract). Rando Québec / Balise (https://baliseqc.ca/3S/explorer/saguenay-lac-saint-jean/parc-national-du-fjord-du-saguenay-LR0261) lists Sentier de la Statue 6.8 km return (the park's Prêt-à-partir hike); OSM still has 1.4 of 2.0 mi inside the polygon (70%), below every flagship waiver granted so far (81% minimum). Stays held.",
       "exclude_trails": [
         {
           "id": "n:Sentier d'hiver",
@@ -15812,6 +15820,919 @@
           "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (73%)"
         }
       ]
+    },
+    {
+      "id": "refuge-d-oiseaux-migrateurs-de-l-ile-aux-basques-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 20631694,
+      "name": "Refuge d’oiseaux migrateurs de l’Île-aux-Basques",
+      "bbox": [
+        -69.33,
+        48.08,
+        -69.08,
+        48.26
+      ],
+      "center": [
+        48.142,
+        -69.249
+      ],
+      "tier": 1,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.7,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Private island owned by the Société Provancher (Parc naturel et historique de l'Île-aux-Basques, Trois-Pistoles), reachable only by the society's guided boat excursions or by renting one of its chalets; about 5 km of trails. OSM: Route des Basques 1.21 mi, Sentier de l'ouest 0.83 mi, Sentier David-Alexis-Déry 0.65 mi; no readable trail list (provancher.org lists the visits, not trail names). Not a self-guided hiking area; the Sentier national 'Tronçon Littoral Basque' is mainland and long-distance."
+    },
+    {
+      "id": "refuge-d-oiseaux-migrateurs-de-philipsburg-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 20670846,
+      "name": "Refuge d’oiseaux migrateurs de Philipsburg",
+      "bbox": [
+        -73.14,
+        44.97,
+        -73.0,
+        45.09
+      ],
+      "center": [
+        45.022,
+        -73.075
+      ],
+      "tier": 1,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.9,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). SHIP. Federal migratory bird sanctuary (ECCC) on the Missisquoi Bay escarpment, Saint-Armand, open to walkers. OSM has a colour-coded network named for birds: Sentier rouge (Tangara écarlate) 1.76 mi (89% inside) and Sentier bleu (Paruline azurée) 1.09 mi (100%). The ECCC sanctuary page does not list trails (and timed out this session); AllTrails lists the Red Loop and Blue Loop. Names not verified against a written agency list. Known omission: Sentier vert (Canard Branchu), a 0.53 mi piece dropped by the engine; 'Non-balisé' (unsigned) dropped."
+    },
+    {
+      "id": "refuge-d-oiseaux-migrateurs-de-senneville-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 1052040108,
+      "name": "Refuge d'oiseaux migrateurs de Senneville",
+      "bbox": [
+        -74.02,
+        45.36,
+        -73.88,
+        45.49
+      ],
+      "center": [
+        45.432,
+        -73.951
+      ],
+      "tier": 1,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 6.0,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. The trails are the Morgan Arboretum network (McGill Macdonald campus, paid entry). Rando Québec / Balise (https://baliseqc.ca/3S/explorer/montreal/arboretum-morgan-LR0272) lists Sentier rouge 1 km, vert 1 km, orange 3 km and jaune 5 km loops. Inside the bird-sanctuary polygon: Orange 1.96 mi, Rouge 0.86, Vert 0.75 (100%), but the arboretum's main Jaune loop is only 43% inside (1.33 of 3.10 mi) and 'Jaune Pullins' is unlisted. A local expert calls this the Morgan Arboretum; rescope to the arboretum as its own area (Phase C, other tier) rather than ship it as the sanctuary without its main loop."
+    },
+    {
+      "id": "reserve-ecologique-de-la-foret-la-blanche-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 892712946,
+      "name": "Réserve écologique de la Forêt-la-Blanche",
+      "bbox": [
+        -75.35,
+        45.64,
+        -75.2,
+        45.82
+      ],
+      "center": [
+        45.714,
+        -75.288
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.6,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). SHIP. One of the few Québec ecological reserves open to the public (Les Amis de la Forêt-la-Blanche interpretation centre, https://foretlablanche.org/). Rando Québec / Balise (https://baliseqc.ca/3S/explorer/outaouais/reserve-ecologique-de-la-foret-la-blanche-LR0472) lists six trails: Le Chablis (under 0.5 km loop), Le Ouaouaron (2 km loop), Le Forestier (1 km return), La Prucheraie (1 km linear), Le Cendré (2 km, mixed) and L'Orignal (4 km return). Kept: Le Ouaouaron 1.31 mi, Le Cendré 1.21 mi, L'Orignal 1.20 mi one way (94-100% inside; lengths match the list) and La Prucheraie (0.50 mi, keep_trails waiver: listed signed trail under the fragment floor). Known omissions: Le Chablis (not mapped), Le Forestier (0.28 mi piece, clipped).",
+      "keep_trails": [
+        {
+          "name": "La prucheraie",
+          "source": "https://baliseqc.ca/3S/explorer/outaouais/reserve-ecologique-de-la-foret-la-blanche-LR0472",
+          "reason": "Balise lists La Prucheraie (1 km linear, signed trail #5 of the reserve network); OSM 0.50 mi, wholly inside, below the 0.6 mi fragment floor."
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Le ouaouaron",
+          "name": "Le Ouaouaron",
+          "source": "https://baliseqc.ca/3S/explorer/outaouais/reserve-ecologique-de-la-foret-la-blanche-LR0472",
+          "reason": "Rando Québec / Balise lists it as Le Ouaouaron (capitalised); OSM name is lowercase"
+        },
+        {
+          "osm_name": "La prucheraie",
+          "name": "La Prucheraie",
+          "source": "https://baliseqc.ca/3S/explorer/outaouais/reserve-ecologique-de-la-foret-la-blanche-LR0472",
+          "reason": "Rando Québec / Balise lists it as La Prucheraie (capitalised); OSM name is lowercase"
+        }
+      ]
+    },
+    {
+      "id": "reserve-ecologique-de-la-serpentine-de-coleraine-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 15576943,
+      "name": "Réserve écologique de la Serpentine-de-Coleraine",
+      "bbox": [
+        -71.45,
+        45.92,
+        -71.31,
+        46.05
+      ],
+      "center": [
+        45.99,
+        -71.378
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 2.9,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Engine refusal: two OSM boundaries carry the name Réserve écologique de la Serpentine-de-Coleraine (r15576943 and w475563851), so exact-area validation fails (found 2). T1 estimate 2 trails / 2.9 mi. Needs a boundary rescope (no OSM edits now)."
+    },
+    {
+      "id": "reserve-faunique-ashuapmushuan-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388139,
+      "name": "Réserve faunique Ashuapmushuan",
+      "bbox": [
+        -74.28,
+        48.63,
+        -72.65,
+        49.64
+      ],
+      "center": [
+        49.238,
+        -73.791
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 5,
+      "est_mi": 11.7,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. The five named OSM lines are highway=track lines named after fishing lakes (Lac du Bonhomme, Lacs des Sagitaires et Castonguay, Lac Migneault, Lac Kurtness, Lac Clavel): lake access tracks, not hiking trails. No hiking trail list found (Ashuapmushuan is not on Balise). Zero hiking trails after curation."
+    },
+    {
+      "id": "reserve-faunique-de-matane-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7485828,
+      "name": "Réserve faunique de Matane",
+      "bbox": [
+        -67.36,
+        48.49,
+        -66.41,
+        48.96
+      ],
+      "center": [
+        48.829,
+        -66.75
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 11,
+      "est_mi": 30.3,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). SHIP. Sépaq réserve faunique; the day hikes are signed SIA-QC (GR A1) circuits. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/gaspesie/reserve-faunique-de-matane-LR0120) lists Étang à la Truite (1 km), Sentier du mont Blanc (8 km linear) and the SIA (106 km); Tourisme Matane (https://www.tourismematane.com/en/quoi-faire/randonnees.html) lists the IAT one-day hikes: Rivière Matane 6 km, Mont Charles-Édouard-Vézina 8.2, Chute du Ruisseau de l'Ouest 7.7, Chute Hélène 8.2 return, Vallée du Ruisseau des Pitounes 12.5, Pic du Ruisseau Desjarlais 7.6, Montagne à Valcourt 11.6, Contreforts 12.2, Mont Nicol-Albert 12.4, Mont Blanc 16.2 return, Mont de l'Ouest 17.6. Kept: Sentier du mont Blanc (OSM 'Sentier d'accès au mont Blanc' 4.88 mi = 7.9 km one way, 100% inside; renamed) and Sentier de la chute Hélène (2.44 mi = 3.9 km one way vs 4.1 km listed). Excluded: SIA relations (long-distance), unlisted Craggy / Matawees / Frère-de-Nicol-Albert / Fougères, stubs of Valcourt and Mont de l'Ouest, the extra La Chute-Hélène piece. Known omissions: the other listed day hikes run on the SIA-QC main line (long-distance, excluded) or are not mapped by name, incl. Mont Nicol-Albert. Trails close during the hunting season (September to December). Pin moved from 48.767,-66.901 to the kept-trail vertex nearest the curated trail-extent midpoint (48.829,-66.75).",
+      "exclude_trails": [
+        {
+          "id": "n:SIA, 5-Sentier d'accès",
+          "name": "SIA, 5-Sentier d'accès",
+          "reason": "Long-distance trail section (Sentier international des Appalaches / Sentier national), excluded by rule (SIA-QC access-route relations; the Mont Blanc access is kept as its own way)"
+        },
+        {
+          "id": "n:SIA, 5-Réserve faunique de Matane, route alternative",
+          "name": "SIA, 5-Réserve faunique de Matane, route alternative",
+          "reason": "Long-distance trail section (Sentier international des Appalaches / Sentier national), excluded by rule (SIA-QC alternative route)"
+        },
+        {
+          "id": "n:Sentier du mont Craggy",
+          "name": "Sentier du mont Craggy",
+          "reason": "Not on the agency trail list read for this batch; unverified name (Mont Craggy is a summit on the SIA-QC main line, not a listed day hike)"
+        },
+        {
+          "id": "n:Le Mont-Matawees",
+          "name": "Le Mont-Matawees",
+          "reason": "Not on the agency trail list read for this batch; unverified name (Matawees is on the SIA-QC Haut-Pays-de-Cap-Chat section; mostly highway=track)"
+        },
+        {
+          "id": "n:Le-Frère-de-Nicol-Albert",
+          "name": "Le-Frère-de-Nicol-Albert",
+          "reason": "Not on the agency trail list read for this batch; unverified name (the listed day hike is the Mont Nicol-Albert trail, 12.4 km return, which runs on the SIA-QC)"
+        },
+        {
+          "id": "n:Sentier du mont des Fougères",
+          "name": "Sentier du mont des Fougères",
+          "reason": "Not on the agency trail list read for this batch; unverified name"
+        },
+        {
+          "id": "n:Sentier de la montagne à Valcourt",
+          "name": "Sentier de la montagne à Valcourt",
+          "reason": "Stub: 0.96 mi mapped of the listed Montagne à Valcourt trail (11.6 km return, mostly on the SIA-QC)"
+        },
+        {
+          "id": "n:Sentier du mont de l'Ouest",
+          "name": "Sentier du mont de l'Ouest",
+          "reason": "Stub: 0.97 mi mapped of the listed Mont de l'Ouest trail (17.6 km return, mostly on the SIA-QC)"
+        },
+        {
+          "id": "n:La Chute-Hélène",
+          "name": "La Chute-Hélène",
+          "reason": "Extra piece next to the kept Sentier de la chute Hélène, which already matches the listed 4.1 km one way"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Sentier d'accès au mont Blanc",
+          "name": "Sentier du mont Blanc",
+          "source": "https://baliseqc.ca/3S/explorer/gaspesie/reserve-faunique-de-matane-LR0120",
+          "reason": "Rando Québec / Balise lists it as Sentier du mont Blanc (8 km linear); OSM calls it an access trail"
+        }
+      ]
+    },
+    {
+      "id": "reserve-faunique-de-papineau-labelle-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 558634613,
+      "name": "Réserve Faunique de Papineau-Labelle",
+      "bbox": [
+        -75.6,
+        45.73,
+        -74.84,
+        46.45
+      ],
+      "center": [
+        46.138,
+        -75.172
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 15.5,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). SHIP. Sépaq réserve faunique. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/laurentides/reserve-faunique-de-papineau-labelle-LR0228) lists Mont Bondy (1 km linear), Lac Écho (1 km loop), Du Ramage (3 km loop), Mont Resther (4 km linear) and Mont Devlin (4 km linear); the adjoining Route des Zingues entry (https://baliseqc.ca/3S/explorer/outaouais/route-des-zingues-LR1088, Duhamel) lists Sentier Caroline (3.8 km), La boucle (2.5 km) and the Route des Zingues Sentier national section. Kept: Sentier Mont Devlin 2.86 mi, Sentier du Mont Resther 2.19 mi, Sentier Caroline 1.75 mi (99% inside the réserve), Sentier du Mont Bondy 1.39 mi (all 99-100% inside). Excluded: Route des Zingues (Sentier national, long-distance), Albatros (54% inside), three access tracks, the Du Ramage stub; the Sentier Quad fédéré and ATV trail are dropped by the engine as motorised. Known omissions: Lac Écho loop (not mapped by name), Du Ramage (stub). Trails close to non-hunters during the hunting season. Pin moved from 46.126,-75.205 to the kept-trail vertex nearest the curated trail-extent midpoint (46.138,-75.172).",
+      "exclude_trails": [
+        {
+          "id": "n:Route des Zingues",
+          "name": "Route des Zingues",
+          "reason": "Long-distance trail section (Sentier international des Appalaches / Sentier national), excluded by rule (Balise: Route des Zingues, Sentier national section, 24.3 km); also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (80%)"
+        },
+        {
+          "id": "n:Sentier de l'Albatros",
+          "name": "Sentier de l'Albatros",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (54%: 3.56 of 6.57 mi); not on the réserve list"
+        },
+        {
+          "id": "n:Accès chalet de la Bécasse",
+          "name": "Accès chalet de la Bécasse",
+          "reason": "Access track to a rental chalet, not a hiking trail"
+        },
+        {
+          "id": "n:Accès camping Écho",
+          "name": "Accès camping Écho",
+          "reason": "Access track to the Écho campground, not the listed Lac Écho loop"
+        },
+        {
+          "id": "n:Accès au lac des Bois",
+          "name": "Accès au lac des Bois",
+          "reason": "Access track to a lake, not a hiking trail"
+        },
+        {
+          "id": "n:Sentier Lac du Ramage",
+          "name": "Sentier Lac du Ramage",
+          "reason": "Stub: 0.88 mi mapped of the listed Du Ramage loop (3 km)"
+        }
+      ]
+    },
+    {
+      "id": "reserve-faunique-de-port-cartier-sept-iles-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7953146,
+      "name": "Réserve faunique de Port-Cartier–Sept-Îles",
+      "bbox": [
+        -67.88,
+        49.94,
+        -66.67,
+        51.05
+      ],
+      "center": [
+        50.161,
+        -67.149
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 4.5,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/duplessis/reserve-faunique-de-port-cartier-sept-iles-LR0252) lists Chute MacDonald (1 km), Lac Carré (7 km multi-use), De la Montagne (1 km) and Montagne de la Solitude (1 km). OSM: Sentier de la Montagne 1.99 mi (listed name; length does not match the 1 km listing) and 'Seniter de la Tour à Feu' 2.46 mi (misspelt in OSM, not on the agency list). One listed trail; Chute MacDonald, Lac Carré and Solitude are not mapped by name."
+    },
+    {
+      "id": "reserve-faunique-de-port-daniel-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8271777,
+      "name": "Réserve faunique de Port-Daniel",
+      "bbox": [
+        -65.19,
+        48.16,
+        -64.82,
+        48.41
+      ],
+      "center": [
+        48.311,
+        -64.927
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/gaspesie/reserve-faunique-de-port-daniel-LR0121) lists Plaisance (5 km, mixed) and La Montée (4 km loop). OSM: Sentier La Plaisance 1.48 mi (whole, out-and-back) and Sentier La Montée 1.08 mi (43% of the 4 km loop: stub). One whole trail."
+    },
+    {
+      "id": "reserve-faunique-de-portneuf-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8008866,
+      "name": "Réserve faunique de Portneuf",
+      "bbox": [
+        -72.59,
+        46.96,
+        -71.93,
+        47.44
+      ],
+      "center": [
+        47.266,
+        -72.305
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 4.4,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/quebec/reserve-faunique-de-portneuf-LR0137) lists seven short trails: Chutes-de-la-Marmite 1 km, Coulée-Creuse 2 km, Lac Manchot 3 km, Cap Bellevue 2 km, Lac Lizotte 2 km, Cap des Urubus 2 km and Cap Caché 3 km (returns). OSM maps only Cap Caché 0.79 mi and Cap Bellevue 0.62 mi (both whole); 'Secteur Pigou (Coupe Forestière)' is a logging-cut track, not a trail; the Sentier national (Philosore) is long-distance. Two trails / 1.41 mi: below the floor."
+    },
+    {
+      "id": "reserve-faunique-des-chic-chocs-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7062309,
+      "name": "Réserve faunique des Chic-Chocs",
+      "bbox": [
+        -66.23,
+        48.71,
+        -65.47,
+        49.2
+      ],
+      "center": [
+        48.839,
+        -66.042
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/gaspesie/reserve-faunique-des-chic-chocs-LR1071, updated 2014) lists only Sentier des Pics (2 km linear); OSM Le Mont des Pics is 78% inside (clipped). The summit hikes the Sépaq description names (monts Blanche-Lamontagne, Vallières-de-Saint-Réal, Hog's Back) are mapped as 'Mont Blanche-Lamontagne' 8.33 mi, 'Mont Hog's Back' 2.48 mi (AllTrails: 6.1 km loop, so possibly partial) and an access path to Vallières-de-Saint-Réal, with no agency list to check names or lengths against. The SIA/IAT sections are long-distance. Needs the Sépaq list (sepaq.com returns 403)."
+    },
+    {
+      "id": "reserve-faunique-des-laurentides-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7263453,
+      "name": "Réserve faunique des Laurentides",
+      "bbox": [
+        -72.19,
+        47.06,
+        -70.57,
+        48.34
+      ],
+      "center": [
+        47.765,
+        -71.403
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 3.1,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. OSM inside the polygon: Lac Bizet 1.38 mi and Lac des Vases 0.71 mi (highway=track lines named for lakes) and 'Sentier G - Le Pohro' 1.06 mi (coded ski-network name; T1 ski pre-flag). Everything else is Sentier national / Charlevoix long-distance or forest roads. No agency hiking list found (not on Balise). Zero listed hiking trails."
+    },
+    {
+      "id": "reserve-faunique-du-saint-maurice-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8008864,
+      "name": "Réserve faunique du Saint-Maurice",
+      "bbox": [
+        -73.45,
+        46.85,
+        -72.85,
+        47.26
+      ],
+      "center": [
+        47.087,
+        -73.24
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 4.6,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/mauricie/reserve-faunique-du-saint-maurice-LR0307) lists La Tourbière (2 km loop), Chutes Dunbar (2 km), Chute du Vent (6 km), La Petite Ourse (2 km loop), Belvédère du lac Huguette (2 km) and la Grande Ourse (18 km loop). OSM: the Grande-Ourse relation r7379576 is complete as mapped but only 3.76 mi (6.0 km, a third of the 18 km loop); Petite-Ourse r7379577 is 0.81 mi (65% of its loop); Chutes-Dunbar is a 0.54 mi piece; the rest are not mapped. Stubs of the listed trails."
+    },
+    {
+      "id": "reserve-faunique-mastigouche-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8008865,
+      "name": "Réserve faunique Mastigouche",
+      "bbox": [
+        -73.76,
+        46.43,
+        -73.0,
+        46.96
+      ],
+      "center": [
+        46.555,
+        -73.311
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 10,
+      "est_mi": 52.4,
+      "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/mauricie/reserve-faunique-mastigouche-LR0132) lists Les Six-Chutes (closed indefinitely), Le Saint-Bernard (Sentier national) and La Falaise (2 km linear), plus the Sentier national sections (Tonnerre, Saint-Bernard, Vianney-Guillemette, excluded as long-distance). OSM: Sentier de la Falaise 0.85 mi (relation, 68% of the listed length); Mistikush 6.46 mi, Tour du Lac 2.86 mi and Sorcier 1.27 mi are not on the list; Six-Chutes is closed. At most one listed trail."
+    },
+    {
+      "id": "beehive-natural-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 12015310,
+      "name": "Beehive Natural Area",
+      "bbox": [
+        -114.79,
+        49.95,
+        -114.53,
+        50.17
+      ],
+      "center": [
+        50.072,
+        -114.666
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 6,
+      "est_mi": 14.6,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/south/beehive-na/) lists no trails except the Great Divide Trail, which crosses Beehive at treeline on tracks, cut lines and roads (long-distance). OSM: Beehive Mountain, Mount Lyall, Lyall-Beehive Connector, Honeycomb Mountain and a Beehive-Lyall-Gass traverse are scramble routes from scrambling sites/Peakery (Mount Lyall trail_visibility=no); Cache Creek Trail is a GDT segment. Zero agency-listed hiking trails."
+    },
+    {
+      "id": "big-knife-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 309094789,
+      "name": "Big Knife Provincial Park",
+      "bbox": [
+        -112.29,
+        52.43,
+        -112.14,
+        52.55
+      ],
+      "center": [
+        52.493,
+        -112.222
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.2,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Alberta Parks trail table (https://www.albertaparks.ca/parks/central/big-knife-pp/information-facilities/trails/) lists exactly two hiking trails: River Flats (4.5 km return) and Highland (6.0 km return). Kept both: River Flats Trail 2.60 mi (98% inside) and Highland Trail 2.61 mi (OSM 'Highlands Trail', renamed; 100% inside). Matches the agency list in full.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Highlands Trail",
+          "name": "Highland Trail",
+          "source": "https://www.albertaparks.ca/parks/central/big-knife-pp/information-facilities/trails/",
+          "reason": "Alberta Parks lists it as Highland (6.0 km return); OSM name is plural"
+        }
+      ]
+    },
+    {
+      "id": "bluerock-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364869,
+      "name": "Bluerock Wildland Provincial Park",
+      "bbox": [
+        -114.87,
+        50.51,
+        -114.41,
+        50.75
+      ],
+      "center": [
+        50.608,
+        -114.734
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 9.2,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Kananaskis Country (Sheep Valley). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/) publishes the Sheep Valley Trails Map, whose trail list for Bluerock and the neighbouring parks includes Bluerock Creek Trail, Death Valley Trail, Gorge Creek Trail, Green Mountain Trail, Indian Oils Trail, Sheep Trail, South Gorge Creek Trail and Threepoint Mountain Trail; the trail table lists Sheep (Summer). The Kananaskis Sheep and Highwood trail report (https://www.albertaparks.ca/parks/kananaskis/kananaskis-country/advisories-public-safety/trail-reports/sheep-and-highwood/) also lists Mount Hoffman (Hiking, 9.3 km, 532 m) and Bluerock Interpretive. Kept the three listed trails that lie whole inside the wildland: Bluerock Creek Trail 3.92 mi (89%), Death Valley Trail 3.74 mi (89%, renamed from 'Death Valley') and Mount Hoffman Trail 1.51 mi (99%, OSM way 456696340 from trailhead node 269797992 on Sheep Trail to the summit; restored in AB review remediation). Excluded (22): ridge/summit scrambles mapped from scrambling sites (Tunnel O' Fun, Bluerock Pass, Bluerock Mountain, Gleason Ridge, Mount McNab, Green Mountain Route, Wolf Creek Hill, Bluerock Knob, Mount Burns East, Sandy McNabb Hills, Prairie Pine Macabee), Sandy McNabb ski loops, and listed trails that are boundary-clipped (Gorge Creek 81%, Green Mnt pieces 47-77%, Sheep Trail 31%, Indian Oils 13%, Sheep River, Foran Grade, Windy Point). Known omissions: Gorge Creek Trail (81% inside, would double-list in the adjoining parks), Green Mountain Trail (only clipped pieces mapped), Threepoint Mountain and South Gorge Creek (not mapped under those names inside the polygon), Bluerock Interpretive (no OSM candidate inside). Pin moved from 50.623,-114.625 to the kept-trail vertex nearest the curated trail-extent midpoint (50.608,-114.734).",
+      "exclude_trails": [
+        {
+          "id": "n:Gorge Creek",
+          "name": "Gorge Creek",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (81%: 5.45 of 6.69 mi; Gorge Creek Trail continues into the neighbouring Kananaskis parks); not a flagship waiver"
+        },
+        {
+          "id": "n:Tunnel O' Fun Route",
+          "name": "Tunnel O' Fun Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Sheep Valley Trails",
+          "name": "Sheep Valley Trails",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (24%); generic network name, not a trail"
+        },
+        {
+          "id": "n:Sandy McNabb Hills Route",
+          "name": "Sandy McNabb Hills Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (47%)"
+        },
+        {
+          "id": "n:Windy Point Tr",
+          "name": "Windy Point Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (80%); not on the Bluerock list"
+        },
+        {
+          "id": "n:Prairie Pine Macabee Ridges Route",
+          "name": "Prairie Pine Macabee Ridges Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (78%)"
+        },
+        {
+          "id": "n:Bluerock Pass Route",
+          "name": "Bluerock Pass Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Gleason Ridge Trail",
+          "name": "Gleason Ridge Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Gleason Ridge Route')"
+        },
+        {
+          "id": "n:Bluerock Mountain Trail",
+          "name": "Bluerock Mountain Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Bluerock Mountain Route')"
+        },
+        {
+          "id": "n:Green Mountain Trail",
+          "name": "Green Mountain Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Green Mountain Route', source Bob Spirko); the listed Green Mountain Trail is the clipped Green Mnt pieces"
+        },
+        {
+          "id": "n:Mount McNab Route",
+          "name": "Mount McNab Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Green Mnt Tr",
+          "name": "Green Mnt Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (77%); piece of the listed Green Mountain Trail"
+        },
+        {
+          "id": "n:Sheep Trail",
+          "name": "Sheep Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (31%); the listed Sheep Trail is a 36 km multi-park route (Alberta Parks: South Section 27.5 km, North Section 8.6 km, horse/OHV, partly impassable since 2013)"
+        },
+        {
+          "id": "n:Bluerock Knob Trail",
+          "name": "Bluerock Knob Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (source Bob Spirko); also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (58%)"
+        },
+        {
+          "id": "n:Green Mnt Trail",
+          "name": "Green Mnt Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (47%); piece of the listed Green Mountain Trail"
+        },
+        {
+          "id": "n:Sheep River Trail",
+          "name": "Sheep River Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (55%)"
+        },
+        {
+          "id": "n:Foran Grade Tr",
+          "name": "Foran Grade Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (50%)"
+        },
+        {
+          "id": "n:Logger's Loop",
+          "name": "Logger's Loop",
+          "reason": "Sandy McNabb cross-country ski network loop (OSM network=Sandy McNabb Skiing); not a summer hiking trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (36%)"
+        },
+        {
+          "id": "n:Wolf Creek Hill Trail",
+          "name": "Wolf Creek Hill Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Wolf Creek Hill East Route', source Bob Spirko)"
+        },
+        {
+          "id": "n:Meadow Loop",
+          "name": "Meadow Loop",
+          "reason": "Sandy McNabb cross-country ski network loop (OSM network=Sandy McNabb Skiing); not a summer hiking trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (53%)"
+        },
+        {
+          "id": "n:Indian Oils",
+          "name": "Indian Oils",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (13%); the listed Indian Oils Trail lies mostly outside Bluerock"
+        },
+        {
+          "id": "n:Mount Burns East",
+          "name": "Mount Burns East",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (23%)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Death Valley",
+          "name": "Death Valley Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/",
+          "reason": "Alberta Parks Sheep Valley trails map lists it as Death Valley Trail"
+        }
+      ]
+    },
+    {
+      "id": "bob-creek-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6365111,
+      "name": "Bob Creek Wildland Provincial Park",
+      "bbox": [
+        -114.42,
+        49.81,
+        -114.15,
+        50.14
+      ],
+      "center": [
+        50.017,
+        -114.276
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 7,
+      "est_mi": 25.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/south/bob-creek-wpp/) lists only designated OHV trails and backcountry use; no hiking trail list. OSM: Camp Ridge, Thrift Peak Alt, White Ridge, Horseshoe Peak and Thunder Mountain are ridge/summit scramble routes (sources Bob Spirko, Spectacular Mountains); Chaffen Trail is 72% inside. Zero agency-listed hiking trails; a local hiker would not call this a trail destination."
+    },
+    {
+      "id": "brown-lowery-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 428124524,
+      "name": "Brown-Lowery Provincial Park",
+      "bbox": [
+        -114.49,
+        50.75,
+        -114.37,
+        50.87
+      ],
+      "center": [
+        50.81,
+        -114.427
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 3.3,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Day-use park west of Calgary (Kananaskis region). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/brown-lowery-pp/) lists 12 km of rustic trails: Lookout, Pine Hill, Old Mill West, Raven, Old Mill East, Wildrose, Red Willow, Wildrose East, Old Mill North, Chickadee, Wildrose West, Crocus Loop; the trail map (https://www.albertaparks.ca/media/6496155/brown-lowery-trail-map_600x600_-x25.pdf) gives Old Mill East 1.5 km, Red Willow 1.4 km, Chickadee 1.0 km, Lookout 0.6 + 0.8 km. Kept: Old Mill East 0.84 mi (1.35 km, 99% inside), Red Willow 0.84 mi (99%), Chickadee 0.74 mi (100%) and Lookout 0.84 mi (81% inside: flagship waiver, it is the park's viewpoint trail and the small polygon cuts the far end). Lengths match the map. Known omissions: Pine Hill, Raven, Wildrose (East/West/North), Old Mill West/North, Crocus Loop (short connectors, not mapped by name or below the 0.6 mi fragment floor)."
+    },
+    {
+      "id": "fort-assiniboine-sandhills-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6022438,
+      "name": "Fort Assiniboine Sandhills Wildland Provincial Park",
+      "bbox": [
+        -114.75,
+        54.25,
+        -114.43,
+        54.49
+      ],
+      "center": [
+        54.393,
+        -114.629
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 6.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks tear sheet (https://www.albertaparks.ca/media/6497374/fort-assiniboine-tear-sheet.pdf) maps more than 80 km of horse/bike/foot trails incl. River Valley Trail, Klondike Trail and Wagon Trail; the park warns the Wagon and Klondike trails are overgrown. OSM: River Valley 2.53 mi (whole, listed), Klondike 3.04 mi (73% inside, clipped), Beaver 1.23 mi (not on the map). One whole listed trail; multi-use tracks (highway=track, horse=yes)."
+    },
+    {
+      "id": "kootenay-plains-ecological-reserve-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395386,
+      "name": "Kootenay Plains Ecological Reserve",
+      "bbox": [
+        -116.53,
+        51.94,
+        -116.31,
+        52.19
+      ],
+      "center": [
+        52.047,
+        -116.388
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 12.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. David Thompson Highway (Hwy 11), foot traffic only. Alberta Parks trail table (https://www.albertaparks.ca/parks/central/kootenay-plains-er/information-facilities/trails/) lists Siffleur Falls (4 km one way, open), Tuff Puff / Kinglet Lake, Glacier (horse/OHV), Siffleur Backcountry Access and Landslide Lake Interpretive Fire Trail (2 km). Kept: Siffleur Falls Trail 4.34 mi (99% inside; OSM continues past the first falls toward the upper falls) and Kinglet Lake and Tuff Puff Ridge Trail 1.16 mi (88%). Excluded: Siffleur Wilderness Area Access (58% inside), three unlisted short paths (Terrace Trail, Kootenay Plains Walk, Whirlpool Point East Side) and the Whirlpool Ridge scramble. Known omissions: Glacier (horse/OHV), Landslide Lake fire trail (not mapped by that name). Pin moved from 52.028,-116.429 to the kept-trail vertex nearest the curated trail-extent midpoint (52.047,-116.388).",
+      "exclude_trails": [
+        {
+          "id": "n:Siffleur Wilderness Area Access",
+          "name": "Siffleur Wilderness Area Access",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (58%); access route into the Siffleur Wilderness Area"
+        },
+        {
+          "id": "n:Terrace Trail",
+          "name": "Terrace Trail",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Kootenay Plains Walk",
+          "name": "Kootenay Plains Walk",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Whirlpool Point East Side",
+          "name": "Whirlpool Point East Side",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Whirlpool Ridge Trail",
+          "name": "Whirlpool Ridge Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Whirlpool Ridge Route', source Bob Spirko)"
+        },
+        {
+          "id": "n:Whirlpool Point Trail",
+          "name": "Whirlpool Point Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Whirlpool Ridge Route', source Bob Spirko)"
+        }
+      ]
+    },
+    {
+      "id": "lakeland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 430888744,
+      "name": "Lakeland Provincial Park",
+      "bbox": [
+        -111.73,
+        54.6,
+        -111.4,
+        54.89
+      ],
+      "center": [
+        54.785,
+        -111.537
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.6,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/north/lakeland-pp/) lists only the Shaw Lake cross-country ski trails (Ballfield, Moonlight, Narrows, Ravine, Switchback, The Point); the park is known for its canoe circuit. OSM: Mosquito Lake Trail 3.89 mi (unlisted) and Dabbs Lake Trail (21% inside, highway=track). No listed hiking trail."
+    },
+    {
+      "id": "landslide-lake-natural-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 401057999,
+      "name": "Landslide Lake Natural Area",
+      "bbox": [
+        -116.63,
+        52.0,
+        -116.45,
+        52.16
+      ],
+      "center": [
+        52.075,
+        -116.548
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 7.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Not on albertaparks.ca under its own page. OSM: Landslide Lake Trail is 44% inside (5.73 of 12.89 mi; it starts at the Hwy 11 trailhead outside the natural area) and 'Mount Ernest Ross Trail' is the Landslide Peak Traverse scramble route (Explor8ion). Zero whole trails."
+    },
+    {
+      "id": "moose-lake-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6057585,
+      "name": "Moose Lake Provincial Park",
+      "bbox": [
+        -111.0,
+        54.2,
+        -110.86,
+        54.34
+      ],
+      "center": [
+        54.268,
+        -110.92
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 5.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Bonnyville area. The Alberta Parks Moose Lake Trail Map (https://www.albertaparks.ca/media/6496684/moose-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/moose-lake-pp/) names Fireroad Trail (4.8 km), Lakeshore Trail, Blueberry Trail, Jackpine Trail, Muskeg Trail and Dead Man's Trail plus a 2.2 km ski trail. Kept: Fireroad Trail 2.59 mi (99% inside), Lakeshore Trail 1.57 mi, Jackpine Trail 0.80 mi, Muskeg Trail 0.79 mi (all 100%). Known omissions: Blueberry Trail and Dead Man's Trail (not mapped by name). Alberta Parks warns the trails may be impassable after windfall or flooding."
+    },
+    {
+      "id": "plateau-mountain-ecological-reserve-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6367767,
+      "name": "Plateau Mountain Ecological Reserve",
+      "bbox": [
+        -114.61,
+        50.14,
+        -114.44,
+        50.33
+      ],
+      "center": [
+        50.219,
+        -114.526
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 12.3,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks trail table (https://www.albertaparks.ca/parks/kananaskis/plateau-mountain-er/information-facilities/trails/) lists one trail, Plateau Mountain (6.7 km return, hiking/horse/OHV). OSM: Plateau Mountain Trail 5.12 mi (the old gas-well road, 97%) plus two scramble variants (Plateau Mountain Route, Plateau Mountain Alternate Route 63% inside). One listed trail."
+    },
+    {
+      "id": "white-goat-wilderness-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395404,
+      "name": "White Goat Wilderness Area",
+      "bbox": [
+        -117.14,
+        52.07,
+        -116.48,
+        52.39
+      ],
+      "center": [
+        52.247,
+        -117.006
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/central/white-goat-wa/): wilderness area reached by a 4-5 hour hike from Hwy 93 trailheads in Banff/Jasper; most routes are old pack trails and not maintained. OSM: Mount Willis, Cirrus Mountain (trail_visibility=no) and Cataract/Cline Pass are scramble routes (47% or unmeasured inside), Sunset Pass Trail 25% inside (it belongs to Banff). Zero whole maintained trails."
+    },
+    {
+      "id": "william-a-switzer-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6048528,
+      "name": "William A. Switzer Provincial Park",
+      "bbox": [
+        -117.9,
+        53.35,
+        -117.69,
+        53.63
+      ],
+      "center": [
+        53.465,
+        -117.796
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 6.1,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Near Hinton. Alberta Parks trail report (https://www.albertaparks.ca/parks/central/william-a-switzer-pp/information-facilities/trails/) lists summer trails Athabasca Lookout (1 km access, 3 km to Joachim Valley), Beaver Ranch 1.5 km, Blue Lake 3 km, Fish Lakes 3.5 km, Friendly Vistas 2.5 km, Gregg Lake 3.5 km, Kelley's Bathtub 1 km, Kettle 3.5 km, plus the Hinton Nordic Centre, Jarvis Lake and Joachim Valley ski trails. Kept: Athabasca Lookout 1.81 mi (2.9 km), Kettle Trail 1.81 mi, Friendly Vistas 1.41 mi (2.3 km) (99-100% inside; lengths match). Excluded: Gregg Lake trail 1 (stub). The Nordic Centre ski network is not in OSM under trail names here (T1 ski pre-flag is the Nordic Centre). Known omissions: Beaver Ranch, Blue Lake, Fish Lakes, Kelley's Bathtub (not mapped by name).",
+      "exclude_trails": [
+        {
+          "id": "n:Gregg Lake trail 1",
+          "name": "Gregg Lake trail 1",
+          "reason": "Stub: 1.07 mi mapped of the listed Gregg Lake trail (3.5 km)"
+        }
+      ]
+    },
+    {
+      "id": "young-s-point-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6408634,
+      "name": "Young's Point Provincial Park",
+      "bbox": [
+        -117.69,
+        55.06,
+        -117.45,
+        55.22
+      ],
+      "center": [
+        55.137,
+        -117.572
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks trail table (https://www.albertaparks.ca/parks/north/young-s-point-pp/information-facilities/trails/) lists Eagle Creek/Boreal Loop 7.0 km, Sturgeon 2.5 km and Alces 3.0 km, all multi-use with OHV permitted. OSM: Eagle Creek Trail 1.97 mi (87%), Boreal Loop 1.03 mi (59%, clipped), Sturgeon Trail 1.13 mi; Alces not mapped. Two whole trails / 3.1 mi, both OHV-shared; below the bar a local hiker would set."
     }
   ]
 }

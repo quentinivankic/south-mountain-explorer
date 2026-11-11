@@ -72,8 +72,10 @@ enum LiveActivityNextTurnFormatter {
             case .turnRight: arrow = .turnRight
             case .sharpLeft: arrow = .sharpLeft
             case .sharpRight: arrow = .sharpRight
-            // Plan a Hike arrows come with the Live Activity step row (task 6).
-            case .straight, .turnAround, .offTrail, .backOnTrail, .gpsWeak: return nil
+            // Only the plan guide cues these two.
+            case .straight: arrow = .straight
+            case .turnAround: arrow = .turnAround
+            case .offTrail, .backOnTrail, .gpsWeak: return nil
             }
             let action = TurnCuePhrasing.action(turn.symbol)
             let cap = TurnCuePhrasing.capitalized(action)
@@ -93,6 +95,72 @@ enum LiveActivityNextTurnFormatter {
     }
 }
 
+/// The plan guide's state while a hike started from a plan is guided
+/// (Release B task 6), so the Lock Screen and Dynamic Island show the same
+/// step as the bar.
+struct LiveActivityPlanGuide: Equatable, Sendable {
+    var steps: [PlanStep]
+    var status: PlanGuideEngine.Status
+}
+
+/// Pure wording for the plan step row. It uses the bar's own text, so the
+/// Lock Screen and the bar always agree.
+enum LiveActivityPlanStepFormatter {
+    typealias Row = LiveActivityNextTurnFormatter.Row
+
+    /// - Route complete: flag, "Route complete".
+    /// - Off route: warning, "Off route, 150 ft to route".
+    /// - A turn cue is live (heads-up or at the turn): its arrow and "Turn left in 300 ft".
+    /// - Back on route: check, "Back on route" (for the few seconds the cue shows).
+    /// - Otherwise the step: its arrow and "2. Left onto Viewpoint Trail, 0.4 mi to next turn".
+    /// The second line is "Step 2 of 4" except at the finish and off route.
+    static func row(guide: LiveActivityPlanGuide, cue: LiveActivityNextTurn?, units: UnitsPreference) -> Row? {
+        let status = guide.status
+        let line = PlanGuideText.line(steps: guide.steps, status: status, units: units)
+        if status.isComplete {
+            return Row(arrow: .routeComplete, text: line, distanceText: nil, trail: nil, spoken: line)
+        }
+        if let off = status.offRouteMeters {
+            return Row(arrow: .offTrail, text: line, distanceText: PlanGuideText.distance(meters: off, units: units),
+                       trail: nil, spoken: line)
+        }
+        let counter = PlanGuideText.counter(status)
+        if let cue {
+            switch cue.kind {
+            case .approach, .atJunction:
+                if var row = LiveActivityNextTurnFormatter.row(for: cue, units: units) {
+                    row.trail = counter
+                    return row
+                }
+            case .backOnTrail:
+                let t = TurnCuePhrasing.backOnRoute
+                return Row(arrow: .backOnTrail, text: t, distanceText: nil, trail: counter, spoken: t)
+            case .offTrail, .gpsWeak:
+                break
+            }
+        }
+        guard status.stepIndex < guide.steps.count else { return nil }
+        let step = guide.steps[status.stepIndex]
+        return Row(arrow: arrow(for: step.action), text: line,
+                   distanceText: PlanGuideText.distance(meters: status.metersToNextTurn, units: units),
+                   trail: counter, spoken: "\(counter). \(line)")
+    }
+
+    /// The step's own arrow. Start reads as straight ahead.
+    static func arrow(for action: PlanStep.Action) -> HikeActivityAttributes.NextTurnArrow {
+        switch action {
+        case .start, .straight: return .straight
+        case .keepLeft: return .keepLeft
+        case .keepRight: return .keepRight
+        case .left: return .turnLeft
+        case .right: return .turnRight
+        case .sharpLeft: return .sharpLeft
+        case .sharpRight: return .sharpRight
+        case .turnAround: return .turnAround
+        }
+    }
+}
+
 /// Everything the mapper needs, built by the coordinator from observable state.
 struct LiveActivityRecordingSnapshot: Equatable, Sendable {
     var recordingId: String
@@ -107,6 +175,9 @@ struct LiveActivityRecordingSnapshot: Equatable, Sendable {
     var usesMetric: Bool
     /// Nil when turn cues are not active or nothing is pending.
     var nextTurn: LiveActivityNextTurn? = nil
+    /// Set while a hike started from a plan is guided; the row then shows the
+    /// plan step instead of a trail cue.
+    var planGuide: LiveActivityPlanGuide? = nil
 }
 
 /// Pure snapshot -> `ContentState` mapping.
@@ -152,11 +223,15 @@ enum HikeActivityStateMapper {
         // The turn engine and the estimator judge "off trail" separately, so
         // the cue can say off trail a moment before the estimate does. Finish
         // is meaningless off trail; hide it. Back (retrace) stays.
-        if snapshot.nextTurn?.kind == .offTrail { trailEnd = nil }
+        if snapshot.nextTurn?.kind == .offTrail || snapshot.planGuide?.status.offRouteMeters != nil { trailEnd = nil }
 
         var turnRow: LiveActivityNextTurnFormatter.Row?
-        if finishedAt == nil, !status.isDegraded, let turn = snapshot.nextTurn {
-            turnRow = LiveActivityNextTurnFormatter.row(for: turn, units: units)
+        if finishedAt == nil, !status.isDegraded {
+            if let guide = snapshot.planGuide {
+                turnRow = LiveActivityPlanStepFormatter.row(guide: guide, cue: snapshot.nextTurn, units: units)
+            } else if let turn = snapshot.nextTurn {
+                turnRow = LiveActivityNextTurnFormatter.row(for: turn, units: units)
+            }
         }
         let trimmed = snapshot.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let title = trimmed.isEmpty ? (snapshot.isWalk ? "Walk" : "Hiking") : trimmed

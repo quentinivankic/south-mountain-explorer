@@ -7233,11 +7233,19 @@
       "state": "Canada",
       "relation_id": 6057547,
       "name": "Cold Lake Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -110.24,
+        54.38,
+        -109.96,
+        54.75
+      ],
+      "center": [
+        54.469,
+        -110.124
+      ],
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. 3 candidates (Campground Trail, Lakeshore Trail, Main Road Trail) are campground/road-style names with no official source; not a hiking set."
+      "hold": null,
+      "notes": "AB curation 2026-11-02. 3 candidates (Campground Trail, Lakeshore Trail, Main Road Trail) are campground/road-style names with no official source; not a hiking set. Re-check 2026-11-11 (AB Phase A): RELEASED (hold few-trails -> ship). The earlier hold said the three names had no official source; they do: the Alberta Parks Cold Lake park map (https://www.albertaparks.ca/media/wc2ldl0x/cold-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/cold-lake-pp/) labels Lakeshore Trail, Campground Trail and Main Road Trail, and the park page gives 9 km of formal hiking/biking trails. OSM: Lakeshore Trail 2.09 mi, Campground Trail 2.01 mi, Main Road Trail 1.57 mi (98-99% inside) = 5.67 mi = 9.1 km, the whole formal network. Informal trails in the north of the park are unmaintained and not mapped by name. Pin moved from 54.6,-110.1 to the kept-trail vertex nearest the curated trail-extent midpoint (54.469,-110.124)."
     },
     {
       "id": "lesser-slave-lake-provincial-park-ca-ab",
@@ -7269,7 +7277,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble.",
+      "notes": "AB curation 2026-11-02. Whitehorse Wildland PP: two whole named routes (Cardinal Divide Ridge, Luscar Mountain Scramble); Whitehorse Creek Trails is boundary-clipped (15.5 of 23.9 mi) and excluded. Thin but meets the 2-trail, 2.5 mi bar. HELD (review #704): 2 trails, below the 3-trail bar; one is a scramble. Re-check 2026-11-11 (AB Phase A): identical replay 2 / 4.9: Luscar Mountain Scramble 2.49 mi (scramble) and Cardinal Divide Ridge Trail 2.43 mi (OSM 'Cardinal Divide Ridge Route', a scramble GPS track). Alberta Parks trail table (https://www.albertaparks.ca/parks/central/whitehorse-wpp/information-facilities/trails/) lists Cadomin Cave (closed), Cardinal Divide East/West, Cardinal Headwaters, Drummond, Fiddle Pass, Whitehorse Creek Falls, Lower/Upper Whitehorse Creek, Leyland Basin, Prospect Creek; none is mapped whole under its listed name inside the polygon. Stays held.",
       "exclude_trails": [
         {
           "id": "n:Whitehorse Creek Trails",
@@ -7715,7 +7723,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "AB curation 2026-11-02. Deadhorse Meadows Tote Trail is boundary-clipped (4.0 of 16.8 mi); only Kakwa Falls Viewpoint Trail (0.65 mi) remains."
+      "notes": "AB curation 2026-11-02. Deadhorse Meadows Tote Trail is boundary-clipped (4.0 of 16.8 mi); only Kakwa Falls Viewpoint Trail (0.65 mi) remains. Re-check 2026-11-11 (AB Phase A): identical replay 2 / 4.6 (Deadhorse Meadows Tote Trail 24% inside, Kakwa Falls Viewpoint Trail 0.65 mi). Alberta Parks (https://www.albertaparks.ca/parks/north/kakwa-wpp/): about 100 km of trails are mapped but not well marked. Stays held."
     },
     {
       "id": "beauvais-lake-provincial-park-ca-ab",
@@ -16250,6 +16258,481 @@
       "est_trails": 10,
       "est_mi": 52.4,
       "notes": "QC curation 2026-11-10 (Phase A, chat/ca-a-qc; T1 draft from scripts/ca_discover.py on main 5ba5e5b8a). HOLD. Rando Québec / Balise (https://baliseqc.ca/3S/explorer/mauricie/reserve-faunique-mastigouche-LR0132) lists Les Six-Chutes (closed indefinitely), Le Saint-Bernard (Sentier national) and La Falaise (2 km linear), plus the Sentier national sections (Tonnerre, Saint-Bernard, Vianney-Guillemette, excluded as long-distance). OSM: Sentier de la Falaise 0.85 mi (relation, 68% of the listed length); Mistikush 6.46 mi, Tour du Lac 2.86 mi and Sorcier 1.27 mi are not on the list; Six-Chutes is closed. At most one listed trail."
+    },
+    {
+      "id": "beehive-natural-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 12015310,
+      "name": "Beehive Natural Area",
+      "bbox": [
+        -114.79,
+        49.95,
+        -114.53,
+        50.17
+      ],
+      "center": [
+        50.072,
+        -114.666
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 6,
+      "est_mi": 14.6,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/south/beehive-na/) lists no trails except the Great Divide Trail, which crosses Beehive at treeline on tracks, cut lines and roads (long-distance). OSM: Beehive Mountain, Mount Lyall, Lyall-Beehive Connector, Honeycomb Mountain and a Beehive-Lyall-Gass traverse are scramble routes from scrambling sites/Peakery (Mount Lyall trail_visibility=no); Cache Creek Trail is a GDT segment. Zero agency-listed hiking trails."
+    },
+    {
+      "id": "big-knife-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 309094789,
+      "name": "Big Knife Provincial Park",
+      "bbox": [
+        -112.29,
+        52.43,
+        -112.14,
+        52.55
+      ],
+      "center": [
+        52.493,
+        -112.222
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.2,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Alberta Parks trail table (https://www.albertaparks.ca/parks/central/big-knife-pp/information-facilities/trails/) lists exactly two hiking trails: River Flats (4.5 km return) and Highland (6.0 km return). Kept both: River Flats Trail 2.60 mi (98% inside) and Highland Trail 2.61 mi (OSM 'Highlands Trail', renamed; 100% inside). Matches the agency list in full.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Highlands Trail",
+          "name": "Highland Trail",
+          "source": "https://www.albertaparks.ca/parks/central/big-knife-pp/information-facilities/trails/",
+          "reason": "Alberta Parks lists it as Highland (6.0 km return); OSM name is plural"
+        }
+      ]
+    },
+    {
+      "id": "bluerock-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6364869,
+      "name": "Bluerock Wildland Provincial Park",
+      "bbox": [
+        -114.87,
+        50.51,
+        -114.41,
+        50.75
+      ],
+      "center": [
+        50.608,
+        -114.734
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 9.2,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Kananaskis Country (Sheep Valley). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/) publishes the Sheep Valley Trails Map, whose trail list for Bluerock and the neighbouring parks includes Bluerock Creek Trail, Death Valley Trail, Gorge Creek Trail, Green Mountain Trail, Indian Oils Trail, Sheep Trail, South Gorge Creek Trail and Threepoint Mountain Trail; the trail table lists Sheep (Summer). The Kananaskis Sheep and Highwood trail report (https://www.albertaparks.ca/parks/kananaskis/kananaskis-country/advisories-public-safety/trail-reports/sheep-and-highwood/) also lists Mount Hoffman (Hiking, 9.3 km, 532 m) and Bluerock Interpretive. Kept the three listed trails that lie whole inside the wildland: Bluerock Creek Trail 3.92 mi (89%), Death Valley Trail 3.74 mi (89%, renamed from 'Death Valley') and Mount Hoffman Trail 1.51 mi (99%, OSM way 456696340 from trailhead node 269797992 on Sheep Trail to the summit; restored in AB review remediation). Excluded (22): ridge/summit scrambles mapped from scrambling sites (Tunnel O' Fun, Bluerock Pass, Bluerock Mountain, Gleason Ridge, Mount McNab, Green Mountain Route, Wolf Creek Hill, Bluerock Knob, Mount Burns East, Sandy McNabb Hills, Prairie Pine Macabee), Sandy McNabb ski loops, and listed trails that are boundary-clipped (Gorge Creek 81%, Green Mnt pieces 47-77%, Sheep Trail 31%, Indian Oils 13%, Sheep River, Foran Grade, Windy Point). Known omissions: Gorge Creek Trail (81% inside, would double-list in the adjoining parks), Green Mountain Trail (only clipped pieces mapped), Threepoint Mountain and South Gorge Creek (not mapped under those names inside the polygon), Bluerock Interpretive (no OSM candidate inside). Pin moved from 50.623,-114.625 to the kept-trail vertex nearest the curated trail-extent midpoint (50.608,-114.734).",
+      "exclude_trails": [
+        {
+          "id": "n:Gorge Creek",
+          "name": "Gorge Creek",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (81%: 5.45 of 6.69 mi; Gorge Creek Trail continues into the neighbouring Kananaskis parks); not a flagship waiver"
+        },
+        {
+          "id": "n:Tunnel O' Fun Route",
+          "name": "Tunnel O' Fun Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Sheep Valley Trails",
+          "name": "Sheep Valley Trails",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (24%); generic network name, not a trail"
+        },
+        {
+          "id": "n:Sandy McNabb Hills Route",
+          "name": "Sandy McNabb Hills Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (47%)"
+        },
+        {
+          "id": "n:Windy Point Tr",
+          "name": "Windy Point Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (80%); not on the Bluerock list"
+        },
+        {
+          "id": "n:Prairie Pine Macabee Ridges Route",
+          "name": "Prairie Pine Macabee Ridges Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (78%)"
+        },
+        {
+          "id": "n:Bluerock Pass Route",
+          "name": "Bluerock Pass Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Gleason Ridge Trail",
+          "name": "Gleason Ridge Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Gleason Ridge Route')"
+        },
+        {
+          "id": "n:Bluerock Mountain Trail",
+          "name": "Bluerock Mountain Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Bluerock Mountain Route')"
+        },
+        {
+          "id": "n:Green Mountain Trail",
+          "name": "Green Mountain Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Green Mountain Route', source Bob Spirko); the listed Green Mountain Trail is the clipped Green Mnt pieces"
+        },
+        {
+          "id": "n:Mount McNab Route",
+          "name": "Mount McNab Route",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
+        },
+        {
+          "id": "n:Green Mnt Tr",
+          "name": "Green Mnt Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (77%); piece of the listed Green Mountain Trail"
+        },
+        {
+          "id": "n:Sheep Trail",
+          "name": "Sheep Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (31%); the listed Sheep Trail is a 36 km multi-park route (Alberta Parks: South Section 27.5 km, North Section 8.6 km, horse/OHV, partly impassable since 2013)"
+        },
+        {
+          "id": "n:Bluerock Knob Trail",
+          "name": "Bluerock Knob Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (source Bob Spirko); also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (58%)"
+        },
+        {
+          "id": "n:Green Mnt Trail",
+          "name": "Green Mnt Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (47%); piece of the listed Green Mountain Trail"
+        },
+        {
+          "id": "n:Sheep River Trail",
+          "name": "Sheep River Trail",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (55%)"
+        },
+        {
+          "id": "n:Foran Grade Tr",
+          "name": "Foran Grade Tr",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (50%)"
+        },
+        {
+          "id": "n:Logger's Loop",
+          "name": "Logger's Loop",
+          "reason": "Sandy McNabb cross-country ski network loop (OSM network=Sandy McNabb Skiing); not a summer hiking trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (36%)"
+        },
+        {
+          "id": "n:Wolf Creek Hill Trail",
+          "name": "Wolf Creek Hill Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Wolf Creek Hill East Route', source Bob Spirko)"
+        },
+        {
+          "id": "n:Meadow Loop",
+          "name": "Meadow Loop",
+          "reason": "Sandy McNabb cross-country ski network loop (OSM network=Sandy McNabb Skiing); not a summer hiking trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (53%)"
+        },
+        {
+          "id": "n:Indian Oils",
+          "name": "Indian Oils",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (13%); the listed Indian Oils Trail lies mostly outside Bluerock"
+        },
+        {
+          "id": "n:Mount Burns East",
+          "name": "Mount Burns East",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail; also Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (23%)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Death Valley",
+          "name": "Death Valley Trail",
+          "source": "https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/",
+          "reason": "Alberta Parks Sheep Valley trails map lists it as Death Valley Trail"
+        }
+      ]
+    },
+    {
+      "id": "bob-creek-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6365111,
+      "name": "Bob Creek Wildland Provincial Park",
+      "bbox": [
+        -114.42,
+        49.81,
+        -114.15,
+        50.14
+      ],
+      "center": [
+        50.017,
+        -114.276
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 7,
+      "est_mi": 25.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/south/bob-creek-wpp/) lists only designated OHV trails and backcountry use; no hiking trail list. OSM: Camp Ridge, Thrift Peak Alt, White Ridge, Horseshoe Peak and Thunder Mountain are ridge/summit scramble routes (sources Bob Spirko, Spectacular Mountains); Chaffen Trail is 72% inside. Zero agency-listed hiking trails; a local hiker would not call this a trail destination."
+    },
+    {
+      "id": "brown-lowery-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 428124524,
+      "name": "Brown-Lowery Provincial Park",
+      "bbox": [
+        -114.49,
+        50.75,
+        -114.37,
+        50.87
+      ],
+      "center": [
+        50.81,
+        -114.427
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 3.3,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Day-use park west of Calgary (Kananaskis region). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/brown-lowery-pp/) lists 12 km of rustic trails: Lookout, Pine Hill, Old Mill West, Raven, Old Mill East, Wildrose, Red Willow, Wildrose East, Old Mill North, Chickadee, Wildrose West, Crocus Loop; the trail map (https://www.albertaparks.ca/media/6496155/brown-lowery-trail-map_600x600_-x25.pdf) gives Old Mill East 1.5 km, Red Willow 1.4 km, Chickadee 1.0 km, Lookout 0.6 + 0.8 km. Kept: Old Mill East 0.84 mi (1.35 km, 99% inside), Red Willow 0.84 mi (99%), Chickadee 0.74 mi (100%) and Lookout 0.84 mi (81% inside: flagship waiver, it is the park's viewpoint trail and the small polygon cuts the far end). Lengths match the map. Known omissions: Pine Hill, Raven, Wildrose (East/West/North), Old Mill West/North, Crocus Loop (short connectors, not mapped by name or below the 0.6 mi fragment floor)."
+    },
+    {
+      "id": "fort-assiniboine-sandhills-wildland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6022438,
+      "name": "Fort Assiniboine Sandhills Wildland Provincial Park",
+      "bbox": [
+        -114.75,
+        54.25,
+        -114.43,
+        54.49
+      ],
+      "center": [
+        54.393,
+        -114.629
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 6.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks tear sheet (https://www.albertaparks.ca/media/6497374/fort-assiniboine-tear-sheet.pdf) maps more than 80 km of horse/bike/foot trails incl. River Valley Trail, Klondike Trail and Wagon Trail; the park warns the Wagon and Klondike trails are overgrown. OSM: River Valley 2.53 mi (whole, listed), Klondike 3.04 mi (73% inside, clipped), Beaver 1.23 mi (not on the map). One whole listed trail; multi-use tracks (highway=track, horse=yes)."
+    },
+    {
+      "id": "kootenay-plains-ecological-reserve-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395386,
+      "name": "Kootenay Plains Ecological Reserve",
+      "bbox": [
+        -116.53,
+        51.94,
+        -116.31,
+        52.19
+      ],
+      "center": [
+        52.047,
+        -116.388
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 12.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. David Thompson Highway (Hwy 11), foot traffic only. Alberta Parks trail table (https://www.albertaparks.ca/parks/central/kootenay-plains-er/information-facilities/trails/) lists Siffleur Falls (4 km one way, open), Tuff Puff / Kinglet Lake, Glacier (horse/OHV), Siffleur Backcountry Access and Landslide Lake Interpretive Fire Trail (2 km). Kept: Siffleur Falls Trail 4.34 mi (99% inside; OSM continues past the first falls toward the upper falls) and Kinglet Lake and Tuff Puff Ridge Trail 1.16 mi (88%). Excluded: Siffleur Wilderness Area Access (58% inside), three unlisted short paths (Terrace Trail, Kootenay Plains Walk, Whirlpool Point East Side) and the Whirlpool Ridge scramble. Known omissions: Glacier (horse/OHV), Landslide Lake fire trail (not mapped by that name). Pin moved from 52.028,-116.429 to the kept-trail vertex nearest the curated trail-extent midpoint (52.047,-116.388).",
+      "exclude_trails": [
+        {
+          "id": "n:Siffleur Wilderness Area Access",
+          "name": "Siffleur Wilderness Area Access",
+          "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the polygon (whole-route rule) (58%); access route into the Siffleur Wilderness Area"
+        },
+        {
+          "id": "n:Terrace Trail",
+          "name": "Terrace Trail",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Kootenay Plains Walk",
+          "name": "Kootenay Plains Walk",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Whirlpool Point East Side",
+          "name": "Whirlpool Point East Side",
+          "reason": "Not on the Alberta Parks trail list for this park"
+        },
+        {
+          "id": "n:Whirlpool Ridge Trail",
+          "name": "Whirlpool Ridge Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Whirlpool Ridge Route', source Bob Spirko)"
+        },
+        {
+          "id": "n:Whirlpool Point Trail",
+          "name": "Whirlpool Point Trail",
+          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (OSM 'Whirlpool Ridge Route', source Bob Spirko)"
+        }
+      ]
+    },
+    {
+      "id": "lakeland-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 430888744,
+      "name": "Lakeland Provincial Park",
+      "bbox": [
+        -111.73,
+        54.6,
+        -111.4,
+        54.89
+      ],
+      "center": [
+        54.785,
+        -111.537
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.6,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/north/lakeland-pp/) lists only the Shaw Lake cross-country ski trails (Ballfield, Moonlight, Narrows, Ravine, Switchback, The Point); the park is known for its canoe circuit. OSM: Mosquito Lake Trail 3.89 mi (unlisted) and Dabbs Lake Trail (21% inside, highway=track). No listed hiking trail."
+    },
+    {
+      "id": "landslide-lake-natural-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 401057999,
+      "name": "Landslide Lake Natural Area",
+      "bbox": [
+        -116.63,
+        52.0,
+        -116.45,
+        52.16
+      ],
+      "center": [
+        52.075,
+        -116.548
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 7.0,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Not on albertaparks.ca under its own page. OSM: Landslide Lake Trail is 44% inside (5.73 of 12.89 mi; it starts at the Hwy 11 trailhead outside the natural area) and 'Mount Ernest Ross Trail' is the Landslide Peak Traverse scramble route (Explor8ion). Zero whole trails."
+    },
+    {
+      "id": "moose-lake-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6057585,
+      "name": "Moose Lake Provincial Park",
+      "bbox": [
+        -111.0,
+        54.2,
+        -110.86,
+        54.34
+      ],
+      "center": [
+        54.268,
+        -110.92
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 5.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Bonnyville area. The Alberta Parks Moose Lake Trail Map (https://www.albertaparks.ca/media/6496684/moose-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/moose-lake-pp/) names Fireroad Trail (4.8 km), Lakeshore Trail, Blueberry Trail, Jackpine Trail, Muskeg Trail and Dead Man's Trail plus a 2.2 km ski trail. Kept: Fireroad Trail 2.59 mi (99% inside), Lakeshore Trail 1.57 mi, Jackpine Trail 0.80 mi, Muskeg Trail 0.79 mi (all 100%). Known omissions: Blueberry Trail and Dead Man's Trail (not mapped by name). Alberta Parks warns the trails may be impassable after windfall or flooding."
+    },
+    {
+      "id": "plateau-mountain-ecological-reserve-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6367767,
+      "name": "Plateau Mountain Ecological Reserve",
+      "bbox": [
+        -114.61,
+        50.14,
+        -114.44,
+        50.33
+      ],
+      "center": [
+        50.219,
+        -114.526
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 12.3,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks trail table (https://www.albertaparks.ca/parks/kananaskis/plateau-mountain-er/information-facilities/trails/) lists one trail, Plateau Mountain (6.7 km return, hiking/horse/OHV). OSM: Plateau Mountain Trail 5.12 mi (the old gas-well road, 97%) plus two scramble variants (Plateau Mountain Route, Plateau Mountain Alternate Route 63% inside). One listed trail."
+    },
+    {
+      "id": "white-goat-wilderness-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6395404,
+      "name": "White Goat Wilderness Area",
+      "bbox": [
+        -117.14,
+        52.07,
+        -116.48,
+        52.39
+      ],
+      "center": [
+        52.247,
+        -117.006
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 6.8,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks (https://www.albertaparks.ca/parks/central/white-goat-wa/): wilderness area reached by a 4-5 hour hike from Hwy 93 trailheads in Banff/Jasper; most routes are old pack trails and not maintained. OSM: Mount Willis, Cirrus Mountain (trail_visibility=no) and Cataract/Cline Pass are scramble routes (47% or unmeasured inside), Sunset Pass Trail 25% inside (it belongs to Banff). Zero whole maintained trails."
+    },
+    {
+      "id": "william-a-switzer-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6048528,
+      "name": "William A. Switzer Provincial Park",
+      "bbox": [
+        -117.9,
+        53.35,
+        -117.69,
+        53.63
+      ],
+      "center": [
+        53.465,
+        -117.796
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 6.1,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Near Hinton. Alberta Parks trail report (https://www.albertaparks.ca/parks/central/william-a-switzer-pp/information-facilities/trails/) lists summer trails Athabasca Lookout (1 km access, 3 km to Joachim Valley), Beaver Ranch 1.5 km, Blue Lake 3 km, Fish Lakes 3.5 km, Friendly Vistas 2.5 km, Gregg Lake 3.5 km, Kelley's Bathtub 1 km, Kettle 3.5 km, plus the Hinton Nordic Centre, Jarvis Lake and Joachim Valley ski trails. Kept: Athabasca Lookout 1.81 mi (2.9 km), Kettle Trail 1.81 mi, Friendly Vistas 1.41 mi (2.3 km) (99-100% inside; lengths match). Excluded: Gregg Lake trail 1 (stub). The Nordic Centre ski network is not in OSM under trail names here (T1 ski pre-flag is the Nordic Centre). Known omissions: Beaver Ranch, Blue Lake, Fish Lakes, Kelley's Bathtub (not mapped by name).",
+      "exclude_trails": [
+        {
+          "id": "n:Gregg Lake trail 1",
+          "name": "Gregg Lake trail 1",
+          "reason": "Stub: 1.07 mi mapped of the listed Gregg Lake trail (3.5 km)"
+        }
+      ]
+    },
+    {
+      "id": "young-s-point-provincial-park-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 6408634,
+      "name": "Young's Point Provincial Park",
+      "bbox": [
+        -117.69,
+        55.06,
+        -117.45,
+        55.22
+      ],
+      "center": [
+        55.137,
+        -117.572
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 5.1,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). HOLD. Alberta Parks trail table (https://www.albertaparks.ca/parks/north/young-s-point-pp/information-facilities/trails/) lists Eagle Creek/Boreal Loop 7.0 km, Sturgeon 2.5 km and Alces 3.0 km, all multi-use with OHV permitted. OSM: Eagle Creek Trail 1.97 mi (87%), Boreal Loop 1.03 mi (59%, clipped), Sturgeon Trail 1.13 mi; Alces not mapped. Two whole trails / 3.1 mi, both OHV-shared; below the bar a local hiker would set."
     }
   ]
 }

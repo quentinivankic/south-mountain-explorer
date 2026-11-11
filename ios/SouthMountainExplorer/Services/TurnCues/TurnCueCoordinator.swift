@@ -32,6 +32,9 @@ final class TurnCueCoordinator {
     /// The plan guide's step, distance and off-route state while a hike
     /// started from a plan is being guided. Nil otherwise.
     private(set) var planGuide: PlanGuideEngine.Status?
+    /// The guided plan's steps, for the bar's text (also after a relaunch,
+    /// when the planner's result is gone). Nil when no plan is guided.
+    private(set) var planGuideSteps: [PlanStep]?
 
     @ObservationIgnored private let recording: RecordingService
     @ObservationIgnored private let location: LocationService
@@ -69,6 +72,7 @@ final class TurnCueCoordinator {
     private struct PlanSource {
         let recordingId: String
         let route: PlanGuideRoute
+        let steps: [PlanStep]
         let session: UUID
         /// What is saved so the guide survives a relaunch.
         var snapshot: PlanGuideSnapshot
@@ -157,6 +161,7 @@ final class TurnCueCoordinator {
         engine = nil
         planEngine = nil
         planGuide = nil
+        planGuideSteps = nil
         lastFixTimestamp = nil
         bannerCue = nil
         speaker.cancelAll()
@@ -174,7 +179,7 @@ final class TurnCueCoordinator {
         let snapshot = PlanGuideSnapshot(recordingId: recordingId, steps: steps)
         planStore.save(snapshot)
         storeCheckedFor = .some(recordingId)
-        planSource = PlanSource(recordingId: recordingId, route: route, session: UUID(),
+        planSource = PlanSource(recordingId: recordingId, route: route, steps: steps, session: UUID(),
                                 snapshot: snapshot, restored: false)
         reconcile()
         return true
@@ -216,7 +221,7 @@ final class TurnCueCoordinator {
                 return
             }
             coordinatorLog.notice("plan guide restored at step \(saved.stepIndex + 1)")
-            planSource = PlanSource(recordingId: saved.recordingId, route: route, session: UUID(),
+            planSource = PlanSource(recordingId: saved.recordingId, route: route, steps: steps, session: UUID(),
                                     snapshot: saved, restored: true)
         }
     }
@@ -239,6 +244,7 @@ final class TurnCueCoordinator {
             e.restore(toStep: plan.snapshot.stepIndex, isComplete: plan.snapshot.isComplete)
         }
         planEngine = e
+        planGuideSteps = planSource?.steps
         planGuide = e.status
         // Start from "now" so a fix cached before the guide started is replayed once.
         lastFixTimestamp = nil

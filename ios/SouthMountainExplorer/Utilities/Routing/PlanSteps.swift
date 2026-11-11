@@ -328,3 +328,56 @@ struct PlanWalkThrough: Equatable, Sendable {
     /// What VoiceOver reads on each step: "Step 3 of 9. 3. Left onto Lake Loop, 0.8 mi".
     static func announcement(counter: String, line: String) -> String { "\(counter). \(line)" }
 }
+
+/// The bar's wording while a hike started from a plan is being guided
+/// (Release B task 5). Pure, so it is unit tested.
+enum PlanGuideText {
+    /// "Step 2 of 4".
+    static func counter(_ status: PlanGuideEngine.Status) -> String {
+        "Step \(status.stepIndex + 1) of \(status.stepCount)"
+    }
+
+    /// "1. Start on National Trail, 0.8 mi to next turn", "4. Right onto
+    /// Mormon Trail, 400 ft to finish", "Off route, 150 ft to route" or
+    /// "Route complete".
+    static func line(steps: [PlanStep], status: PlanGuideEngine.Status, units: UnitsPreference) -> String {
+        if status.isComplete { return "Route complete" }
+        if let off = status.offRouteMeters { return "Off route, \(distance(meters: off, units: units)) to route" }
+        guard status.stepIndex < steps.count else { return "" }
+        let step = steps[status.stepIndex]
+        let target = step.isLast || status.stepIndex + 1 >= steps.count ? "finish" : "next turn"
+        return "\(step.number). \(step.instruction), \(distance(meters: status.metersToNextTurn, units: units)) to \(target)"
+    }
+
+    /// Countdown distance: feet (or metres) when close, so it keeps moving
+    /// as you walk; tenths of a mile (or km) farther out.
+    static func distance(meters: Double, units: UnitsPreference) -> String {
+        let m = meters.isFinite ? max(0, meters) : 0
+        switch units {
+        case .imperial:
+            let ft = m * TurnCuePhrasing.feetPerMeter
+            if ft < 1000 { return "\(max(50, Int((ft / 50).rounded() * 50))) ft" }
+            return String(format: "%.1f mi", m / 1609.344)
+        case .metric:
+            if m < 1000 { return "\(max(10, Int((m / 10).rounded() * 10))) m" }
+            return String(format: "%.1f km", m / 1000)
+        }
+    }
+}
+
+extension PlannedRoute {
+    /// The route redrawn from the guide's saved steps after a relaunch (the
+    /// planner's result is gone by then). Each step is its own line.
+    static func guided(steps: [PlanStep]) -> PlannedRoute {
+        let segments = steps.filter { $0.coords.count >= 2 }
+            .map { Segment(kind: $0.kind, coords: $0.coords, lengthMeters: $0.meters) }
+        let start = steps.first?.at
+        var end: Coord?
+        if let s = start, let last = steps.last?.coords.last {
+            let p = TurnCueProjector(originLat: s.lat, originLon: s.lon).local(lat: last.lat, lon: last.lon)
+            // A loop ends where it started; only a one-way hike gets an end pin.
+            if TurnCueGeometry.distance(LocalPt(x: 0, y: 0), p) > 30 { end = last }
+        }
+        return PlannedRoute(segments: segments, tags: [], start: start, end: end).with(steps: steps)
+    }
+}

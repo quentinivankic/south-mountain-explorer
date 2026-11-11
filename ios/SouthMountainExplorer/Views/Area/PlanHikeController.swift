@@ -231,6 +231,33 @@ final class PlanHikeController {
 
     func markHikeStarted() { hikeStarted = true }
 
+    // MARK: Guided hike (Release B task 5)
+
+    /// During the hike Start hike began, the bright, framed leg follows the
+    /// guide's step (auto, or Back and Next). nil (Exit, or no guide) shows
+    /// the whole route again. Only refits when the step actually changes.
+    func followGuide(step: Int?) {
+        guard hikeStarted, preview.isShowing else { return }
+        guard let step else { exitWalkThrough(); return }
+        guard walkThrough.index != step else { return }
+        var w = PlanWalkThrough(count: preview.selected?.route.steps.count ?? 0)
+        guard w.enter(at: step) else { return }
+        walkThrough = w
+        refit()
+    }
+
+    /// After a relaunch mid-hike: the planner's result is gone, so the route
+    /// is redrawn from the guide's saved steps. No-op if a route is already up.
+    func restoreGuidedRoute(steps: [PlanStep]) {
+        guard !preview.isShowing, !steps.isEmpty else { return }
+        let route = PlannedRoute.guided(steps: steps)
+        guard !route.isEmpty else { return }
+        preview.load([PlanPreview.Option(id: "best", title: "Best", route: route)])
+        preview.show()
+        hikeStarted = true
+        fitTick &+= 1
+    }
+
     /// Closing the sheet stops a running plan; a finished result stays.
     func cancel() {
         run?.cancel()

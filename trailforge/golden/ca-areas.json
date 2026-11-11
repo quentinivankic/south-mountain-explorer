@@ -16329,9 +16329,9 @@
       ],
       "tier": 2,
       "hold": null,
-      "est_trails": 17,
-      "est_mi": 41.8,
-      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Kananaskis Country (Sheep Valley). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/) publishes the Sheep Valley Trails Map, whose trail list for Bluerock and the neighbouring parks includes Bluerock Creek Trail, Death Valley Trail, Gorge Creek Trail, Green Mountain Trail, Indian Oils Trail, Sheep Trail, South Gorge Creek Trail and Threepoint Mountain Trail; the trail table lists Sheep (Summer). Kept the two listed trails that lie whole inside the wildland: Bluerock Creek Trail 3.92 mi (89%) and Death Valley Trail 3.74 mi (89%, renamed from 'Death Valley'). Excluded (23): ridge/summit scrambles mapped from scrambling sites (Tunnel O' Fun, Bluerock Pass, Bluerock Mountain, Gleason Ridge, Mount McNab, Mount Hoffman, Green Mountain Route, Wolf Creek Hill, Bluerock Knob, Mount Burns East, Sandy McNabb Hills, Prairie Pine Macabee), Sandy McNabb ski loops, and listed trails that are boundary-clipped (Gorge Creek 81%, Green Mnt pieces 47-77%, Sheep Trail 31%, Indian Oils 13%, Sheep River, Foran Grade, Windy Point). Known omissions: Gorge Creek Trail (81% inside, would double-list in the adjoining parks), Green Mountain Trail (only clipped pieces mapped), Threepoint Mountain and South Gorge Creek (not mapped under those names inside the polygon). Pin moved from 50.623,-114.625 to the kept-trail vertex nearest the curated trail-extent midpoint (50.608,-114.734).",
+      "est_trails": 3,
+      "est_mi": 9.2,
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Kananaskis Country (Sheep Valley). Alberta Parks (https://www.albertaparks.ca/parks/kananaskis/bluerock-wpp/) publishes the Sheep Valley Trails Map, whose trail list for Bluerock and the neighbouring parks includes Bluerock Creek Trail, Death Valley Trail, Gorge Creek Trail, Green Mountain Trail, Indian Oils Trail, Sheep Trail, South Gorge Creek Trail and Threepoint Mountain Trail; the trail table lists Sheep (Summer). The Kananaskis Sheep and Highwood trail report (https://www.albertaparks.ca/parks/kananaskis/kananaskis-country/advisories-public-safety/trail-reports/sheep-and-highwood/) also lists Mount Hoffman (Hiking, 9.3 km, 532 m) and Bluerock Interpretive. Kept the three listed trails that lie whole inside the wildland: Bluerock Creek Trail 3.92 mi (89%), Death Valley Trail 3.74 mi (89%, renamed from 'Death Valley') and Mount Hoffman Trail 1.51 mi (99%, OSM way 456696340 from trailhead node 269797992 on Sheep Trail to the summit; restored in AB review remediation). Excluded (22): ridge/summit scrambles mapped from scrambling sites (Tunnel O' Fun, Bluerock Pass, Bluerock Mountain, Gleason Ridge, Mount McNab, Green Mountain Route, Wolf Creek Hill, Bluerock Knob, Mount Burns East, Sandy McNabb Hills, Prairie Pine Macabee), Sandy McNabb ski loops, and listed trails that are boundary-clipped (Gorge Creek 81%, Green Mnt pieces 47-77%, Sheep Trail 31%, Indian Oils 13%, Sheep River, Foran Grade, Windy Point). Known omissions: Gorge Creek Trail (81% inside, would double-list in the adjoining parks), Green Mountain Trail (only clipped pieces mapped), Threepoint Mountain and South Gorge Creek (not mapped under those names inside the polygon), Bluerock Interpretive (no OSM candidate inside). Pin moved from 50.623,-114.625 to the kept-trail vertex nearest the curated trail-extent midpoint (50.608,-114.734).",
       "exclude_trails": [
         {
           "id": "n:Gorge Creek",
@@ -16387,11 +16387,6 @@
           "id": "n:Mount McNab Route",
           "name": "Mount McNab Route",
           "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail"
-        },
-        {
-          "id": "n:Mount Hoffman Trail",
-          "name": "Mount Hoffman Trail",
-          "reason": "Unsigned scramble / off-trail route (OSM source is a scrambling site or guidebook GPS track); not an Alberta Parks trail (summit route, GPS track by a scrambler); Not on the Alberta Parks trail list for this park"
         },
         {
           "id": "n:Green Mnt Tr",

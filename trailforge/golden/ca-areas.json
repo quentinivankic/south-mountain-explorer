@@ -11946,7 +11946,7 @@
       ],
       "tier": 2,
       "hold": "few-trails",
-      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Blue Lakes Trail 3.0 mi). Under the 2-trail floor; other Duck Mountain MB walks are not mapped by name. Re-check 2026-11-12 (MB Phase A): identical replay 1 trail / 3.0 mi (Blue Lakes Trail); T1's 2 / 74.3 counts Snoman Trail (71.3 mi, the provincial snowmobile route), which the engine drops. Stays held."
+      "notes": "SK/MB curation 2026-11-02. Replay: 1 trail (Blue Lakes Trail 3.0 mi). Under the 2-trail floor; other Duck Mountain MB walks are not mapped by name. Re-check 2026-11-11 (MB Phase A): identical replay 1 trail / 3.0 mi (Blue Lakes Trail); T1's 2 / 74.3 counts Snoman Trail (71.3 mi, the provincial snowmobile route), which the engine drops. Stays held."
     },
     {
       "id": "hecla-grindstone-provincial-park-ca-mb",
@@ -12752,7 +12752,7 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pembina Valley PP: replay 3 trails / 6.4 mi (Pembina Rim 4.1 mi, Oak Woods, Porcupine Ridges). Four short Manitoba Parks trails (Boulder Creek 0.28, Valley Vistas 0.31, Whitetail Hollows 0.45, Hawks Hills 0.48 mi) fall under the 0.6 mi floor; the official PDF (gov.mb.ca pembina_valley_pp.pdf) could not be read to justify waivers. Re-open with waivers. ca-new3 2026-11-02: Re-replay: 3 trails / 6.4 mi; Porcupine Ridges is 1.64 mi mapped vs about 4 mi on AllTrails (a stub) and the official PDF (gov.mb.ca park_info/pembina_valley_pp.pdf) is still unreadable here, so no waiver evidence; hold stands. Re-check 2026-11-12 (MB Phase A): identical replay 3 / 6.4 (Pembina Rim 4.10, Porcupine Ridges 1.64, Oak Woods 0.66). The official PDF is now readable (https://gov.mb.ca/sd/pubs/parks-protected-spaces/park_info/pembina_valley_pp.pdf): it posts a trail closure (Boulder Creek Trail closed; Pembina Rim closed from the Hawks Hills junction to the river picnic area; Porcupine Ridges closed from the Hawks Hills junction to Sunrise Point). Porcupine Ridges is still a 1.64 mi stub of a ~4 mi loop. Stays held until the closures lift and the loop is mapped whole."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Pembina Valley PP: replay 3 trails / 6.4 mi (Pembina Rim 4.1 mi, Oak Woods, Porcupine Ridges). Four short Manitoba Parks trails (Boulder Creek 0.28, Valley Vistas 0.31, Whitetail Hollows 0.45, Hawks Hills 0.48 mi) fall under the 0.6 mi floor; the official PDF (gov.mb.ca pembina_valley_pp.pdf) could not be read to justify waivers. Re-open with waivers. ca-new3 2026-11-02: Re-replay: 3 trails / 6.4 mi; Porcupine Ridges is 1.64 mi mapped vs about 4 mi on AllTrails (a stub) and the official PDF (gov.mb.ca park_info/pembina_valley_pp.pdf) is still unreadable here, so no waiver evidence; hold stands. Re-check 2026-11-11 (MB Phase A): identical replay 3 / 6.4 (Pembina Rim 4.10, Porcupine Ridges 1.64, Oak Woods 0.66). The official PDF is now readable (https://gov.mb.ca/sd/pubs/parks-protected-spaces/park_info/pembina_valley_pp.pdf): it posts a trail closure (Boulder Creek Trail closed; Pembina Rim closed from the Hawks Hills junction to the river picnic area; Porcupine Ridges closed from the Hawks Hills junction to Sunrise Point). Porcupine Ridges is still a 1.64 mi stub of a ~4 mi loop. Stays held until the closures lift and the loop is mapped whole."
     },
     {
       "id": "pike-lake-provincial-park-ca-sk",
@@ -16754,7 +16754,7 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 10.4,
-      "notes": "MB curation 2026-11-12 (Phase A, chat/ca-a-mb; T1 draft from scripts/ca_discover.py on main f12d9f7c8). SHIP. Assiniboine River bottom-forest park west of Winnipeg. The Manitoba Parks Beaudry trail map (https://www.gov.mb.ca/sd/pubs/parks-protected-spaces/park_info/beaudry/beaudry_trails.pdf, April 2016; park page https://gov.mb.ca/sd/parks/park-maps-and-locations/central/beaudry.html) lists six summer hiking trails: Wild Grape (red) 2.5 km, Elm (green) 2.8 km, Maple (white) 5.0 km, Basswood (yellow) 3.4 km, Oak 2.0 km and Cottonwood 2.5 km (Maple, Oak, Cottonwood only accessible from Hwy 1). Kept all six: Maple Trail 2.73 mi (96% inside), Basswood Trail 2.08 mi (96%), Elm Trail 1.69 mi, Wild Grape Trail 1.58 mi, Oak Trail 1.25 mi (99%), Cottonwood Trail 1.05 mi (100%; 1.6 mi listed, part mapped as track). Lengths match the map except Cottonwood (about 68% of the listed length mapped). Excluded: Prairie Loop Trail (groomed ski loop) and Firebreak Trail (winter route), both absent from the summer map. Matches the agency summer list in full. Pin moved from 49.865,-97.48 to the kept-trail vertex nearest the curated trail-extent midpoint (49.862,-97.477).",
+      "notes": "MB curation 2026-11-11 (Phase A, chat/ca-a-mb; T1 draft from scripts/ca_discover.py on main f12d9f7c8). SHIP. Assiniboine River bottom-forest park west of Winnipeg. The Manitoba Parks Beaudry trail map (https://www.gov.mb.ca/sd/pubs/parks-protected-spaces/park_info/beaudry/beaudry_trails.pdf, April 2016; park page https://gov.mb.ca/sd/parks/park-maps-and-locations/central/beaudry.html) lists six summer hiking trails: Wild Grape (red) 2.5 km, Elm (green) 2.8 km, Maple (white) 5.0 km, Basswood (yellow) 3.4 km, Oak 2.0 km and Cottonwood 2.5 km (Maple, Oak, Cottonwood only accessible from Hwy 1). Kept all six: Maple Trail 2.73 mi (96% inside), Basswood Trail 2.08 mi (96%), Elm Trail 1.69 mi, Wild Grape Trail 1.58 mi, Oak Trail 1.25 mi (99%), Cottonwood Trail 1.05 mi (100%; 1.6 mi listed, part mapped as track). Lengths match the map except Cottonwood (about 68% of the listed length mapped). Excluded: Prairie Loop Trail (groomed ski loop) and Firebreak Trail (winter route), both absent from the summer map. Matches the agency summer list in full. Pin moved from 49.865,-97.48 to the kept-trail vertex nearest the curated trail-extent midpoint (49.862,-97.477).",
       "exclude_trails": [
         {
           "id": "n:Prairie Loop Trail",
@@ -16788,7 +16788,7 @@
       "hold": "few-trails",
       "est_trails": 2,
       "est_mi": 10.5,
-      "notes": "MB curation 2026-11-12 (Phase A, chat/ca-a-mb; T1 draft from scripts/ca_discover.py on main f12d9f7c8). HOLD. Replay keeps one trail: Hydro Access Path 0.73 mi (a utility access path, not a park trail); Snoman Trail is a 0.48 mi clipped piece of a 7 mi snowmobile route. The park's signed walks (Ancient Beach Trail, Wild Wings Trail) are not mapped by name inside the polygon. Under the 2-trail floor; a local expert would not list this set."
+      "notes": "MB curation 2026-11-11 (Phase A, chat/ca-a-mb; T1 draft from scripts/ca_discover.py on main f12d9f7c8). HOLD. Replay keeps one trail: Hydro Access Path 0.73 mi (a utility access path, not a park trail); Snoman Trail is a 0.48 mi clipped piece of a 7 mi snowmobile route. The park's signed walks (Ancient Beach Trail, Wild Wings Trail) are not mapped by name inside the polygon. Under the 2-trail floor; a local expert would not list this set."
     }
   ]
 }

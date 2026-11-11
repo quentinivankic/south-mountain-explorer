@@ -334,6 +334,8 @@ struct AreaView: View {
     /// existing filter state so the filtered-trails computed
     /// property can fold it into a single pass.
     @State private var trailSearchQuery: String = ""
+    /// Measured height of the live guide bar, for framing the leg below it.
+    @State private var planGuideBarHeight: CGFloat = 100
 
     private var isRecording: Bool {
         // Walks are excluded even when their primary area is this one:
@@ -2184,6 +2186,11 @@ struct AreaView: View {
             // goes when that recording ends.
             if !nowRecording, planHike.hikeStarted { planHike.clearRoute() }
         }
+        // The guide's step (auto, or Back and Next) is the bright, framed leg.
+        // After a relaunch the route is redrawn from the guide's saved steps.
+        .onChange(of: TurnCueCoordinator.shared.planGuide?.stepIndex, initial: true) { _, step in
+            syncPlanGuide(step: step)
+        }
         // Confirmation dialogs ALSO nest inside the sheet — same
         // one-presentation-per-ancestor rule that put the modal sheets
         // here. With them attached to AreaView's body, tapping "Record
@@ -2251,12 +2258,31 @@ struct AreaView: View {
     /// Where the planned route should sit on screen: above the Plan card on a
     /// phone, clear of the side panel on wide layouts (from the card's measured frame).
     private var planRouteFitInsets: MapViewportInsets {
-        PlanFitInsets.insets(
+        if planHike.hikeStarted, !showPlanHike {
+            // During the hike Start hike began the Plan sheet is closed: frame
+            // the leg (or, after Exit, the route) between the guide bar or the
+            // route chip and the area sheet (or beside the panel).
+            var i = isWideLayout
+                ? PlanFitInsets.insets(cardFrame: planHike.cardFrame, window: WindowMetrics.size,
+                                       controlsBottom: measuredMapControlsBottom)
+                : MapViewportInsets(top: 0, leading: 20, bottom: effectiveBottomInset + 12, trailing: 20)
+            // Small margins: with the recording panel up, the map strip is short.
+            i.top = measuredMapControlsBottom + 8 + (isPlanGuideBarShowing ? planGuideBarHeight : 48) + 12
+            return i
+        }
+        return PlanFitInsets.insets(
             cardFrame: planHike.cardFrame, window: WindowMetrics.size,
             controlsBottom: measuredMapControlsBottom)
     }
+
+    /// The live guide bar is on screen (a guided hike in this area).
+    private var isPlanGuideBarShowing: Bool {
+        let guide = TurnCueCoordinator.shared
+        return isRecording && guide.planGuide != nil && guide.planGuideSteps != nil && !showPlanHike
+    }
     /// Start hike: a normal roam recording through the usual guards. The
-    /// route stays on the map as a passive guide until that recording ends.
+    /// route stays on the map until that recording ends, and its steps go to
+    /// the guide (saved, so a relaunch resumes it).
     private func startPlannedHike() {
         guard PlanStartGate.evaluate(
             hasActiveRecording: recording.activeRecording != nil,
@@ -2264,15 +2290,46 @@ struct AreaView: View {
         tryStartRecording()
         if isRecording {
             planHike.markHikeStarted()
+            if let steps = planHike.preview.selected?.route.steps,
+               let recordingId = recording.activeRecording?.recordingId {
+                TurnCueCoordinator.shared.beginPlanGuide(steps: steps, recordingId: recordingId)
+            }
             showPlanHike = false
         }
     }
 
     /// Small chip with Clear while a planned route is drawn and the Plan sheet
     /// is closed (that is, during the recording it started).
+    /// Keeps the drawn route on the guide's step. Only for this area's
+    /// recording: a relaunch redraws the route from the guide's saved steps.
+    private func syncPlanGuide(step: Int?) {
+        if step != nil, isRecording, let steps = TurnCueCoordinator.shared.planGuideSteps {
+            planHike.restoreGuidedRoute(steps: steps)
+        }
+        planHike.followGuide(step: step)
+    }
+
+    /// While the hike is guided, the live guide bar takes the chip's place.
     @ViewBuilder
     private var planRouteChip: some View {
-        if planHike.preview.isShowing, !showPlanHike {
+        let guide = TurnCueCoordinator.shared
+        if isPlanGuideBarShowing, let status = guide.planGuide, let steps = guide.planGuideSteps {
+            VStack {
+                PlanGuideBar(
+                    steps: steps, status: status,
+                    onMove: { guide.movePlanGuide(toStep: $0) },
+                    onExit: { guide.endPlanGuide() })
+                    .compatibleGlass(in: .rect(cornerRadius: 16))
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { h in
+                        // Refit once the bar's height is known, so the leg sits below it.
+                        if abs(h - planGuideBarHeight) > 1 { planGuideBarHeight = h }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, measuredMapControlsBottom + 8)
+                Spacer()
+            }
+            .ignoresSafeArea(edges: .top)
+        } else if planHike.preview.isShowing, !showPlanHike {
             VStack {
                 HStack(spacing: 12) {
                     Text("Planned route")

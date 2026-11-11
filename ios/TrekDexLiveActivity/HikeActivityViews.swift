@@ -62,12 +62,15 @@ extension HikeActivityAttributes.NextTurnArrow {
         case .turnRight, .sharpRight: return "arrow.turn.up.right"
         case .offTrail: return "exclamationmark.triangle.fill"
         case .backOnTrail: return "checkmark.circle.fill"
+        case .straight: return "arrow.up"
+        case .turnAround: return "arrow.uturn.down"
+        case .routeComplete: return "flag.checkered"
         }
     }
     var tint: Color {
         switch self {
         case .offTrail: return .orange
-        case .backOnTrail: return .green
+        case .backOnTrail, .routeComplete: return .green
         default: return .cyan
         }
     }

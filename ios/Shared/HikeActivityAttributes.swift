@@ -47,7 +47,8 @@ struct HikeActivityAttributes: ActivityAttributes {
         var nextTurnText: String?
         /// Short distance for compact UI, e.g. "300 ft" or "Now".
         var nextTurnDistanceText: String?
-        /// Target trail name for a turn cue.
+        /// Second line of the row: the target trail name for a turn cue, or
+        /// "Step 2 of 4" while a hike started from a plan is guided.
         var nextTurnTrail: String?
         /// VoiceOver sentence, e.g. "turn left in 300 feet onto Crosscut Trail".
         var nextTurnSpoken: String?
@@ -56,6 +57,10 @@ struct HikeActivityAttributes: ActivityAttributes {
     enum NextTurnArrow: String, Codable, Hashable {
         case keepLeft, keepRight, turnLeft, turnRight, sharpLeft, sharpRight
         case offTrail, backOnTrail
+        /// Plan a Hike guide (Release B): go straight, turn around, and the
+        /// finish ("Route complete"). The app and the extension ship together,
+        /// so a newer case never reaches an older extension.
+        case straight, turnAround, routeComplete
     }
 
     /// Identity used to adopt or end stale activities.

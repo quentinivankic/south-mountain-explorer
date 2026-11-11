@@ -31,6 +31,99 @@ struct PlanChip: View {
     }
 }
 
+/// The live guide bar during a hike started from a plan (Release B task 5):
+/// "Step 2 of 4" over "2. Left onto Viewpoint Trail, 0.4 mi to next turn",
+/// with Back, Next and Exit. Back and Next move the guide; Exit ends the
+/// guide and the recording keeps going.
+struct PlanGuideBar: View {
+    let steps: [PlanStep]
+    let status: PlanGuideEngine.Status
+    let onMove: (Int) -> Void
+    let onExit: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @AppStorage(StorageKeys.units) private var units: UnitsPreference = .imperial
+
+    private var line: String { PlanGuideText.line(steps: steps, status: status, units: units) }
+    private var canGoBack: Bool { status.stepIndex > 0 }
+    private var canGoNext: Bool { !status.isComplete && status.stepIndex + 1 < status.stepCount }
+
+    var body: some View {
+        // One row, so the map keeps as much room as possible for the leg.
+        HStack(alignment: .center, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(PlanGuideText.counter(status))
+                    .font(.caption.weight(.bold).monospacedDigit())
+                    .foregroundStyle(PlanRouteCard.routeColor)
+                    .accessibilityIdentifier("plan-guide-counter")
+                Label {
+                    Text(line)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 6 : 3)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    if status.isComplete {
+                        Image(systemName: "flag.checkered")
+                    } else if status.offRouteMeters != nil {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    }
+                }
+                .labelStyle(GuideLineLabelStyle())
+                .accessibilityIdentifier("plan-guide-step")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            iconButton("chevron.left", label: "Previous step", enabled: canGoBack, id: "plan-guide-back") {
+                onMove(status.stepIndex - 1)
+            }
+            iconButton("chevron.right", label: "Next step", enabled: canGoNext, id: "plan-guide-next") {
+                onMove(status.stepIndex + 1)
+            }
+            Button(action: onExit) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel("Exit guide")
+            .accessibilityHint("Stops following the route. The recording keeps going.")
+            .accessibilityIdentifier("plan-guide-exit")
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 6)
+        .padding(.vertical, 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("plan-guide-bar")
+    }
+
+    private func iconButton(_ symbol: String, label: String, enabled: Bool, id: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.headline)
+                .frame(width: 44, height: 44)
+                .background(Color.secondary.opacity(enabled ? 0.22 : 0.1), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(enabled ? Color.accentColor : Color.secondary)
+        .disabled(!enabled)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
+    }
+}
+
+/// Icon (only when there is one) before the text, top aligned.
+private struct GuideLineLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            configuration.icon.font(.subheadline)
+            configuration.title
+        }
+    }
+}
+
 /// The result card shown while the planned route is drawn on the map: route
 /// choices (chips), one summary line, a plain note when the route is mostly
 /// repeat ground, then Start hike and Edit.

@@ -44,6 +44,8 @@ struct TurnCueBanner: View {
         case .keepRight: return "arrow.up.right"
         case .turnLeft, .sharpLeft: return "arrow.turn.up.left"
         case .turnRight, .sharpRight: return "arrow.turn.up.right"
+        case .straight: return "arrow.up"
+        case .turnAround: return "arrow.uturn.down"
         case .offTrail: return "exclamationmark.triangle.fill"
         case .backOnTrail: return "checkmark.circle.fill"
         case .gpsWeak: return "antenna.radiowaves.left.and.right.slash"

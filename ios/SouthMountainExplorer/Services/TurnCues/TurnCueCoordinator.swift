@@ -29,6 +29,12 @@ final class TurnCueCoordinator {
     )
 
     private(set) var bannerCue: TurnCueBannerState?
+    /// The plan guide's step, distance and off-route state while a hike
+    /// started from a plan is being guided. Nil otherwise.
+    private(set) var planGuide: PlanGuideEngine.Status?
+    /// The guided plan's steps, for the bar's text (also after a relaunch,
+    /// when the planner's result is gone). Nil when no plan is guided.
+    private(set) var planGuideSteps: [PlanStep]?
 
     @ObservationIgnored private let recording: RecordingService
     @ObservationIgnored private let location: LocationService
@@ -37,6 +43,7 @@ final class TurnCueCoordinator {
     @ObservationIgnored private let speaker: TurnCueSpeaker
     @ObservationIgnored private let haptics: TurnCueHaptics
     @ObservationIgnored private let notifier: TurnCueNotifier
+    @ObservationIgnored private let planStore: PlanGuideStore
     @ObservationIgnored private let callObserver = CXCallObserver()
     @ObservationIgnored private var started = false
     @ObservationIgnored private var currentKey: Key?
@@ -44,11 +51,33 @@ final class TurnCueCoordinator {
     @ObservationIgnored private var engine: TurnCueEngine?
     @ObservationIgnored private var lastFixTimestamp: Date?
     @ObservationIgnored private var routeCache: [String: TurnCueRoute] = [:]
+    @ObservationIgnored private var planEngine: PlanGuideEngine?
+    @ObservationIgnored private var planSource: PlanSource?
+    /// The recording the saved plan was last checked against, so the file is
+    /// read once per recording, not on every fix.
+    @ObservationIgnored private var storeCheckedFor: String??
 
-    private struct Key: Equatable {
+    private enum Key: Equatable {
+        case trail(recordingId: String, areaId: String, trailId: String)
+        case plan(recordingId: String, session: UUID)
+
+        var recordingId: String {
+            switch self {
+            case .trail(let id, _, _), .plan(let id, _): return id
+            }
+        }
+    }
+
+    /// A plan handed over by Start hike, for the recording it started.
+    private struct PlanSource {
         let recordingId: String
-        let areaId: String
-        let trailId: String
+        let route: PlanGuideRoute
+        let steps: [PlanStep]
+        let session: UUID
+        /// What is saved so the guide survives a relaunch.
+        var snapshot: PlanGuideSnapshot
+        /// Brought back from the store after a relaunch: resume at the saved step.
+        let restored: Bool
     }
 
     init(
@@ -58,8 +87,10 @@ final class TurnCueCoordinator {
         defaults: UserDefaults = .standard,
         speaker: TurnCueSpeaker? = nil,
         haptics: TurnCueHaptics? = nil,
-        notificationCenter: (any TurnCueNotificationCenter)? = nil
+        notificationCenter: (any TurnCueNotificationCenter)? = nil,
+        planStore: PlanGuideStore? = nil
     ) {
+        self.planStore = planStore ?? .live()
         self.recording = recording
         self.location = location
         self.areas = areas
@@ -93,17 +124,34 @@ final class TurnCueCoordinator {
     }
 
     private func reconcile() {
+        let rec = recording.activeRecording
+        let recordingId = rec.map { $0.recordingId ?? "" }
+        // The plan's recording ended (or another one started): the guide goes with it.
+        if let plan = planSource, case .plan(_, plan.session) = currentKey, recordingId != plan.recordingId {
+            planSource = nil
+            planStore.clear()
+        }
+        restoreSavedPlanIfNeeded(activeRecordingId: recordingId)
         let key: Key?
-        if let rec = recording.activeRecording, rec.mode == .trail, let trailId = rec.trailId {
-            key = Key(recordingId: rec.recordingId ?? "", areaId: rec.areaId, trailId: trailId)
+        if let plan = planSource, plan.recordingId == recordingId {
+            key = .plan(recordingId: plan.recordingId, session: plan.session)
+        } else if let rec, rec.mode == .trail, let trailId = rec.trailId {
+            key = .trail(recordingId: rec.recordingId ?? "", areaId: rec.areaId, trailId: trailId)
         } else {
             key = nil
         }
         guard key != currentKey else { return }
         teardown()
         currentKey = key
-        guard let key else { return }
-        session = Task { [weak self] in await self?.run(key) }
+        switch key {
+        case .trail?:
+            session = Task { [weak self] in await self?.run(key!) }
+        case .plan?:
+            guard let route = planSource?.route else { return }
+            session = Task { [weak self] in await self?.runPlan(key!, route: route) }
+        case nil:
+            break
+        }
     }
 
     private func teardown() {
@@ -111,13 +159,147 @@ final class TurnCueCoordinator {
         session?.cancel()
         session = nil
         engine = nil
+        planEngine = nil
+        planGuide = nil
+        planGuideSteps = nil
         lastFixTimestamp = nil
         bannerCue = nil
         speaker.cancelAll()
     }
 
+    // MARK: - Plan guide
+
+    /// Start hike from a plan: guide `steps` for recording `recordingId`
+    /// instead of trail cues, and save them so a relaunch resumes the guide.
+    /// Ends with that recording or `endPlanGuide()`. false when the steps
+    /// have nothing to walk.
+    @discardableResult
+    func beginPlanGuide(steps: [PlanStep], recordingId: String) -> Bool {
+        guard !recordingId.isEmpty, let route = PlanGuideRoute(steps: steps) else { return false }
+        let snapshot = PlanGuideSnapshot(recordingId: recordingId, steps: steps)
+        planStore.save(snapshot)
+        storeCheckedFor = .some(recordingId)
+        planSource = PlanSource(recordingId: recordingId, route: route, steps: steps, session: UUID(),
+                                snapshot: snapshot, restored: false)
+        reconcile()
+        return true
+    }
+
+    /// Exit: ends the guide; the recording keeps going.
+    func endPlanGuide() {
+        planSource = nil
+        planStore.clear()
+        reconcile()
+    }
+
+    /// Back and Next during a hike move the guide to step `index`.
+    func movePlanGuide(toStep index: Int) {
+        guard var e = planEngine else { return }
+        e.move(toStep: index)
+        planEngine = e
+        speaker.cancelAll()
+        bannerCue = nil
+        planGuide = e.status
+        savePlanProgress(e)
+    }
+
+    /// After a relaunch: the saved plan for the active recording becomes the
+    /// guide again. A plan saved for a recording that is no longer active is
+    /// dropped. Checked once per recording.
+    private func restoreSavedPlanIfNeeded(activeRecordingId: String?) {
+        guard planSource == nil, storeCheckedFor != .some(activeRecordingId) else { return }
+        storeCheckedFor = .some(activeRecordingId)
+        guard let saved = planStore.load() else { return }
+        switch PlanGuideStore.decide(saved, activeRecordingId: activeRecordingId) {
+        case .keep:
+            break
+        case .discard:
+            planStore.clear()
+        case .restore:
+            guard let steps = saved.planSteps, let route = PlanGuideRoute(steps: steps) else {
+                planStore.clear()
+                return
+            }
+            coordinatorLog.notice("plan guide restored at step \(saved.stepIndex + 1)")
+            planSource = PlanSource(recordingId: saved.recordingId, route: route, steps: steps, session: UUID(),
+                                    snapshot: saved, restored: true)
+        }
+    }
+
+    /// Saves the guide's step when it changes, so a relaunch resumes there.
+    private func savePlanProgress(_ e: PlanGuideEngine) {
+        guard var plan = planSource,
+              plan.snapshot.stepIndex != e.stepIndex || plan.snapshot.isComplete != e.isComplete else { return }
+        plan.snapshot.stepIndex = e.stepIndex
+        plan.snapshot.isComplete = e.isComplete
+        planSource = plan
+        planStore.save(plan.snapshot)
+    }
+
+    private func runPlan(_ key: Key, route: PlanGuideRoute) async {
+        guard currentKey == key else { return }
+        var e = PlanGuideEngine(route: route, config: PlanGuideConfig(units: currentUnits()))
+        if let plan = planSource, plan.restored {
+            // Resume on the saved step, searching forward from its start.
+            e.restore(toStep: plan.snapshot.stepIndex, isComplete: plan.snapshot.isComplete)
+        }
+        planEngine = e
+        planGuideSteps = planSource?.steps
+        planGuide = e.status
+        // Start from "now" so a fix cached before the guide started is replayed once.
+        lastFixTimestamp = nil
+        while !Task.isCancelled, currentKey == key {
+            pollPlan()
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
+    private func pollPlan() {
+        guard var e = planEngine else { return }
+        let now = Date()
+        e.config.units = currentUnits()
+        let update: PlanGuideEngine.Update
+        if let live = location.liveFix, live.timestamp != lastFixTimestamp {
+            lastFixTimestamp = live.timestamp
+            update = e.ingest(Self.fix(live), now: now.timeIntervalSince1970)
+        } else {
+            update = e.tick(now: now.timeIntervalSince1970)
+        }
+        planEngine = e
+        savePlanProgress(e)
+        for event in update.events {
+            deliver(event, now: now)
+        }
+        if update.routeCompleted {
+            // The finish is a buzz and "Route complete" on the bar, no voice.
+            bannerCue = nil
+            if TurnCueDispatcher.boolSetting(StorageKeys.turnCueHaptics, defaults: defaults) {
+                haptics.play(.backOnTrail)
+            }
+        }
+        if e.status != planGuide { planGuide = e.status }
+        refreshBanner(advisory: e.advisory, now: now)
+    }
+
+    private static func fix(_ live: LiveFix) -> TurnCueFix {
+        TurnCueFix(
+            lat: live.coordinate.latitude,
+            lon: live.coordinate.longitude,
+            timestamp: live.timestamp.timeIntervalSince1970,
+            horizontalAccuracy: live.horizontalAccuracy,
+            speed: live.speed
+        )
+    }
+
+    private func isStale(_ event: TurnCueEvent) -> Bool {
+        if let planEngine { return planEngine.isStale(event) }
+        return engine?.isStale(event) ?? true
+    }
+
     private func run(_ key: Key) async {
-        guard let route = await loadRoute(key), !Task.isCancelled, currentKey == key else { return }
+        guard case .trail(_, let areaId, let trailId) = key,
+              let route = await loadRoute(areaId: areaId, trailId: trailId),
+              !Task.isCancelled, currentKey == key else { return }
         var e = TurnCueEngine(route: route, config: TurnCueConfig(units: currentUnits()))
         // Start from "now" so a fix cached before the route loaded is replayed once.
         lastFixTimestamp = nil
@@ -128,21 +310,21 @@ final class TurnCueCoordinator {
         }
     }
 
-    private func loadRoute(_ key: Key) async -> TurnCueRoute? {
-        let cacheKey = "\(key.areaId)|\(key.trailId)"
+    private func loadRoute(areaId: String, trailId: String) async -> TurnCueRoute? {
+        let cacheKey = "\(areaId)|\(trailId)"
         if let cached = routeCache[cacheKey] { return cached }
         let area: Area?
-        if let cachedArea = areas.cachedArea(id: key.areaId) {
+        if let cachedArea = areas.cachedArea(id: areaId) {
             area = cachedArea
         } else {
-            area = await areas.area(id: key.areaId)
+            area = await areas.area(id: areaId)
         }
         guard let area else {
             coordinatorLog.notice("turn cues idle: area unavailable")
             return nil
         }
         let trails = area.rawTrails ?? area.trails
-        guard let selected = trails.first(where: { $0.id == key.trailId }) else {
+        guard let selected = trails.first(where: { $0.id == trailId }) else {
             coordinatorLog.notice("turn cues idle: trail not found")
             return nil
         }
@@ -161,7 +343,14 @@ final class TurnCueCoordinator {
     /// Read-only snapshot of the cue the in-app banner is showing, for the
     /// Live Activity. Nil when turn cues are inactive or nothing is shown.
     func liveCue() -> LiveActivityNextTurn? {
-        guard let cue = bannerCue, let engine else { return nil }
+        guard let cue = bannerCue else { return nil }
+        if let planEngine {
+            let adv = planEngine.advisory
+            let distance = adv?.junctionId == cue.junctionId ? adv?.distanceMeters : nil
+            // Plan cues are direction only: no trail name.
+            return LiveActivityNextTurn(kind: cue.kind, symbol: cue.symbol, trailName: "", distanceMeters: distance)
+        }
+        guard let engine else { return nil }
         let adv = engine.advisory
         let distance = (adv != nil && adv?.junctionId == cue.junctionId) ? adv?.distanceMeters : nil
         return LiveActivityNextTurn(kind: cue.kind, symbol: cue.symbol,
@@ -212,7 +401,7 @@ final class TurnCueCoordinator {
                 haptics.play(pattern)
             case .speak(let text):
                 let priority: TurnCueSpeaker.Priority = event.kind == .approach ? .far : .near
-                speaker.speak(text, priority: priority) { [weak self] in self?.engine?.isStale(event) ?? true }
+                speaker.speak(text, priority: priority) { [weak self] in self?.isStale(event) ?? true }
             case .announce(let text):
                 coordinatorLog.notice("announce: \(text, privacy: .public)")
                 UIAccessibility.post(

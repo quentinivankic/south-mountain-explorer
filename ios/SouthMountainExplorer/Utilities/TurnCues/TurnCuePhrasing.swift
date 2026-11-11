@@ -2,6 +2,9 @@ import Foundation
 
 enum TurnCueSymbol: Sendable, Equatable {
     case keepLeft, keepRight, turnLeft, turnRight, sharpLeft, sharpRight
+    /// Plan a Hike steps only: going straight onto the next leg, and turning
+    /// around at a dead end.
+    case straight, turnAround
     case offTrail, backOnTrail, gpsWeak
 
     var isLeft: Bool { self == .keepLeft || self == .turnLeft || self == .sharpLeft }
@@ -48,6 +51,8 @@ enum TurnCuePhrasing {
         case .turnRight: return "turn right"
         case .sharpLeft: return "sharp left"
         case .sharpRight: return "sharp right"
+        case .straight: return "continue straight"
+        case .turnAround: return "turn around"
         case .offTrail, .backOnTrail, .gpsWeak: return ""
         }
     }
@@ -77,4 +82,15 @@ enum TurnCuePhrasing {
     }
 
     static let gpsWeak = "GPS signal weak"
+
+    // Plan a Hike guide: direction only, no trail names.
+
+    /// "Turn left in 300 feet".
+    static func planApproach(symbol: TurnCueSymbol, meters: Double, units: UnitsPreference) -> String {
+        "\(capitalized(action(symbol))) in \(spokenDistance(meters: meters, units: units))"
+    }
+
+    static let offRoute = "Off route"
+    static let backOnRoute = "Back on route"
+    static let routeComplete = "Route complete"
 }

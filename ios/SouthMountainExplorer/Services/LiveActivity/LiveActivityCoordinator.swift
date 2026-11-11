@@ -87,6 +87,7 @@ final class LiveActivityCoordinator {
             _ = rec.recoveryIssue
             _ = LocationService.shared.lastFixDate
             _ = TurnCueCoordinator.shared.bannerCue
+            _ = TurnCueCoordinator.shared.planGuide
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -122,6 +123,12 @@ final class LiveActivityCoordinator {
         }
         let units = UserDefaults.standard.string(forKey: StorageKeys.units)
         let id = rec.recordingId ?? LiveActivityRecordingIdentity.fallbackId(startedAt: rec.startedAt)
+        let cues = TurnCueCoordinator.shared
+        // A hike started from a plan: the row shows the guide's step.
+        var planGuide: LiveActivityPlanGuide?
+        if let status = cues.planGuide, let steps = cues.planGuideSteps {
+            planGuide = LiveActivityPlanGuide(steps: steps, status: status)
+        }
         let snapshot = LiveActivityRecordingSnapshot(
             recordingId: id,
             startedAt: rec.startedAt,
@@ -133,7 +140,8 @@ final class LiveActivityCoordinator {
             trailLengthMeters: (rec.mode == .trail) ? trail.map { $0.distanceMi * 1609.344 } : nil,
             estimates: LiveActivityEstimateSource.estimates(for: rec, recording: recording),
             usesMetric: units == UnitsPreference.metric.rawValue,
-            nextTurn: (rec.mode == .trail) ? TurnCueCoordinator.shared.liveCue() : nil
+            nextTurn: (rec.mode == .trail || planGuide != nil) ? cues.liveCue() : nil,
+            planGuide: planGuide
         )
         return LiveActivityObservedState(snapshot: snapshot, isStopping: recording.isStopping,
                                          isRecoveryBlocked: blocked)

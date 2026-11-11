@@ -19,13 +19,18 @@ struct HikeLiveActivity: Widget {
                         Image(systemName: "figure.hiking").foregroundStyle(state.status.tint)
                         Text(state.status.pillText ?? "Recording")
                             .font(.caption)
-                            .lineLimit(2)
+                            .lineLimit(1)
                     }
+                    // Natural width, so a long title (a planned hike shows the
+                    // area name) truncates instead of squeezing this label.
+                    .fixedSize()
                     .accessibilityElement(children: .combine)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     HikeTimerText(startedAt: context.attributes.startedAt, state: state)
                         .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .frame(maxWidth: 90, alignment: .trailing)
                 }
                 DynamicIslandExpandedRegion(.center) {

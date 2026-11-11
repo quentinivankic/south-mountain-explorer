@@ -126,9 +126,10 @@ struct PlanProgressReplayTests {
     // MARK: - Real recorded hikes (local only, never committed)
 
     /// Quentin's own recorded hikes. Personal location history: read at run
-    /// time only, never copied into the repo. Absent on CI, so the test skips.
-    static let historyPath =
-        "/Users/ivanquen/Documents/Kiro/Trekdex Private Data/round3-device-data/Documents/hike-history.json"
+    /// time only, never copied into the repo. Path comes from the
+    /// TREKDEX_PRIVATE_HIKES environment variable (pass it to xcodebuild as
+    /// TEST_RUNNER_TREKDEX_PRIVATE_HIKES). Unset on CI, so the test skips.
+    static let historyPath = ProcessInfo.processInfo.environment["TREKDEX_PRIVATE_HIKES"] ?? ""
 
     private struct Hike: Decodable { let areaId: String; let path: [[Double]] }
 

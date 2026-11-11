@@ -3625,6 +3625,126 @@
         "Sentier de l'Albatros",
         "Vers Rocher de Sisyphe"
       ]
+    },
+    "big-knife-provincial-park-ca-ab": {
+      "trail_count": 2,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Hoodoo Trail"
+      ]
+    },
+    "bluerock-wildland-provincial-park-ca-ab": {
+      "trail_count": 3,
+      "total_mi": 9.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bluerock Knob Trail",
+        "Bluerock Mountain Trail",
+        "Bluerock Pass Route",
+        "Foran Grade Tr",
+        "Gleason Ridge Trail",
+        "Gorge Creek",
+        "Gorge Creek Loop",
+        "Gorge Link Tr",
+        "Green Mnt Tr",
+        "Green Mnt Trail",
+        "Green Mountain Trail",
+        "Indian Oils",
+        "Junction Mountain Fire Lookout trail",
+        "Link Creek Tr",
+        "Little Ware Trail",
+        "Logger's Loop",
+        "Macabee Ridge / Forked Ridge Route",
+        "Meadow Loop",
+        "Missinglink Mountain Trail",
+        "Mount Burns East",
+        "Mount McNab Route",
+        "Mount Ware Trail",
+        "Prairie Pine Macabee Ridges Route",
+        "Sandy McNabb Hills Route",
+        "Sandy McNabb Loop",
+        "Sheep River Trail",
+        "Sheep Trail",
+        "Sheep Valley Trails",
+        "South Gorge Creek",
+        "Tunnel O' Fun Route",
+        "Windy Point Tr",
+        "Wolf Creek Hill Trail",
+        "Wolf Creek Trail"
+      ]
+    },
+    "brown-lowery-provincial-park-ca-ab": {
+      "trail_count": 4,
+      "total_mi": 3.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Crocus Loop",
+        "Old Mill North",
+        "Old Mill West",
+        "Pine Hill",
+        "Raven",
+        "Wildrose",
+        "Wildrose East",
+        "Wildrose West"
+      ]
+    },
+    "cold-lake-provincial-park-ca-ab": {
+      "trail_count": 3,
+      "total_mi": 5.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "kootenay-plains-ecological-reserve-ca-ab": {
+      "trail_count": 2,
+      "total_mi": 5.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alexander Henry's Trail",
+        "Kootenay Plains Walk",
+        "Loudon Creek Trail",
+        "North Saskatchewan River Trail",
+        "Siffleur Benches",
+        "Siffleur Wilderness Area Access",
+        "Survey Hill",
+        "Terrace Trail",
+        "Whirlpool Point East Side",
+        "Whirlpool Point Trail",
+        "Whirlpool Point West Side",
+        "Whirlpool Ridge Trail"
+      ]
+    },
+    "moose-lake-provincial-park-ca-ab": {
+      "trail_count": 4,
+      "total_mi": 5.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Blueberry Trail",
+        "Dead Man's Trail",
+        "Lakeshore Trial"
+      ]
+    },
+    "william-a-switzer-provincial-park-ca-ab": {
+      "trail_count": 3,
+      "total_mi": 5.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Athabascka tower trail",
+        "Beaver Ranch Trail",
+        "Gregg Lake trail 1",
+        "Gregg Lake trail 2",
+        "Jarvis/Marathon connect",
+        "Joachim Valley",
+        "Kelley Bathtub",
+        "Luge run"
+      ]
     }
   }
 }

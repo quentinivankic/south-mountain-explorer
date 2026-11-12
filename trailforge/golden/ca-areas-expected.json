@@ -4052,6 +4052,64 @@
         "Blueberry Connector Trail",
         "Meadow View Trail"
       ]
+    },
+    "showh-lakes-ancient-cedars-trail-recreation-site-ca-bc": {
+      "trail_count": 1,
+      "total_mi": 1.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Mak Daddy Pass",
+        "Newt Lake Trail"
+      ]
+    },
+    "au-welnew-john-dean-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 4.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Fern Dell Trail",
+        "Gail Wickens' Trail",
+        "Illahie Loop",
+        "Illahie Trail",
+        "Lauwelnew Trail",
+        "Skipper's Trail",
+        "Thomson Cabin Trail",
+        "Thunderbird Trail",
+        "West Viewpoint Trail"
+      ]
+    },
+    "creston-valley-wildlife-management-area-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 5.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Balancing Rock Trail",
+        "Beaver Boulevard",
+        "Songbird Stroll",
+        "Summit Creek Trail"
+      ]
+    },
+    "pkols-mount-douglas-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Beach",
+        "Blenkinsop",
+        "Douglas",
+        "Harrop",
+        "Irvine",
+        "Little Mt. Doug",
+        "Maddock",
+        "Merriman",
+        "South Ridge",
+        "Summit",
+        "Tod"
+      ]
     }
   }
 }

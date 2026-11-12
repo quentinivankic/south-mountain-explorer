@@ -195,15 +195,24 @@ struct PlanRouteCard: View {
     // MARK: - Walk through
 
     /// The current Walk through step: "Step 3 of 9" over the step text, and
-    /// an Exit button back to the whole route.
+    /// an Exit button back to the whole route. Renders nothing for an index
+    /// the current route no longer has (a stale index after a route switch).
+    @ViewBuilder
     private func walkThroughPanel(_ i: Int) -> some View {
+        let steps = self.steps
+        if i >= 0, i < steps.count {
+            walkThroughPanel(step: steps[i])
+        }
+    }
+
+    private func walkThroughPanel(step: PlanStep) -> some View {
         HStack(alignment: .top, spacing: 4) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(controller.walkThrough.counter ?? "")
                     .font(.caption.weight(.bold).monospacedDigit())
                     .foregroundStyle(Self.routeColor)
                     .accessibilityIdentifier("plan-walk-counter")
-                Text(steps[i].line(units: units))
+                Text(step.line(units: units))
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -375,8 +384,9 @@ struct PlanRouteCard: View {
         if r.trailNames.count > 1 {
             DisclosureGroup(isExpanded: $showTrails) {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(r.trailNames.indices, id: \.self) { i in
-                        Text(r.trailNames[i]).fixedSize(horizontal: false, vertical: true)
+                    // Iterate values, not indices: a stale row closure must never index a shorter list.
+                    ForEach(Array(r.trailNames.enumerated()), id: \.offset) { _, name in
+                        Text(name).fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -397,7 +407,10 @@ struct PlanRouteCard: View {
     private var stepList: some View {
         DisclosureGroup(isExpanded: $showSteps) {
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(steps.indices, id: \.self) { i in stepRow(i) }
+                // Iterate values, not indices: after a switch to a route with
+                // fewer steps SwiftUI can re-run an old row with its old index,
+                // which used to trap on `steps[i]` (TestFlight 319 crash).
+                ForEach(Array(steps.enumerated()), id: \.offset) { i, step in stepRow(i, step) }
                 Label(isLoop ? "Finish back at the start" : "Finish", systemImage: "flag.checkered")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -413,8 +426,7 @@ struct PlanRouteCard: View {
         }
     }
 
-    private func stepRow(_ i: Int) -> some View {
-        let step = steps[i]
+    private func stepRow(_ i: Int, _ step: PlanStep) -> some View {
         let selected = controller.selectedStep == i
         return Button {
             controller.selectStep(i)

@@ -2943,14 +2943,15 @@
       ]
     },
     "cultus-lake-provincial-park-ca-bc": {
-      "trail_count": 6,
-      "total_mi": 11.3,
+      "trail_count": 5,
+      "total_mi": 7.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
         "Dilema",
         "Dilema (short)",
         "Footpeg Trail",
+        "Horse Trail",
         "Horse Trail Loop",
         "Lakeland",
         "Lakeside Trail",
@@ -3159,8 +3160,8 @@
       ]
     },
     "akamina-kishinena-provincial-park-ca-bc": {
-      "trail_count": 5,
-      "total_mi": 10.3,
+      "trail_count": 4,
+      "total_mi": 8.8,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Akamina Ridge Route"
@@ -3174,7 +3175,8 @@
         "GDT ewm",
         "GDT ewr",
         "Great Divide Trail",
-        "Mount Rowe Route"
+        "Mount Rowe Route",
+        "Wall Lake Loop (Horse Trail)"
       ]
     },
     "gladstone-provincial-park-ca-bc": {
@@ -3754,6 +3756,32 @@
       "forbidden_names": [
         "Firebreak Trail",
         "Prairie Loop Trail"
+      ]
+    },
+    "spatsizi-plateau-wilderness-provincial-park-ca-bc": {
+      "trail_count": 5,
+      "total_mi": 33.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Danihue Pass Trail",
+        "Danihue-Bug Lake Trail",
+        "Eaglenest Trail",
+        "Ford Pass Trail",
+        "Hyland Post Trail",
+        "Icebox Canyon Trail",
+        "Lake Cartmel Trail",
+        "McEwan Trail",
+        "Tahltan Trail"
+      ]
+    },
+    "tunkwa-provincial-park-ca-bc": {
+      "trail_count": 2,
+      "total_mi": 2.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Rim Trail"
       ]
     }
   }

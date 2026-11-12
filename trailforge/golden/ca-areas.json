@@ -2859,11 +2859,45 @@
       "state": "Canada",
       "relation_id": 2054014,
       "name": "La Manche Provincial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -52.97,
+        47.11,
+        -52.8,
+        47.25
+      ],
+      "center": [
+        47.163,
+        -52.88
+      ],
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "NL curation 2026-11-02. Parks NL lists La Manche Village Trail and La Manche Falls trail. In OSM the village path is an East Coast Trail leg (0.41 mi in polygon) and only Falls trail (1.06 mi) and Flamber Head Path (ECT) remain. East Coast Trail excluded by rule: under 2 trails. ca-new3 2026-11-02: Re-replay: 4 trails but two are East Coast Trail legs (long-distance, excluded by rule), leaving Falls trail 1.06 mi; hold stands."
+      "hold": null,
+      "notes": "NL curation 2026-11-02. Parks NL lists La Manche Village Trail and La Manche Falls trail. In OSM the village path is an East Coast Trail leg (0.41 mi in polygon) and only Falls trail (1.06 mi) and Flamber Head Path (ECT) remain. East Coast Trail excluded by rule: under 2 trails. ca-new3 2026-11-02: Re-replay: 4 trails but two are East Coast Trail legs (long-distance, excluded by rule), leaving Falls trail 1.06 mi; hold stands. Phase A-rem P1-10 NL 2026-11-12 (chat/ca-arem-nl). RELEASED (hold few-trails cleared) under the post-audit-5 fix-7 ruling: an East Coast Trail named section path at least 85% inside the polygon counts as a signed day path; the generic multi-path East Coast Trail row stays excluded. Parks NL (https://www.parksnl.ca/parks/la-manche-provincial-park/) lists two hiking trails, La Manche Falls Trail (2 km) and La Manche Village Trail (2 km, to the abandoned village and the 50 m suspension bridge). Ships both: Falls trail 1.06 mi (100% inside) shown as La Manche Falls Trail, and East Coast Trail - La Manche Section 1.33 mi (100% inside) shown as La Manche Village Trail. Excluded: East Coast Trail (generic relation), Flamber Head Path (14% inside). La Manche Village Path (0.41 mi) is dropped by the engine (under 0.6 mi). bbox from the computed boundary bbox. Pin: kept-trail vertex nearest the curated trail-extent midpoint (47.163,-52.88).",
+      "exclude_trails": [
+        {
+          "id": "n:East Coast Trail",
+          "name": "East Coast Trail",
+          "reason": "Generic East Coast Trail relation stitched from several named paths (Beaches, Tinkers Point, Path to Doctors Cove); the multi-path network row stays excluded (audit-5 fix 7 ruling)"
+        },
+        {
+          "id": "n:Flamber Head Path",
+          "name": "Flamber Head Path",
+          "reason": "East Coast Trail path, only 14% of its OSM length inside the park polygon; not a whole route"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Falls trail",
+          "name": "La Manche Falls Trail",
+          "source": "https://www.parksnl.ca/parks/la-manche-provincial-park/",
+          "reason": "Parks NL names it La Manche Falls Trail (2 km from the day-use area to the falls)"
+        },
+        {
+          "osm_name": "East Coast Trail - La Manche Section",
+          "name": "La Manche Village Trail",
+          "source": "https://www.parksnl.ca/parks/la-manche-provincial-park/",
+          "reason": "Parks NL's La Manche Village Trail (2 km from near campsite 39 to the old village and the suspension bridge) is this East Coast Trail section path (1.33 mi, 100% inside)"
+        }
+      ]
     },
     {
       "id": "barachois-pond-provincial-park-ca-nl",
@@ -2875,7 +2909,7 @@
       "center": null,
       "tier": 2,
       "hold": "few-trails",
-      "notes": "NL curation 2026-11-02. Parks NL lists Erin Mountain lookout and summit trails; OSM has only one unnamed 1.85 mi footway. Needs OSM names (Quentin's call)."
+      "notes": "NL curation 2026-11-02. Parks NL lists Erin Mountain lookout and summit trails; OSM has only one unnamed 1.85 mi footway. Needs OSM names (Quentin's call). Phase A-rem P1-10 NL 2026-11-12: re-checked, T1 still finds 0 trails in the polygon (Parks NL lists the Erin Mountain trail); stays held. OSM follow-up."
     },
     {
       "id": "chance-cove-provincial-park-ca-nl",

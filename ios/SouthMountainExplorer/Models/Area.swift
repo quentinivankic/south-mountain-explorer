@@ -256,13 +256,9 @@ extension Area {
     }
 
     /// Great-circle metres. One copy — both ranking functions had their own.
+    /// R = 6,371,000 m, asin form (see Utilities/Haversine.swift).
     static func meters(_ aLat: Double, _ aLon: Double, _ bLat: Double, _ bLon: Double) -> Double {
-        let R = 6_371_000.0
-        let dLat = (bLat - aLat) * .pi / 180, dLon = (bLon - aLon) * .pi / 180
-        let la1 = aLat * .pi / 180, la2 = bLat * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
-        return 2 * R * asin(min(1, sqrt(h)))
+        haversineDistanceAsin(lat1: aLat, lon1: aLon, lat2: bLat, lon2: bLon, radius: earthRadiusMeters)
     }
 
     /// The nearest parking for a trail, ALWAYS answering when the area has any.

@@ -956,11 +956,8 @@ final class AreaDataService {
         for i in 1..<coords.count {
             let (la1, lo1) = (coords[i-1][0], coords[i-1][1])
             let (la2, lo2) = (coords[i][0], coords[i][1])
-            let R = 6_371_000.0
-            let dLat = (la2 - la1) * .pi / 180
-            let dLon = (lo2 - lo1) * .pi / 180
-            let a = sin(dLat/2)*sin(dLat/2) + cos(la1 * .pi/180)*cos(la2 * .pi/180)*sin(dLon/2)*sin(dLon/2)
-            meters += R * 2 * atan2(sqrt(a), sqrt(1-a))
+            // R = 6,371,000 m, atan2 form (see Utilities/Haversine.swift).
+            meters += haversineDistance(lat1: la1, lon1: lo1, lat2: la2, lon2: lo2, radius: earthRadiusMeters)
         }
         return meters / 1609.344
     }

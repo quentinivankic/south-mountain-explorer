@@ -2011,13 +2011,14 @@
       ]
     },
     "pukaskwa-national-park-ca-on": {
-      "trail_count": 6,
-      "total_mi": 44.9,
+      "trail_count": 5,
+      "total_mi": 44.8,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Pukaskwa Coastal Hiking Trail"
       ],
       "forbidden_names": [
+        "Boardwalk Beach Trail",
         "Chigamiwinigum Falls Trail",
         "Coastal Route Option",
         "Manito Miikana Trail"
@@ -2757,8 +2758,7 @@
         "Little McCraney - Rain Cart Path",
         "Little Mink to Mink",
         "Littledoe Lake to Baby Joe Lake Portage (1140m)",
-        "Longer Lake - Big Trout Lake Portage",
-        "Lost Coin Lake Cart Trail"
+        "Longer Lake - Big Trout Lake Portage"
       ]
     },
     "parc-de-la-gatineau-ca-qc": {

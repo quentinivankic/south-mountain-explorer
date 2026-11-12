@@ -18651,6 +18651,84 @@
       "est_trails": 9,
       "est_mi": 43.7,
       "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Parc régional Montagne du Diable (http://www.parcmontagnedudiable.com): 12 kept rows mix mountain-bike lines (Mont Ventoux, Ginza, De la Madone, mtb:scale 2-3), numbered names (Sentier Tour du Lac WIndigo 4c, Sentier du lac Walker 4), a duplicated Sentier des Ruisseaux and the 16.9 mi Sentier des Sommets. Needs a list-based rescope."
+    },
+    {
+      "id": "ann-and-sandy-cross-conservation-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 223936608,
+      "name": "Ann & Sandy Cross Conservation Area",
+      "bbox": [
+        -114.32,
+        50.8,
+        -114.16,
+        50.93
+      ],
+      "center": [
+        50.872,
+        -114.247
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 7.1,
+      "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. ASCCA trail map (https://www.crossconservation.org/uploads/source/Trailmap_PDF_Webversion_No_QR_1.pdf) names Fescue Trail/Loop, Paradise Trail/Loop, Rancher's Trail/Loop (East/West), Mountain Trail/Lookout and Aspen Trail/Loop. Kept (4): Fescue Trail 2.25, Paradise Trail 1.28, Ranchers Trail 0.63, Mountain Trail 0.60 mi (99-101%). Excluded: Aspen Trail (58% of its OSM length), South Arm of Paradise Trail (not a map name). Groups of 10+ book ahead (area guidelines).",
+      "exclude_trails": [
+        {
+          "id": "n:Aspen Trail",
+          "name": "Aspen Trail",
+          "reason": "Only 58% of the same-name OSM trail published; not a whole route"
+        },
+        {
+          "id": "n:South Arm of Paradise Trail",
+          "name": "South Arm of Paradise Trail",
+          "reason": "Not a name on the ASCCA trail map (a spur of Paradise Trail)"
+        }
+      ]
+    },
+    {
+      "id": "bunchberry-meadows-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 778605355,
+      "name": "Bunchberry Meadows",
+      "bbox": [
+        -113.79,
+        53.35,
+        -113.66,
+        53.46
+      ],
+      "center": [
+        53.403,
+        -113.727
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.8,
+      "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Both trails are OSM route relations with operator=Edmonton & Area Land Trust (co-owner with NCC, https://www.natureconservancy.ca/en/where-we-work/alberta/featured-projects/bunchberry/; the NCC page names no trails). Kept (2): Aspen Parkland Trail 2.77, Tamarack Trail 2.03 mi (98-100%). Pin moved from 53.403,-113.726 to the kept-trail vertex nearest the curated trail-extent midpoint (53.403,-113.727)."
+    },
+    {
+      "id": "wolfville-watershed-nature-preserve-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "relation_id": 7061539,
+      "name": "Wolfville Watershed Nature Preserve",
+      "bbox": [
+        -64.38,
+        44.99,
+        -64.26,
+        45.11
+      ],
+      "center": [
+        45.056,
+        -64.324
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.3,
+      "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Town of Wolfville / NSNT pages name no trails; OSM gives Havey Trail 0.95, Hemlock Ravine Trail 0.68 and Hemlock Ravine Loop 0.65 mi (two Hemlock Ravine names for one ravine walk). Names unverified; 2.3 mi in all."
     }
   ]
 }

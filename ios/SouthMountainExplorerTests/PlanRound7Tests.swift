@@ -97,4 +97,54 @@ struct PlanRound7Tests {
         controller.selectStep(nil)
         #expect(!controller.walkThrough.isActive)
     }
+
+    // MARK: - Route switch (TestFlight 319 crash)
+
+    /// A straight synthetic route of `count` legs, enough for the controller.
+    static func syntheticRoute(steps count: Int) -> PlannedRoute {
+        let steps = (0..<count).map { i -> PlanStep in
+            let a = PlannedRoute.Coord(lat: 33.3 + Double(i) * 0.001, lon: -112.0)
+            let b = PlannedRoute.Coord(lat: 33.3 + Double(i + 1) * 0.001, lon: -112.0)
+            return PlanStep(number: i + 1, action: i == 0 ? .start : .straight, kind: .trail,
+                            trailName: "Trail \(i)", staysOnTrail: false, meters: 111, at: a,
+                            coords: [a, b], isLast: i == count - 1)
+        }
+        return PlannedRoute.guided(steps: steps)
+    }
+
+    @MainActor
+    @Test func switchingToShorterRouteDropsStaleStep() {
+        let controller = PlanHikeController()
+        controller.loadPreviewForTesting([
+            .init(id: "best", title: "Best", route: Self.syntheticRoute(steps: 8)),
+            .init(id: "shorter", title: "Shorter", route: Self.syntheticRoute(steps: 3)),
+            .init(id: "less-climb", title: "Less climb", route: Self.syntheticRoute(steps: 2)),
+        ])
+        controller.showOnMap()
+        #expect(controller.preview.selected?.route.steps.count == 8)
+        controller.selectStep(5)
+        #expect(controller.selectedStep == 5 && controller.walkThrough.isActive)
+
+        // Shorter: the old index 5 must not survive into a 3 step route.
+        controller.selectRoute(id: "shorter")
+        let short = controller.preview.selected?.route.steps.count ?? 0
+        #expect(short == 3)
+        #expect(controller.selectedStep.map { $0 < short } ?? true)
+        #expect(!controller.walkThrough.isActive)
+        #expect(controller.focusCoords == nil)
+
+        // Less climb from a late step on Shorter.
+        controller.selectStep(2)
+        controller.selectRoute(id: "less-climb")
+        let less = controller.preview.selected?.route.steps.count ?? 0
+        #expect(less == 2)
+        #expect(controller.selectedStep.map { $0 < less } ?? true)
+        #expect(!controller.walkThrough.isActive)
+
+        // Edit drops the route and Walk through entirely.
+        controller.selectRoute(id: "best")
+        controller.selectStep(7)
+        controller.edit()
+        #expect(controller.selectedStep == nil && !controller.walkThrough.isActive)
+    }
 }

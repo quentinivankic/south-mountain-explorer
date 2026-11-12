@@ -4202,6 +4202,29 @@
         "Zen Nature",
         "liaison au sentier National"
       ]
+    },
+    "royal-botanical-gardens-ca-on": {
+      "trail_count": 6,
+      "total_mi": 4.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Caleb's Walk",
+        "Captain Cootes Trail",
+        "Creek Side Walk",
+        "Desjardins Recreational Trail",
+        "Ginger Valley Trail",
+        "Grey Doe Trail",
+        "Grindstone Marshes Trail",
+        "Hickory Valley Trail",
+        "Homestead Trail",
+        "Lookout Trail",
+        "Marsh Walk",
+        "North Bridle Trail",
+        "South Bridle Trail",
+        "Waters Edge Trail",
+        "Woodland Garden Trail"
+      ]
     }
   }
 }

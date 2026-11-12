@@ -17794,6 +17794,7 @@
       "state": "Canada",
       "relation_id": 14378219,
       "name": "Florian Diamante Nature Reserve [NCC]",
+      "display_name": "Florian Diamante Nature Reserve",
       "bbox": [
         -82.7,
         41.74,
@@ -17808,7 +17809,7 @@
       "hold": null,
       "est_trails": 3,
       "est_mi": 2.6,
-      "notes": "Phase B P2-1 ON curation 2026-11-12 (chat/ca-b-on; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. NCC page not fetchable (404); every kept way carries operator=Nature Conservancy of Canada, and NCC's Pelee Island updates describe the 4.4 km reserve trail plus the 1.5 km wetland trail. Kept (3): Noah Garno Trail 1.27 (90%), Wetland Trail 1.13 (98%), Meadow Trail 0.71 mi (100%). Excluded: Alvar Trail (76% of its OSM length). Pin moved from 41.802,-82.641 to the kept-trail vertex nearest the curated trail-extent midpoint (41.807,-82.639).",
+      "notes": "Phase B P2-1 ON curation 2026-11-12 (chat/ca-b-on; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. NCC page not fetchable (404); every kept way carries operator=Nature Conservancy of Canada, and NCC's Pelee Island updates describe the 4.4 km reserve trail plus the 1.5 km wetland trail. Kept (3): Noah Garno Trail 1.27 (90%), Wetland Trail 1.13 (98%), Meadow Trail 0.71 mi (100%). Excluded: Alvar Trail (76% of its OSM length). Pin moved from 41.802,-82.641 to the kept-trail vertex nearest the curated trail-extent midpoint (41.807,-82.639). Remediation 2026-11-12 (part2-review.json): display_name 'Florian Diamante Nature Reserve' drops the OSM '[NCC]' bracket tag from the app-visible name.",
       "exclude_trails": [
         {
           "id": "n:Alvar Trail",

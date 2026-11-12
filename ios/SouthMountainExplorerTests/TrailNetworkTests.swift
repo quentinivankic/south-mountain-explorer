@@ -496,4 +496,10 @@ struct TrailNetworkTests {
         #expect(a.edges.map(\.lengthMeters) == b.edges.map(\.lengthMeters))
         #expect(a.edges.map(\.trailKeys) == b.edges.map(\.trailKeys))
     }
+
+    /// One same-trail bridge limit: the planner and the trail guide agree.
+    @Test func sameTrailBridgeIsSharedWithTheStitcher() {
+        #expect(TrailPieceStitcher.sameTrailBridgeMeters == 180.0)
+        #expect(TrailNetwork.Options().sameTrailBridgeMeters == TrailPieceStitcher.sameTrailBridgeMeters)
+    }
 }

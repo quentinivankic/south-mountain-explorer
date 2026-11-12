@@ -71,23 +71,29 @@ struct AreaDistinctMilesTests {
         #expect(try JSONDecoder().decode(Area.self, from: oldData).resolvedTotalMi == 2.1)
     }
 
-    /// Today's published data has no `distinct_mi`, so the real South Mountain
-    /// geom must show exactly what it showed before this change: 122.6 mi.
+    /// The real committed South Mountain geom. Publishes rewrite this file, so
+    /// the test follows whatever it holds: with no `distinct_mi` (every geom
+    /// published before the field, including the one on this branch, total_mi
+    /// 122.6) the screen shows exactly the old number and text; once a publish
+    /// adds `distinct_mi`, the screen shows that instead.
     @Test func todaysSouthMountainGeomShowsTheSameNumber() throws {
         let repo = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let url = repo.appendingPathComponent("public/areas/geom/south-mountain-park-and-preserve-az.json")
         let data = try Data(contentsOf: url)
-        #expect(!String(decoding: data, as: UTF8.self).contains("distinct_mi"))
         let area = AreaDataService.canonicalizeTrailIds(
             try JSONDecoder().decode(AreaRow.self, from: data).toArea())
-        let before = area.totalMi ?? area.trails.reduce(0) { $0 + $1.distanceMi }
-        #expect(area.distinctMi == nil)
-        #expect(area.resolvedTotalMi == before)
-        #expect(area.resolvedTotalMi == 122.6)
-        #expect(UnitFormatter.distance(miles: area.resolvedTotalMi, units: .imperial)
-                == UnitFormatter.distance(miles: before, units: .imperial))
-        #expect(UnitFormatter.distance(miles: area.resolvedTotalMi, units: .metric)
-                == UnitFormatter.distance(miles: before, units: .metric))
+        if let distinct = area.distinctMi {
+            #expect(String(decoding: data, as: UTF8.self).contains("distinct_mi"))
+            #expect(area.resolvedTotalMi == distinct)
+        } else {
+            #expect(!String(decoding: data, as: UTF8.self).contains("distinct_mi"))
+            let before = area.totalMi ?? area.trails.reduce(0) { $0 + $1.distanceMi }
+            #expect(area.resolvedTotalMi == before)
+            #expect(UnitFormatter.distance(miles: area.resolvedTotalMi, units: .imperial)
+                    == UnitFormatter.distance(miles: before, units: .imperial))
+            #expect(UnitFormatter.distance(miles: area.resolvedTotalMi, units: .metric)
+                    == UnitFormatter.distance(miles: before, units: .metric))
+        }
     }
 }

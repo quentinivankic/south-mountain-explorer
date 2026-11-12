@@ -26,7 +26,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12.8"
+          # "3.12" like every other workflow: setup-python has no 3.12.8
+          # build for the Ubuntu 26.04 ubuntu-latest image.
+          python-version: "3.12"
       - name: Compile exact contracts, tests, and pinned key producers
         run: |
           set -euo pipefail

@@ -14,16 +14,16 @@ struct TurnCueFix: Sendable, Equatable {
 struct TurnCueConfig: Sendable, Equatable {
     var units: UnitsPreference
     /// A fix worse than this is untrustworthy: the engine goes silent.
-    var maxAcceptableAccuracy = 50.0
+    var maxAcceptableAccuracy = GpsTrustPolicy.maxAcceptableAccuracy
     /// A fix older than this (against `now`) is stale.
-    var staleFixSeconds = 10.0
+    var staleFixSeconds = GpsTrustPolicy.staleFixSeconds
     /// Matches `GpsIngest.gapMs`: a discontinuity in the fix stream.
     var gapSeconds = GpsIngest.gapMs / 1000
     /// Min seconds between spoken cues (a near cue ignores it).
-    var minSpokenSpacing = 6.0
-    var weakAfterDegradedSeconds = 15.0
-    var weakNeedsGoodSeconds = 30.0
-    var weakMinIntervalSeconds = 300.0
+    var minSpokenSpacing = GpsTrustPolicy.minSpokenSpacing
+    var weakAfterDegradedSeconds = GpsTrustPolicy.weakAfterDegradedSeconds
+    var weakNeedsGoodSeconds = GpsTrustPolicy.weakNeedsGoodSeconds
+    var weakMinIntervalSeconds = GpsTrustPolicy.weakMinIntervalSeconds
 
     init(units: UnitsPreference) {
         self.units = units
@@ -268,8 +268,8 @@ struct TurnCueEngine: Sendable {
         let t = fix.timestamp
         let p = route.origin.local(lat: fix.lat, lon: fix.lon)
         guard let g = globalProjection(p) else { return [] }
-        let tOff = max(40, 2 * acc + 15)
-        let tOn = 0.6 * tOff
+        let tOff = max(GpsTrustPolicy.offLineMeters, 2 * acc + 15)
+        let tOn = GpsTrustPolicy.backOnFraction * tOff
 
         var events = offTrailStep(g: g, p: p, t: t, tOff: tOff, tOn: tOn)
 
@@ -556,11 +556,11 @@ struct TurnCueEngine: Sendable {
         var events: [TurnCueEvent] = []
         if g.perp <= tOn {
             if onSince == nil { onSince = t }
-            if !armed, let s = onSince, t - s >= 10 { armed = true }
+            if !armed, let s = onSince, t - s >= GpsTrustPolicy.armSeconds { armed = true }
             offSince = nil
             if offAnnounced {
                 if backSince == nil { backSince = t }
-                if let s = backSince, t - s >= 6 {
+                if let s = backSince, t - s >= GpsTrustPolicy.backOnSeconds {
                     events.append(TurnCueEvent(
                         kind: .backOnTrail, junctionId: nil, symbol: .backOnTrail,
                         spoken: TurnCuePhrasing.backOnTrail(trailName: route.trailName),
@@ -582,10 +582,12 @@ struct TurnCueEngine: Sendable {
                 offMaxMove = max(offMaxMove, TurnCueGeometry.distance(p, offStart))
                 let chain = route.chains[g.chain]
                 let atEnd = !chain.isLoop && (g.arc <= 0.5 || g.arc >= chain.length - 0.5)
-                if armed, let s = offSince, t - s >= 20, offFixes >= 3, offMaxMove >= 10, !atEnd {
+                if armed, let s = offSince, t - s >= GpsTrustPolicy.offLineSeconds,
+                   offFixes >= GpsTrustPolicy.offLineFixes, offMaxMove >= GpsTrustPolicy.offLineMoveMeters, !atEnd {
                     var allowed = true
                     if let lt = lastOffT {
-                        allowed = t - lt >= 120 && g.perp - lastOffPerp >= 50
+                        allowed = t - lt >= GpsTrustPolicy.repeatSeconds
+                            && g.perp - lastOffPerp >= GpsTrustPolicy.repeatFartherMeters
                     }
                     if allowed {
                         events.append(TurnCueEvent(

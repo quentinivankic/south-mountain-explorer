@@ -18729,6 +18729,205 @@
       "est_trails": 3,
       "est_mi": 2.3,
       "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Town of Wolfville / NSNT pages name no trails; OSM gives Havey Trail 0.95, Hemlock Ravine Trail 0.68 and Hemlock Ravine Loop 0.65 mi (two Hemlock Ravine names for one ravine walk). Names unverified; 2.3 mi in all."
+    },
+    {
+      "id": "12-mile-coulee-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 2698530,
+      "name": "12 Mile Coulee",
+      "bbox": [
+        -114.3,
+        51.06,
+        -114.18,
+        51.18
+      ],
+      "center": [
+        51.116,
+        -114.233
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 2.8,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "ministik-lake-game-bird-sanctuary-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 5521488,
+      "name": "Ministik Lake Game Bird Sanctuary",
+      "bbox": [
+        -113.12,
+        53.22,
+        -112.88,
+        53.44
+      ],
+      "center": [
+        53.339,
+        -112.986
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 6,
+      "est_mi": 15.9,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C10/C9. Waskahegan Trail (10.4 mi) is a long-distance trail section (out); East 63% and South 40% are partial; the rest are short multi-use lines (bicycle=yes, horse=yes) with no agency list."
+    },
+    {
+      "id": "river-valley-area-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 9682216,
+      "name": "River Valley Area",
+      "bbox": [
+        -113.73,
+        53.35,
+        -113.31,
+        53.66
+      ],
+      "center": [
+        53.559,
+        -113.414
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 5.7,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. Edmonton river-valley bike lines (Hustler, BDSM, Gold Digger, Flatter Pete ...) and paved multi-use paths (cycleways); T1 mtb share 0.69."
+    },
+    {
+      "id": "weaselhead-flats-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 18971774,
+      "name": "Weaselhead Flats",
+      "bbox": [
+        -114.21,
+        50.93,
+        -114.09,
+        51.05
+      ],
+      "center": [
+        50.991,
+        -114.154
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 5.1,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. City of Calgary and Weaselhead/Glenmore Park Preservation Society pages (https://www.calgary.ca/parks/weaselhead-flats.html, https://weaselhead.org/) name no trails; 'Jackrabbit Trail' is two different OSM pieces (one 27%)."
+    },
+    {
+      "id": "assiniboine-corridor-wildlife-management-area-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "way_id": 62936255,
+      "name": "Assiniboine Corridor Wildlife Management Area",
+      "bbox": [
+        -99.02,
+        49.65,
+        -98.87,
+        49.78
+      ],
+      "center": [
+        49.721,
+        -98.931
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 2,
+      "est_mi": 3.6,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (name-collision). Class C5. check-boundary: two same-name ways (62935843, 62936255); way-backed, so boundary_by_id (relation only) cannot pin it."
+    },
+    {
+      "id": "brandon-hills-wildlife-management-area-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 14504619,
+      "name": "Brandon Hills Wildlife Management Area",
+      "bbox": [
+        -99.97,
+        49.64,
+        -99.8,
+        49.78
+      ],
+      "center": [
+        49.711,
+        -99.879
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 5.9,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Lettered loops (A Loop, B Loop, C Loop) and 'North & South (Double Track)' 78%. boundary_by_id set (relation 14504619 plus a same-name way) so the row replays.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "oak-hammock-marsh-ca-mb",
+      "province": "mb",
+      "state": "Canada",
+      "relation_id": 14767130,
+      "name": "Oak Hammock Marsh",
+      "bbox": [
+        -97.23,
+        50.1,
+        -97.04,
+        50.28
+      ],
+      "center": [
+        50.186,
+        -97.124
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 6,
+      "est_mi": 16.6,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C10: OUT. Kept rows are dike-top tracks (Perimeter Dike 9.1 mi, Mallard/Middle/Main Cross-Dike, West Dike Trail; highway=track); same dyke-path class ruled out for Matsqui Trail (Part 2) and Pitt-Addington Marsh (this Part)."
+    },
+    {
+      "id": "tatagwa-parkway-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "relation_id": 10073896,
+      "name": "Tatagwa Parkway",
+      "bbox": [
+        -103.91,
+        49.6,
+        -103.79,
+        49.71
+      ],
+      "center": [
+        49.653,
+        -103.847
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 2.5,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "wanuskewin-heritage-park-ca-sk",
+      "province": "sk",
+      "state": "Canada",
+      "way_id": 292035364,
+      "name": "Wanuskewin Heritage Park",
+      "bbox": [
+        -106.67,
+        52.17,
+        -106.54,
+        52.28
+      ],
+      "center": [
+        52.221,
+        -106.596
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.1,
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Wanuskewin trails page (https://wanuskewin.com/visit/trails/) lists Trail of Discovery 0.8 km, Path of the People 2.1 km, Circle of Harmony 1.3 km, Trail of the Bison 1.6 km, Bison Viewing Trail 0.4 km: OSM Path of the People is 61% (0.80 mi), 'Trail of the Buffalo' is the renamed Trail of the Bison at 65%, Path Through Waneskewin is the Meewasin multi-use path; only Circle of Harmony is whole."
     }
   ]
 }

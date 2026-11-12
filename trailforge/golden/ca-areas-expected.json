@@ -372,11 +372,12 @@
       "forbidden_names": []
     },
     "the-anchorage-provincial-park-ca-nb": {
-      "trail_count": 4,
-      "total_mi": 1.9,
+      "trail_count": 3,
+      "total_mi": 1.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
+        "Long Pond Trail",
         "Ox Head Trail"
       ]
     },

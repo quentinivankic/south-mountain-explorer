@@ -26,11 +26,20 @@ final class PostHogBackend: AnalyticsBackend {
     }
 
     init(apiKey: String, host: String) {
-        let config = PostHogConfig(apiKey: apiKey, host: host)
+        let config = PostHogConfig(projectToken: apiKey, host: host)
         // Explicit events only — turn off every passive capture path.
         // (Session replay is off by default, so it's left unset.)
         config.captureScreenViews = false
         config.captureApplicationLifecycleEvents = false
+        // No PostHog push: the app never registers for remote
+        // notifications, and NotificationService owns the
+        // UNUserNotificationCenter delegate for local notifications.
+        // Both default to true and swizzle the app delegate and that
+        // notification delegate, so turn them off. `enableSwizzling`
+        // stays on: turning it off also changes PostHog's session
+        // rotation (it tracks user activity through a swizzle).
+        config.capturePushNotificationSubscriptions = false
+        config.capturePushNotificationOpened = false
         PostHogSDK.shared.setup(config)
     }
 

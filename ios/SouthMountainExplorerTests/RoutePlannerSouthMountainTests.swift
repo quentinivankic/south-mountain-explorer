@@ -160,7 +160,8 @@ struct RoutePlannerSouthMountainTests {
         }
         let limit = PlanTiming.limit(2.0)
         print("T5PERF 4 h from \(planned) trailheads: worst \(String(format: "%.2f", worst)) s CPU, " +
-              "limit \(String(format: "%.2f", limit)) s (machine factor \(String(format: "%.2f", PlanTiming.machineFactor)), calibration \(String(format: "%.3f", PlanTiming.calibrationSeconds)) s)")
+              "limit \(String(format: "%.2f", limit)) s (machine factor \(String(format: "%.2f", PlanTiming.machineFactor)), calibration \(String(format: "%.3f", PlanTiming.calibrationSeconds)) s, " +
+              "CI slack \(String(format: "%.0f", PlanTiming.ciSlack)))")
         #expect(problems == [])
         #expect(worst < limit, "slowest plan took \(worst) s CPU, limit \(limit) s")
     }

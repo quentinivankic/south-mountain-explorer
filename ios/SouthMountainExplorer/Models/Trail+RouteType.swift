@@ -63,11 +63,5 @@ extension Trail {
 }
 
 private func endpointGapMi(_ a: [Double], _ b: [Double]) -> Double {
-    let R = 3958.8
-    let dLat = (b[0] - a[0]) * .pi / 180
-    let dLon = (b[1] - a[1]) * .pi / 180
-    let h = sin(dLat / 2) * sin(dLat / 2)
-        + cos(a[0] * .pi / 180) * cos(b[0] * .pi / 180)
-        * sin(dLon / 2) * sin(dLon / 2)
-    return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+    haversineDistanceMi(lat1: a[0], lon1: a[1], lat2: b[0], lon2: b[1])
 }

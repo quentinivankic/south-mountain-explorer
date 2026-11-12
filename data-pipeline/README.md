@@ -1,5 +1,23 @@
 # Trekdex Trail & Area-Boundary Data Pipeline
 
+> **Archived (11/12/2026). Not live. Kept in place for reference; do not move or delete it.**
+>
+> - Nothing runs this tree. No workflow in `.github/workflows/` and no script in
+>   `scripts/` or `trailforge/` calls, imports or dispatches it. Its only workflow,
+>   `build-region-tiles.yml`, was removed in #366 (f9ba5c2d7, 7/14/2026). The last
+>   change to this tree was #277 (7/8/2026).
+> - The live area data comes from trailforge: `trailforge/serve/publish_areas.py`,
+>   run by the `trailforge-publish*.yml` workflows, writes `public/areas/geom/`.
+> - Still read as reference: `build/scoring_reference.py` and
+>   `tests/test_scoring_reference.py` are the spec that
+>   `ios/SouthMountainExplorer/Services/TrailScoring.swift` and its
+>   `TrailScoringTests` mirror. `build/route_index.py` and `build/stage_osm.py`
+>   are cited as patterns in `trailforge/SPEC.md` and `trailforge/HOMELAB.md`.
+> - `workers/pmtiles-handler/` is not deployed by any workflow in this repo.
+>   Whether an old copy still runs on Cloudflare was not checked.
+> - Reviving the pmtiles path is a product decision. Don't restart it as a side
+>   effect of other work.
+
 Offline build pipeline that turns open trail + protected-area data into
 per-region `.pmtiles` archives served from Cloudflare R2. Implements
 `TRAIL_DATA_PIPELINE_SPEC.md` (the source of truth). This directory is

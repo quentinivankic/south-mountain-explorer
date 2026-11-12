@@ -11,11 +11,26 @@ import Foundation
 ///   (1 on that laptop, never below 1, at most `maxFactor`). The workload is
 ///   plain Swift (sorting and hashing), not planner code, so a planner
 ///   slowdown can never raise the allowance that is meant to catch it.
+/// - On CI (`TREKDEX_CI=1`, set by ios-pr-build.yml through
+///   `TEST_RUNNER_TREKDEX_CI`) every limit is also multiplied by `ciSlack`.
+///   Shared runners slow down unevenly during a run, so the one calibration
+///   at the start can undershoot (7.07 s measured against a 6.99 s limit).
+///   Locally `ciSlack` is 1 and the limits stay strict.
 enum PlanTiming {
     /// CPU seconds of `calibrationWork` on the laptop (Debug build, simulator),
     /// measured 11/6 while the planner tests ran.
     static let laptopCalibrationSeconds = 0.21
     static let maxFactor = 5.0
+    static let ciFactor = 3.0
+
+    /// True when the CI workflow asked for CI limits.
+    static let isCI = ProcessInfo.processInfo.environment["TREKDEX_CI"] == "1"
+
+    /// Extra headroom on CI only: `ciFactor` there, 1 everywhere else.
+    static var ciSlack: Double { isCI ? ciFactor : 1 }
+
+    /// A fixed wall-clock limit (not calibrated), loosened on CI only.
+    static func wallLimit(_ laptopValue: Double) -> Double { laptopValue * ciSlack }
 
     /// CPU seconds the current thread spent in `body`, and its result.
     static func cpuSeconds<T>(_ body: () throws -> T) rethrows -> (T, Double) {
@@ -35,8 +50,8 @@ enum PlanTiming {
         return best
     }()
 
-    /// A laptop limit scaled to this machine.
-    static func limit(_ laptopSeconds: Double) -> Double { laptopSeconds * machineFactor }
+    /// A laptop limit scaled to this machine, with `ciSlack` on CI.
+    static func limit(_ laptopSeconds: Double) -> Double { laptopSeconds * machineFactor * ciSlack }
 
     static func threadCPU() -> Double {
         var ts = timespec()

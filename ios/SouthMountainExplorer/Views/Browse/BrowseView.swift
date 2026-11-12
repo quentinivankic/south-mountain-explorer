@@ -338,13 +338,7 @@ struct BrowseView: View {
     }
 
     private func haversine(_ a: AreaSummary, _ loc: CLLocationCoordinate2D) -> Double {
-        let R = 3958.8
-        let dLat = (a.centerLat - loc.latitude) * .pi / 180
-        let dLon = (a.centerLon - loc.longitude) * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(loc.latitude * .pi / 180) * cos(a.centerLat * .pi / 180)
-            * sin(dLon / 2) * sin(dLon / 2)
-        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+        haversineDistanceMi(lat1: loc.latitude, lon1: loc.longitude, lat2: a.centerLat, lon2: a.centerLon)
     }
 }
 
@@ -357,13 +351,8 @@ struct BrowseRow: View {
 
     private var distanceMi: Double? {
         guard let loc = location.userLocation else { return nil }
-        let R = 3958.8
-        let dLat = (area.centerLat - loc.latitude) * .pi / 180
-        let dLon = (area.centerLon - loc.longitude) * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(loc.latitude * .pi / 180) * cos(area.centerLat * .pi / 180)
-            * sin(dLon / 2) * sin(dLon / 2)
-        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+        return haversineDistanceMi(lat1: loc.latitude, lon1: loc.longitude,
+                                   lat2: area.centerLat, lon2: area.centerLon)
     }
 
     var body: some View {

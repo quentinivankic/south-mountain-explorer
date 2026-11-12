@@ -21,13 +21,8 @@ struct AreaCard: View {
     /// user location is unknown.
     private var distanceMi: Double? {
         guard let loc = location.userLocation else { return nil }
-        let R = 3958.8
-        let dLat = (area.centerLat - loc.latitude) * .pi / 180
-        let dLon = (area.centerLon - loc.longitude) * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(loc.latitude * .pi / 180) * cos(area.centerLat * .pi / 180)
-            * sin(dLon / 2) * sin(dLon / 2)
-        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+        return haversineDistanceMi(lat1: loc.latitude, lon1: loc.longitude,
+                                   lat2: area.centerLat, lon2: area.centerLon)
     }
 
     /// Prefer the cached area's runtime-computed silhouette so per-line

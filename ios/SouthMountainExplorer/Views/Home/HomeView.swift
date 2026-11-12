@@ -601,13 +601,7 @@ struct HomeView: View {
     }
 
     private func haversine(_ a: AreaSummary, lat: Double, lon: Double) -> Double {
-        let R = 3958.8
-        let dLat = (a.centerLat - lat) * .pi / 180
-        let dLon = (a.centerLon - lon) * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(lat * .pi / 180) * cos(a.centerLat * .pi / 180)
-            * sin(dLon / 2) * sin(dLon / 2)
-        return R * 2 * atan2(sqrt(h), sqrt(1 - h))
+        haversineDistanceMi(lat1: lat, lon1: lon, lat2: a.centerLat, lon2: a.centerLon)
     }
 }
 

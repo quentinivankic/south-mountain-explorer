@@ -14,7 +14,9 @@ jobs:
     timeout-minutes: 10
     env:
       AWS_EC2_METADATA_DISABLED: "true"
-      NO_PROXY: "*"
+      # GitHub treats env keys as case-insensitive, so NO_PROXY and no_proxy
+      # together are a duplicate key and the workflow never parses. Keep only
+      # the lowercase form, which Python and common HTTP clients honor.
       no_proxy: "*"
       PYTHONDONTWRITEBYTECODE: "1"
       PIP_NO_INDEX: "1"
@@ -24,7 +26,9 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12.8"
+          # "3.12" like every other workflow: setup-python has no 3.12.8
+          # build for the Ubuntu 26.04 ubuntu-latest image.
+          python-version: "3.12"
       - name: Compile exact contracts, tests, and pinned key producers
         run: |
           set -euo pipefail

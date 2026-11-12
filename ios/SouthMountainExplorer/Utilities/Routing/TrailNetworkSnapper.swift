@@ -218,6 +218,10 @@ struct TrailNetworkSnapper: Sendable {
 
     /// Great-circle metres (reports the distance of a far-away pin honestly,
     /// where the local flat frame would distort).
+    /// Not routed through Utilities/Haversine.swift on purpose: this copy
+    /// takes the latitude difference after converting to radians
+    /// (`p2 - p1`), so the shared asin form would differ in the last bits.
+    /// Only used for the "too far from trails" error distance.
     static func haversine(_ lat1: Double, _ lon1: Double, _ lat2: Double, _ lon2: Double) -> Double {
         let r = 6_371_000.0
         let p1 = lat1 * .pi / 180, p2 = lat2 * .pi / 180

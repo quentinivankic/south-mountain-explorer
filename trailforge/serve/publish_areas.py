@@ -40,6 +40,7 @@ import areas as areamod             # noqa: E402
 import model                        # noqa: E402 — merge_key for rescue dedupe
 import elevation                    # noqa: E402 — inline DEM gain + difficulty
 import degenerate                   # noqa: E402 — per-trail ~zero-length gate
+import distinct_ground              # noqa: E402 — additive distinct_mi geom field
 
 def _load_nonhiking() -> dict:
     """{areaId: {trailId: verdict}} from public/areas/nonhiking-trails.json.
@@ -1170,7 +1171,10 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             published.append((slug, row["trail_count"], "dry-run"))
             published_records.append(area_record)
             continue
-        geom_guard.atomic_write_json(_out, row)
+        # The written geom alone gains `distinct_mi` (shared ground counted
+        # once). A copy, so `row`, the preview rows, the validated records and
+        # the index keep exactly their current shape and `total_mi`.
+        geom_guard.atomic_write_json(_out, distinct_ground.with_distinct_mi(row))
         for r in index:
             if r and r[0] == slug:
                 # Pad to 7, NOT 8 — see merge-published-geom.py's comment on

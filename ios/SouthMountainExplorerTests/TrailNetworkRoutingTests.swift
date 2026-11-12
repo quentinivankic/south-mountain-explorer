@@ -375,7 +375,7 @@ struct TrailNetworkRoutingTests {
             best = min(best, Self.ms(ContinuousClock.now - s))
         }
         print("ROUTING perf | \(v.nodes.count) nodes \(v.edges.count) edges | costs \(String(format: "%.2f", costMs)) ms | dijkstra best of 20 \(String(format: "%.2f", best)) ms")
-        #expect(best < 50, "Dijkstra took \(best) ms")
+        #expect(best < PlanTiming.wallLimit(50), "Dijkstra took \(best) ms, limit \(PlanTiming.wallLimit(50)) ms")
 
         let steps = try #require(sp.path(to: end.nodeId))
         let m = try #require(RouteMetrics(network: v, steps: steps))

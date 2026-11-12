@@ -156,6 +156,13 @@ jobs:
         #
         # Destination is a concrete UDID resolved in the previous
         # step (see there for why we don't pin a device name).
+        #
+        # TEST_RUNNER_TREKDEX_CI reaches the tests as TREKDEX_CI=1
+        # (xcodebuild strips the TEST_RUNNER_ prefix). PlanTiming uses
+        # it to give timing-budget tests 3x headroom on shared runners;
+        # local runs keep the strict limits.
+        env:
+          TEST_RUNNER_TREKDEX_CI: "1"
         run: |
           xcodebuild test \
             -project SouthMountainExplorer.xcodeproj \

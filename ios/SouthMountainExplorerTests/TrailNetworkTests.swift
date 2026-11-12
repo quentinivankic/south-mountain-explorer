@@ -402,7 +402,7 @@ struct TrailNetworkTests {
             e.lengthMeters <= 30.001
                 || (e.trailKeys.count == 1 && e.lengthMeters <= TrailNetwork.Options().sameTrailBridgeMeters + 0.001)
         })
-        #expect(ms < 2000, "build took \(ms) ms")
+        #expect(ms < PlanTiming.wallLimit(2000), "build took \(ms) ms, limit \(PlanTiming.wallLimit(2000)) ms")
 
         print("TRAILNETWORK stats: nodes=\(net.nodes.count) edges=\(net.edges.count) "
               + "trailEdges=\(net.edges.count - net.bridgeEdges.count) bridges=\(net.bridgeEdges.count) "

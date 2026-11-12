@@ -18284,6 +18284,373 @@
           "reason": "Mountain-bike line (mtb:scale=6, foot=discouraged)"
         }
       ]
+    },
+    {
+      "id": "parc-regional-boreal-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 9245248,
+      "name": "Parc régional Boréal",
+      "bbox": [
+        -68.22,
+        49.2,
+        -67.99,
+        49.43
+      ],
+      "center": [
+        49.278,
+        -68.072
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 14.2,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). No agency site on the OSM boundary and no readable trail list; the kept names (Sentier des Sommets, Sentier de l'Anse à Moreau, Lac aux Canards, Jardin des Glaciers, Tyrolien) cannot be checked against signage."
+    },
+    {
+      "id": "parc-regional-de-la-chute-a-bull-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 467464627,
+      "name": "Parc régional de la Chute-à-Bull",
+      "bbox": [
+        -73.82,
+        46.25,
+        -73.7,
+        46.36
+      ],
+      "center": [
+        46.305,
+        -73.758
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 2.9,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parcs régionaux de la Matawinie (https://parcsregionaux.org/parc/parc-regional-de-la-chute-a-bull/) lists Sentier du Trappeur, Sentier de la Dam and Sentier de la Chute. Kept (3): all three (1.56, 1.04, 0.68 mi). Pin moved from 46.305,-73.757 to the kept-trail vertex nearest the curated trail-extent midpoint (46.305,-73.758)."
+    },
+    {
+      "id": "parc-regional-de-la-foret-ouareau-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 465444476,
+      "name": "Parc régional de la Forêt Ouareau",
+      "bbox": [
+        -74.11,
+        46.09,
+        -73.78,
+        46.34
+      ],
+      "center": [
+        46.233,
+        -73.988
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 11.4,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parcs régionaux de la Matawinie (https://parcsregionaux.org/parc/parc-regional-de-la-foret-ouareau/): a 120 km multi-use network; the hiking table and map list name Sentier du Massif, Massif et Contreforts, Murmures/Falaises and the rivière Dufresne map. Kept (5): Sentier du Massif 14.91 (the park's own ridge trail, 100%), Sentier des Murmures 3.46, Sentier de la Loutre 1.89, Sentier Grande Vallée 1.79, Sentier de la Rivière Dufresne 1.16 mi. Excluded: Sentier des Contreforts (two OSM pieces, each 31% of its length), Le Sommet (74%), Sentier A / Sentier B (generic), and the unlisted Boucle du lac Corbeau, Sentier Éducatif de la Petite Rivière du Nord, Boucle du Belvédère de la Croix, Sentier Mont des Conscrits, Boucle du mont Prud'homme. Sentier National out (long-distance). Pin moved from 46.232,-73.944 to the kept-trail vertex nearest the curated trail-extent midpoint (46.235,-73.983). Remediation 2026-11-12 (part2-review.json): Sentier de la Loutre and Sentier Grande Vallée excluded: not on the agency hiking table or map list (the earlier claim that the page names them came from a false name match). Kept (3): Sentier du Massif, Sentier des Murmures, Sentier de la Rivière Dufresne. Pin moved from 46.235,-73.983 to the kept-trail vertex nearest the curated trail-extent midpoint (46.233,-73.988).",
+      "exclude_trails": [
+        {
+          "id": "n:Sentier des Contreforts",
+          "name": "Sentier des Contreforts",
+          "reason": "Published in two pieces, each 31% of the same-name OSM trail; not a whole route"
+        },
+        {
+          "id": "n:Le Sommet",
+          "name": "Le Sommet",
+          "reason": "Only 74% of the same-name OSM trail published"
+        },
+        {
+          "id": "n:Sentier A",
+          "name": "Sentier A",
+          "reason": "Generic letter name"
+        },
+        {
+          "id": "n:Sentier B",
+          "name": "Sentier B",
+          "reason": "Generic letter name"
+        },
+        {
+          "id": "n:Boucle du lac Corbeau",
+          "name": "Boucle du lac Corbeau",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Sentier Éducatif de la Petite Rivière du Nord",
+          "name": "Sentier Éducatif de la Petite Rivière du Nord",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Boucle du Belvédère de la Croix",
+          "name": "Boucle du Belvédère de la Croix",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Sentier Mont des Conscrits",
+          "name": "Sentier Mont des Conscrits",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Boucle du mont Prud'homme",
+          "name": "Boucle du mont Prud'homme",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Sentier de la Loutre",
+          "name": "Sentier de la Loutre",
+          "reason": "Not on the Parcs régionaux de la Matawinie hiking table or map list ('Loutre' is only a refuge name)"
+        },
+        {
+          "id": "n:Sentier Grande Vallée",
+          "name": "Sentier Grande Vallée",
+          "reason": "Not on the Parcs régionaux de la Matawinie hiking table or map list ('Grande-Vallée' is only a sector name)"
+        }
+      ]
+    },
+    {
+      "id": "parc-regional-de-la-riviere-du-nord-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8271709,
+      "name": "Parc régional de la Rivière-du-Nord",
+      "bbox": [
+        -74.14,
+        45.75,
+        -73.97,
+        45.92
+      ],
+      "center": [
+        45.833,
+        -74.061
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.1,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Parc régional de la Rivière-du-Nord (https://www.parcrivieredunord.ca/informations/cartes-du-parc/): trail maps are image-only PDFs and the randonnée page names no trails; OSM L'Aventurier, Le Faon, Des Hérons (3.1 mi) unverified."
+    },
+    {
+      "id": "parc-regional-de-la-seigneurie-du-lac-matapedia-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8262626,
+      "name": "Parc régional de la Seigneurie-du-lac-Matapédia",
+      "bbox": [
+        -67.79,
+        48.44,
+        -67.34,
+        48.68
+      ],
+      "center": [
+        48.568,
+        -67.549
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 14.9,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). MRC page on the boundary is dead; kept set includes a piece of the Sentier international des Appalaches ('Le SIA', long-distance), a 'Version 2026 Nouveau' draft name and tracks. Rescope against the MRC list."
+    },
+    {
+      "id": "parc-regional-des-grandes-coulees-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7371630,
+      "name": "Parc régional des Grandes-Coulées",
+      "bbox": [
+        -72.02,
+        46.22,
+        -71.7,
+        46.5
+      ],
+      "center": [
+        46.306,
+        -71.789
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 8.5,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). No readable agency list; La Petite-Ligne is 56% of its OSM length and the rest are short unverified loops."
+    },
+    {
+      "id": "parc-regional-des-sept-chutes-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 467519127,
+      "name": "Parc régional des Sept-Chutes",
+      "bbox": [
+        -73.82,
+        46.36,
+        -73.67,
+        46.55
+      ],
+      "center": [
+        46.457,
+        -73.732
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 8.6,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parcs régionaux de la Matawinie (https://parcsregionaux.org/parc/parc-regional-des-sept-chutes/) lists Lac Jérôme, Mont Brassard, Mont Barrière and Lac Rémi trails. Kept (4): Lac Jérôme 2.64, Mont Brassard 1.74, Mont Barrière 1.68, Lac Rémi 1.39 mi (99-100%). Excluded: Boucle Zen Nature (relation not on the list; Lac Rémi lies 74% inside it), Lac Lazare (not on the list).",
+      "exclude_trails": [
+        {
+          "id": "n:Boucle Zen Nature",
+          "name": "Boucle Zen Nature",
+          "reason": "Not on the agency trail list read for this park; overlaps Lac Rémi 74%"
+        },
+        {
+          "id": "n:Lac Lazare",
+          "name": "Lac Lazare",
+          "reason": "Not on the agency trail list read for this park"
+        }
+      ]
+    },
+    {
+      "id": "parc-regional-du-massif-du-sud-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 9245245,
+      "name": "Parc régional du Massif-du-Sud",
+      "bbox": [
+        -70.59,
+        46.47,
+        -70.3,
+        46.7
+      ],
+      "center": [
+        46.607,
+        -70.417
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 10.9,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (mtb-centre). T1 mtb share 0.66; 33 kept rows include every trail twice (an OSM 'Parcours X' name-stitch and a 'Sentier X' relation), lettered multi-use pistes (Piste multifonctionnelle C..H) and 'Hiver seulement'. A rescope would keep the Sentier relations only."
+    },
+    {
+      "id": "parc-regional-du-mont-ham-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 9248994,
+      "name": "Parc régional du Mont-Ham",
+      "bbox": [
+        -71.7,
+        45.7,
+        -71.48,
+        45.87
+      ],
+      "center": [
+        45.79,
+        -71.629
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 10.5,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parc régional du Mont-Ham trail-conditions list (https://montham.ca/la-montagne/): Intrépide, Panoramique, Button, Tour du Button, Bouleaux, Légendes, Épervier, Sentier Waban-Aki. Kept (7): Épervier 1.90, Button 1.88, Tour du Button 1.11, Bouleaux 0.86, L'Intrépide 0.85, Panoramique 0.78, Les Légendes 0.69 mi (all 100%). Excluded: the Sentier Waban-Aki OSM relation (10.6 mi; it contains every other trail at 100%, so it is the network, not the trail), Sentier du lac (not on the list). Pin moved from 45.791,-71.618 to the kept-trail vertex nearest the curated trail-extent midpoint (45.79,-71.629). Remediation 2026-11-12 (part2-review.json): Panoramique and L'Intrépide excluded as partial routes (60% and 72% of the agency lengths; the rest is under variant OSM names). Kept (5): Épervier, Button, Tour du Button, Bouleaux, Les Légendes. Follow-up: merge the variant-name pieces in OSM/registry.",
+      "exclude_trails": [
+        {
+          "id": "n:Sentier Waban-Aki",
+          "name": "Sentier Waban-Aki",
+          "reason": "OSM relation spans the whole summit network (each listed trail lies 100% inside it); publishing it would duplicate every trail"
+        },
+        {
+          "id": "n:Sentier du lac",
+          "name": "Sentier du lac",
+          "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Panoramique",
+          "name": "Panoramique",
+          "reason": "Partial route: 0.78 mi (1.26 km) of the agency's 2.1 km (montham.ca); the remainder is mapped as 'La Panoramique' (0.49 mi, dropped as a fragment)"
+        },
+        {
+          "id": "n:L'Intrépide",
+          "name": "L'Intrépide",
+          "reason": "Partial route: 0.85 mi (1.37 km) of the agency's 1.9 km (montham.ca); the remainder is mapped as 'Chalet / L'Intrépide' (0.27 mi, dropped as a fragment)"
+        }
+      ]
+    },
+    {
+      "id": "parc-regional-du-poisson-blanc-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8621268,
+      "name": "Parc régional du Poisson-Blanc",
+      "bbox": [
+        -75.83,
+        45.91,
+        -75.62,
+        46.21
+      ],
+      "center": [
+        46.129,
+        -75.705
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 9.3,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parc régional du Poisson Blanc (https://poissonblanc.ca/) lists Sentier du Crique, Sentier Katimavik, Sentier du Sommet, Sentier des Merisiers. Kept (4): those four, 99-103% whole. Excluded: Sentier Katimavik (pas entretenu) (unmaintained branch), Sentier Rapide-du-Fort (Rapide-du-Fort is a beach on the agency pages, not a listed trail). Pin moved from 46.126,-75.708 to the kept-trail vertex nearest the curated trail-extent midpoint (46.129,-75.705).",
+      "exclude_trails": [
+        {
+          "id": "n:Sentier Katimavik (pas entretenu)",
+          "name": "Sentier Katimavik (pas entretenu)",
+          "reason": "OSM marks it unmaintained ('pas entretenu'); not the listed Katimavik trail"
+        },
+        {
+          "id": "n:Sentier Rapide-du-Fort",
+          "name": "Sentier Rapide-du-Fort",
+          "reason": "Not on the agency trail list read for this park"
+        }
+      ]
+    },
+    {
+      "id": "parc-regional-kiamika-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 465492871,
+      "name": "Parc régional Kiamika",
+      "bbox": [
+        -75.2,
+        46.53,
+        -74.93,
+        46.82
+      ],
+      "center": [
+        46.657,
+        -75.082
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.2,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Réservoir Kiamika (https://reservoirkiamika.org/randonnee-pedestre/) lists Sentier du Kilby, Sentier des Cîmes (6.3 km one way, linking Kilby and Géants), Sentier des Géants, Sentier de la Pointe de l'Aigle, Sentier de l'Île-de-la-Perdrix-Blanche. Kept (5): all five, 97-100% whole (summer hiking trails; the ski flag concerns winter use only). Pin moved from 46.655,-75.096 to the kept-trail vertex nearest the curated trail-extent midpoint (46.657,-75.082)."
+    },
+    {
+      "id": "parc-regional-montagne-du-diable-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 479753938,
+      "name": "Parc régional Montagne du Diable",
+      "bbox": [
+        -75.75,
+        46.61,
+        -75.45,
+        46.82
+      ],
+      "center": [
+        46.719,
+        -75.613
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 9,
+      "est_mi": 43.7,
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Parc régional Montagne du Diable (http://www.parcmontagnedudiable.com): 12 kept rows mix mountain-bike lines (Mont Ventoux, Ginza, De la Madone, mtb:scale 2-3), numbered names (Sentier Tour du Lac WIndigo 4c, Sentier du lac Walker 4), a duplicated Sentier des Ruisseaux and the 16.9 mi Sentier des Sommets. Needs a list-based rescope."
     }
   ]
 }

@@ -59,7 +59,26 @@ jobs:
         # up with the daemon wedged ("Unable to connect to simulator" from
         # the very first call) and it never recovers on its own — killing
         # it forces a clean relaunch on the next attempt.
+        #
+        # Skipped when the runner image already ships an available iOS
+        # Simulator runtime whose version equals the selected Xcode's
+        # iphonesimulator SDK (the xcode-27 image ships 27.0 and 27.1).
+        # Any other case (no runtime, older runtime only, unreadable
+        # output) falls through to the download loop as before.
         run: |
+          SDK_VER=$(xcrun --sdk iphonesimulator --show-sdk-version 2>/dev/null || true)
+          if [ -n "$SDK_VER" ] && xcrun simctl list runtimes available -j 2>/dev/null \
+               | python3 -c "
+          import sys, json
+          want = sys.argv[1]
+          rts = json.load(sys.stdin).get('runtimes', [])
+          ok = any(r.get('platform') == 'iOS' and r.get('isAvailable') and r.get('version') == want for r in rts)
+          sys.exit(0 if ok else 1)
+          " "$SDK_VER"; then
+            echo "iOS $SDK_VER Simulator runtime already installed; skipping download"
+            exit 0
+          fi
+          echo "No installed iOS ${SDK_VER:-unknown} Simulator runtime; downloading"
           for attempt in 1 2 3 4; do
             if xcodebuild -downloadPlatform iOS; then
               echo "iOS platform ready (attempt $attempt)"
@@ -72,8 +91,24 @@ jobs:
           echo "downloadPlatform failed after 4 attempts" >&2
           exit 1
 
-      - name: Install XcodeGen
-        run: brew install xcodegen
+      - name: Install XcodeGen (pinned release binary)
+        # Pinned to the version used locally (2.46.0) and checked against
+        # its SHA-256, instead of `brew install xcodegen`, which resolved
+        # bottle manifests on every run and floats to whatever Homebrew
+        # has. The 2.46.0 release binary generates a byte-identical
+        # project to the Homebrew 2.46.0 build (checked with diff -r).
+        env:
+          XCODEGEN_VERSION: "2.46.0"
+          XCODEGEN_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+        run: |
+          DEST="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          mkdir -p "$DEST"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$DEST/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $DEST/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$DEST/xcodegen.zip" -d "$DEST"
+          echo "$DEST/xcodegen/bin" >> "$GITHUB_PATH"
+          "$DEST/xcodegen/bin/xcodegen" --version
 
       - name: Set up Python
         uses: actions/setup-python@v5

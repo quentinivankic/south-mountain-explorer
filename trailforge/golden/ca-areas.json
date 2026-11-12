@@ -12473,7 +12473,7 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Lighthouse Park (r8314570): polygon under the 0.01 deg size gate (prepare-areas). ca-new3 2026-11-02: Re-replay: fails the size gate (boundary 0.016 x 0.009); hold stands."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Lighthouse Park (r8314570): polygon under the 0.01 deg size gate (prepare-areas). ca-new3 2026-11-02: Re-replay: fails the size gate (boundary 0.016 x 0.009); hold stands. Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Fix-6 icon re-check: prepare-areas still refuses the boundary (0.016 x 0.009 deg; each side must be 0.01..3.0, no downward waiver), although OSM maps the West Vancouver trails (Arbutus, Valley of the Giants, Juniper Point, Starboat Cove, ...). Follow-up 4 (small-polygon size floor)."
     },
     {
       "id": "mount-arrowsmith-massif-regional-park-ca-bc",
@@ -17839,6 +17839,451 @@
       "est_trails": 3,
       "est_mi": 2.9,
       "notes": "Phase B P2-1 ON curation 2026-11-12 (chat/ca-b-on; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). NCC says the reserve has 1.7 km of trails connecting to 4.1 km in the adjacent Happy Valley Forest; OSM gives 4.7 km under colour-suffixed names (Donald McGeacy Trail (Blue), Goldie Feldman Trail (Yellow), Green Trail) that the NCC page (404) cannot confirm. Rescope with Happy Valley Forest."
+    },
+    {
+      "id": "burnaby-lake-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 41840206,
+      "name": "Burnaby Lake Regional Park",
+      "bbox": [
+        -123.01,
+        49.19,
+        -122.86,
+        49.31
+      ],
+      "center": [
+        49.245,
+        -122.941
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 4.8,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Metro Vancouver (https://metrovancouver.org/services/regional-parks/park/burnaby-lake-regional-park; page is a JS shell, trail list not readable). Kept (3) signed footpaths: South Shore Trail 2.14 (100%), Cottonwood Trail 1.61 (99%), Brunette Headwaters Trail 1.06 mi (85%). Excluded: Equestrian Loop Trails (bridleway for horses), Freeway Trail (82% of its OSM length; shared bridleway along Highway 1). Pin moved from 49.238,-122.937 to the kept-trail vertex nearest the curated trail-extent midpoint (49.245,-122.941).",
+      "exclude_trails": [
+        {
+          "id": "n:Equestrian Loop Trails",
+          "name": "Equestrian Loop Trails",
+          "reason": "Horse loop (highway=bridleway); not a hiking trail"
+        },
+        {
+          "id": "n:Freeway Trail",
+          "name": "Freeway Trail",
+          "reason": "Only 82% of the same-name OSM trail published; not a whole route (bridleway beside Highway 1)"
+        }
+      ]
+    },
+    {
+      "id": "callaghan-conservancy-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238464,
+      "name": "Callaghan Conservancy",
+      "bbox": [
+        -123.36,
+        50.04,
+        -123.11,
+        50.28
+      ],
+      "center": [
+        50.194,
+        -123.235
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.8,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (few-trails). BC Parks (https://bcparks.ca/callaghan-conservancy/): a winter-first area (Whistler Olympic Park Nordic venue, snowmobile zones); summer hiking on Conflict Lake trail. OSM: Conflict Lake Trail 1.95 mi is 50% of its OSM length; Ring Lake Trail 1.83 mi (91%) is the only whole trail. One trail."
+    },
+    {
+      "id": "campbell-valley-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 18351501,
+      "name": "Campbell Valley Regional Park",
+      "bbox": [
+        -122.72,
+        48.96,
+        -122.58,
+        49.09
+      ],
+      "center": [
+        49.024,
+        -122.652
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 11.2,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Metro Vancouver (https://metrovancouver.org/services/regional-parks/park/campbell-valley-regional-park; JS shell). Every kept trail carries Metro Vancouver operator or foot=designated/informal=no tags. Kept (6): Shaggy Mane Trail 6.47 (the park's signed perimeter trail, shared hiker/horse, 99%), Little River Loop Trail 1.44 (relation), Ravine Trail 0.96, Deer Trail 0.91, Vine Maple Trail 0.83, McLean Trail 0.83 mi (all 100%)."
+    },
+    {
+      "id": "capilano-river-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 391320909,
+      "name": "Capilano River Regional Park",
+      "bbox": [
+        -123.17,
+        49.28,
+        -123.06,
+        49.41
+      ],
+      "center": [
+        49.346,
+        -123.116
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 3,
+      "est_mi": 3.0,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (name-collision). Replay refuses: two boundaries named 'Capilano River Regional Park' (ways 391310861 and 391320909); boundary_by_id needs a relation-backed entry."
+    },
+    {
+      "id": "clayton-falls-conservancy-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238396,
+      "name": "Clayton Falls Conservancy",
+      "bbox": [
+        -126.98,
+        52.16,
+        -126.69,
+        52.36
+      ],
+      "center": [
+        52.295,
+        -126.903
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.0,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). BC Parks (https://bcparks.ca/clayton-falls-conservancy/) lists no trails; OSM M Gurr Lake Trail and Grey Jay Lake Trail are unverified names on a 2-trail floor."
+    },
+    {
+      "id": "cobble-hill-mountain-regional-recreation-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 543954,
+      "name": "Cobble Hill Mountain Regional Recreation Area",
+      "bbox": [
+        -123.69,
+        48.63,
+        -123.56,
+        48.76
+      ],
+      "center": [
+        48.691,
+        -123.623
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 5.7,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (mtb-centre). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS). T1 mtb share 0.54 as well."
+    },
+    {
+      "id": "francis-king-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2045173,
+      "name": "Francis/King Regional Park",
+      "bbox": [
+        -123.5,
+        48.42,
+        -123.39,
+        48.54
+      ],
+      "center": [
+        48.483,
+        -123.447
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.2,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS)."
+    },
+    {
+      "id": "kanaka-creek-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 7114711,
+      "name": "Kanaka Creek Regional Park",
+      "bbox": [
+        -122.65,
+        49.14,
+        -122.4,
+        49.28
+      ],
+      "center": [
+        49.211,
+        -122.52
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.3,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Only Canyon Trail 0.81 and Forest Core Trail 0.65 mi (multi-use track) survive in a long linear park whose destinations (Cliff Falls, the fish fence, Riverfront trails) are not in the kept set. Incomplete."
+    },
+    {
+      "id": "matsqui-trail-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 113348751,
+      "name": "Matsqui Trail Regional Park",
+      "bbox": [
+        -122.39,
+        49.06,
+        -122.17,
+        49.19
+      ],
+      "center": [
+        49.129,
+        -122.286
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 7.3,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (curated-do-not-ship). Matsqui Trail is the Fraser River dyke multi-use path (bike/horse/foot, compacted gravel; 6.2 mi) plus a River Trail inside it (40% overlap). A dyke path is not a hiking area (Phase C class C7 bar)."
+    },
+    {
+      "id": "mount-arrowsmith-regional-park-acrd-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8057964,
+      "name": "Mount Arrowsmith Regional Park (ACRD)",
+      "bbox": [
+        -124.67,
+        49.19,
+        -124.52,
+        49.31
+      ],
+      "center": [
+        49.248,
+        -124.583
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.0,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). ACRD (https://www.acrd.bc.ca/mount-arrowsmith-regional-park): kept set is broken; CPR Trail 25%, CPR Lookout Cokley Connector 42% and Mount Cokely Trail are partial, Rosseau Route is an alpine route (sac_scale alpine_hiking). No whole hiking set."
+    },
+    {
+      "id": "mount-work-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 1796568,
+      "name": "Mount Work Regional Park",
+      "bbox": [
+        -123.55,
+        48.47,
+        -123.4,
+        48.6
+      ],
+      "center": [
+        48.533,
+        -123.48
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 2,
+      "est_mi": 3.8,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (mtb-centre). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS). T1 mtb share 0.70 as well."
+    },
+    {
+      "id": "nlhaxten-cerise-creek-conservancy-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238480,
+      "name": "Nlháxten/Cerise Creek Conservancy",
+      "bbox": [
+        -122.54,
+        50.28,
+        -122.34,
+        50.43
+      ],
+      "center": [
+        50.352,
+        -122.416
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.4,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Cerise Creek Summer Trail comes out as two pieces (1.55 + 0.69 mi, each 23% of its OSM length) and Vantage Peak Route is an alpine route (71%). Not a whole route."
+    },
+    {
+      "id": "rose-valley-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 481261614,
+      "name": "Rose Valley Regional Park",
+      "bbox": [
+        -119.62,
+        49.83,
+        -119.49,
+        49.96
+      ],
+      "center": [
+        49.896,
+        -119.558
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 8,
+      "est_mi": 9.1,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (mtb-centre). Kept set is the Kelowna mountain-bike network (Grant's Grind, WooHoo, Cattywumpuss, Swamp Donkey, Sidehill Madness, Red Rock). A local expert sees a bike park."
+    },
+    {
+      "id": "scenic-canyon-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 479930636,
+      "name": "Scenic Canyon Regional Park",
+      "bbox": [
+        -119.44,
+        49.78,
+        -119.29,
+        49.92
+      ],
+      "center": [
+        49.845,
+        -119.367
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 4.0,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (curated-do-not-ship). Kept set is the Mission Creek Greenway (Phase II 53% of its OSM length), an urban greenway; not a hiking area (C7 bar)."
+    },
+    {
+      "id": "sea-to-sea-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2221065,
+      "name": "Sea to Sea Regional Park",
+      "bbox": [
+        -123.79,
+        48.35,
+        -123.56,
+        48.54
+      ],
+      "center": [
+        48.447,
+        -123.671
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 30,
+      "est_mi": 44.7,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). 38 trails mixing CRD hiking trails, bike-designated lines (FM Radio, Kumquat, Sword Fern), carriageways and clipped pieces (Sooke Flowline 39% and shared with Sooke Hills; Grass Lake 47%, John Hasell 42%, The Ridge 43%). Needs a CRD-list rescope."
+    },
+    {
+      "id": "sntsk-il-nt-n-black-mountain-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1552132096,
+      "name": "sntsk'il'ntən - Black Mountain Regional Park",
+      "bbox": [
+        -119.39,
+        49.82,
+        -119.25,
+        49.95
+      ],
+      "center": [
+        49.89,
+        -119.334
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 6,
+      "est_mi": 6.2,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (name-collision). Replay refuses: two same-name boundaries (ways 1552132096 and 1552132097); boundary_by_id needs a relation-backed entry."
+    },
+    {
+      "id": "sooke-hills-wilderness-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2730564,
+      "name": "Sooke Hills Wilderness Regional Park",
+      "bbox": [
+        -123.7,
+        48.36,
+        -123.5,
+        48.57
+      ],
+      "center": [
+        48.442,
+        -123.582
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 20,
+      "est_mi": 20.4,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). CRD lists few public trails for this watershed buffer; OSM yields 18 informal-looking names (The Ambulatory Patients Trail, AP-Alder / Corner Hill Connector, The Viking Carriageway) plus a 3% piece of the Sooke Flowline. Numbered/informal flag; rescope against the CRD map."
+    },
+    {
+      "id": "sumas-mountain-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 8831241,
+      "name": "Sumas Mountain Regional Park",
+      "bbox": [
+        -122.29,
+        49.03,
+        -122.05,
+        49.19
+      ],
+      "center": [
+        49.104,
+        -122.148
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 6,
+      "est_mi": 7.1,
+      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). FVRD trails (Centennial, Chadsey Lake, Taggart Peak / Abby Grind (Glenn Ryder Trail)) are split or clipped (Centennial Trail two rows at 12%, Chadsey 71%, Abby Grind 72%) and mixed with bike-designated (Long Way Home, Harder Way) and informal lines (Loami-Wan Kenobi, Baker's Grind)."
+    },
+    {
+      "id": "grouse-mountain-regional-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 52955924,
+      "name": "Grouse Mountain Regional Park",
+      "bbox": [
+        -123.15,
+        49.32,
+        -123.03,
+        49.43
+      ],
+      "center": [
+        49.375,
+        -123.091
+      ],
+      "tier": 3,
+      "hold": null,
+      "notes": "ICONIC-ONE-TRAIL: the Grouse Grind is the signed, named Metro Vancouver trail (about 2.5 km, climbing from 300 m to 1,100 m on Grouse Mountain) that a local expert names first among North Shore hikes; it has been part of Grouse Mountain Regional Park since 2017; source https://metrovancouver.org/current-conditions/grouse-grind-trail. Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP via the one-trail allow-list. Kept (1): Grouse Grind 1.13 mi (OSM route relation, 97% of its OSM length). Excluded: Georgia Strait Lookout Trail (unverified), Flint and Feather (informal), Taint (bike). BCMC Route is not in the kept set (engine). Hand row from T1 candidates.tsv w52955924. Pin moved from 49.372,-123.09 to the kept-trail vertex nearest the curated trail-extent midpoint (49.375,-123.091).",
+      "exclude_trails": [
+        {
+          "id": "n:Georgia Strait Lookout Trail",
+          "name": "Georgia Strait Lookout Trail",
+          "reason": "Not on the Metro Vancouver pages read for this park; name unverified"
+        },
+        {
+          "id": "n:Flint and Feather",
+          "name": "Flint and Feather",
+          "reason": "Informal trail (informal=yes)"
+        },
+        {
+          "id": "n:Taint",
+          "name": "Taint",
+          "reason": "Mountain-bike line (mtb:scale=6, foot=discouraged)"
+        }
+      ]
     }
   ]
 }

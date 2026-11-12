@@ -6,9 +6,12 @@ options:
   xcodeVersion: "26.0"
 
 packages:
+  # Pinned to one exact version (also pinned by revision in the
+  # committed Package.resolved), so CI and local builds never pick up a
+  # new SDK without a commit. Bump both together on purpose.
   PostHog:
     url: https://github.com/PostHog/posthog-ios
-    from: "3.0.0"
+    exactVersion: "3.94.4"
 
 targets:
   SouthMountainExplorer:

@@ -17284,14 +17284,14 @@
         46.34
       ],
       "center": [
-        46.235,
-        -73.983
+        46.233,
+        -73.988
       ],
       "tier": 3,
       "hold": null,
       "est_trails": 7,
       "est_mi": 11.4,
-      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parcs régionaux de la Matawinie (https://parcsregionaux.org/parc/parc-regional-de-la-foret-ouareau/): a 120 km multi-use network; the page names Sentier du Massif, Sentier des Contreforts, Sentier des Murmures, Sentier de la Loutre, Sentier Grande-Vallée and Sentier de la Rivière Dufresne. Kept (5): Sentier du Massif 14.91 (the park's own ridge trail, 100%), Sentier des Murmures 3.46, Sentier de la Loutre 1.89, Sentier Grande Vallée 1.79, Sentier de la Rivière Dufresne 1.16 mi. Excluded: Sentier des Contreforts (two OSM pieces, each 31% of its length), Le Sommet (74%), Sentier A / Sentier B (generic), and the unlisted Boucle du lac Corbeau, Sentier Éducatif de la Petite Rivière du Nord, Boucle du Belvédère de la Croix, Sentier Mont des Conscrits, Boucle du mont Prud'homme. Sentier National out (long-distance). Pin moved from 46.232,-73.944 to the kept-trail vertex nearest the curated trail-extent midpoint (46.235,-73.983).",
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parcs régionaux de la Matawinie (https://parcsregionaux.org/parc/parc-regional-de-la-foret-ouareau/): a 120 km multi-use network; the hiking table and map list name Sentier du Massif, Massif et Contreforts, Murmures/Falaises and the rivière Dufresne map. Kept (5): Sentier du Massif 14.91 (the park's own ridge trail, 100%), Sentier des Murmures 3.46, Sentier de la Loutre 1.89, Sentier Grande Vallée 1.79, Sentier de la Rivière Dufresne 1.16 mi. Excluded: Sentier des Contreforts (two OSM pieces, each 31% of its length), Le Sommet (74%), Sentier A / Sentier B (generic), and the unlisted Boucle du lac Corbeau, Sentier Éducatif de la Petite Rivière du Nord, Boucle du Belvédère de la Croix, Sentier Mont des Conscrits, Boucle du mont Prud'homme. Sentier National out (long-distance). Pin moved from 46.232,-73.944 to the kept-trail vertex nearest the curated trail-extent midpoint (46.235,-73.983). Remediation 2026-11-12 (part2-review.json): Sentier de la Loutre and Sentier Grande Vallée excluded: not on the agency hiking table or map list (the earlier claim that the page names them came from a false name match). Kept (3): Sentier du Massif, Sentier des Murmures, Sentier de la Rivière Dufresne. Pin moved from 46.235,-73.983 to the kept-trail vertex nearest the curated trail-extent midpoint (46.233,-73.988).",
       "exclude_trails": [
         {
           "id": "n:Sentier des Contreforts",
@@ -17337,6 +17337,16 @@
           "id": "n:Boucle du mont Prud'homme",
           "name": "Boucle du mont Prud'homme",
           "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Sentier de la Loutre",
+          "name": "Sentier de la Loutre",
+          "reason": "Not on the Parcs régionaux de la Matawinie hiking table or map list ('Loutre' is only a refuge name)"
+        },
+        {
+          "id": "n:Sentier Grande Vallée",
+          "name": "Sentier Grande Vallée",
+          "reason": "Not on the Parcs régionaux de la Matawinie hiking table or map list ('Grande-Vallée' is only a sector name)"
         }
       ]
     },
@@ -17482,7 +17492,7 @@
       "hold": null,
       "est_trails": 9,
       "est_mi": 10.5,
-      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parc régional du Mont-Ham trail-conditions list (https://montham.ca/la-montagne/): Intrépide, Panoramique, Button, Tour du Button, Bouleaux, Légendes, Épervier, Sentier Waban-Aki. Kept (7): Épervier 1.90, Button 1.88, Tour du Button 1.11, Bouleaux 0.86, L'Intrépide 0.85, Panoramique 0.78, Les Légendes 0.69 mi (all 100%). Excluded: the Sentier Waban-Aki OSM relation (10.6 mi; it contains every other trail at 100%, so it is the network, not the trail), Sentier du lac (not on the list). Pin moved from 45.791,-71.618 to the kept-trail vertex nearest the curated trail-extent midpoint (45.79,-71.629).",
+      "notes": "Phase B P2-3 QC curation 2026-11-12 (chat/ca-b-qc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). SHIP. Parc régional du Mont-Ham trail-conditions list (https://montham.ca/la-montagne/): Intrépide, Panoramique, Button, Tour du Button, Bouleaux, Légendes, Épervier, Sentier Waban-Aki. Kept (7): Épervier 1.90, Button 1.88, Tour du Button 1.11, Bouleaux 0.86, L'Intrépide 0.85, Panoramique 0.78, Les Légendes 0.69 mi (all 100%). Excluded: the Sentier Waban-Aki OSM relation (10.6 mi; it contains every other trail at 100%, so it is the network, not the trail), Sentier du lac (not on the list). Pin moved from 45.791,-71.618 to the kept-trail vertex nearest the curated trail-extent midpoint (45.79,-71.629). Remediation 2026-11-12 (part2-review.json): Panoramique and L'Intrépide excluded as partial routes (60% and 72% of the agency lengths; the rest is under variant OSM names). Kept (5): Épervier, Button, Tour du Button, Bouleaux, Les Légendes. Follow-up: merge the variant-name pieces in OSM/registry.",
       "exclude_trails": [
         {
           "id": "n:Sentier Waban-Aki",
@@ -17493,6 +17503,16 @@
           "id": "n:Sentier du lac",
           "name": "Sentier du lac",
           "reason": "Not on the agency trail list read for this park"
+        },
+        {
+          "id": "n:Panoramique",
+          "name": "Panoramique",
+          "reason": "Partial route: 0.78 mi (1.26 km) of the agency's 2.1 km (montham.ca); the remainder is mapped as 'La Panoramique' (0.49 mi, dropped as a fragment)"
+        },
+        {
+          "id": "n:L'Intrépide",
+          "name": "L'Intrépide",
+          "reason": "Partial route: 0.85 mi (1.37 km) of the agency's 1.9 km (montham.ca); the remainder is mapped as 'Chalet / L'Intrépide' (0.27 mi, dropped as a fragment)"
         }
       ]
     },

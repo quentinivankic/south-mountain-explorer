@@ -104,8 +104,9 @@ struct TrailNetwork: Sendable {
         var bridgeMeters = 30.0
         /// Largest gap bridged between two pieces of the SAME trail (a trail
         /// stored in separate pieces with a hole between them). Flagged
-        /// unverified like any bridge. Never exceeded.
-        var sameTrailBridgeMeters = 180.0
+        /// unverified like any bridge. Never exceeded. Shared with the trail
+        /// guide and hike estimates (`TrailPieceStitcher`).
+        var sameTrailBridgeMeters = TrailPieceStitcher.sameTrailBridgeMeters
         /// Mid-trail vertices this close to another trail are merged onto it,
         /// and cut points this close to an existing vertex reuse it.
         var vertexMergeMeters = 1.0

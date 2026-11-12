@@ -31,8 +31,9 @@ jobs:
           - id: small-default
             device_role: small
             content_size: large
-            min_pixel_width: 700
-            max_pixel_width: 800
+            # iPhone 17e or 16e, 1170 px (no 750 px phone runs iOS 27).
+            min_pixel_width: 1160
+            max_pixel_width: 1180
           - id: 6.9-accessibility
             device_role: large
             content_size: accessibility-extra-extra-extra-large
@@ -107,16 +108,22 @@ jobs:
           ]
           iphones = [device for device in devices if "iPhone" in device["name"]]
           role = os.environ["DEVICE_ROLE"]
+          by_name = {device["name"]: device for device in iphones}
           if role == "large":
-              preferred = ["iPhone 17 Pro Max", "iPhone 16 Pro Max"]
-              by_name = {device["name"]: device for device in iphones}
+              # The xcode-27 image has iPhone 18 Pro Max (1320 px) but no
+              # 17 or 16 Pro Max; the width check below still fails closed.
+              preferred = ["iPhone 18 Pro Max", "iPhone 17 Pro Max", "iPhone 16 Pro Max"]
               matches = [by_name[name] for name in preferred if name in by_name]
           elif role == "small":
-              matches = [device for device in iphones if device["name"] == "iPhone SE (3rd generation)"]
+              # iPhone SE (3rd generation) cannot run iOS 27 (simctl create
+              # fails), so the smallest iOS 27 phone is the small class:
+              # 390 pt, 1170 px. The width check below still fails closed.
+              preferred = ["iPhone 17e", "iPhone 16e"]
+              matches = [by_name[name] for name in preferred if name in by_name]
               if not matches:
                   device_types = simctl_json("devicetypes")["devicetypes"]
                   device_type = next(
-                      (item for item in device_types if item["name"] == "iPhone SE (3rd generation)"),
+                      (item for name in preferred for item in device_types if item["name"] == name),
                       None,
                   )
                   runtimes = [
@@ -125,7 +132,7 @@ jobs:
                       and item["identifier"].startswith("com.apple.CoreSimulator.SimRuntime.iOS-")
                   ]
                   if device_type is None:
-                      raise SystemExit("No iPhone SE (3rd generation) simulator device type is available")
+                      raise SystemExit("No small iPhone simulator device type is available: " + ", ".join(preferred))
                   if not runtimes:
                       raise SystemExit("No available iOS simulator runtime can host the small audit")
                   runtime = max(

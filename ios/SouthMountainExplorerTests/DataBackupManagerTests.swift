@@ -3,7 +3,10 @@ import Testing
 @testable import SouthMountainExplorer
 
 /// Fail-closed import coverage plus export checks isolated from host Documents.
-@Suite
+/// The time limit makes a blocked main actor fail this suite in a minute
+/// instead of stalling the run until xcodebuild restarts it (CI runs
+/// 42818590836 and 43066387705; the cause was CompletionBaselineTests, see there).
+@Suite(.timeLimit(.minutes(1)))
 @MainActor
 struct DataBackupManagerTests {
 

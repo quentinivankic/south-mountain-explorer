@@ -3806,6 +3806,231 @@
         "Flamber Head Path",
         "La Manche Village Path"
       ]
+    },
+    "depot-lakes-conservation-area-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "foley-mountain-conservation-area-ca-on": {
+      "trail_count": 5,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Mobility Trail",
+        "Rideau Trail",
+        "Rideau Trail - Kingston Section"
+      ]
+    },
+    "gould-lake-conservation-area-ca-on": {
+      "trail_count": 4,
+      "total_mi": 6.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Crossover Trail",
+        "East Trail",
+        "Point Spur",
+        "RT Gould Lake Blue Trails",
+        "Rideau Trail",
+        "Rideau Trail - Kingston Section",
+        "Ridgewalk"
+      ]
+    },
+    "guelph-lake-conservation-area-ca-on": {
+      "trail_count": 4,
+      "total_mi": 4.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Blue Trail"
+      ]
+    },
+    "marble-rock-conservation-area-ca-on": {
+      "trail_count": 2,
+      "total_mi": 5.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "mill-of-kintail-conservation-area-ca-on": {
+      "trail_count": 2,
+      "total_mi": 2.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Entry to Fred Lossing Observatory",
+        "Fitness Trail",
+        "McKenzie Walk",
+        "Mississippi Valley Trail - Marchidon Section",
+        "Riverside Trail",
+        "Trillium Trail"
+      ]
+    },
+    "rock-dunder-conservation-area-ca-on": {
+      "trail_count": 2,
+      "total_mi": 3.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Scout Cabin Trail"
+      ]
+    },
+    "scanlon-creek-conservation-area-ca-on": {
+      "trail_count": 4,
+      "total_mi": 6.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Evergreen / Sugar Maple"
+      ]
+    },
+    "shade-s-mills-conservation-area-ca-on": {
+      "trail_count": 5,
+      "total_mi": 5.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Hardwoods Trail"
+      ]
+    },
+    "florian-diamante-nature-reserve-ncc-ca-on": {
+      "trail_count": 3,
+      "total_mi": 3.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alvar Trail"
+      ]
+    },
+    "burnaby-lake-regional-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 4.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Avalon Trail",
+        "Central Valley Greenway",
+        "Conifer Loop",
+        "Equestrian Loop Trails",
+        "Freeway Trail",
+        "Nature House Trail",
+        "Piper Mill Trail",
+        "Spruce Loop"
+      ]
+    },
+    "campbell-valley-regional-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 11.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "216th Street Trail",
+        "Camp Coyote Trail",
+        "Meadow Trail",
+        "Perimeter Trail",
+        "South Valley Trail",
+        "Tree Farm Trail"
+      ]
+    },
+    "grouse-mountain-regional-park-ca-bc": {
+      "trail_count": 1,
+      "total_mi": 1.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Baden Powell Trail",
+        "Flint and Feather",
+        "Georgia Strait Lookout Trail",
+        "SIMIC Trail",
+        "Taint"
+      ]
+    },
+    "parc-regional-de-la-chute-a-bull-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "parc-regional-de-la-foret-ouareau-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 19.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "9e Rang",
+        "Accès d'urgence",
+        "Boucle du Belvédère de la Croix",
+        "Boucle du lac Corbeau",
+        "Boucle du mont Prud'homme",
+        "Kabania",
+        "Le Sommet",
+        "Petit sentier de l'ours",
+        "Sentier A",
+        "Sentier B",
+        "Sentier Grande Vallée",
+        "Sentier Mont des Conscrits",
+        "Sentier National",
+        "Sentier de la Loutre",
+        "Sentier des Contreforts",
+        "Sentier des Falaises",
+        "Sentier du lac Toussaint",
+        "Sentier Éducatif de la Petite Rivière du Nord"
+      ]
+    },
+    "parc-regional-des-sept-chutes-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Approach Voyage Imaginaire",
+        "Boucle Zen Nature",
+        "La promenade de la Falaise",
+        "Lac Lazare",
+        "Le Trottoir de la Tundra",
+        "Michel Sokolyk",
+        "Voile de la Mariée",
+        "Zen Nature"
+      ]
+    },
+    "parc-regional-du-mont-ham-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chalet / L'Intrépide",
+        "L'Intrépide",
+        "La Panoramique",
+        "Les Cèdres",
+        "Panoramique",
+        "Pins",
+        "Sentier Waban-Aki",
+        "Sentier du lac",
+        "Téméraire"
+      ]
+    },
+    "parc-regional-du-poisson-blanc-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier Katimavik (pas entretenu)",
+        "Sentier Rapide-du-Fort"
+      ]
+    },
+    "parc-regional-kiamika-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 12.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

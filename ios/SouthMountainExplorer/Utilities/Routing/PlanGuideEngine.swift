@@ -4,42 +4,42 @@ import Foundation
 // turn cues and off-route warnings while you walk. Pure and deterministic,
 // like `TurnCueEngine`: fixes in, `TurnCueEvent`s out, so the existing
 // dispatcher, voice, haptics and Lock Screen code deliver them unchanged.
-// GPS trust rules and off-route numbers are copied from `TurnCueEngine`
-// (left untouched so trail cues cannot regress).
+// GPS trust rules and off-route numbers come from `GpsTrustPolicy`, shared
+// with `TurnCueEngine`, so trail cues and planned hike cues stay the same.
 
 struct PlanGuideConfig: Sendable, Equatable {
     var units: UnitsPreference
     /// A fix worse than this is untrustworthy: the guide goes silent.
-    var maxAcceptableAccuracy = 50.0
+    var maxAcceptableAccuracy = GpsTrustPolicy.maxAcceptableAccuracy
     /// A fix older than this (against `now`) is stale.
-    var staleFixSeconds = 10.0
+    var staleFixSeconds = GpsTrustPolicy.staleFixSeconds
     /// A discontinuity in the fix stream (`GpsIngest.gapMs`).
     var gapSeconds = GpsIngest.gapMs / 1000
     /// Min seconds between spoken cues (a cue at the turn ignores it).
-    var minSpokenSpacing = 6.0
-    var weakAfterDegradedSeconds = 15.0
-    var weakNeedsGoodSeconds = 30.0
-    var weakMinIntervalSeconds = 300.0
+    var minSpokenSpacing = GpsTrustPolicy.minSpokenSpacing
+    var weakAfterDegradedSeconds = GpsTrustPolicy.weakAfterDegradedSeconds
+    var weakNeedsGoodSeconds = GpsTrustPolicy.weakNeedsGoodSeconds
+    var weakMinIntervalSeconds = GpsTrustPolicy.weakMinIntervalSeconds
     /// The heads-up comes about 300 ft before each turn.
     var headsUpMeters = 300 / TurnCuePhrasing.feetPerMeter
     /// "Route complete" once you are this close to the end of the plan.
     var finishMeters = 15.0
     /// Off route: farther than this from the planned line (or 2x accuracy
     /// plus 15 m if larger)...
-    var offRouteMeters = 40.0
+    var offRouteMeters = GpsTrustPolicy.offLineMeters
     /// ...for this long, over this many fixes, with this much movement.
-    var offRouteSeconds = 20.0
-    var offRouteFixes = 3
-    var offRouteMoveMeters = 10.0
+    var offRouteSeconds = GpsTrustPolicy.offLineSeconds
+    var offRouteFixes = GpsTrustPolicy.offLineFixes
+    var offRouteMoveMeters = GpsTrustPolicy.offLineMoveMeters
     /// No warning until you have been on the route this long.
-    var armSeconds = 10.0
+    var armSeconds = GpsTrustPolicy.armSeconds
     /// Back on route within this share of the off-route distance, for this long.
-    var backOnFraction = 0.6
-    var backOnSeconds = 6.0
+    var backOnFraction = GpsTrustPolicy.backOnFraction
+    var backOnSeconds = GpsTrustPolicy.backOnSeconds
     /// A repeat warning needs this long since the last one and this much
     /// farther from the route.
-    var repeatSeconds = 120.0
-    var repeatFartherMeters = 50.0
+    var repeatSeconds = GpsTrustPolicy.repeatSeconds
+    var repeatFartherMeters = GpsTrustPolicy.repeatFartherMeters
     var matcher = PlanProgressMatcher.Config()
 
     init(units: UnitsPreference) {

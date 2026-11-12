@@ -8,9 +8,9 @@ import Foundation
 /// `sameTrailBridgeMeters` (flagged unverified: the straight line between the
 /// ends is a guess, not mapped trail).
 ///
-/// TODO: this duplicates the idea (and the 180 m constant) of the Plan a Hike
-/// same-trail bridge (`TrailNetwork.sameTrailBridgeMeters` on
-/// `chat/plan-a-hike`). Unify the two once Plan a Hike is merged to main.
+/// `sameTrailBridgeMeters` is the one same-trail bridge limit in the app:
+/// the Plan a Hike network (`TrailNetwork.Options.sameTrailBridgeMeters`)
+/// uses it as its default too.
 enum TrailPieceStitcher {
     static let sameTrailBridgeMeters = 180.0
     /// Gaps at or below this are treated as contiguous (not flagged as a bridge).

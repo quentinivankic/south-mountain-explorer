@@ -450,6 +450,60 @@ class PublishReport(unittest.TestCase):
         self.assertEqual(written["parking"], parking)
         self.assertIn("total_gain_ft", keys)
         self.assertGreater(keys.index("parking"), keys.index("total_gain_ft"))
+
+    def _write_two_shared_trails(self, *, add_distinct):
+        # Two named trails on one path: the second adds a leg past the first.
+        shared = [[10.5, 56.15], [10.6, 56.2]]
+        trails = {"type": "FeatureCollection", "features": [
+            {"type": "Feature", "properties": {
+                "name": name, "kind": "trail", "source": "name-stitch",
+                "length_mi": miles, "sac_scale": "", "trail_visibility": ""},
+             "geometry": {"type": "MultiLineString", "coordinates": [coords]}}
+            for name, miles, coords in (
+                ("Mols Trail", 5.2, shared),
+                ("Bjerge Trail", 10.4, shared + [[10.7, 56.25]]))]}
+        identity = (lambda row: dict(row))
+        with TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            (work / "index.json").write_text(json.dumps(_index()))
+            (work / "t.geojson").write_text(json.dumps(trails))
+            out = work / "published"
+            out.mkdir()
+            with (
+                patch.object(publish.areamod, "merge_areas",
+                             return_value=_boundary()),
+                patch.object(publish.distinct_ground, "with_distinct_mi",
+                             wraps=(publish.distinct_ground.with_distinct_mi
+                                    if add_distinct else identity)),
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()),
+            ):
+                rc = publish.main([
+                    "--trails", str(work / "t.geojson"),
+                    "--hiking", str(work / "h.osm.pbf"),
+                    "--index", str(work / "index.json"),
+                    "--out-dir", str(out), "--state", "Denmark",
+                    "--no-boundary-fetch", "--no-elevation"])
+            self.assertEqual(rc, 0)
+            return (json.loads((out / f"{_AREA_ID}.json").read_text()),
+                    json.loads((work / "index.json").read_text()))
+
+    def test_written_geom_adds_distinct_mi_and_changes_nothing_else(self):
+        written, index = self._write_two_shared_trails(add_distinct=True)
+        baseline, baseline_index = self._write_two_shared_trails(add_distinct=False)
+        self.assertNotIn("distinct_mi", baseline)
+        self.assertEqual(list(written)[-1], "distinct_mi")
+        self.assertEqual(
+            {k: v for k, v in written.items() if k != "distinct_mi"}, baseline)
+        self.assertEqual(list(written)[:-1], list(baseline))
+        self.assertEqual(index, baseline_index)
+        self.assertEqual(index[0][6], written["total_mi"])
+        self.assertEqual(written["total_mi"], publish.degenerate.area_miles(
+            written["trails"]))
+        self.assertEqual(written["distinct_mi"],
+                         publish.distinct_ground.distinct_miles(written["trails"]))
+        shared = publish.distinct_ground.shared_miles(written["trails"])
+        self.assertGreater(shared, 5.0)
+        self.assertLess(written["distinct_mi"], written["total_mi"] - 5.0)
     def _assert_preview_path_rejected(self, root, target, *, index=None,
                                       trails=None, hiking=None, output=None,
                                       report=None, preview_root=None):

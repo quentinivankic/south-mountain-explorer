@@ -37,9 +37,9 @@ struct PlanProgressMatcher: Sendable, Equatable {
         var stepSwitchMeters = 10.0
         /// A fix farther than this from the line (or 2x accuracy plus 15 m
         /// if larger) is off the expected stretch. Same numbers as off route.
-        var matchMeters = 40.0
+        var matchMeters = GpsTrustPolicy.offLineMeters
         /// Fixes worse than this are not used (the trail engine's limit).
-        var maxAcceptableAccuracy = 50.0
+        var maxAcceptableAccuracy = GpsTrustPolicy.maxAcceptableAccuracy
         /// Skipping ahead needs this many fixes near a later part of the plan...
         var skipFixes = 3
         /// ...and this much forward progress along it.

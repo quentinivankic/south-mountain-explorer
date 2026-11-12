@@ -18729,6 +18729,671 @@
       "est_trails": 3,
       "est_mi": 2.3,
       "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Town of Wolfville / NSNT pages name no trails; OSM gives Havey Trail 0.95, Hemlock Ravine Trail 0.68 and Hemlock Ravine Loop 0.65 mi (two Hemlock Ravine names for one ravine walk). Names unverified; 2.3 mi in all."
+    },
+    {
+      "id": "beaureal-reserve-naturelle-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 906855776,
+      "name": "Beauréal Réserve naturelle",
+      "bbox": [
+        -73.83,
+        45.92,
+        -73.71,
+        46.03
+      ],
+      "center": [
+        45.98,
+        -73.765
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.7,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. Balise (https://baliseqc.ca/3S/explorer/lanaudiere/beaureal-reserve-naturelle-LR1070) lists Le grand tour but not La sablière; one listed trail remains."
+    },
+    {
+      "id": "bois-de-l-equerre-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 320465137,
+      "name": "Bois de l'Équerre",
+      "bbox": [
+        -73.82,
+        45.55,
+        -73.7,
+        45.67
+      ],
+      "center": [
+        45.607,
+        -73.76
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6. Balise (LR0728) lists Sentier du Pic and Sentier du Lièvre, but OSM publishes 83% and 77% of them; Sentier de la Tortue is not listed."
+    },
+    {
+      "id": "foret-heritage-hereford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 13320842,
+      "name": "Forêt Héritage Hereford",
+      "bbox": [
+        -71.68,
+        44.96,
+        -71.45,
+        45.16
+      ],
+      "center": [
+        45.084,
+        -71.572
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. T1 mtb share 0.85; numbered bike lines (21 - Bobines, 22 - Chaînon Manquant, 16 - Indian Stream ...)."
+    },
+    {
+      "id": "foret-montmorency-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 199525412,
+      "name": "Forêt Montmorency",
+      "bbox": [
+        -71.24,
+        47.17,
+        -71.03,
+        47.42
+      ],
+      "center": [
+        47.32,
+        -71.12
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 6.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6 (research forest). Université Laval page (https://www.ffgg.ulaval.ca/foret-montmorency/activites-recreatives) offers the trail map as a JPG only, access is paid; lettered OSM names (Sentier A - Le Lac Piché ... E - Le Draveur) unverified."
+    },
+    {
+      "id": "grand-parc-de-l-ouest-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 6087893,
+      "name": "Grand Parc de l'Ouest",
+      "bbox": [
+        -74.0,
+        45.38,
+        -73.84,
+        45.53
+      ],
+      "center": [
+        45.456,
+        -73.914
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 13,
+      "est_mi": 12.1,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Montréal multi-sector container (Cap-Saint-Jacques, Bois-de-l'Île-Bizard ...): colour-numbered trails (1- Vert, 2-Jaune, 3- Orange, Vert/Green, Blanc/White), 'Lièvre' and 'Le Lièvre' duplicates, Castor 35%. boundary_by_id set (two same-name relations) so the row replays.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "kenauk-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 13167910,
+      "name": "Kenauk",
+      "bbox": [
+        -75.02,
+        45.61,
+        -74.69,
+        45.92
+      ],
+      "center": [
+        45.775,
+        -74.837
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 17.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C10-like private reserve (paid day pass). Kenauk hiking page (https://kenauk.com/activites/hiking/) numbers its trails (1 Skymount, 4 Fern, 9 Hemlock, 10 Baldy); OSM Balsam, Héron, Lucky, Autobus Magique are not on it."
+    },
+    {
+      "id": "micro-foret-educative-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 746143764,
+      "name": "micro forêt éducative",
+      "bbox": [
+        -78.93,
+        48.74,
+        -78.81,
+        48.86
+      ],
+      "center": [
+        48.798,
+        -78.871
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 3.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C3/C7: OUT. Two of four rows are winter trails ('Sentier hivers'); small educational micro-forest."
+    },
+    {
+      "id": "parc-de-la-riviere-batiscan-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 10742011,
+      "name": "Parc de la Rivière Batiscan",
+      "bbox": [
+        -72.47,
+        46.49,
+        -72.35,
+        46.64
+      ],
+      "center": [
+        46.562,
+        -72.41
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 6.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: nature park (C7 bar). Balise (https://baliseqc.ca/3S/explorer/mauricie/parc-de-la-riviere-batiscan-LR0124) lists La Marmite, La Grande Chute, Le Cerf, Sentier Murphy, Le Doré, La Gélinotte, Le Portage, La Promenade Sud, La Promenade Nord, Le Lièvre, La Rivière. Kept (5): Le Lièvre 1.71, La Gélinote 1.36, Promenade Nord 1.36, Promenade Sud 0.81, Sentier Le Doré 0.63 mi (whole). Excluded (not listed): Le Buis, La Trail des Gras, Zigzag Nord, Zigzag Centre (also 76%). Pin moved from 46.561,-72.41 to the kept-trail vertex nearest the curated trail-extent midpoint (46.562,-72.41).",
+      "exclude_trails": [
+        {
+          "id": "n:Le Buis",
+          "name": "Le Buis",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:La Trail des Gras",
+          "name": "La Trail des Gras",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Zigzag Nord",
+          "name": "Zigzag Nord",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Zigzag Centre",
+          "name": "Zigzag Centre",
+          "reason": "Not on the agency trail list read for this area; 76% of its OSM length"
+        }
+      ]
+    },
+    {
+      "id": "parc-de-la-riviere-doncaster-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 441506868,
+      "name": "Parc de la Rivière Doncaster",
+      "bbox": [
+        -74.15,
+        45.92,
+        -74.02,
+        46.03
+      ],
+      "center": [
+        45.974,
+        -74.087
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (LR0225) lists numbered trails ('Sentier no 1 - De la grande coulée' ...); OSM names carry '(Rando)' suffixes and numbering, all under 1 mi."
+    },
+    {
+      "id": "parc-du-bois-beckett-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 11191212,
+      "name": "Parc du Bois-Beckett",
+      "bbox": [
+        -71.99,
+        45.37,
+        -71.86,
+        45.48
+      ],
+      "center": [
+        45.423,
+        -71.926
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (LR0360) lists Le Verger, L'Ancêtre, L'Érablière, Le Panache, Le Bolet, L'Oriole; OSM Boucle Becket and Boucle Hale are not on it."
+    },
+    {
+      "id": "parc-du-lac-beauchamp-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 41555817,
+      "name": "Parc du Lac-Beauchamp",
+      "bbox": [
+        -75.69,
+        45.43,
+        -75.56,
+        45.55
+      ],
+      "center": [
+        45.491,
+        -75.63
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 4.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (numbered). Letter/acronym names (Boucle E, Boucle O, RIP, VDM, PSL)."
+    },
+    {
+      "id": "parc-eco-laurentides-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7114177,
+      "name": "Parc Éco-Laurentides",
+      "bbox": [
+        -74.56,
+        45.98,
+        -74.41,
+        46.12
+      ],
+      "center": [
+        46.049,
+        -74.485
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 10.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: nature park (C6/C10 bar). Parc Éco-Laurentides official network of 14 (https://parceco.ca/randonnee-pedestre/): R1 Le Tour du lac 4.9 km, R4 L'Aquatique 1.1, R6 Le Panoramique 2.5, R7 L'Aventurier 6.1 ... Kept (3): Le Tour du Lac 3.68, L'Aventurier 3.51, L'Aquatique 1.00 mi (CTEL route relations). Excluded: Le Panoramique (1.08 mi of a listed 2.5 km, 70%; same treatment as Mont-Ham in Part 2), Les Refuges (not on the list). Pin moved from 46.049,-74.481 to the kept-trail vertex nearest the curated trail-extent midpoint (46.049,-74.485).",
+      "exclude_trails": [
+        {
+          "id": "n:Le Panoramique",
+          "name": "Le Panoramique",
+          "reason": "Only 1.08 mi published against the agency's 2.5 km (70%)"
+        },
+        {
+          "id": "n:Les Refuges",
+          "name": "Les Refuges",
+          "reason": "Not on the agency trail list read for this area"
+        }
+      ]
+    },
+    {
+      "id": "parc-marin-du-saguenay-saint-laurent-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388138,
+      "name": "Parc marin du Saguenay–Saint‑Laurent",
+      "bbox": [
+        -70.76,
+        47.59,
+        -69.24,
+        48.44
+      ],
+      "center": [
+        47.879,
+        -69.714
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 6.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. De la Mer Nord 70% and Sentier des Eiders 74% of their OSM lengths inside the polygon; one whole trail."
+    },
+    {
+      "id": "parc-naturel-du-mont-belair-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 19935313,
+      "name": "Parc naturel du mont Bélair",
+      "bbox": [
+        -71.57,
+        46.77,
+        -71.4,
+        46.91
+      ],
+      "center": [
+        46.841,
+        -71.482
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.4,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (numbered). 'Piste A' and a generic 'Sentier pédestre'."
+    },
+    {
+      "id": "parc-naturel-regional-de-portneuf-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8279178,
+      "name": "Parc naturel régional de Portneuf",
+      "bbox": [
+        -72.28,
+        46.72,
+        -72.02,
+        46.97
+      ],
+      "center": [
+        46.819,
+        -72.142
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 10,
+      "est_mi": 33.1,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: parc naturel régional (C5/C7 bar). Agency trail table (https://parcportneuf.com/wp-content/uploads/2020/08/PNRP_CartesSentiers2020_Part3-4.pdf) lists A Des Chutes à Marcotte 7.4 km, B Des Marmites, C Des Sommets 8, D Des Cascades 3, E De la Montagne de la Tour 5.5, F De la rivière Noire 3, G De la glacière 5.6, H De la Traverse 3.2, I Sept Merveilleux 9.9, K De l'Ours 3.7 km (one-way). Kept (8): Sept Merveilleux 5.77, Des Chutes à Marcotte 4.61, Des Sommets 4.58, De la Rivière Noire 3.52, De la Glacière 3.32, De l'Ours 2.29, De la Traverse 1.91, Des Cascades 1.74 mi (route relations, 92-110% of the listed lengths; Rivière Noire OSM is longer than listed). Excluded: De la Montagne de la Tour (1.27 mi of a listed 5.5 km, 37%).",
+      "exclude_trails": [
+        {
+          "id": "n:De la Montagne de la Tour",
+          "name": "De la Montagne de la Tour",
+          "reason": "Only 1.27 mi published against the agency's 5.5 km (37%); not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "reserve-nationale-de-faune-de-la-baie-de-l-isle-verte-secteur-du-marais-de-gros-cacouna-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 1230746206,
+      "name": "Réserve nationale de faune de la Baie-de-L'Isle-Verte - secteur du Marais-de-Gros-Cacouna",
+      "bbox": [
+        -69.56,
+        47.88,
+        -69.43,
+        48.0
+      ],
+      "center": [
+        47.937,
+        -69.504
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. Balise (LR0256) lists Sentier de la Savane and Sentier de la Montagne, but Savane is 55% of its OSM length; one whole trail."
+    },
+    {
+      "id": "reserve-nationale-de-faune-du-cap-tourmente-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 11658083,
+      "name": "Réserve nationale de faune du Cap-Tourmente",
+      "bbox": [
+        -70.9,
+        47.0,
+        -70.69,
+        47.15
+      ],
+      "center": [
+        47.083,
+        -70.779
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 11,
+      "est_mi": 10.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C5 (réserve nationale de faune, signed interpretive trails). Balise (https://baliseqc.ca/3S/explorer/quebec/reserve-nationale-de-faune-du-cap-tourmente-LR0149; canada.ca unreachable from this network) lists 17: L'Écart, Le Carouge, Le Moqueur-Chat, Le Bois-Sent-Bon, Le Petit-Sault, La Traverse, Le Souchet, L'Allée d'ormes, La Cédrière, L'Érablière, Le Pierrier, Le Piedmont, La Prucheraie, L'Aulnaie, Les Chutes, La Cîme, La Falaise. Kept (11): la Cime 1.89, la Cédrière 1.30, L'Allée d'ormes 1.03, le Petit-Sault 1.01, le Souchet 0.87, la Falaise 0.82, l'Érablière 0.82, Le Pierrier 0.75, le Piedmont 0.70, l'Aulnaie 0.65, le Bois-sent-bons 0.63 mi (route relations). Excluded: 'La Cime' (name-stitch duplicate of the Sentier la Cime relation). Pin moved from 47.083,-70.781 to the kept-trail vertex nearest the curated trail-extent midpoint (47.083,-70.779).",
+      "exclude_trails": [
+        {
+          "id": "n:La Cime",
+          "name": "La Cime",
+          "reason": "Name-stitch duplicate of the 'Sentier la Cime' route relation (same trail)"
+        }
+      ]
+    },
+    {
+      "id": "reserve-naturelle-des-montagnes-vertes-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 12163692,
+      "name": "Réserve naturelle des Montagnes-Vertes",
+      "bbox": [
+        -72.62,
+        44.96,
+        -72.33,
+        45.24
+      ],
+      "center": [
+        45.115,
+        -72.436
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 6.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Sutton network names (Écho ~ Principal ~ SE ~ ..., Sentiers de l'Estrie, foot=permit) are 41-60% inside the polygon and the PENS network relation spans the rest; needs a Sutton/PENS rescope (audit-5 icon follow-up 5)."
+    },
+    {
+      "id": "reserve-naturelle-du-canton-de-shefford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 12242494,
+      "name": "Réserve naturelle du Canton-de-Shefford",
+      "bbox": [
+        -72.67,
+        45.29,
+        -72.52,
+        45.42
+      ],
+      "center": [
+        45.357,
+        -72.591
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 3.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Colour and numbered names (Parc des Montagnards (rouge)/(jaune), Sentier 5 / 6); Salsepareille 61%."
+    },
+    {
+      "id": "reserve-naturelle-du-marais-leon-provancher-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 908452420,
+      "name": "Réserve naturelle du Marais-Léon-Provancher",
+      "bbox": [
+        -71.6,
+        46.66,
+        -71.47,
+        46.77
+      ],
+      "center": [
+        46.719,
+        -71.533
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 2.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C5 (réserve naturelle, signed interpretive trails). Société Provancher trail map (https://www.provancher.org/wp-content/uploads/2021/02/CARTE_RNMLP_85X11_2019_v3geo.pdf; Balise LR0739 has no per-trail list) labels Sentier de la Digue, Sentier des aubépines, La boucle des Pics. Kept (3): Sentier de la Digue 0.89, La boucle des Pics 0.72, Sentier des aubépines 0.71 mi (whole)."
+    },
+    {
+      "id": "zec-batiscan-neilson-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8330967,
+      "name": "Zec Batiscan-Neilson",
+      "bbox": [
+        -72.2,
+        46.87,
+        -71.51,
+        47.39
+      ],
+      "center": [
+        46.965,
+        -71.937
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 6,
+      "est_mi": 23.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Kept rows are a winter trail ('sentier hivernal'), a track (Côte à Ti-Oui), Descente aux Enfers 78% and Vallée Bras-du-Nord loops (Boucle de la Hauteur 25%)."
+    },
+    {
+      "id": "zec-buteux-bas-saguenay-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388142,
+      "name": "Zec Buteux–Bas-Saguenay",
+      "bbox": [
+        -70.12,
+        47.87,
+        -69.74,
+        48.23
+      ],
+      "center": [
+        48.094,
+        -69.894
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 6.7,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Both rows are tracks ('Traverse ...', highway=track), not hiking trails."
+    },
+    {
+      "id": "zec-de-la-bessonne-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8330965,
+      "name": "Zec de la Bessonne",
+      "bbox": [
+        -72.76,
+        47.21,
+        -72.28,
+        47.61
+      ],
+      "center": [
+        47.295,
+        -72.684
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 9.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Gazoduc (pipeline corridor, 36%) and a snowmobile line ('45- La Trail de Skidoo')."
+    },
+    {
+      "id": "zec-des-martres-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388145,
+      "name": "Zec des Martres",
+      "bbox": [
+        -70.83,
+        47.62,
+        -70.27,
+        47.92
+      ],
+      "center": [
+        47.717,
+        -70.588
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 22.8,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C4. La Traversée de Charlevoix lists the ZEC day loops (Sommets, Monts du Lac-à-l'Empêche et Du Four, Mont Eudore-Fortin, Dôme, Orignac, Cadot et du Button, lac à la Main; https://www.traverseedecharlevoix.qc.ca/randonnees/randonnees-journalieres/) as 13-23 km loops built on the Traversée main line; OSM holds only the named spurs, so no listed loop publishes whole. Balise Mont des Morios (LR0896) adds Sentier des Chutes and Morios Nord. Needs a clip ruling."
+    },
+    {
+      "id": "zec-lavigne-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8008858,
+      "name": "Zec Lavigne",
+      "bbox": [
+        -74.16,
+        46.25,
+        -73.65,
+        46.67
+      ],
+      "center": [
+        46.511,
+        -73.997
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 17.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C4 (ZEC: signed named hiking trails listed by Balise). Balise (https://baliseqc.ca/3S/explorer/lanaudiere/zec-lavigne-LR0649) lists Traverse du Sauvage, Traverse de la Montagne, Sentier du lac Sauvage, Sentier du lac Clair, Sentier de la Montagne carrée, Sentier de la petite rivière Swaggin, Sentier de la rivière L'Assomption, Sentier des Draveurs, Sentier des Scouts. Kept (3): Sentier des Draveurs 6.13, Sentier de la Rivière L'assomption 3.83, Sentier de la petite rivière Swaggin 3.58 mi. Excluded: Sentier de la Boule (not listed), Boucle Zen Nature and Zen Nature (Parc régional des Sept-Chutes network, live area; 18% for the stitch), Sentier de la riviere Swaggin (40% variant-name piece).",
+      "exclude_trails": [
+        {
+          "id": "n:Sentier de la Boule",
+          "name": "Sentier de la Boule",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Boucle Zen Nature",
+          "name": "Boucle Zen Nature",
+          "reason": "Sept-Chutes regional park loop (operator Parc Régional des Sept-Chutes); not a ZEC Lavigne trail"
+        },
+        {
+          "id": "n:Zen Nature",
+          "name": "Zen Nature",
+          "reason": "Same Sept-Chutes loop as a name-stitch (18% of its OSM length)"
+        },
+        {
+          "id": "n:Sentier de la riviere Swaggin",
+          "name": "Sentier de la riviere Swaggin",
+          "reason": "Variant-name piece (40%) of the listed petite rivière Swaggin trail"
+        }
+      ]
+    },
+    {
+      "id": "zec-louise-gosford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 6947283,
+      "name": "ZEC Louise-Gosford",
+      "bbox": [
+        -70.96,
+        45.18,
+        -70.57,
+        45.56
+      ],
+      "center": [
+        45.316,
+        -70.857
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 13.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Numbered Sentier Frontalier segments (SF1 34%, SF6, SF7, SF10 48%) of a long-distance border trail."
+    },
+    {
+      "id": "zone-de-preservation-municipale-de-coleraine-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 475563850,
+      "name": "Zone de préservation municipale de Coleraine",
+      "bbox": [
+        -71.48,
+        45.94,
+        -71.33,
+        46.07
+      ],
+      "center": [
+        46.004,
+        -71.403
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 5.8,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (https://baliseqc.ca/3S/explorer/chaudiere-appalaches/sentiers-pedestres-des-3-monts-LR0303) lists Grande boucle du Mont Caribou, Lac Johnston, Étang Dry; the main Mont-Caribou loop publishes 72%, leaving two spur trails."
     }
   ]
 }

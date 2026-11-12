@@ -3948,6 +3948,89 @@
         "SIMIC Trail",
         "Taint"
       ]
+    },
+    "parc-regional-de-la-chute-a-bull-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "parc-regional-de-la-foret-ouareau-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 19.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "9e Rang",
+        "Accès d'urgence",
+        "Boucle du Belvédère de la Croix",
+        "Boucle du lac Corbeau",
+        "Boucle du mont Prud'homme",
+        "Kabania",
+        "Le Sommet",
+        "Petit sentier de l'ours",
+        "Sentier A",
+        "Sentier B",
+        "Sentier Grande Vallée",
+        "Sentier Mont des Conscrits",
+        "Sentier National",
+        "Sentier de la Loutre",
+        "Sentier des Contreforts",
+        "Sentier des Falaises",
+        "Sentier du lac Toussaint",
+        "Sentier Éducatif de la Petite Rivière du Nord"
+      ]
+    },
+    "parc-regional-des-sept-chutes-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Approach Voyage Imaginaire",
+        "Boucle Zen Nature",
+        "La promenade de la Falaise",
+        "Lac Lazare",
+        "Le Trottoir de la Tundra",
+        "Michel Sokolyk",
+        "Voile de la Mariée",
+        "Zen Nature"
+      ]
+    },
+    "parc-regional-du-mont-ham-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 6.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Chalet / L'Intrépide",
+        "L'Intrépide",
+        "La Panoramique",
+        "Les Cèdres",
+        "Panoramique",
+        "Pins",
+        "Sentier Waban-Aki",
+        "Sentier du lac",
+        "Téméraire"
+      ]
+    },
+    "parc-regional-du-poisson-blanc-ca-qc": {
+      "trail_count": 4,
+      "total_mi": 6.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier Katimavik (pas entretenu)",
+        "Sentier Rapide-du-Fort"
+      ]
+    },
+    "parc-regional-kiamika-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 12.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

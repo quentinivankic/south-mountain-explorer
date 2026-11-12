@@ -3795,6 +3795,17 @@
       "forbidden_names": [
         "Rim Trail"
       ]
+    },
+    "la-manche-provincial-park-ca-nl": {
+      "trail_count": 2,
+      "total_mi": 2.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "East Coast Trail",
+        "Flamber Head Path",
+        "La Manche Village Path"
+      ]
     }
   }
 }

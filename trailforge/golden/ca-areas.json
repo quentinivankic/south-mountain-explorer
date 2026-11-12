@@ -20440,6 +20440,331 @@
       "est_trails": 3,
       "est_mi": 5.8,
       "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (https://baliseqc.ca/3S/explorer/chaudiere-appalaches/sentiers-pedestres-des-3-monts-LR0303) lists Grande boucle du Mont Caribou, Lac Johnston, Étang Dry; the main Mont-Caribou loop publishes 72%, leaving two spur trails."
+    },
+    {
+      "id": "brown-hill-tract-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 827913131,
+      "name": "Brown Hill Tract",
+      "bbox": [
+        -79.43,
+        44.15,
+        -79.31,
+        44.26
+      ],
+      "center": [
+        44.21,
+        -79.371
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 6.9,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2/C6: OUT. York Regional Forest tract with bike-named multi-use lines (Big Meany Loop, Bell Ringer, Cry Baby, Stumpy; bicycle=yes, horse=yes)."
+    },
+    {
+      "id": "chapleau-crown-game-preserve-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 13288077,
+      "name": "Chapleau Crown Game Preserve",
+      "bbox": [
+        -84.46,
+        47.79,
+        -82.9,
+        49.1
+      ],
+      "center": [
+        48.545,
+        -83.705
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 5.3,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C9 (game preserve): OUT. No agency hiking list; one trail (Borasso Logging Camp Trail 1.54 mi)."
+    },
+    {
+      "id": "durham-regional-forest-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 340170242,
+      "name": "Durham Regional Forest",
+      "bbox": [
+        -79.15,
+        43.98,
+        -79.01,
+        44.11
+      ],
+      "center": [
+        44.048,
+        -79.08
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 9,
+      "est_mi": 10.2,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. Durham Forest is a mountain-bike destination: kept rows mix forest trails (Red Oak, White Pine, Spruce, Maple) with bike lines (The Maze, Burnt Toast, Missing Link, Scratchy S, Ogre and Out)."
+    },
+    {
+      "id": "e-t-seton-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 10281549,
+      "name": "E. T. Seton Park",
+      "bbox": [
+        -79.4,
+        43.65,
+        -79.28,
+        43.77
+      ],
+      "center": [
+        43.711,
+        -79.34
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 2.6,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (T1 mtb share 0.55): OUT. Also: Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "ferguson-forest-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 631410251,
+      "name": "Ferguson Forest",
+      "bbox": [
+        -75.73,
+        44.97,
+        -75.59,
+        45.11
+      ],
+      "center": [
+        45.034,
+        -75.66
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 5.5,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6. Ferguson Forest Centre site (https://www.fergusonforestcentre.ca/) shows trails on an interactive map only; Alf Campbell, Turtle, Chickadee unverified, Link Trail is a track, Maple Trail 75%."
+    },
+    {
+      "id": "ganaraska-forest-2-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1062494185,
+      "name": "Ganaraska Forest 2",
+      "bbox": [
+        -78.65,
+        44.0,
+        -78.46,
+        44.15
+      ],
+      "center": [
+        44.079,
+        -78.551
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 19.7,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C6: OUT. One 16.9 mi row 'Ganaraska Forest' built from forest tracks."
+    },
+    {
+      "id": "kivi-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 242777787,
+      "name": "Kivi Park",
+      "bbox": [
+        -81.05,
+        46.34,
+        -80.93,
+        46.46
+      ],
+      "center": [
+        46.4,
+        -80.989
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 7.5,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (numbered/colour). Hiking Blue/Red/Green/Orange relations plus Kivi #1/#10/#11, Trail 3 Loop, Bike 6.1 Trail."
+    },
+    {
+      "id": "larose-forest-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 667725475,
+      "name": "Larose Forest",
+      "bbox": [
+        -75.31,
+        45.28,
+        -75.02,
+        45.47
+      ],
+      "center": [
+        45.385,
+        -75.187
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 9,
+      "est_mi": 13.7,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C1: OUT. Kept rows are OFATV / ATVCEO numbered ATV tracks and numbered forest roads (Forêt Larose 6/9/25)."
+    },
+    {
+      "id": "limerick-forest-south-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 668005547,
+      "name": "Limerick Forest (South)",
+      "bbox": [
+        -75.73,
+        44.77,
+        -75.56,
+        44.94
+      ],
+      "center": [
+        44.87,
+        -75.641
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 4.3,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6 (numbered flag). Forest tracks (Typhair, Shanty, Dawson; highway=track) and a generic 'Single Track Trail'."
+    },
+    {
+      "id": "mcintosh-mills-trails-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 981038106,
+      "name": "McIntosh Mills Trails",
+      "bbox": [
+        -76.0,
+        44.5,
+        -75.85,
+        44.63
+      ],
+      "center": [
+        44.559,
+        -75.922
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 6.6,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6/C7. No agency list found; multi-use footways (bicycle=yes) with informal names (Laydon's Loop, Rainbow Ridge, Big Foot, Iylish)."
+    },
+    {
+      "id": "palgrave-forest-and-wildlife-area-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1217236284,
+      "name": "Palgrave Forest and Wildlife Area",
+      "bbox": [
+        -79.92,
+        43.89,
+        -79.79,
+        44.02
+      ],
+      "center": [
+        43.955,
+        -79.854
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 7,
+      "est_mi": 10.3,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. Numbered bike sections (Sec 1: Salty Steven ... Sec 12: Buckstown Downtown) plus an Oak Ridges Trail side trail."
+    },
+    {
+      "id": "royal-botanical-gardens-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 18431920,
+      "name": "Royal Botanical Gardens",
+      "bbox": [
+        -79.99,
+        43.21,
+        -79.82,
+        43.35
+      ],
+      "center": [
+        43.278,
+        -79.91
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 9,
+      "est_mi": 7.6,
+      "notes": "Phase C P3-4 ON curation 2026-11-12, remediation iteration 2 (part3-review B2; chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C10 (garden/sanctuary, signed nature trails). RBG nature-trail pages and Cootes Paradise trail guide (https://www.rbg.ca/visit/gardens-and-trails/nature-trails/south-shore-princess-point/, https://www.rbg.ca/app/uploads/RBG-Cootes-Paradise-Map.pdf, https://www.rbg.ca/app/uploads/RBGCootesTG23tabular.pdf) name Princess Point, Ravine Road, Anishinaabe waadiziwin, Hopkins and Sassafras Point trails; the Arboretum/North Shore guide lists Bull’s Point 1.5 km. Kept (6): Princess Point Trail 1.17, Bull's Point Trail 0.92 (1.48 km, 99% of the RBG length, 100% inside), Ravine Road Trail 0.77, Anishinaabe waadiziwin 0.76, Hopkins trail 0.67, Sassafras Point Trail 0.60 mi (whole; bicycle=no). Excluded: Homestead Trail (68% of its OSM length), Grindstone Marshes Trail, Creek Side Walk (not named in the RBG text read). Waterfront/Bruce Trail rows removed as long-distance. Pin moved from 43.27,-79.912 to the kept-trail vertex nearest the curated trail-extent midpoint (43.278,-79.91).",
+      "exclude_trails": [
+        {
+          "id": "n:Homestead Trail",
+          "name": "Homestead Trail",
+          "reason": "Only 68% of the same-name OSM trail inside the polygon"
+        },
+        {
+          "id": "n:Grindstone Marshes Trail",
+          "name": "Grindstone Marshes Trail",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Creek Side Walk",
+          "name": "Creek Side Walk",
+          "reason": "Not on the agency trail list read for this area"
+        }
+      ]
+    },
+    {
+      "id": "scout-valley-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "way_id": 1343098539,
+      "name": "Scout Valley",
+      "bbox": [
+        -79.51,
+        44.52,
+        -79.39,
+        44.64
+      ],
+      "center": [
+        44.582,
+        -79.449
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 2.6,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. No City of Orillia trail list read; trail guides report the trails are not well marked, so signage is unconfirmed."
+    },
+    {
+      "id": "sunnybrook-park-ca-on",
+      "province": "on",
+      "state": "Canada",
+      "relation_id": 21843734,
+      "name": "Sunnybrook Park",
+      "bbox": [
+        -79.43,
+        43.67,
+        -79.3,
+        43.79
+      ],
+      "center": [
+        43.725,
+        -79.365
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.1,
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (mtb share 0.49). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     }
   ]
 }

@@ -18985,24 +18985,19 @@
         43.35
       ],
       "center": [
-        43.27,
-        -79.912
+        43.278,
+        -79.91
       ],
       "tier": 3,
       "hold": null,
       "est_trails": 9,
       "est_mi": 7.6,
-      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C10 (garden/sanctuary, signed nature trails). RBG nature-trail pages and Cootes Paradise trail guide (https://www.rbg.ca/visit/gardens-and-trails/nature-trails/south-shore-princess-point/, https://www.rbg.ca/app/uploads/RBG-Cootes-Paradise-Map.pdf, https://www.rbg.ca/app/uploads/RBGCootesTG23tabular.pdf) name Princess Point, Ravine Road, Anishinaabe waadiziwin, Hopkins and Sassafras Point trails. Kept (5): Princess Point Trail 1.17, Ravine Road Trail 0.77, Anishinaabe waadiziwin 0.76, Hopkins trail 0.67, Sassafras Point Trail 0.60 mi (whole; bicycle=no). Excluded: Homestead Trail (68% of its OSM length), Bull's Point Trail, Grindstone Marshes Trail, Creek Side Walk (not named in the RBG text read). Waterfront/Bruce Trail rows removed as long-distance. Pin moved from 43.283,-79.899 to the kept-trail vertex nearest the curated trail-extent midpoint (43.27,-79.912).",
+      "notes": "Phase C P3-4 ON curation 2026-11-12, remediation iteration 2 (part3-review B2; chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C10 (garden/sanctuary, signed nature trails). RBG nature-trail pages and Cootes Paradise trail guide (https://www.rbg.ca/visit/gardens-and-trails/nature-trails/south-shore-princess-point/, https://www.rbg.ca/app/uploads/RBG-Cootes-Paradise-Map.pdf, https://www.rbg.ca/app/uploads/RBGCootesTG23tabular.pdf) name Princess Point, Ravine Road, Anishinaabe waadiziwin, Hopkins and Sassafras Point trails; the Arboretum/North Shore guide lists Bull’s Point 1.5 km. Kept (6): Princess Point Trail 1.17, Bull's Point Trail 0.92 (1.48 km, 99% of the RBG length, 100% inside), Ravine Road Trail 0.77, Anishinaabe waadiziwin 0.76, Hopkins trail 0.67, Sassafras Point Trail 0.60 mi (whole; bicycle=no). Excluded: Homestead Trail (68% of its OSM length), Grindstone Marshes Trail, Creek Side Walk (not named in the RBG text read). Waterfront/Bruce Trail rows removed as long-distance. Pin moved from 43.27,-79.912 to the kept-trail vertex nearest the curated trail-extent midpoint (43.278,-79.91).",
       "exclude_trails": [
         {
           "id": "n:Homestead Trail",
           "name": "Homestead Trail",
           "reason": "Only 68% of the same-name OSM trail inside the polygon"
-        },
-        {
-          "id": "n:Bull's Point Trail",
-          "name": "Bull's Point Trail",
-          "reason": "Not on the agency trail list read for this area"
         },
         {
           "id": "n:Grindstone Marshes Trail",

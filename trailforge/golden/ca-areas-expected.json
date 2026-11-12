@@ -3905,6 +3905,49 @@
       "forbidden_names": [
         "Alvar Trail"
       ]
+    },
+    "burnaby-lake-regional-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 4.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Avalon Trail",
+        "Central Valley Greenway",
+        "Conifer Loop",
+        "Equestrian Loop Trails",
+        "Freeway Trail",
+        "Nature House Trail",
+        "Piper Mill Trail",
+        "Spruce Loop"
+      ]
+    },
+    "campbell-valley-regional-park-ca-bc": {
+      "trail_count": 6,
+      "total_mi": 11.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "216th Street Trail",
+        "Camp Coyote Trail",
+        "Meadow Trail",
+        "Perimeter Trail",
+        "South Valley Trail",
+        "Tree Farm Trail"
+      ]
+    },
+    "grouse-mountain-regional-park-ca-bc": {
+      "trail_count": 1,
+      "total_mi": 1.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Baden Powell Trail",
+        "Flint and Feather",
+        "Georgia Strait Lookout Trail",
+        "SIMIC Trail",
+        "Taint"
+      ]
     }
   }
 }

@@ -841,6 +841,29 @@ struct SettingsView: View {
     }
 
     private var buildNumber: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        Self.buildLabel(
+            build: Bundle.main.infoDictionary?["CFBundleVersion"] as? String,
+            commit: Self.stampedCommit)
+    }
+
+    /// Read once; the bundle does not change while the app runs.
+    private static let stampedCommit = localBuildCommit()
+
+    /// The source commit of a local Debug build, from the BuildStamp.plist
+    /// that scripts/stamp-local-build.sh writes into the app. Release
+    /// builds have no stamp, so this is nil there.
+    static func localBuildCommit(in bundle: Bundle = .main) -> String? {
+        guard let url = bundle.url(forResource: "BuildStamp", withExtension: "plist"),
+              let stamp = NSDictionary(contentsOf: url)
+        else { return nil }
+        return stamp["SourceCommit"] as? String
+    }
+
+    /// The Build row text. A local Debug build shows its source commit
+    /// after the build number; a Release build shows the build alone.
+    static func buildLabel(build: String?, commit: String?) -> String {
+        let build = build ?? "—"
+        guard let commit, !commit.isEmpty else { return build }
+        return "\(build) (\(commit))"
     }
 }

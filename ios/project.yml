@@ -31,6 +31,15 @@ targets:
         product: PostHog
       - target: TrekDexLiveActivity
         embed: true
+    # Debug only: writes BuildStamp.plist (the git SHA) into the app so a
+    # local or device build shows its commit in Settings. Info.plist and
+    # Release builds are untouched (TestFlight sets the run number).
+    postBuildScripts:
+      - name: Stamp local build commit
+        script: /bin/bash "$SRCROOT/../scripts/stamp-local-build.sh"
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BuildStamp.plist
+        basedOnDependencyAnalysis: false
     resources:
       - path: SouthMountainExplorer/Resources
       - path: SouthMountainExplorer/Assets.xcassets

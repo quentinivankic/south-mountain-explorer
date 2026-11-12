@@ -4110,6 +4110,98 @@
         "Summit",
         "Tod"
       ]
+    },
+    "parc-de-la-riviere-batiscan-ca-qc": {
+      "trail_count": 5,
+      "total_mi": 5.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "1 Le Portage",
+        "Chemin Murphy",
+        "La Bobépine",
+        "La Jumanji",
+        "La Peanut",
+        "La Trail des Gras",
+        "Le Buis",
+        "Le Cerf",
+        "Le Portage",
+        "Les Flancs",
+        "Sentier Le Corbeau",
+        "Sentier Le Portage",
+        "Sentier de L'Annexe",
+        "Sentier de la Grande Chute",
+        "Sentier de la Marmite",
+        "Sentier de la Passerelle",
+        "Zigzag Centre",
+        "Zigzag Nord",
+        "Zigzag Sud"
+      ]
+    },
+    "parc-eco-laurentides-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 8.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Accès Parc ECO",
+        "L'Hébertisme",
+        "La Mine",
+        "La Sapiniere",
+        "Le Panoramique",
+        "Le Riverain",
+        "Les Hêtres",
+        "Les Refuges",
+        "Sentier de L'Érablière"
+      ]
+    },
+    "parc-naturel-regional-de-portneuf-ca-qc": {
+      "trail_count": 8,
+      "total_mi": 27.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "De la Montagne de la Tour",
+        "Sentier Montagne optionnel",
+        "Sentier Montauban",
+        "Sentier National",
+        "Sentier National, Mauricie",
+        "Sentier National, Québec",
+        "Sentier du Philosore"
+      ]
+    },
+    "reserve-naturelle-du-marais-leon-provancher-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 2.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier de la Berge",
+        "Sentier de la Faune",
+        "Sentier de la vieille Voie",
+        "Sentier du Ruisseau",
+        "Sentier du chemin Lécuyer",
+        "Sentier du petit détour"
+      ]
+    },
+    "zec-lavigne-ca-qc": {
+      "trail_count": 3,
+      "total_mi": 13.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Boucle Zen Nature",
+        "Chemin du Lac-Bouchard",
+        "Chemin du Lac-Clair",
+        "Chemin du Lac-Désy",
+        "Chemin du Lac-Sims",
+        "Sentier National",
+        "Sentier National - Sentier des Perces-Brumes",
+        "Sentier de la Boule",
+        "Sentier de la riviere Swaggin",
+        "Zen Nature",
+        "liaison au sentier National"
+      ]
     }
   }
 }

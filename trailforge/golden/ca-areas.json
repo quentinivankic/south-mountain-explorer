@@ -19141,10 +19141,10 @@
         -70.779
       ],
       "tier": 3,
-      "hold": null,
+      "hold": "needs-rescope",
       "est_trails": 11,
       "est_mi": 10.3,
-      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C5 (réserve nationale de faune, signed interpretive trails). Balise (https://baliseqc.ca/3S/explorer/quebec/reserve-nationale-de-faune-du-cap-tourmente-LR0149; canada.ca unreachable from this network) lists 17: L'Écart, Le Carouge, Le Moqueur-Chat, Le Bois-Sent-Bon, Le Petit-Sault, La Traverse, Le Souchet, L'Allée d'ormes, La Cédrière, L'Érablière, Le Pierrier, Le Piedmont, La Prucheraie, L'Aulnaie, Les Chutes, La Cîme, La Falaise. Kept (11): la Cime 1.89, la Cédrière 1.30, L'Allée d'ormes 1.03, le Petit-Sault 1.01, le Souchet 0.87, la Falaise 0.82, l'Érablière 0.82, Le Pierrier 0.75, le Piedmont 0.70, l'Aulnaie 0.65, le Bois-sent-bons 0.63 mi (route relations). Excluded: 'La Cime' (name-stitch duplicate of the Sentier la Cime relation). Pin moved from 47.083,-70.781 to the kept-trail vertex nearest the curated trail-extent midpoint (47.083,-70.779).",
+      "notes": "Phase C P3-3 QC curation 2026-11-12, remediation iteration 2 (part3-review B1; chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5 (réserve nationale de faune, signed interpretive trails). Balise (https://baliseqc.ca/3S/explorer/quebec/reserve-nationale-de-faune-du-cap-tourmente-LR0149; canada.ca unreachable from this network) lists 17 trails. OSM publishes network pieces, not whole routes: Sentier la Cîme is clipped at the boundary (its one segment ends at 47.099999,-70.749831) and publishes 1.89 mi against Balise's 14.8 km round trip, 969 m gain, Avancé. 8 of the 11 replayed trails are under 85% of the Balise length: Cédrière 70%, Souchet 47%, Érablière 33%, Pierrier 29%, Piedmont 23%, Aulnaie 21%, Falaise 59% one-way, and Cîme. Only Bois-Sent-Bon, Petit-Sault and Allée d'ormes pass (about 2.7 mi). That is 3 of 17 listed trails, without the summit trail, so a local expert would not want it. Needs a rescope: route relations stitched whole and a boundary that covers La Cîme.",
       "exclude_trails": [
         {
           "id": "n:La Cime",

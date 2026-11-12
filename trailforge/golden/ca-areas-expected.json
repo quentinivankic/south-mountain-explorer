@@ -4052,6 +4052,16 @@
         "Blueberry Connector Trail",
         "Meadow View Trail"
       ]
+    },
+    "showh-lakes-ancient-cedars-trail-recreation-site-ca-bc": {
+      "trail_count": 1,
+      "total_mi": 1.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Mak Daddy Pass",
+        "Newt Lake Trail"
+      ]
     }
   }
 }

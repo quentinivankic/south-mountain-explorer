@@ -2391,13 +2391,8 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "NB curation 2026-11-02. Grand Manan. Official page (https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park) names four trails: Red Point (boardwalk), Long Pond, Great Pond, Bagley; all four shipped (complete set, small park). Ox Head Trail (lwn) is not on the park list and stays dropped.",
+      "notes": "NB curation 2026-11-02. Grand Manan. Official page (https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park) names four trails: Red Point (boardwalk), Long Pond, Great Pond, Bagley; all four shipped (complete set, small park). Ox Head Trail (lwn) is not on the park list and stays dropped. Phase A-rem P1-6 NB 2026-11-12 (chat/ca-arem-nb). Fragments (audit-5 fix 10) checked against NB Parks lengths (https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park): Great Pond 0.3 km loop vs OSM 0.30 mi (whole, stays); Long Pond 1.0 km linear vs OSM 0.25 mi (40%, excluded; its keep_trails waiver removed). Keeps 3 trails (Red Point, Bagley, Great Pond).",
       "keep_trails": [
-        {
-          "name": "Long Pond Trail",
-          "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
-          "reason": "NB Parks names Long Pond trail; short official walk"
-        },
         {
           "name": "Great Pond Trail",
           "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
@@ -2407,6 +2402,13 @@
           "name": "Bagley Trail",
           "source": "https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park",
           "reason": "NB Parks names Bagley trail; short official walk"
+        }
+      ],
+      "exclude_trails": [
+        {
+          "id": "n:Long Pond Trail",
+          "name": "Long Pond Trail",
+          "reason": "Fragment (audit-5 fix 10): OSM maps 0.25 mi of the NB Parks Long Pond trail, listed at 1.0 km / 0.62 mi linear (https://www.nbparks.ca/en/parks/2/the-anchorage-provincial-park); 40% is not the whole walk"
         }
       ]
     },

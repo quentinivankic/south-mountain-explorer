@@ -3219,7 +3219,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored Fairview Mountain Trail, Simpson Pass Healy Pass Trail (agency-listed or only link to a listed trail).",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Banff hiking page (https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking): day hikes present (Johnston Canyon, Lake Agnes, Plain of Six Glaciers, Larch Valley, Sentinel Pass, Eiffel Lake, Paradise Valley, Taylor Lake, Helen Lake, Bow Glacier Falls, Chephren Lake, Parker Ridge, Nigel Pass, Cirque Lake, Deception Pass, Wenkchemna Pass, Sunset Lookout, Boom Lake, Mystic Lake, Sundance Canyon, Cascade Amphitheatre, Mount Rundle/Cascade/Temple scrambles, backcountry passes). Unmapped or unnamed in OSM (known omissions): Lake Louise Lakeshore, Rockpile Loop, Consolation Lakes, Lake Annette, Hidden Lake, Mistaya Canyon, Peyto/Bow Summit viewpoints, Dolomite Pass, Sarbach Lookout. Excluded: boundary-clipped stubs (<85% of the route inside the polygon), Trans Canada Trail legs, horse trails, approach/descent/alt variants, abbreviated or numeric duplicate stitches, informal Nordic/MTB network names. Great Divide Trail excluded as long-distance. live-fix1 2026-11-02: pin moved from [51.494, -116.155] (2.24 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored Fairview Mountain Trail, Simpson Pass Healy Pass Trail (agency-listed or only link to a listed trail). Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Name fix (audit-5 fix 9): Rundle 1 Trail shown as Mount Rundle Trail (Parks Canada scrambler's guide); trail id rundle-1-trail unchanged.",
       "keep_trails": [
         {
           "name": "Silverton Falls Trail",
@@ -4251,6 +4251,12 @@
           "name": "Citadel Pass Trail",
           "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
           "reason": "Abbreviation expanded; same trail. live-fix2 restore: signature Sunshine to Citadel Pass hike, 4.3 of 5.6 mi inside the park polygon (77%); rest lies in Mount Assiniboine PP, where the 1.3 mi piece stays excluded (one trail, one area)"
+        },
+        {
+          "osm_name": "Rundle 1 Trail",
+          "name": "Mount Rundle Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/escalade-scrambling/rundle",
+          "reason": "Parks Canada's Mount Rundle Scrambler's Guide names the route from Spray River East the Mount Rundle Trail; OSM 'Rundle 1' is a climber's label"
         }
       ]
     },
@@ -5836,12 +5842,12 @@
         51.22
       ],
       "center": [
-        51.049,
-        -115.211
+        51.028,
+        -115.206
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Kananaskis component park (Canmore/Exshaw side). Named hikes and scrambles kept; Trans Canada Trail legs, clipped stubs, approach and alt pieces excluded. Alberta Parks list not parsed (unverified). live-fix1 2026-11-02: pin moved from [50.954, -115.292] (2.02 mi from the nearest trail) to a trail point next to the trail-extent midpoint.",
+      "notes": "AB curation 2026-11-02. Kananaskis component park (Canmore/Exshaw side). Named hikes and scrambles kept; Trans Canada Trail legs, clipped stubs, approach and alt pieces excluded. Alberta Parks list not parsed (unverified). live-fix1 2026-11-02: pin moved from [50.954, -115.292] (2.02 mi from the nearest trail) to a trail point next to the trail-extent midpoint. Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Pin (audit-5 fix 11): moved from 51.049,-115.211 (1.4 mi from the nearest trail) to the kept-trail vertex nearest the trail-extent midpoint (51.028,-115.206). Fix 5 re-check: Ha Ling 2.3 of 4.5 mi inside (51%), East End of Rundle 0.8 of 4.0 mi (20%), Grotto Canyon not a named OSM trail inside the polygon; none is a whole route inside, so nothing is added.",
       "exclude_trails": [
         {
           "id": "n:Bald Eagle Peak Trail",
@@ -6750,7 +6756,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Sheep River PP: most OSM routes are clipped by the polygon and excluded; the whole routes remain (Indian Oils, South Gorge Creek, Missinglink Mountain, Green Mountain). live-fix2 2026-11-02: Missinglink Mountain East Ridge and S Ridge routes dropped; pin moved from [50.654, -114.579] to a trail point next to the new trail-extent midpoint (0.1 deg publish gate).",
+      "notes": "AB curation 2026-11-02. Sheep River PP: most OSM routes are clipped by the polygon and excluded; the whole routes remain (Indian Oils, South Gorge Creek, Missinglink Mountain, Green Mountain). live-fix2 2026-11-02: Missinglink Mountain East Ridge and S Ridge routes dropped; pin moved from [50.654, -114.579] to a trail point next to the new trail-extent midpoint (0.1 deg publish gate). Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Indian Oils Hill 3 Trail excluded (audit-5 fix 9): all three of its OSM ways are informal=yes; it is an unsigned side path of Indian Oils, which ships. Area keeps 4 trails.",
       "exclude_trails": [
         {
           "id": "n:Bluerock Knob Trail",
@@ -6801,6 +6807,11 @@
           "id": "n:Missinglink Mtn S Ridge Rt",
           "name": "Missinglink Mtn S Ridge Rt",
           "reason": "Unsigned peak route (Missinglink Mountain ridge variant); the signed Missinglink Mountain Trail stays (live-fix2, one trail one name)"
+        },
+        {
+          "id": "n:Indian Oils Hill 3 Trail",
+          "name": "Indian Oils Hill 3 Trail",
+          "reason": "OSM informal=yes path beside the Indian Oils trail (audit-5 fix 9); not a signed agency trail and not a separate named hike, so it is excluded rather than renamed"
         }
       ]
     },
@@ -7176,7 +7187,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Alberta side of Cypress Hills Interprovincial Park (OSM relation r6423602 'Cypress Hills Provincial Park', Alberta Parks name). Compared with the Alberta Parks trail list (https://www.albertaparks.ca/parks/south/cypress-hills-pp/information-facilities/trails/): Beaver Creek, Cobble Miner, Cougar Ridge, Firerock, Mazama Drop, Mitchell Creek, Mystery, Upper Mystery, Old Baldy, Plateau, Rangers, Ruttentuke, Sorry, Spruce Coulee, Tower, Turkey Trott present. Reesor Hills TCT (Trans Canada Trail) excluded; Murray Hill not on the list. Saskatchewan side is a separate SK lane.",
+      "notes": "AB curation 2026-11-02. Alberta side of Cypress Hills Interprovincial Park (OSM relation r6423602 'Cypress Hills Provincial Park', Alberta Parks name). Compared with the Alberta Parks trail list (https://www.albertaparks.ca/parks/south/cypress-hills-pp/information-facilities/trails/): Beaver Creek, Cobble Miner, Cougar Ridge, Firerock, Mazama Drop, Mitchell Creek, Mystery, Upper Mystery, Old Baldy, Plateau, Rangers, Ruttentuke, Sorry, Spruce Coulee, Tower, Turkey Trott present. Reesor Hills TCT (Trans Canada Trail) excluded; Murray Hill not on the list. Saskatchewan side is a separate SK lane. Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Elkwater MTB names excluded (audit-5 fix 3): Mystery, Upper Mystery, Sorry, Ruttentuke, Turkey Trott, Mazama Drop, Cobble Miner, Firerock. Counter-evidence recorded: the Alberta Parks trail report (https://www.albertaparks.ca/parks/south/cypress-hills-pp/information-facilities/trails/) tags every one as Hiking - Front Country plus Mtn. Biking (only Flatten the Curve and The Last Grizzly are bike-only), and OSM tags them sac_scale=hiking (Mystery also mtb:scale=2); the exclusion follows the audit's local-knowledge MTB call. Kept 9 hiking trails: Beaver Creek, Beaver Creek Loop, Mitchell Creek, Rangers, Lakeside, Cougar Ridge, Tower, Old Baldy, Spruce Coulee (above the 2-trail floor).",
       "exclude_trails": [
         {
           "id": "n:Murray Hill",
@@ -7192,6 +7203,46 @@
           "id": "n:Reesor Hills TCT Trail",
           "name": "Reesor Hills TCT Trail",
           "reason": "Trans Canada Trail leg (long-distance)"
+        },
+        {
+          "id": "n:Mystery Trail",
+          "name": "Mystery Trail",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Upper Mystery Trail",
+          "name": "Upper Mystery Trail",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Sorry",
+          "name": "Sorry",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Ruttentuke",
+          "name": "Ruttentuke",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Turkey Trott",
+          "name": "Turkey Trott",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Mazama Drop Trail",
+          "name": "Mazama Drop Trail",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Cobble Miner Trail",
+          "name": "Cobble Miner Trail",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
+        },
+        {
+          "id": "n:Firerock Trail",
+          "name": "Firerock Trail",
+          "reason": "Elkwater mountain-bike single-track (audit-5 fix 3): bike-club trail name; Alberta Parks lists it as shared hike/bike, but it is part of the Elkwater MTB network, not a hiking trail a local would pick"
         }
       ]
     },
@@ -7299,12 +7350,12 @@
         54.07
       ],
       "center": [
-        53.757,
-        -119.019
+        53.573,
+        -118.651
       ],
       "tier": 2,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names. live-fix1 2026-11-02: pin moved from [53.658, -119.118] (9.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix5 2026-11-02: pin moved from [53.748, -119.137] (3.14 mi from the nearest trail) to the trail vertex nearest the trail-extent midpoint [53.793, -119.137].",
+      "notes": "AB curation 2026-11-02. Willmore Wilderness Park: named backcountry trails (Sheep Creek, Mountain Trail, Kvass Flats, Pope-Thoreau, Indian, Mawdsley...). Clipped and approach stubs excluded. Alberta Parks list not parsed (unverified); generic names Mountain Trail and Indian Trail are the OSM names. live-fix1 2026-11-02: pin moved from [53.658, -119.118] (9.35 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix5 2026-11-02: pin moved from [53.748, -119.137] (3.14 mi from the nearest trail) to the trail vertex nearest the trail-extent midpoint [53.793, -119.137]. Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Pin (audit-5 fix 11): moved from 53.757,-119.019 (1.67 mi from the nearest trail; the all-trails midpoint has no trail within 0.1 deg) to 53.573,-118.651 on the east trail group via center_cluster.",
       "exclude_trails": [
         {
           "id": "n:Cowlick Creek Trail",
@@ -7334,7 +7385,23 @@
           "source": "https://www.albertaparks.ca/parks/northwest/willmore-wilderness-park/",
           "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
         }
-      ]
+      ],
+      "center_cluster": {
+        "trails": [
+          "Mountain Trail",
+          "Pope-Thoreau Trail",
+          "Indian Trail",
+          "West Sulphur Trail",
+          "Carson Creek Trail",
+          "Trail to Pehonansah",
+          "Wildhay Ridge Trail",
+          "Adams Creek Fire Lookout",
+          "Sunset Creek Trail",
+          "Hayden Ridge Trail",
+          "Manzer Lake Trail"
+        ],
+        "reason": "Willmore's trails sit in two groups about 40 mi apart (Sheep Creek / Kvass Flats / Mawdsley / Davey Creek in the northwest; the Rock Lake - Solomon Creek side in the east); the all-trails midpoint falls in empty ground 0.1289 deg from any trail. The east group holds 72.0 of 120.9 trail mi (60%), so the pin sits on its trail vertex nearest its extent midpoint."
+      }
     },
     {
       "id": "don-getty-wildland-provincial-park-ca-ab",
@@ -13525,7 +13592,7 @@
       "hold": null,
       "est_trails": 9,
       "est_mi": 16.4,
-      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/cultus-lake-park/) lists five main trails: Teapot Hill, Seven Sisters, Cultus Lake Horse Trail (a hiking trail also used by horses and bikes), Giant Douglas-fir and Maple Bay; all five ship (the last two by keep_trails waiver). International Ridge Trail (to Mount Amadis, bicycle=no) also ships: the park's best-known ridge hike, not on the five-trail list. Excluded: Sanctuary (clipped), Wild Hazel and Dilema (bike), Horse Trail Loop and Watt Creek Trail (horse-network variants), Watt Creek Ridge Trail (unverified).",
+      "notes": "BC-1 curation 2026-11-10 (Phase A, chat/ca-a-bc1; T1 draft from scripts/ca_discover.py on main bb9c73b34). SHIP. BC Parks page (https://bcparks.ca/cultus-lake-park/) lists five main trails: Teapot Hill, Seven Sisters, Cultus Lake Horse Trail (a hiking trail also used by horses and bikes), Giant Douglas-fir and Maple Bay; all five ship (the last two by keep_trails waiver). International Ridge Trail (to Mount Amadis, bicycle=no) also ships: the park's best-known ridge hike, not on the five-trail list. Excluded: Sanctuary (clipped), Wild Hazel and Dilema (bike), Horse Trail Loop and Watt Creek Trail (horse-network variants), Watt Creek Ridge Trail (unverified). Phase A-rem P1-1 BC 2026-11-12 (chat/ca-arem-bc). Horse Trail excluded (audit-5 fix 3): OSM highway=bridleway with horse=yes and bicycle=yes; BC Parks (https://bcparks.ca/cultus-lake-park/) lists the Cultus Lake Horse Trail but describes ~20 km of compact gravel and shale horse trail shared with cyclists. Area keeps 5 trails.",
       "exclude_trails": [
         {
           "id": "n:Sanctuary Trail",
@@ -13556,6 +13623,11 @@
           "id": "n:Watt Creek Ridge Trail",
           "name": "Watt Creek Ridge Trail",
           "reason": "Not on the agency list or map read for this batch; unverified name (BC Parks lists five main trails)"
+        },
+        {
+          "id": "n:Horse Trail",
+          "name": "Horse Trail",
+          "reason": "Multi-use gravel bridleway (OSM highway=bridleway, horse=yes, bicycle=yes); BC Parks describes it as a maintained horse trail also used by cyclists, not a hiking trail a local would pick (audit-5 fix 3)"
         }
       ],
       "keep_trails": [
@@ -14159,7 +14231,7 @@
       "hold": null,
       "est_trails": 9,
       "est_mi": 20.7,
-      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/akamina-kishinena-park/) and trail conditions report (https://nrs.objectstore.gov.bc.ca/kuwyyf/akamina_kishinena_trail_report_abd38383a8.pdf) list Forum Lake, Wall Lake, Wall Lake Loop Trail (Horse Trail) and the Akamina Ridge Route (18 km full loop, experienced hikers) plus the Akamina Pass roadbed access. Kept: Forum Lake Trail, Wall Lake Trail, Wall Lake Loop (Horse Trail), and the two OSM-named halves of the Akamina Ridge loop (Akamina Ridge Trail from Forum Lake, Akamina Ridge Route along the ridge; adjoining, no overlap). Excluded: Festubert Mountain Route/Trail (peak routes, clipped, not listed), Akamina Pass Trail (old roadbed, 62% inside). Great Divide Trail sections dropped by the engine. Pin moved from 49.066,-114.109 to the kept-trail vertex nearest the curated trail-extent midpoint (49.018,-114.091).",
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/akamina-kishinena-park/) and trail conditions report (https://nrs.objectstore.gov.bc.ca/kuwyyf/akamina_kishinena_trail_report_abd38383a8.pdf) list Forum Lake, Wall Lake, Wall Lake Loop Trail (Horse Trail) and the Akamina Ridge Route (18 km full loop, experienced hikers) plus the Akamina Pass roadbed access. Kept: Forum Lake Trail, Wall Lake Trail, Wall Lake Loop (Horse Trail), and the two OSM-named halves of the Akamina Ridge loop (Akamina Ridge Trail from Forum Lake, Akamina Ridge Route along the ridge; adjoining, no overlap). Excluded: Festubert Mountain Route/Trail (peak routes, clipped, not listed), Akamina Pass Trail (old roadbed, 62% inside). Great Divide Trail sections dropped by the engine. Pin moved from 49.066,-114.109 to the kept-trail vertex nearest the curated trail-extent midpoint (49.018,-114.091). Phase A-rem P1-1 BC 2026-11-12 (chat/ca-arem-bc). Wall Lake Loop (Horse Trail) excluded (audit-5 fix 3): it is the designated horse route to Wall Lake (https://bcparks.ca/akamina-kishinena-park/: riders travelling to Wall Lake must use the horse trail); the hikers' Wall Lake Trail stays. Akamina Ridge Trail and Akamina Ridge Route both stay: intra-area overlap 0% (adjoining halves of the 18 km ridge loop, not the same path); dropping either would publish half a loop. Area keeps 4 trails.",
       "exclude_trails": [
         {
           "id": "n:Festubert Mountain Route",
@@ -14175,6 +14247,11 @@
           "id": "n:Akamina Pass Trail",
           "name": "Akamina Pass Trail",
           "reason": "Old access roadbed from Waterton over Akamina Pass (cyclists use it); Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (62%)"
+        },
+        {
+          "id": "n:Wall Lake Loop (Horse Trail)",
+          "name": "Wall Lake Loop (Horse Trail)",
+          "reason": "Horse route to Wall Lake: BC Parks says riders travelling to Wall Lake must use the horse trail (horses are barred from the hiker trails); the hikers' Wall Lake Trail ships (audit-5 fix 3)"
         }
       ]
     },
@@ -14286,12 +14363,20 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 18.6,
-      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/gladstone-park/) lists Deer Point Trail to Troy Creek (11.3 km), Xenia Lake Trail (4 km), Sandner Creek Trail (9 km), Mt. Faith Trail (18.4 km), Mt. Gladstone Trail (6 km) and Peter Lake Trail (inaccessible). Kept: Deer Point Trail, Xenia Lake Trail, Mount Gladstone hiking trail (OSM name of Mt. Gladstone Trail). Excluded: Burnt Basin Trail (84% inside, not listed). Known omissions: Sandner Creek (0.58 mi OSM fragment), Mt. Faith (not in OSM by name).",
+      "notes": "BC-2 curation 2026-11-10 (Phase A, chat/ca-a-bc2; T1 draft from scripts/ca_discover.py on main 61b10e876). SHIP. BC Parks page (https://bcparks.ca/gladstone-park/) lists Deer Point Trail to Troy Creek (11.3 km), Xenia Lake Trail (4 km), Sandner Creek Trail (9 km), Mt. Faith Trail (18.4 km), Mt. Gladstone Trail (6 km) and Peter Lake Trail (inaccessible). Kept: Deer Point Trail, Xenia Lake Trail, Mount Gladstone hiking trail (OSM name of Mt. Gladstone Trail). Excluded: Burnt Basin Trail (84% inside, not listed). Known omissions: Sandner Creek (0.58 mi OSM fragment), Mt. Faith (not in OSM by name). Phase A-rem P1-1 BC 2026-11-12 (chat/ca-arem-bc). Name fix (audit-5 fix 9): Mount Gladstone hiking trail shown as Mt. Gladstone Trail per BC Parks; trail id mount-gladstone-hiking-trail unchanged.",
       "exclude_trails": [
         {
           "id": "n:Burnt Basin Trail",
           "name": "Burnt Basin Trail",
           "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (84%); not on the BC Parks trail list"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Mount Gladstone hiking trail",
+          "name": "Mt. Gladstone Trail",
+          "source": "https://bcparks.ca/gladstone-park/",
+          "reason": "BC Parks names it Mt. Gladstone Trail (6 km, from the abandoned CPR grade north of Paulson); OSM name is descriptive"
         }
       ]
     },
@@ -14763,12 +14848,20 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 6.5,
-      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/atlin-aa-tlein-teixi-park/) and park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/atlin_map_4bbc884054.pdf) list the four hiking trails: Llewellyn Glacier Lookout (800 m), Mt. Adams Trail (4.5 km), Sloko Lake Trail (2 km) and the Shortest Railway Trail (4 km walk on the old Taku Tram line). Kept: Mt Adams Trail, Taku Tram (Shortest Railway Trail) and Llewellyn Glacier Lookout (99-100% inside). Excluded: Sloco Lake Trail (position approximate) (OSM flags its own geometry as approximate). Boat or float-plane access only (Atlin Lake). Pin moved from 59.359,-133.905 (all-trails extent midpoint, away from every trail) to a center_cluster pin on the dominant cluster (59.123,-133.906).",
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks page (https://bcparks.ca/atlin-aa-tlein-teixi-park/) and park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/atlin_map_4bbc884054.pdf) list the four hiking trails: Llewellyn Glacier Lookout (800 m), Mt. Adams Trail (4.5 km), Sloko Lake Trail (2 km) and the Shortest Railway Trail (4 km walk on the old Taku Tram line). Kept: Mt Adams Trail, Taku Tram (Shortest Railway Trail) and Llewellyn Glacier Lookout (99-100% inside). Excluded: Sloco Lake Trail (position approximate) (OSM flags its own geometry as approximate). Boat or float-plane access only (Atlin Lake). Pin moved from 59.359,-133.905 (all-trails extent midpoint, away from every trail) to a center_cluster pin on the dominant cluster (59.123,-133.906). Phase A-rem P1-1 BC 2026-11-12 (chat/ca-arem-bc). Name fix (audit-5 fix 9): Taku Tram (Shortest Railway Trail) shown as Shortest Railway Trail per BC Parks; trail id taku-tram-shortest-railway-trail unchanged.",
       "exclude_trails": [
         {
           "id": "n:Sloco Lake Trail (position approximate)",
           "name": "Sloco Lake Trail (position approximate)",
           "reason": "OSM name itself says the geometry is approximate; a GPS trail with a self-declared approximate position is not shipped (agency Sloko Lake Trail, 2 km, is a known omission)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Taku Tram (Shortest Railway Trail)",
+          "name": "Shortest Railway Trail",
+          "source": "https://bcparks.ca/atlin-aa-tlein-teixi-park/",
+          "reason": "BC Parks names the trail Shortest Railway Trail (an easy 4 km walk on the abandoned Taku Tram line); OSM appends the tram name in brackets"
         }
       ]
     },
@@ -16667,7 +16760,14 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.8,
-      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Bonnyville area. The Alberta Parks Moose Lake Trail Map (https://www.albertaparks.ca/media/6496684/moose-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/moose-lake-pp/) names Fireroad Trail (4.8 km), Lakeshore Trail, Blueberry Trail, Jackpine Trail, Muskeg Trail and Dead Man's Trail plus a 2.2 km ski trail. Kept: Fireroad Trail 2.59 mi (99% inside), Lakeshore Trail 1.57 mi, Jackpine Trail 0.80 mi, Muskeg Trail 0.79 mi (all 100%). Known omissions: Blueberry Trail and Dead Man's Trail (not mapped by name). Alberta Parks warns the trails may be impassable after windfall or flooding."
+      "notes": "AB curation 2026-11-11 (Phase A, chat/ca-a-ab; T1 draft from scripts/ca_discover.py on main 07e1b9add). SHIP. Bonnyville area. The Alberta Parks Moose Lake Trail Map (https://www.albertaparks.ca/media/6496684/moose-lake-tear-sheet.pdf, linked from https://www.albertaparks.ca/parks/north/moose-lake-pp/) names Fireroad Trail (4.8 km), Lakeshore Trail, Blueberry Trail, Jackpine Trail, Muskeg Trail and Dead Man's Trail plus a 2.2 km ski trail. Kept: Fireroad Trail 2.59 mi (99% inside), Lakeshore Trail 1.57 mi, Jackpine Trail 0.80 mi, Muskeg Trail 0.79 mi (all 100%). Known omissions: Blueberry Trail and Dead Man's Trail (not mapped by name). Alberta Parks warns the trails may be impassable after windfall or flooding. Phase A-rem P1-2 AB 2026-11-12 (chat/ca-arem-ab). Fireroad Trail excluded (audit-5 fix 3): a fire road (Alberta Parks map, scale/ab/src/moose-lake-tear-sheet.pdf.txt). Keeps Lakeshore, Jackpine and Muskeg (3).",
+      "exclude_trails": [
+        {
+          "id": "n:Fireroad Trail",
+          "name": "Fireroad Trail",
+          "reason": "Fire road (audit-5 fix 3): the Alberta Parks map labels it Fireroad Trail, 4.8 km, a vehicle-width fireguard, not a hiking trail a local would pick"
+        }
+      ]
     },
     {
       "id": "plateau-mountain-ecological-reserve-ca-ab",
@@ -16819,6 +16919,202 @@
       "est_trails": 2,
       "est_mi": 10.5,
       "notes": "MB curation 2026-11-11 (Phase A, chat/ca-a-mb; T1 draft from scripts/ca_discover.py on main f12d9f7c8). HOLD. Replay keeps one trail: Hydro Access Path 0.73 mi (a utility access path, not a park trail); Snoman Trail is a 0.48 mi clipped piece of a 7 mi snowmobile route. The park's signed walks (Ancient Beach Trail, Wild Wings Trail) are not mapped by name inside the polygon. Under the 2-trail floor; a local expert would not list this set."
+    },
+    {
+      "id": "tatshenshini-alsek-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2590560,
+      "name": "Tatshenshini-Alsek Provincial Park",
+      "bbox": [
+        -139.11,
+        58.86,
+        -136.31,
+        60.05
+      ],
+      "center": [
+        59.68,
+        -136.635
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 9.5,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). HOLD. BC Parks (https://bcparks.ca/tatshenshini-alsek-park/): Chuck Creek Trail is the only maintained hiking trail; the other routes are old mining roads (Parton River, Shini Lakes). OSM: Chuck Creek Trail 6.5 mi (12 km one way listed) and Tina Creek Trail 3.3 mi (not on the BC Parks list). One agency trail; not on the one-trail iconic allow-list (the park is a World Heritage river wilderness, not a trail icon)."
+    },
+    {
+      "id": "spatsizi-plateau-wilderness-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226770,
+      "name": "Spatsizi Plateau Wilderness Provincial Park",
+      "bbox": [
+        -129.75,
+        57.04,
+        -127.3,
+        57.99
+      ],
+      "center": [
+        57.652,
+        -128.738
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 13,
+      "est_mi": 107.8,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). SHIP. BC Parks hiking page (https://bcparks.ca/spatsizi-plateau-wilderness-park/hiking/) lists the recommended trails, all from Cold Fish Lake Campground: Airplane Valley, Black Fox Creek, Cold Fish Lake (continuing toward Hyland Post), Danihue Pass, Gladys Lake, Spatsizi Plateau (Bug Lake Trail and Ice Box Canyon named in the text); McEwan and Eaglenest are inaccessible from the washed-out Klappan rail grade and BC Parks strongly discourages them. Kept (5): Airplane Valley Trail, Black Fox Creek Trail, Cold Fish Trail, Spatsizi Plateau Trail, Bug Lake Trail (all whole: 98-100% of the same-name OSM length published). Excluded: McEwan and Eaglenest (inaccessible, discouraged), Hyland Post Trail (continuation to a private guide-outfitter camp, not a listed trail), Danihue Pass (48% inside) and Icebox Canyon (77% inside; both run into Gladys Lake Ecological Reserve), Tahltan (47%, unlisted), Lake Cartmel and Danihue-Bug Lake (unlisted spur/connector). Gladys Lake Trail not mapped by name. Long-distance check: no trail is part of a long-distance route; Cold Fish 17 mi is the park's own lakeshore trail. Pin moved from 57.692,-128.912 to the kept-trail vertex nearest the curated trail-extent midpoint (57.652,-128.738).",
+      "exclude_trails": [
+        {
+          "id": "n:McEwan Trail",
+          "name": "McEwan Trail",
+          "reason": "BC Parks: inaccessible from the washed-out Klappan rail grade; strongly discouraged, unmaintained"
+        },
+        {
+          "id": "n:Eaglenest Trail",
+          "name": "Eaglenest Trail",
+          "reason": "BC Parks: inaccessible from the washed-out Klappan rail grade; strongly discouraged, unmaintained"
+        },
+        {
+          "id": "n:Hyland Post Trail",
+          "name": "Hyland Post Trail",
+          "reason": "Continuation to the private Hyland Post guide-outfitter camp; not a listed trail"
+        },
+        {
+          "id": "n:Danihue Pass Trail",
+          "name": "Danihue Pass Trail",
+          "reason": "Boundary-clipped: 48% of the OSM same-name trail inside the park polygon (runs into Gladys Lake Ecological Reserve); not a whole route"
+        },
+        {
+          "id": "n:Icebox Canyon Trail",
+          "name": "Icebox Canyon Trail",
+          "reason": "Boundary-clipped: 77% of the OSM same-name trail inside the park polygon; not a whole route"
+        },
+        {
+          "id": "n:Tahltan Trail",
+          "name": "Tahltan Trail",
+          "reason": "Boundary-clipped (47% inside) and not on the BC Parks list"
+        },
+        {
+          "id": "n:Lake Cartmel Trail",
+          "name": "Lake Cartmel Trail",
+          "reason": "Not on the BC Parks recommended-trail list (off the Klappan side)"
+        },
+        {
+          "id": "n:Danihue-Bug Lake Trail",
+          "name": "Danihue-Bug Lake Trail",
+          "reason": "Connector between Bug Lake and Danihue Pass trails; not a listed trail"
+        }
+      ]
+    },
+    {
+      "id": "northern-rocky-mountains-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2226566,
+      "name": "Northern Rocky Mountains Provincial Park",
+      "bbox": [
+        -125.06,
+        57.53,
+        -123.28,
+        58.71
+      ],
+      "center": [
+        58.493,
+        -124.904
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 18.8,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). HOLD. BC Parks (https://bcparks.ca/northern-rocky-mountains-park/) lists the Wokkpash Valley Trail (map https://nrs.objectstore.gov.bc.ca/kuwyyf/Wokkpash_Valley_Trail_Map_c55cc79907.pdf), a loop with MacDonald Creek through Stone Mountain Park. OSM: Wokkpash Valley Trail 13.4 mi inside; MacDonald Creek Valley Trail only 29% inside (rest in Stone Mountain PP). One whole trail; the loop is split across two parks. Below the 2-trail floor."
+    },
+    {
+      "id": "lac-du-bois-grasslands-protected-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230738,
+      "name": "Lac du Bois Grasslands Protected Area",
+      "bbox": [
+        -120.64,
+        50.65,
+        -120.27,
+        50.9
+      ],
+      "center": [
+        50.748,
+        -120.483
+      ],
+      "tier": 2,
+      "hold": "mtb-centre",
+      "est_trails": 12,
+      "est_mi": 22.6,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). HOLD. BC Parks (https://bcparks.ca/lac-du-bois-grasslands-protected-area/) lists Mara Trail (3.5 km loop), Cinnamon Ridge (4.25 km), Dewdrop Trail (5.7 km) and the multi-use Grasslands Community Trail (13 km); most trails are unsigned. Replay keeps 26 trails / 44.8 mi, most of them Kamloops mountain-bike names (Dewdrop Climb, High Noon, Superstitious, Naked Pistol, Kow-A-Been-Here, Lazy Boy, Cows with Guns, Tower Classic, Around The Mountail, Opax Mtn Br 1, Saddleback, Spring Bypass); T1 mtb share 0.44. Only Dewdrop Range Trail matches an agency trail as a whole route (Cinnamon Ridge 1.5 of 4.25 km; Mara split across three OSM names; Grasslands Community 5.5 of 13 km in three pieces). A local expert would see a bike network; held mtb-centre."
+    },
+    {
+      "id": "paul-lake-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230656,
+      "name": "Paul Lake Provincial Park",
+      "bbox": [
+        -120.22,
+        50.68,
+        -120.03,
+        50.8
+      ],
+      "center": [
+        50.741,
+        -120.139
+      ],
+      "tier": 2,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 2.5,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). HOLD. BC Parks trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/paul_lake_trail_map_9a55bf6eb9.pdf) lists the Nature Trail to the summit of Gibraltar Rock (2.3 km), an alternate trail to the campground (1 km) and a beach trail. OSM names (Paul Lk North Shore Tr 1.6 mi, Bluff Trail 0.9 mi) match none of them, and neither is the whole Gibraltar Rock trail; Moonscape (bike, access=no) dropped. Signed agency names not in OSM."
+    },
+    {
+      "id": "tunkwa-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230745,
+      "name": "Tunkwa Provincial Park",
+      "bbox": [
+        -121.02,
+        50.52,
+        -120.78,
+        50.71
+      ],
+      "center": [
+        50.62,
+        -120.851
+      ],
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.7,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). SHIP. BC Parks Leighton Lake trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/leighton_lake_trail_map_c7fe4983dc.pdf) lists the Lake Loop Circuit (4.3 km incl. campground stretches) and Bluff Trail to Bluff Hill (1.2 km). Kept (2): Leighton Lake Trail 1.96 mi (the circuit outside the campgrounds), Bluff Hill Trail 0.75 mi (= 1.2 km, whole). Both 100% inside, both agency-signed; at the 2-trail floor. Rim Trail (0.16 mi) and Transvaal Mine Trail stubs dropped by the engine."
+    },
+    {
+      "id": "tsutswecw-provincial-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2230660,
+      "name": "Tsútswecw Provincial Park",
+      "bbox": [
+        -119.72,
+        50.84,
+        -119.5,
+        50.99
+      ],
+      "center": [
+        50.918,
+        -119.617
+      ],
+      "tier": 2,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 10.5,
+      "notes": "BC A-rem curation 2026-11-12 (Phase A overflow, chat/ca-arem-bc; T1 draft from scripts/ca_discover.py on main 8bd2611e5). HOLD. BC Parks trail map (https://nrs.objectstore.gov.bc.ca/kuwyyf/tsutwecw_trail_map_sept_2018_8a427b7640.pdf) lists Viewing Platform, Phil Rexin, Lower Trails, Plaque Channel, Wade Road Trails (14 km return), Lower Flume Trails (2 km) and Upper Flume Trails (Bear Creek Falls loops). Replay keeps only Lower Flumes Trails 1.27 mi, Lower Flume Trails 0.71 mi (two OSM spellings of one agency trail system) and Plaque Channel 0.71 mi; the engine drops Wade Road Trails (road-name rule) and Upper Flume is a 0.5 mi piece. The flagship Bear Creek Falls flume walk and Wade Road trails are missing; needs a rescope."
     },
     {
       "id": "driftwood-provincial-park-ca-on",

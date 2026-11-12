@@ -18731,6 +18731,1717 @@
       "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Town of Wolfville / NSNT pages name no trails; OSM gives Havey Trail 0.95, Hemlock Ravine Trail 0.68 and Hemlock Ravine Loop 0.65 mi (two Hemlock Ravine names for one ravine walk). Names unverified; 2.3 mi in all."
     },
     {
+      "id": "bear-creek-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240581,
+      "name": "Bear Creek Recreation Site",
+      "bbox": [
+        -119.85,
+        49.85,
+        -119.47,
+        50.18
+      ],
+      "center": [
+        49.953,
+        -119.591
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 11.7,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "blue-mountain-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 13279650,
+      "name": "Blue Mountain Recreation Site",
+      "bbox": [
+        -122.54,
+        49.2,
+        -122.36,
+        49.36
+      ],
+      "center": [
+        49.261,
+        -122.457
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 16,
+      "est_mi": 15.7,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C8 (numbered). Local replay: no trails touch the area after the Canada filter (SAFETY BLOCK: no publishable trails)."
+    },
+    {
+      "id": "boer-mountain-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240586,
+      "name": "Boer Mountain Recreation Site",
+      "bbox": [
+        -125.79,
+        54.16,
+        -125.57,
+        54.35
+      ],
+      "center": [
+        54.245,
+        -125.685
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 11,
+      "est_mi": 29.9,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Operator Ride Burns Mountain Biking Association. Also: Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "boulder-mountain-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1146856863,
+      "name": "Boulder Mountain Recreation Site",
+      "bbox": [
+        -118.34,
+        50.95,
+        -118.19,
+        51.08
+      ],
+      "center": [
+        51.014,
+        -118.253
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Kept names are Revelstoke bike lines (Sisyphus, Iron Lotus, Loggin' Leftovers, Boondocker, Rednecks Revenge, Bike Club); only Boulder Mountain Lookout (0.66 mi) is a hiking trail."
+    },
+    {
+      "id": "coutlee-mountain-bike-trails-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 3524214,
+      "name": "Coutlee Mountain Bike Trails Recreation Site",
+      "bbox": [
+        -120.93,
+        50.0,
+        -120.76,
+        50.15
+      ],
+      "center": [
+        50.077,
+        -120.844
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 12,
+      "est_mi": 17.3,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. MTB-named site; 11 of 12 kept trails tagged bicycle=yes (FloJo, JP Cool, Sanchez, Pond Scum ...)."
+    },
+    {
+      "id": "cranbrook-community-forest-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240605,
+      "name": "Cranbrook Community Forest Recreation Site",
+      "bbox": [
+        -115.8,
+        49.46,
+        -115.64,
+        49.64
+      ],
+      "center": [
+        49.541,
+        -115.718
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 18,
+      "est_mi": 28.6,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6/C8 (community forest, mtb share 0.33). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "cross-river-canyon-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240606,
+      "name": "Cross River Canyon Recreation Site",
+      "bbox": [
+        -115.87,
+        50.55,
+        -115.73,
+        50.7
+      ],
+      "center": [
+        50.618,
+        -115.798
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 7,
+      "est_mi": 5.7,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C3/C8 (ski flag; operator Nipika). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "eagle-mountain-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 988467067,
+      "name": "Eagle Mountain Recreation Site",
+      "bbox": [
+        -122.9,
+        49.26,
+        -122.75,
+        49.39
+      ],
+      "center": [
+        49.325,
+        -122.826
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 9.1,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Coquitlam Eagle Mountain bike network (Lungbuster, Full Pull, Trials Trail, Old Crow, Physiotherapy; 15 bike fragments removed); the one hiking route is published twice (Halvor Lunden (Eagle Ridge) Trail relation and Halvor Lunden Trail stitch)."
+    },
+    {
+      "id": "emma-lake-forest-service-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 19682037,
+      "name": "Emma Lake Forest Service Recreation Site",
+      "bbox": [
+        -124.26,
+        50.06,
+        -124.08,
+        50.21
+      ],
+      "center": [
+        50.132,
+        -124.171
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 7.8,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C8 (hiking). Emma Lake Trail is 48% and South Powell Divide Route 10% of their OSM lengths inside the polygon; only Emma Lake A800 Trail is whole, and it is an approach to the same lake."
+    },
+    {
+      "id": "flatbed-pools-trails-network-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 168058412,
+      "name": "Flatbed Pools Trails Network Recreation Site",
+      "bbox": [
+        -121.07,
+        55.05,
+        -120.89,
+        55.17
+      ],
+      "center": [
+        55.112,
+        -120.978
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 5.4,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Kept names are OSM segment labels '(part of TR Trail)' (Linking trail, Kevin's trail, Overhanging Rock Pool trail, Cabin Pool trail), not signed trail names; Tumbler Ridge list not read."
+    },
+    {
+      "id": "lundbom-grasslands-sugarloaf-mountain-bike-trail-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240635,
+      "name": "Lundbom Grasslands / Sugarloaf Mountain Bike Trail Recreation Site",
+      "bbox": [
+        -120.72,
+        50.02,
+        -120.52,
+        50.18
+      ],
+      "center": [
+        50.122,
+        -120.609
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 3.7,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. MTB-named site; T1 mtb share 0.78."
+    },
+    {
+      "id": "mount-abriel-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 15486691,
+      "name": "Mount Abriel Recreation Site",
+      "bbox": [
+        -117.93,
+        50.26,
+        -117.77,
+        50.39
+      ],
+      "center": [
+        50.319,
+        -117.865
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 12,
+      "est_mi": 12.8,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "mount-cartier-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 15486694,
+      "name": "Mount Cartier Recreation Site",
+      "bbox": [
+        -118.2,
+        50.86,
+        -118.05,
+        51.0
+      ],
+      "center": [
+        50.924,
+        -118.136
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.6,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "mount-gardner-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1187069285,
+      "name": "Mount Gardner Recreation Site",
+      "bbox": [
+        -123.47,
+        49.31,
+        -123.31,
+        49.45
+      ],
+      "center": [
+        49.379,
+        -123.388
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 10,
+      "est_mi": 10.7,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8 (hiking). No readable agency list (no RSTBC or Bowen Island page found); OSM splits the network into variant names (Handloggers Trail and 'Handloggers Trail (Mid Level Trail)', Reservoir Trail and 'Bluewater Reservoir Trail (Mid Level Trail)'), Mid Island Trail is 33% and The Fun Trail 76% (informal bike line)."
+    },
+    {
+      "id": "mt-macpherson-cross-country-trails-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240632,
+      "name": "Mt. Macpherson Cross-Country Trails Recreation Site",
+      "bbox": [
+        -118.38,
+        50.88,
+        -118.15,
+        51.04
+      ],
+      "center": [
+        50.932,
+        -118.288
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 4.8,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Revelstoke cross-country bike/ski network; T1 mtb share 0.62, flags mtb+ski."
+    },
+    {
+      "id": "okanagan-falls-trails-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1467941790,
+      "name": "Okanagan Falls Trails Recreation Site",
+      "bbox": [
+        -119.57,
+        49.27,
+        -119.37,
+        49.41
+      ],
+      "center": [
+        49.341,
+        -119.466
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 10,
+      "est_mi": 29.4,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C8. Local replay: no trails touch the area after the Canada filter (SAFETY BLOCK: no publishable trails)."
+    },
+    {
+      "id": "pidherny-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2243562,
+      "name": "Pidherny Recreation Site",
+      "bbox": [
+        -122.96,
+        53.92,
+        -122.76,
+        54.04
+      ],
+      "center": [
+        53.985,
+        -122.859
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 10,
+      "est_mi": 10.9,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C2/C8 (Prince George Pidherny bike area). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "semaphore-lakes-area-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1029506955,
+      "name": "Semaphore Lakes Area Recreation Site",
+      "bbox": [
+        -123.14,
+        50.53,
+        -122.97,
+        50.66
+      ],
+      "center": [
+        50.592,
+        -123.061
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 4.2,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C8. Locomotive Mountain Trail and Locomotive Mountain Route (scramble) reach the same objective; Semaphore Lakes Trail is a 0.38 mi fragment. One trail, no allow-list reason."
+    },
+    {
+      "id": "showh-lakes-ancient-cedars-trail-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1029506962,
+      "name": "Showh Lakes-ancient Cedars Trail Recreation Site",
+      "bbox": [
+        -123.02,
+        50.14,
+        -122.86,
+        50.26
+      ],
+      "center": [
+        50.2,
+        -122.952
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.3,
+      "notes": "ICONIC-ONE-TRAIL: Ancient Cedars Trail (1.63 mi, 97% of its OSM length) is the trail the RSTBC recreation site is named for and the signed Whistler hike to a grove of 1,000-year-old cedars that a local expert names first north of the village; source https://www.whistler.com/blog/post/ancient-cedars-trail/. Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). Class C8 (BC recreation site, hiking). SHIP via the one-trail allow-list. Excluded: Mak Daddy Pass (31%), Newt Lake Trail (51%). Agency: the RSTBC site name itself names the trail; Tourism Whistler page read (scale/phase-bc/p3/bc/src). Pin moved from 50.199,-122.944 to the kept-trail vertex nearest the curated trail-extent midpoint (50.2,-122.952).",
+      "exclude_trails": [
+        {
+          "id": "n:Mak Daddy Pass",
+          "name": "Mak Daddy Pass",
+          "reason": "Only 31% of the same-name OSM trail inside the polygon; not a whole route and not the rec site's named trail"
+        },
+        {
+          "id": "n:Newt Lake Trail",
+          "name": "Newt Lake Trail",
+          "reason": "Only 51% of the same-name OSM trail inside the polygon; not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "skimikin-trails-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240900,
+      "name": "Skimikin Trails Recreation Site",
+      "bbox": [
+        -119.56,
+        50.72,
+        -119.34,
+        50.87
+      ],
+      "center": [
+        50.779,
+        -119.435
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 6,
+      "est_mi": 6.5,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C3 (Nordic/multi-use network): OUT. Kept rows are a forest road (Skimikin Nursery FSR, 26%), a track (Bones), Moose (38%) and Trappers South; three Fly Hills Snowmobile Trail rows removed."
+    },
+    {
+      "id": "swansea-mountain-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 168089041,
+      "name": "Swansea Mountain Recreation Site",
+      "bbox": [
+        -116.02,
+        50.43,
+        -115.89,
+        50.56
+      ],
+      "center": [
+        50.495,
+        -115.949
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 5,
+      "est_mi": 6.2,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Invermere bike network (South Park, Hula Girl, Gravy Train, Upper/Lower Dirty Monkey); only Mt Swansea Uptrack is a hiking climb."
+    },
+    {
+      "id": "tansky-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2712769,
+      "name": "Tansky Recreation Site",
+      "bbox": [
+        -124.13,
+        48.39,
+        -123.96,
+        48.53
+      ],
+      "center": [
+        48.461,
+        -124.033
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 8,
+      "est_mi": 6.2,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C1 (operator Vancouver Island Dirt Riders Association; motorised): OUT. Also: Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "tenquille-lake-hawint-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 168062414,
+      "name": "Tenquille Lake - Hawint Recreation Site",
+      "bbox": [
+        -122.99,
+        50.47,
+        -122.85,
+        50.61
+      ],
+      "center": [
+        50.536,
+        -122.917
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.2,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8 (hiking). The polygon covers the lake basin only: the Tenquille Lake approach trails are outside it, Mount Barbour Trail is 23% and Tenquille Creek Trail a clipped fragment; the two kept loops (Tenquille Lake Loop, Tenquille Mountain) are not the hike a local expert means."
+    },
+    {
+      "id": "the-bluff-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2240913,
+      "name": "The Bluff Recreation Site",
+      "bbox": [
+        -127.28,
+        54.7,
+        -127.12,
+        54.85
+      ],
+      "center": [
+        54.772,
+        -127.19
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 10,
+      "est_mi": 8.9,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2 (MTB-dominated network): OUT. Operator Smithers Mountain Bike Association. Also: Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "watersprite-lake-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 988951812,
+      "name": "Watersprite Lake Recreation Site",
+      "bbox": [
+        -122.97,
+        49.65,
+        -122.79,
+        49.79
+      ],
+      "center": [
+        49.734,
+        -122.899
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 3.4,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8 (hiking). Watersprite Lake Trail is 20% and Demon Ridge Trail 21% of their OSM lengths inside the polygon; the main hike is clipped."
+    },
+    {
+      "id": "west-kokanee-recreation-site-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 15437347,
+      "name": "West Kokanee Recreation Site",
+      "bbox": [
+        -117.29,
+        49.61,
+        -117.12,
+        49.75
+      ],
+      "center": [
+        49.69,
+        -117.205
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 5.4,
+      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "707-community-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 518868707,
+      "name": "707 Community Park",
+      "bbox": [
+        -123.89,
+        49.1,
+        -123.74,
+        49.23
+      ],
+      "center": [
+        49.164,
+        -123.814
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 8,
+      "est_mi": 7.9,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C7: OUT. Maple Ridge multi-use horse/bike network (bicycle=yes, horse=yes; track sections); generic street-named lines (Jeanette Ave Trail, Tin Can Alley Trail); no agency list."
+    },
+    {
+      "id": "8-peaks-recreation-reserve-w1029506959-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1029506959,
+      "name": "8 Peaks Recreation Reserve",
+      "bbox": [
+        -123.03,
+        50.34,
+        -122.68,
+        50.6
+      ],
+      "center": [
+        50.485,
+        -122.854
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 4,
+      "est_mi": 15.3,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (name-collision). Class C8-like reserve. check-boundary: two same-name ways (1029506958, 1029506959); way-backed, so boundary_by_id (relation only) cannot pin it."
+    },
+    {
+      "id": "au-welnew-john-dean-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2227663,
+      "name": "ȽÁU,WELṈEW̱/John Dean Park",
+      "bbox": [
+        -123.52,
+        48.56,
+        -123.39,
+        48.67
+      ],
+      "center": [
+        48.615,
+        -123.453
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 4.5,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: BC Parks day-use park (provincial; C7 bar applied). BC Parks park map (https://nrs.objectstore.gov.bc.ca/kuwyyf/john_dean_park_map_3c75e4671c.pdf) labels Barrett Montfort, Merrill Harrop, Woodward, Surveyor's and Slektain trails. Kept (5): Barrett Montfort 1.19, Merrill Harrop 0.97, Woodward 0.80, Surveyor's 0.76, Slektain 0.76 mi (all whole; footways, bicycle=no). Barret Montfort Trail renamed to the map spelling.",
+      "trail_name_fixes": [
+        {
+          "osm_name": "Barret Montfort Trail",
+          "name": "Barrett Montfort Trail",
+          "source": "https://nrs.objectstore.gov.bc.ca/kuwyyf/john_dean_park_map_3c75e4671c.pdf",
+          "reason": "BC Parks park map spells the trail 'Barrett Montfort'; OSM has a one-letter typo"
+        }
+      ]
+    },
+    {
+      "id": "beaver-lodge-forest-lands-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 17302267,
+      "name": "Beaver Lodge Forest Lands",
+      "bbox": [
+        -125.33,
+        49.92,
+        -125.19,
+        50.05
+      ],
+      "center": [
+        49.986,
+        -125.255
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 9,
+      "est_mi": 8.3,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6. Campbell River multi-use forest: kept rows are a gravel road (Airport Main), a rail trail and bike lines (Spline, ERT, Root 66, Stump Bumper); no agency hiking list read."
+    },
+    {
+      "id": "columbia-wetlands-wildlife-management-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238693,
+      "name": "Columbia Wetlands Wildlife Management Area",
+      "bbox": [
+        -117.2,
+        50.47,
+        -115.97,
+        51.53
+      ],
+      "center": [
+        50.997,
+        -116.565
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 14.2,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C5: OUT. The WMA page lists no hiking trails; kept rows are Golden bike lines (Deja View, Power Wagon, Stinking Badger) and a 7 mi Columbia Trail; Great Divide Trail rows removed as long-distance."
+    },
+    {
+      "id": "creston-valley-wildlife-management-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238696,
+      "name": "Creston Valley Wildlife Management Area",
+      "bbox": [
+        -116.75,
+        48.95,
+        -116.48,
+        49.34
+      ],
+      "center": [
+        49.11,
+        -116.619
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 6.2,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C5 (WMA, signed interpretive trails). Creston Valley WMA trails page (https://crestonwildlife.ca/recreation/trails-maps/) lists Boardwalk Loop, Songbird Stroll, Marsh Trail, Wildlife Tree Wander, Wood Duck Walk. Kept (3): Wood Duck Walk 2.51, Marsh Trail 1.39, Wildlife Tree Wander 1.33 mi (all whole). Excluded: Balancing Rock Trail (trailhead across the highway leading to Mount Creston; not on the WMA list). Songbird Stroll is a 0.46 mi clipped fragment. Pin moved from 49.11,-116.623 to the kept-trail vertex nearest the curated trail-extent midpoint (49.11,-116.619).",
+      "exclude_trails": [
+        {
+          "id": "n:Balancing Rock Trail",
+          "name": "Balancing Rock Trail",
+          "reason": "Not on the agency trail list read for this area; it is the start of the Mount Creston route outside the wetland trail system"
+        }
+      ]
+    },
+    {
+      "id": "foothills-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 10143509,
+      "name": "Foothills Park",
+      "bbox": [
+        -124.17,
+        49.16,
+        -124.04,
+        49.28
+      ],
+      "center": [
+        49.218,
+        -124.106
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 6,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+    },
+    {
+      "id": "green-timbers-urban-forest-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 17815872,
+      "name": "Green Timbers Urban Forest",
+      "bbox": [
+        -122.88,
+        49.12,
+        -122.76,
+        49.24
+      ],
+      "center": [
+        49.181,
+        -122.824
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 3,
+      "est_mi": 2.1,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (name-collision). Class C6/C7. Exact-area validation found 8 boundaries named 'Green Timbers Urban Forest'."
+    },
+    {
+      "id": "mount-thom-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 483317945,
+      "name": "Mount Thom Park",
+      "bbox": [
+        -121.97,
+        49.05,
+        -121.85,
+        49.16
+      ],
+      "center": [
+        49.107,
+        -121.912
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 3.3,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. City of Chilliwack page returns 403 and no other agency list was found; Thom Creek, Lookout Loop and Karver's trails (OSM operator City of Chilliwack) unverified against the city list."
+    },
+    {
+      "id": "mundy-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1004996176,
+      "name": "Mundy Park",
+      "bbox": [
+        -122.89,
+        49.2,
+        -122.77,
+        49.31
+      ],
+      "center": [
+        49.258,
+        -122.824
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 4.0,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. City of Coquitlam park page has no trail list; Mundy Park Community Path is a paved bike-designated path (out), leaving Perimeter, Waterline, Interlaken unverified."
+    },
+    {
+      "id": "north-cowichan-municipal-forest-reserve-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 7797930,
+      "name": "North Cowichan Municipal Forest Reserve",
+      "bbox": [
+        -123.83,
+        48.72,
+        -123.51,
+        48.99
+      ],
+      "center": [
+        48.845,
+        -123.675
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 26,
+      "est_mi": 36.6,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6 (numbered/colour). Multi-mountain container (Maple, Tzouhalem, Richards, Prevost): colour-coded trails (Pink, Blue, Yellow, Orange, Green), forest mainlines and branches, and Mount Tzouhalem bike lines."
+    },
+    {
+      "id": "nymph-falls-regional-nature-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2715311,
+      "name": "Nymph Falls Regional Nature Park",
+      "bbox": [
+        -125.14,
+        49.62,
+        -125.02,
+        49.73
+      ],
+      "center": [
+        49.671,
+        -125.08
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.5,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7-like regional nature park. Nymph Falls Trail is a 0.38 mi fragment; kept rows mix River Trail with bike lines (Tree Bender) and generic names (Long Loop, Midline); CVRD page not checked against these names."
+    },
+    {
+      "id": "pitt-addington-marsh-wildlife-management-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238708,
+      "name": "Pitt-Addington Marsh Wildlife Management Area",
+      "bbox": [
+        -122.74,
+        49.24,
+        -122.49,
+        49.44
+      ],
+      "center": [
+        49.331,
+        -122.629
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 7,
+      "est_mi": 11.0,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C5: OUT. Kept rows are dyke-top service tracks (Pitt River East Dyke - Rennie Dyke, Crane, Mountain, Nature, Swan, Snake Rock dykes; highway=track, bicycle=yes), the same dyke-path class ruled out for Matsqui Trail in Part 2."
+    },
+    {
+      "id": "pkols-mount-douglas-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 153815696,
+      "name": "PKOLS (Mount Douglas Park)",
+      "bbox": [
+        -123.41,
+        48.43,
+        -123.28,
+        48.55
+      ],
+      "center": [
+        48.492,
+        -123.345
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 7.3,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C7 (municipal natural park, signed named nature trails). Saanich park brochure (https://www.saanich.ca/assets/Parks~Recreation~and~Community~Services/Documents/Parks~Parks~Trails~and~Amenities~Find~a~Park/PKOLS-Mount-Douglas-Park.pdf) names Glendenning, Whittaker and Maddock in its text; its map labels are image-only, so Norn and Mercer are corroborated by trail guides that name the signed loops (AllTrails 'Norn, Churchill and Whittaker Loop', 'Glendenning, Whittaker, and Mercer Trail'). Kept (5): Whittaker 2.37, Norn 1.67, Mercer 0.88, Glendenning 0.77, Churchill 0.71 mi (footways, bicycle=no). Excluded: Irvine (not corroborated). Maddock, Merriman, Douglas, Harrop are under 0.6 mi. Pin moved from 48.493,-123.344 to the kept-trail vertex nearest the curated trail-extent midpoint (48.492,-123.345).",
+      "exclude_trails": [
+        {
+          "id": "n:Irvine",
+          "name": "Irvine",
+          "reason": "Not named in the Saanich text and not corroborated by a trail guide"
+        }
+      ]
+    },
+    {
+      "id": "seal-bay-regional-nature-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 202224379,
+      "name": "Seal Bay Regional Nature Park",
+      "bbox": [
+        -125.05,
+        49.69,
+        -124.91,
+        49.82
+      ],
+      "center": [
+        49.756,
+        -124.977
+      ],
+      "tier": 3,
+      "hold": "name-collision",
+      "est_trails": 10,
+      "est_mi": 9.3,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (name-collision). Class C7-like. check-boundary: two same-name ways (202224379, 1497203137); way-backed, boundary_by_id unavailable."
+    },
+    {
+      "id": "skwelwil-em-squamish-estuary-wildlife-management-area-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 2238713,
+      "name": "Skwelwil'em Squamish Estuary Wildlife Management Area",
+      "bbox": [
+        -123.24,
+        49.63,
+        -123.1,
+        49.78
+      ],
+      "center": [
+        49.713,
+        -123.181
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.2,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Kept rows mix the Estuary Trail with Echo Lake Ascent/Descent trails across the highway; generic Loop Trail rows; WMA page lists no trail names."
+    },
+    {
+      "id": "stanley-park-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 37063023,
+      "name": "Stanley Park",
+      "bbox": [
+        -123.21,
+        49.24,
+        -123.07,
+        49.36
+      ],
+      "center": [
+        49.301,
+        -123.149
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 3.1,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7: seawall OUT (paved). The forest trails (Beaver Lake, Siwash Rock, Thompson, Lake Trail ...) are each under 0.6 mi and drop as fragments; the remaining Tatlow Walk, Merilees, Lees and Miniature Train Trail are not the forest network a local expert means."
+    },
+    {
+      "id": "ubc-malcolm-knapp-research-forest-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 1166294466,
+      "name": "UBC Malcolm Knapp Research Forest",
+      "bbox": [
+        -122.65,
+        49.2,
+        -122.47,
+        49.41
+      ],
+      "center": [
+        49.321,
+        -122.567
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 13,
+      "est_mi": 22.6,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6 (colour/numbered). Colour-coded Blue/Yellow/Red trails, Loon Lake Trail tagged foot=customers (restricted), E20 / Stump House; the H/L/G/M lettered roads removed; MKRF public-trail list not read."
+    },
+    {
+      "id": "vedder-mountain-interpretative-forest-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "relation_id": 13279617,
+      "name": "Vedder Mountain Interpretative Forest",
+      "bbox": [
+        -122.19,
+        48.95,
+        -121.94,
+        49.14
+      ],
+      "center": [
+        49.051,
+        -122.045
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 42,
+      "est_mi": 46.6,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. 49 kept rows are Chilliwack bike lines (Duck Farm Loop, Kerry'd Away, Goonie Goo Goo, Meat Grinder, Stairway To Heaven 1-3 ...); only Vedder Mountain Ridge Trail is a hiking trail."
+    },
+    {
+      "id": "whistler-interpretive-forest-ca-bc",
+      "province": "bc",
+      "state": "Canada",
+      "way_id": 168062465,
+      "name": "Whistler Interpretive Forest",
+      "bbox": [
+        -123.11,
+        49.98,
+        -122.93,
+        50.14
+      ],
+      "center": [
+        50.066,
+        -123.016
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 6,
+      "est_mi": 7.7,
+      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. T1 mtb share 0.63; bike lines (Java Time, Farside, Giant Peach mtb:scale 4, Marrakesh) dominate; Crater Rim Trail is the only hiking trail."
+    },
+    {
+      "id": "beaureal-reserve-naturelle-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 906855776,
+      "name": "Beauréal Réserve naturelle",
+      "bbox": [
+        -73.83,
+        45.92,
+        -73.71,
+        46.03
+      ],
+      "center": [
+        45.98,
+        -73.765
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.7,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. Balise (https://baliseqc.ca/3S/explorer/lanaudiere/beaureal-reserve-naturelle-LR1070) lists Le grand tour but not La sablière; one listed trail remains."
+    },
+    {
+      "id": "bois-de-l-equerre-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 320465137,
+      "name": "Bois de l'Équerre",
+      "bbox": [
+        -73.82,
+        45.55,
+        -73.7,
+        45.67
+      ],
+      "center": [
+        45.607,
+        -73.76
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6. Balise (LR0728) lists Sentier du Pic and Sentier du Lièvre, but OSM publishes 83% and 77% of them; Sentier de la Tortue is not listed."
+    },
+    {
+      "id": "foret-heritage-hereford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 13320842,
+      "name": "Forêt Héritage Hereford",
+      "bbox": [
+        -71.68,
+        44.96,
+        -71.45,
+        45.16
+      ],
+      "center": [
+        45.084,
+        -71.572
+      ],
+      "tier": 3,
+      "hold": "mtb-centre",
+      "est_trails": 3,
+      "est_mi": 4.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (mtb-centre). Class C2: OUT. T1 mtb share 0.85; numbered bike lines (21 - Bobines, 22 - Chaînon Manquant, 16 - Indian Stream ...)."
+    },
+    {
+      "id": "foret-montmorency-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 199525412,
+      "name": "Forêt Montmorency",
+      "bbox": [
+        -71.24,
+        47.17,
+        -71.03,
+        47.42
+      ],
+      "center": [
+        47.32,
+        -71.12
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 6.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6 (research forest). Université Laval page (https://www.ffgg.ulaval.ca/foret-montmorency/activites-recreatives) offers the trail map as a JPG only, access is paid; lettered OSM names (Sentier A - Le Lac Piché ... E - Le Draveur) unverified."
+    },
+    {
+      "id": "grand-parc-de-l-ouest-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 6087893,
+      "name": "Grand Parc de l'Ouest",
+      "bbox": [
+        -74.0,
+        45.38,
+        -73.84,
+        45.53
+      ],
+      "center": [
+        45.456,
+        -73.914
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 13,
+      "est_mi": 12.1,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Montréal multi-sector container (Cap-Saint-Jacques, Bois-de-l'Île-Bizard ...): colour-numbered trails (1- Vert, 2-Jaune, 3- Orange, Vert/Green, Blanc/White), 'Lièvre' and 'Le Lièvre' duplicates, Castor 35%. boundary_by_id set (two same-name relations) so the row replays.",
+      "boundary_by_id": true
+    },
+    {
+      "id": "kenauk-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 13167910,
+      "name": "Kenauk",
+      "bbox": [
+        -75.02,
+        45.61,
+        -74.69,
+        45.92
+      ],
+      "center": [
+        45.775,
+        -74.837
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 17.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C10-like private reserve (paid day pass). Kenauk hiking page (https://kenauk.com/activites/hiking/) numbers its trails (1 Skymount, 4 Fern, 9 Hemlock, 10 Baldy); OSM Balsam, Héron, Lucky, Autobus Magique are not on it."
+    },
+    {
+      "id": "micro-foret-educative-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 746143764,
+      "name": "micro forêt éducative",
+      "bbox": [
+        -78.93,
+        48.74,
+        -78.81,
+        48.86
+      ],
+      "center": [
+        48.798,
+        -78.871
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 3.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C3/C7: OUT. Two of four rows are winter trails ('Sentier hivers'); small educational micro-forest."
+    },
+    {
+      "id": "parc-de-la-riviere-batiscan-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 10742011,
+      "name": "Parc de la Rivière Batiscan",
+      "bbox": [
+        -72.47,
+        46.49,
+        -72.35,
+        46.64
+      ],
+      "center": [
+        46.562,
+        -72.41
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 6.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: nature park (C7 bar). Balise (https://baliseqc.ca/3S/explorer/mauricie/parc-de-la-riviere-batiscan-LR0124) lists La Marmite, La Grande Chute, Le Cerf, Sentier Murphy, Le Doré, La Gélinotte, Le Portage, La Promenade Sud, La Promenade Nord, Le Lièvre, La Rivière. Kept (5): Le Lièvre 1.71, La Gélinote 1.36, Promenade Nord 1.36, Promenade Sud 0.81, Sentier Le Doré 0.63 mi (whole). Excluded (not listed): Le Buis, La Trail des Gras, Zigzag Nord, Zigzag Centre (also 76%). Pin moved from 46.561,-72.41 to the kept-trail vertex nearest the curated trail-extent midpoint (46.562,-72.41).",
+      "exclude_trails": [
+        {
+          "id": "n:Le Buis",
+          "name": "Le Buis",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:La Trail des Gras",
+          "name": "La Trail des Gras",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Zigzag Nord",
+          "name": "Zigzag Nord",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Zigzag Centre",
+          "name": "Zigzag Centre",
+          "reason": "Not on the agency trail list read for this area; 76% of its OSM length"
+        }
+      ]
+    },
+    {
+      "id": "parc-de-la-riviere-doncaster-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 441506868,
+      "name": "Parc de la Rivière Doncaster",
+      "bbox": [
+        -74.15,
+        45.92,
+        -74.02,
+        46.03
+      ],
+      "center": [
+        45.974,
+        -74.087
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (LR0225) lists numbered trails ('Sentier no 1 - De la grande coulée' ...); OSM names carry '(Rando)' suffixes and numbering, all under 1 mi."
+    },
+    {
+      "id": "parc-du-bois-beckett-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 11191212,
+      "name": "Parc du Bois-Beckett",
+      "bbox": [
+        -71.99,
+        45.37,
+        -71.86,
+        45.48
+      ],
+      "center": [
+        45.423,
+        -71.926
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (LR0360) lists Le Verger, L'Ancêtre, L'Érablière, Le Panache, Le Bolet, L'Oriole; OSM Boucle Becket and Boucle Hale are not on it."
+    },
+    {
+      "id": "parc-du-lac-beauchamp-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 41555817,
+      "name": "Parc du Lac-Beauchamp",
+      "bbox": [
+        -75.69,
+        45.43,
+        -75.56,
+        45.55
+      ],
+      "center": [
+        45.491,
+        -75.63
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 4.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (numbered). Letter/acronym names (Boucle E, Boucle O, RIP, VDM, PSL)."
+    },
+    {
+      "id": "parc-eco-laurentides-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 7114177,
+      "name": "Parc Éco-Laurentides",
+      "bbox": [
+        -74.56,
+        45.98,
+        -74.41,
+        46.12
+      ],
+      "center": [
+        46.049,
+        -74.485
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 10.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: nature park (C6/C10 bar). Parc Éco-Laurentides official network of 14 (https://parceco.ca/randonnee-pedestre/): R1 Le Tour du lac 4.9 km, R4 L'Aquatique 1.1, R6 Le Panoramique 2.5, R7 L'Aventurier 6.1 ... Kept (3): Le Tour du Lac 3.68, L'Aventurier 3.51, L'Aquatique 1.00 mi (CTEL route relations). Excluded: Le Panoramique (1.08 mi of a listed 2.5 km, 70%; same treatment as Mont-Ham in Part 2), Les Refuges (not on the list). Pin moved from 46.049,-74.481 to the kept-trail vertex nearest the curated trail-extent midpoint (46.049,-74.485).",
+      "exclude_trails": [
+        {
+          "id": "n:Le Panoramique",
+          "name": "Le Panoramique",
+          "reason": "Only 1.08 mi published against the agency's 2.5 km (70%)"
+        },
+        {
+          "id": "n:Les Refuges",
+          "name": "Les Refuges",
+          "reason": "Not on the agency trail list read for this area"
+        }
+      ]
+    },
+    {
+      "id": "parc-marin-du-saguenay-saint-laurent-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388138,
+      "name": "Parc marin du Saguenay–Saint‑Laurent",
+      "bbox": [
+        -70.76,
+        47.59,
+        -69.24,
+        48.44
+      ],
+      "center": [
+        47.879,
+        -69.714
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 3,
+      "est_mi": 6.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. De la Mer Nord 70% and Sentier des Eiders 74% of their OSM lengths inside the polygon; one whole trail."
+    },
+    {
+      "id": "parc-naturel-du-mont-belair-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 19935313,
+      "name": "Parc naturel du mont Bélair",
+      "bbox": [
+        -71.57,
+        46.77,
+        -71.4,
+        46.91
+      ],
+      "center": [
+        46.841,
+        -71.482
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 2.4,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (numbered). 'Piste A' and a generic 'Sentier pédestre'."
+    },
+    {
+      "id": "parc-naturel-regional-de-portneuf-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8279178,
+      "name": "Parc naturel régional de Portneuf",
+      "bbox": [
+        -72.28,
+        46.72,
+        -72.02,
+        46.97
+      ],
+      "center": [
+        46.819,
+        -72.142
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 10,
+      "est_mi": 33.1,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class: parc naturel régional (C5/C7 bar). Agency trail table (https://parcportneuf.com/wp-content/uploads/2020/08/PNRP_CartesSentiers2020_Part3-4.pdf) lists A Des Chutes à Marcotte 7.4 km, B Des Marmites, C Des Sommets 8, D Des Cascades 3, E De la Montagne de la Tour 5.5, F De la rivière Noire 3, G De la glacière 5.6, H De la Traverse 3.2, I Sept Merveilleux 9.9, K De l'Ours 3.7 km (one-way). Kept (8): Sept Merveilleux 5.77, Des Chutes à Marcotte 4.61, Des Sommets 4.58, De la Rivière Noire 3.52, De la Glacière 3.32, De l'Ours 2.29, De la Traverse 1.91, Des Cascades 1.74 mi (route relations, 92-110% of the listed lengths; Rivière Noire OSM is longer than listed). Excluded: De la Montagne de la Tour (1.27 mi of a listed 5.5 km, 37%).",
+      "exclude_trails": [
+        {
+          "id": "n:De la Montagne de la Tour",
+          "name": "De la Montagne de la Tour",
+          "reason": "Only 1.27 mi published against the agency's 5.5 km (37%); not a whole route"
+        }
+      ]
+    },
+    {
+      "id": "reserve-nationale-de-faune-de-la-baie-de-l-isle-verte-secteur-du-marais-de-gros-cacouna-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 1230746206,
+      "name": "Réserve nationale de faune de la Baie-de-L'Isle-Verte - secteur du Marais-de-Gros-Cacouna",
+      "bbox": [
+        -69.56,
+        47.88,
+        -69.43,
+        48.0
+      ],
+      "center": [
+        47.937,
+        -69.504
+      ],
+      "tier": 3,
+      "hold": "few-trails",
+      "est_trails": 2,
+      "est_mi": 3.0,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (few-trails). Class C5. Balise (LR0256) lists Sentier de la Savane and Sentier de la Montagne, but Savane is 55% of its OSM length; one whole trail."
+    },
+    {
+      "id": "reserve-nationale-de-faune-du-cap-tourmente-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 11658083,
+      "name": "Réserve nationale de faune du Cap-Tourmente",
+      "bbox": [
+        -70.9,
+        47.0,
+        -70.69,
+        47.15
+      ],
+      "center": [
+        47.083,
+        -70.779
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 11,
+      "est_mi": 10.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12, remediation iteration 2 (part3-review B1; chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5 (réserve nationale de faune, signed interpretive trails). Balise (https://baliseqc.ca/3S/explorer/quebec/reserve-nationale-de-faune-du-cap-tourmente-LR0149; canada.ca unreachable from this network) lists 17 trails. OSM publishes network pieces, not whole routes: Sentier la Cîme is clipped at the boundary (its one segment ends at 47.099999,-70.749831) and publishes 1.89 mi against Balise's 14.8 km round trip, 969 m gain, Avancé. 8 of the 11 replayed trails are under 85% of the Balise length: Cédrière 70%, Souchet 47%, Érablière 33%, Pierrier 29%, Piedmont 23%, Aulnaie 21%, Falaise 59% one-way, and Cîme. Only Bois-Sent-Bon, Petit-Sault and Allée d'ormes pass (about 2.7 mi). That is 3 of 17 listed trails, without the summit trail, so a local expert would not want it. Needs a rescope: route relations stitched whole and a boundary that covers La Cîme.",
+      "exclude_trails": [
+        {
+          "id": "n:La Cime",
+          "name": "La Cime",
+          "reason": "Name-stitch duplicate of the 'Sentier la Cime' route relation (same trail)"
+        }
+      ]
+    },
+    {
+      "id": "reserve-naturelle-des-montagnes-vertes-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 12163692,
+      "name": "Réserve naturelle des Montagnes-Vertes",
+      "bbox": [
+        -72.62,
+        44.96,
+        -72.33,
+        45.24
+      ],
+      "center": [
+        45.115,
+        -72.436
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 5,
+      "est_mi": 6.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Sutton network names (Écho ~ Principal ~ SE ~ ..., Sentiers de l'Estrie, foot=permit) are 41-60% inside the polygon and the PENS network relation spans the rest; needs a Sutton/PENS rescope (audit-5 icon follow-up 5)."
+    },
+    {
+      "id": "reserve-naturelle-du-canton-de-shefford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 12242494,
+      "name": "Réserve naturelle du Canton-de-Shefford",
+      "bbox": [
+        -72.67,
+        45.29,
+        -72.52,
+        45.42
+      ],
+      "center": [
+        45.357,
+        -72.591
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 3.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C5. Colour and numbered names (Parc des Montagnards (rouge)/(jaune), Sentier 5 / 6); Salsepareille 61%."
+    },
+    {
+      "id": "reserve-naturelle-du-marais-leon-provancher-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 908452420,
+      "name": "Réserve naturelle du Marais-Léon-Provancher",
+      "bbox": [
+        -71.6,
+        46.66,
+        -71.47,
+        46.77
+      ],
+      "center": [
+        46.719,
+        -71.533
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 2.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C5 (réserve naturelle, signed interpretive trails). Société Provancher trail map (https://www.provancher.org/wp-content/uploads/2021/02/CARTE_RNMLP_85X11_2019_v3geo.pdf; Balise LR0739 has no per-trail list) labels Sentier de la Digue, Sentier des aubépines, La boucle des Pics. Kept (3): Sentier de la Digue 0.89, La boucle des Pics 0.72, Sentier des aubépines 0.71 mi (whole)."
+    },
+    {
+      "id": "zec-batiscan-neilson-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8330967,
+      "name": "Zec Batiscan-Neilson",
+      "bbox": [
+        -72.2,
+        46.87,
+        -71.51,
+        47.39
+      ],
+      "center": [
+        46.965,
+        -71.937
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 6,
+      "est_mi": 23.6,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Kept rows are a winter trail ('sentier hivernal'), a track (Côte à Ti-Oui), Descente aux Enfers 78% and Vallée Bras-du-Nord loops (Boucle de la Hauteur 25%)."
+    },
+    {
+      "id": "zec-buteux-bas-saguenay-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388142,
+      "name": "Zec Buteux–Bas-Saguenay",
+      "bbox": [
+        -70.12,
+        47.87,
+        -69.74,
+        48.23
+      ],
+      "center": [
+        48.094,
+        -69.894
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 6.7,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Both rows are tracks ('Traverse ...', highway=track), not hiking trails."
+    },
+    {
+      "id": "zec-de-la-bessonne-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8330965,
+      "name": "Zec de la Bessonne",
+      "bbox": [
+        -72.76,
+        47.21,
+        -72.28,
+        47.61
+      ],
+      "center": [
+        47.295,
+        -72.684
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 9.3,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Gazoduc (pipeline corridor, 36%) and a snowmobile line ('45- La Trail de Skidoo')."
+    },
+    {
+      "id": "zec-des-martres-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8388145,
+      "name": "Zec des Martres",
+      "bbox": [
+        -70.83,
+        47.62,
+        -70.27,
+        47.92
+      ],
+      "center": [
+        47.717,
+        -70.588
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 8,
+      "est_mi": 22.8,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C4. La Traversée de Charlevoix lists the ZEC day loops (Sommets, Monts du Lac-à-l'Empêche et Du Four, Mont Eudore-Fortin, Dôme, Orignac, Cadot et du Button, lac à la Main; https://www.traverseedecharlevoix.qc.ca/randonnees/randonnees-journalieres/) as 13-23 km loops built on the Traversée main line; OSM holds only the named spurs, so no listed loop publishes whole. Balise Mont des Morios (LR0896) adds Sentier des Chutes and Morios Nord. Needs a clip ruling."
+    },
+    {
+      "id": "zec-lavigne-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 8008858,
+      "name": "Zec Lavigne",
+      "bbox": [
+        -74.16,
+        46.25,
+        -73.65,
+        46.67
+      ],
+      "center": [
+        46.511,
+        -73.997
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 17.9,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). SHIP. Class C4 (ZEC: signed named hiking trails listed by Balise). Balise (https://baliseqc.ca/3S/explorer/lanaudiere/zec-lavigne-LR0649) lists Traverse du Sauvage, Traverse de la Montagne, Sentier du lac Sauvage, Sentier du lac Clair, Sentier de la Montagne carrée, Sentier de la petite rivière Swaggin, Sentier de la rivière L'Assomption, Sentier des Draveurs, Sentier des Scouts. Kept (3): Sentier des Draveurs 6.13, Sentier de la Rivière L'assomption 3.83, Sentier de la petite rivière Swaggin 3.58 mi. Excluded: Sentier de la Boule (not listed), Boucle Zen Nature and Zen Nature (Parc régional des Sept-Chutes network, live area; 18% for the stitch), Sentier de la riviere Swaggin (40% variant-name piece).",
+      "exclude_trails": [
+        {
+          "id": "n:Sentier de la Boule",
+          "name": "Sentier de la Boule",
+          "reason": "Not on the agency trail list read for this area"
+        },
+        {
+          "id": "n:Boucle Zen Nature",
+          "name": "Boucle Zen Nature",
+          "reason": "Sept-Chutes regional park loop (operator Parc Régional des Sept-Chutes); not a ZEC Lavigne trail"
+        },
+        {
+          "id": "n:Zen Nature",
+          "name": "Zen Nature",
+          "reason": "Same Sept-Chutes loop as a name-stitch (18% of its OSM length)"
+        },
+        {
+          "id": "n:Sentier de la riviere Swaggin",
+          "name": "Sentier de la riviere Swaggin",
+          "reason": "Variant-name piece (40%) of the listed petite rivière Swaggin trail"
+        }
+      ]
+    },
+    {
+      "id": "zec-louise-gosford-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "relation_id": 6947283,
+      "name": "ZEC Louise-Gosford",
+      "bbox": [
+        -70.96,
+        45.18,
+        -70.57,
+        45.56
+      ],
+      "center": [
+        45.316,
+        -70.857
+      ],
+      "tier": 3,
+      "hold": "curated-do-not-ship",
+      "est_trails": 4,
+      "est_mi": 13.5,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (curated-do-not-ship). Class C4: OUT. Numbered Sentier Frontalier segments (SF1 34%, SF6, SF7, SF10 48%) of a long-distance border trail."
+    },
+    {
+      "id": "zone-de-preservation-municipale-de-coleraine-ca-qc",
+      "province": "qc",
+      "state": "Canada",
+      "way_id": 475563850,
+      "name": "Zone de préservation municipale de Coleraine",
+      "bbox": [
+        -71.48,
+        45.94,
+        -71.33,
+        46.07
+      ],
+      "center": [
+        46.004,
+        -71.403
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 3,
+      "est_mi": 5.8,
+      "notes": "Phase C P3-3 QC curation 2026-11-12 (chat/ca-c-qc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Balise (https://baliseqc.ca/3S/explorer/chaudiere-appalaches/sentiers-pedestres-des-3-monts-LR0303) lists Grande boucle du Mont Caribou, Lac Johnston, Étang Dry; the main Mont-Caribou loop publishes 72%, leaving two spur trails."
+    },
+    {
       "id": "brown-hill-tract-ca-on",
       "province": "on",
       "state": "Canada",

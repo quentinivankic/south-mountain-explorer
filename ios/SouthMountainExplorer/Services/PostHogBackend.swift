@@ -26,7 +26,7 @@ final class PostHogBackend: AnalyticsBackend {
     }
 
     init(apiKey: String, host: String) {
-        let config = PostHogConfig(apiKey: apiKey, host: host)
+        let config = PostHogConfig(projectToken: apiKey, host: host)
         // Explicit events only — turn off every passive capture path.
         // (Session replay is off by default, so it's left unset.)
         config.captureScreenViews = false

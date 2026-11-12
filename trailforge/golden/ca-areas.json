@@ -2530,7 +2530,7 @@
       "center": null,
       "tier": 2,
       "hold": "municipal-deferred",
-      "notes": "NB curation 2026-11-02. Replay: Perimeter 3.66, Central 1.27, Covenhoven Loop 1.10 mi (3 trails, 6.0 mi). Provincial historic site, tide-gated access, tier below parks/PNAs; no official trail list read. Candidate for a later tier pass."
+      "notes": "NB curation 2026-11-02. Replay: Perimeter 3.66, Central 1.27, Covenhoven Loop 1.10 mi (3 trails, 6.0 mi). Provincial historic site, tide-gated access, tier below parks/PNAs; no official trail list read. Candidate for a later tier pass. Phase C P3-6 ruling 2026-11-12 (chat/ca-c-nbnsnl): HOLD (municipal-deferred). Class C7 (provincial historic site). Replay on 90768260c: Perimeter 3.66, Central 1.27, Covenhoven Loop 1.10 mi (whole). The site (https://www.ministersisland.net/) mentions nature trails but names none. Stays held."
     },
     {
       "id": "irishtown-nature-park-ca-nb",
@@ -2542,7 +2542,7 @@
       "center": null,
       "tier": 3,
       "hold": "municipal-deferred",
-      "notes": "NB curation 2026-11-02. Replay: 5 trails 4.6 mi (Dragonfly, John Howard, Spillway, Anguille, Malcom's Way). City of Moncton park shared with mountain biking; no official trail list read. Candidate for the municipal tier."
+      "notes": "NB curation 2026-11-02. Replay: 5 trails 4.6 mi (Dragonfly, John Howard, Spillway, Anguille, Malcom's Way). City of Moncton park shared with mountain biking; no official trail list read. Candidate for the municipal tier. Phase C P3-6 ruling 2026-11-12 (chat/ca-c-nbnsnl): HOLD (municipal-deferred). Class C7. Replay on 90768260c: John Howard 1.44, Malcom's Way 0.93, Dragonfly 0.84, Spillway 0.68, Anguille 0.66 mi (whole). City of Moncton page returned no content, so the names stay unverified against an agency list; park is shared with mountain biking. Stays held."
     },
     {
       "id": "killarney-lake-park-ca-nb",
@@ -2590,7 +2590,7 @@
       "center": null,
       "tier": 3,
       "hold": "municipal-deferred",
-      "notes": "NB curation 2026-11-02. leisure=park relation: the Canada prefilter drops it, so it can only run after the Canada workflow re-add (today it re-adds only r4855708) is extended to this relation. Scratch count: Sheldon Point 2.2, Heron 1.5, Seal 1.0, Squirrel 0.9 mi (4+ trails). Saint John nature park; municipal/private tier later."
+      "notes": "NB curation 2026-11-02. leisure=park relation: the Canada prefilter drops it, so it can only run after the Canada workflow re-add (today it re-adds only r4855708) is extended to this relation. Scratch count: Sheldon Point 2.2, Heron 1.5, Seal 1.0, Squirrel 0.9 mi (4+ trails). Saint John nature park; municipal/private tier later. Phase C P3-6 ruling 2026-11-12 (chat/ca-c-nbnsnl): HOLD (municipal-deferred). Class C7. Replay on 90768260c refused at check-boundary (leisure=park relation dropped by the Canada prefilter; publish workflow re-adds only r4855708). Stays held (plan follow-up 6)."
     },
     {
       "id": "rockwood-park-ca-nb",
@@ -3175,7 +3175,7 @@
       "center": null,
       "tier": 2,
       "hold": "municipal-deferred",
-      "notes": "NL curation 2026-11-02. Provincial forestry site run with the Town of Gander. 2 trails 2.0 mi after filters (Edgar Baird Lakeside 1.31, Edward Blackmore 0.66); Albert Martin 0.60 (0.597), P. G. Tipping 0.43 and Frank R. Hayward 0.31 are fragments. Gander town page lists 'three interpretive walking trails' without names (https://www.gander.ca/recreation-activities-and-visitors/walking-and-hiking-trails/), so no official source to waive the fragments. Below the 2.5 mi / 3 trail bar."
+      "notes": "NL curation 2026-11-02. Provincial forestry site run with the Town of Gander. 2 trails 2.0 mi after filters (Edgar Baird Lakeside 1.31, Edward Blackmore 0.66); Albert Martin 0.60 (0.597), P. G. Tipping 0.43 and Frank R. Hayward 0.31 are fragments. Gander town page lists 'three interpretive walking trails' without names (https://www.gander.ca/recreation-activities-and-visitors/walking-and-hiking-trails/), so no official source to waive the fragments. Below the 2.5 mi / 3 trail bar. Phase C P3-6 ruling 2026-11-12 (chat/ca-c-nbnsnl): HOLD (municipal-deferred). Class C6. Replay on 90768260c unchanged: Edgar Baird Lakeside 1.31 and Edward Blackmore 0.66 mi; Albert Martin, P. G. Tipping, Frank R. Hayward are fragments and the Gander page names no trails. Stays held."
     },
     {
       "id": "terra-nova-migratory-bird-sanctuary-ca-nl",
@@ -18729,6 +18729,50 @@
       "est_trails": 3,
       "est_mi": 2.3,
       "notes": "Phase B P2-4 AB+NS curation 2026-11-12 (chat/ca-b-abns; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Town of Wolfville / NSNT pages name no trails; OSM gives Havey Trail 0.95, Hemlock Ravine Trail 0.68 and Hemlock Ravine Loop 0.65 mi (two Hemlock Ravine names for one ravine walk). Names unverified; 2.3 mi in all."
+    },
+    {
+      "id": "centennial-park-ca-nb",
+      "province": "nb",
+      "state": "Canada",
+      "way_id": 220546976,
+      "name": "Centennial Park",
+      "bbox": [
+        -64.89,
+        46.03,
+        -64.76,
+        46.14
+      ],
+      "center": [
+        46.09,
+        -64.829
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 2,
+      "est_mi": 3.3,
+      "notes": "Phase C P3-6 Atlantic curation 2026-11-12 (chat/ca-c-nbnsnl; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7/C3. City of Moncton park page returned no content; the two rows (Lynx 2.09, Carcajou 1.18 mi) carry animal names used for the park's ski/multi-use loops and are unverified as signed hiking trails."
+    },
+    {
+      "id": "two-rivers-wildlife-park-ca-ns",
+      "province": "ns",
+      "state": "Canada",
+      "way_id": 557514162,
+      "name": "Two Rivers Wildlife Park",
+      "bbox": [
+        -60.36,
+        45.86,
+        -60.24,
+        45.99
+      ],
+      "center": [
+        45.923,
+        -60.301
+      ],
+      "tier": 3,
+      "hold": "needs-rescope",
+      "est_trails": 4,
+      "est_mi": 4.5,
+      "notes": "Phase C P3-6 Atlantic curation 2026-11-12 (chat/ca-c-nbnsnl; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7/C10. Two Rivers Wildlife Park site (https://www.tworiverspark.ca/) names only the 'Wildlife Trail' (the zoo walkway) and mentions unnamed hiking trails; OSM 'Two Rivers Short/Long Loop Hiking Trail' and 'Two Rivers Perimeter' are descriptive names, unverified."
     }
   ]
 }

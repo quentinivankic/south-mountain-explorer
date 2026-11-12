@@ -2582,8 +2582,8 @@
       ]
     },
     "parc-national-du-bic-ca-qc": {
-      "trail_count": 12,
-      "total_mi": 18.7,
+      "trail_count": 11,
+      "total_mi": 17.6,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2593,6 +2593,7 @@
         "Le Chemin du nord",
         "Le Chocolat",
         "Le Malard",
+        "Le Miquelon",
         "Les Escaliers"
       ]
     },

@@ -31,9 +31,10 @@ targets:
         product: PostHog
       - target: TrekDexLiveActivity
         embed: true
-    # Debug only: writes BuildStamp.plist (the git SHA) into the app so a
-    # local or device build shows its commit in Settings. Info.plist and
-    # Release builds are untouched (TestFlight sets the run number).
+    # Writes BuildStamp.plist (the git SHA) into Debug builds, and into
+    # Release builds only with TREKDEX_STAMP_COMMIT=YES (phone builds from
+    # scripts/install-device.sh), so Settings shows the commit. Info.plist
+    # and TestFlight archives are untouched (TestFlight sets the run number).
     postBuildScripts:
       - name: Stamp local build commit
         script: /bin/bash "$SRCROOT/../scripts/stamp-local-build.sh"

@@ -4,14 +4,16 @@
 # app bundle ($SCRIPT_OUTPUT_FILE_0), so the build re-signs the app when it
 # changes.
 #
-# Debug builds only (local simulator and device builds, and the PR unit
-# test build): writes the short git SHA, plus "-dirty" when tracked files
-# have uncommitted changes, as SourceCommit. Settings shows it after the
-# build number, so a phone shows which commit it runs.
+# Debug builds (local simulator builds and the PR unit test build), and
+# Release builds made with TREKDEX_STAMP_COMMIT=YES (local phone builds from
+# scripts/install-device.sh): writes the short git SHA, plus "-dirty" when
+# tracked files have uncommitted changes, as SourceCommit. Settings shows it
+# after the build number, so a phone shows which commit it runs.
 #
-# Release (TestFlight and App Store archives) gets no stamp file; the build
-# number there comes from ios-testflight.yml (github.run_number). Info.plist
-# is never edited here. Never fails the build: without git, no stamp.
+# Any other Release build (TestFlight and App Store archives) gets no stamp
+# file; the build number there comes from ios-testflight.yml
+# (github.run_number). Info.plist is never edited here. Never fails the
+# build: without git, no stamp.
 set -uo pipefail
 
 OUT="${SCRIPT_OUTPUT_FILE_0:-}"
@@ -20,10 +22,15 @@ if [ -z "$OUT" ]; then
   exit 0
 fi
 
+# Release stamps only when asked (scripts/install-device.sh passes
+# TREKDEX_STAMP_COMMIT=YES for local phone builds) and never on GitHub
+# Actions, so a TestFlight archive never carries a stamp.
 if [ "${CONFIGURATION:-}" != "Debug" ]; then
-  rm -f "$OUT"
-  echo "stamp-local-build: ${CONFIGURATION:-unknown} build, no stamp"
-  exit 0
+  if [ "${TREKDEX_STAMP_COMMIT:-}" != "YES" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    rm -f "$OUT"
+    echo "stamp-local-build: ${CONFIGURATION:-unknown} build, no stamp"
+    exit 0
+  fi
 fi
 
 REPO="${SRCROOT:-.}"

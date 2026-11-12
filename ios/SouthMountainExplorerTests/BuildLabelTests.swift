@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import SouthMountainExplorer
 
-/// Settings' Build row. Local Debug builds are stamped with the source
-/// commit by scripts/stamp-local-build.sh; Release builds are not.
+/// Settings' Build row. Local builds are stamped with the source commit by
+/// scripts/stamp-local-build.sh; TestFlight and App Store builds are not.
 @MainActor
 struct BuildLabelTests {
     @Test func releaseBuildShowsTheBuildNumberAlone() {

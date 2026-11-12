@@ -207,3 +207,146 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+  # Map gesture UI lane: runs ONLY AreaMapGestureTests (drag, trail
+  # selection, satellite pinch and trail line width) in its own job, in
+  # parallel with the unit tests, so a UI failure is labeled as such and
+  # never hides or delays the unit result. Same setup steps as above.
+  ui-map-gestures:
+    runs-on: xcode-27
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27.1
+        run: sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+
+      - name: Install iOS platform + Simulator runtime
+        # Same check and retry loop as the build-and-test job.
+        run: |
+          SDK_VER=$(xcrun --sdk iphonesimulator --show-sdk-version 2>/dev/null || true)
+          if [ -n "$SDK_VER" ] && xcrun simctl list runtimes available -j 2>/dev/null \
+               | python3 -c "
+          import sys, json
+          want = sys.argv[1]
+          rts = json.load(sys.stdin).get('runtimes', [])
+          ok = any(r.get('platform') == 'iOS' and r.get('isAvailable') and r.get('version') == want for r in rts)
+          sys.exit(0 if ok else 1)
+          " "$SDK_VER"; then
+            echo "iOS $SDK_VER Simulator runtime already installed; skipping download"
+            exit 0
+          fi
+          echo "No installed iOS ${SDK_VER:-unknown} Simulator runtime; downloading"
+          for attempt in 1 2 3 4; do
+            if xcodebuild -downloadPlatform iOS; then
+              echo "iOS platform ready (attempt $attempt)"
+              exit 0
+            fi
+            echo "downloadPlatform attempt $attempt failed; bouncing CoreSimulator, retrying in 30s" >&2
+            sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
+            sleep 30
+          done
+          echo "downloadPlatform failed after 4 attempts" >&2
+          exit 1
+
+      - name: Install XcodeGen (pinned release binary)
+        env:
+          XCODEGEN_VERSION: "2.46.0"
+          XCODEGEN_SHA256: "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806"
+        run: |
+          DEST="$RUNNER_TEMP/xcodegen-$XCODEGEN_VERSION"
+          mkdir -p "$DEST"
+          curl -fsSL --retry 3 --retry-delay 5 -o "$DEST/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $DEST/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$DEST/xcodegen.zip" -d "$DEST"
+          echo "$DEST/xcodegen/bin" >> "$GITHUB_PATH"
+          "$DEST/xcodegen/bin/xcodegen" --version
+
+      - name: Copy committed trail index into iOS bundle
+        run: |
+          cp public/areas/index.json ios/SouthMountainExplorer/Resources/areas-index.json
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Pick and boot an iPhone simulator
+        # Prefer iPhone 18 Pro Max: on that screen the map center sits
+        # above the trail-list sheet, which the pinch needs (XCUIElement
+        # pinch always lands on the element's center). Falls back to any
+        # available iPhone; the test then fails with a clear message if
+        # the sheet covers the center. Booted up front so the install
+        # step never meets a shut-down device.
+        run: |
+          read -r UDID NAME < <(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          iphones = [d for devs in data['devices'].values() for d in devs if 'iPhone' in d['name']]
+          pick = next((d for d in iphones if d['name'] == 'iPhone 18 Pro Max'), iphones[0] if iphones else None)
+          print(pick['udid'], pick['name']) if pick else print('')
+          ")
+          if [ -z "$UDID" ]; then
+            echo "No available iPhone simulator found" >&2
+            xcrun simctl list devices available >&2
+            exit 1
+          fi
+          echo "Using simulator $NAME ($UDID)"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID"
+
+      - name: Build app and UI tests for testing
+        working-directory: ios
+        run: |
+          xcodebuild build-for-testing \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorerUITests \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$PWD/DerivedData" \
+            -quiet \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install app and grant location
+        # Same setup as ios-screenshots.yml: install first so the location
+        # grant applies, then a fixed South Mountain location.
+        working-directory: ios
+        run: |
+          APP="$PWD/DerivedData/Build/Products/Debug-iphonesimulator/SouthMountainExplorer.app"
+          test -d "$APP"
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          xcrun simctl install "$SIM_UDID" "$APP"
+          xcrun simctl privacy "$SIM_UDID" grant location com.southmountainexplorer.app
+          xcrun simctl location "$SIM_UDID" set 33.330353,-112.104609
+
+      - name: Run map gesture UI tests
+        working-directory: ios
+        # TEST_RUNNER_TREKDEX_CI=1 makes the satellite test require a real
+        # pinch (no double-tap fallback).
+        env:
+          TEST_RUNNER_TREKDEX_CI: "1"
+        run: |
+          xcodebuild test-without-building \
+            -project SouthMountainExplorer.xcodeproj \
+            -scheme SouthMountainExplorerUITests \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$PWD/DerivedData" \
+            -resultBundlePath "$PWD/MapGestureResults.xcresult" \
+            -only-testing:SouthMountainExplorerUITests/AreaMapGestureTests \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload result bundle on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-gesture-results
+          path: ios/MapGestureResults.xcresult
+          retention-days: 7
+          if-no-files-found: ignore

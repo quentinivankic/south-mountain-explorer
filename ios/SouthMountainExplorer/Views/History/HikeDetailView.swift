@@ -144,13 +144,17 @@ struct HikeDetailView: View {
                 }
             }
         }
-        // Satellite imagery, flat. `.standard(elevation: .realistic)`
+        // Satellite imagery. `.standard(elevation: .realistic)`
         // renders 3D vector + terrain tiles that are slow to load (they
         // came up blank in the CI screenshot capture) and heavier than
         // this view needs; imagery tiles load reliably and a blue GPS
         // route reads clearly against the terrain photo — matching the
         // area/recording maps, which already use satellite.
-        .mapStyle(.imagery(elevation: .flat))
+        // Keep imagery on `.realistic`, like the Area map
+        // (`MapStylePreference.makeMapConfiguration`): on the iOS 27.3
+        // simulator `.imagery(elevation: .flat)` left this map frozen
+        // (a one-finger drag moved 0% of its pixels); `.realistic` pans.
+        .mapStyle(.imagery(elevation: .realistic))
     }
 
     private var statsCard: some View {

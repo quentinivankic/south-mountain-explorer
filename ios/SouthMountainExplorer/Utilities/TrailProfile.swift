@@ -39,16 +39,10 @@ enum TrailProfile {
         }
     }
 
-    /// Metres between two coordinates (haversine).
+    /// Metres between two coordinates (haversine, R = 6,371,000 m, asin
+    /// form; see Utilities/Haversine.swift).
     static func meters(_ a: Point, _ b: Point) -> Double {
-        let r = 6_371_000.0
-        let dLat = (b.lat - a.lat) * .pi / 180
-        let dLon = (b.lon - a.lon) * .pi / 180
-        let la1 = a.lat * .pi / 180
-        let la2 = b.lat * .pi / 180
-        let h = sin(dLat / 2) * sin(dLat / 2)
-            + cos(la1) * cos(la2) * sin(dLon / 2) * sin(dLon / 2)
-        return 2 * r * asin(min(1, sqrt(h)))
+        haversineDistanceAsin(lat1: a.lat, lon1: a.lon, lat2: b.lat, lon2: b.lon, radius: earthRadiusMeters)
     }
 
     /// Cumulative distance in metres at each polyline vertex (first is 0).

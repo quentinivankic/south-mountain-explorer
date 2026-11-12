@@ -34,6 +34,7 @@ sys.path.insert(0, os.path.join(_ROOT, "scripts"))
 sys.path.insert(0, os.path.join(_ROOT, "trailforge", "serve"))
 import _parking_geom_guard as geom_guard  # noqa: E402
 import degenerate  # noqa: E402
+import distinct_ground  # noqa: E402
 
 
 def _run(args) -> int:
@@ -80,6 +81,8 @@ def _run(args) -> int:
             d["trails"] = kept
             d["trail_count"] = len(kept)
             d["total_mi"] = new_mi
+            if distinct_ground.FIELD in d:  # refresh only if already present, so a sweep never adds the field
+                d[distinct_ground.FIELD] = distinct_ground.distinct_miles(kept)
             geom_guard.atomic_write_json(path, d)
             row = by_slug.get(slug)
             if row:

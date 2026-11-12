@@ -23,8 +23,10 @@ from collections import Counter
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(_ROOT, "scripts"))
 sys.path.insert(0, os.path.join(_ROOT, "trailforge", "assemble"))
+sys.path.append(os.path.join(_ROOT, "trailforge", "serve"))  # last: never shadows the two above
 import _parking_geom_guard as geom_guard  # noqa: E402
 import model  # noqa: E402
+import distinct_ground  # noqa: E402
 
 
 def drop_reason(name: str | None, region: str | None = None) -> str | None:
@@ -105,6 +107,10 @@ def _run(args) -> int:
             document["trails"] = new_trails
             document["trail_count"] = len(new_trails)
             document["total_mi"] = new_mi
+            if distinct_ground.FIELD in document:  # refresh only if already present, so a sweep never adds the field
+                document[distinct_ground.FIELD] = distinct_ground.distinct_miles(
+                    new_trails,
+                    total=sum(_miles(trail.get("segments")) for trail in new_trails))
             geom_guard.atomic_write_json(path, document)
             row = by_slug.get(slug)
             if row:

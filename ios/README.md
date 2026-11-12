@@ -32,6 +32,19 @@ In Xcode → Project → Signing & Capabilities → set your Apple Developer Tea
 ### 6. Build & Archive for TestFlight
 Product → Archive → Distribute App → TestFlight
 
+## Install on a phone over USB
+```bash
+scripts/install-device.sh --dry-run <device-udid>   # check only
+scripts/install-device.sh <device-udid>             # build and install
+```
+Run from the repo root with the phone plugged in, unlocked and trusted. The
+script checks the phone, builds Release with development signing, and
+installs over the existing app (it never uninstalls, so data stays). If the
+install fails it checks the phone again and retries once. It stops when the
+phone is only on Wi-Fi; add `--allow-network` to install anyway. List UDIDs
+with `xcrun devicectl list devices`. Settings > About > Build then shows the
+commit, for example `1 (291be0047)`.
+
 ## Project structure
 
 ```

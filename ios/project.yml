@@ -6,9 +6,12 @@ options:
   xcodeVersion: "26.0"
 
 packages:
+  # Pinned to one exact version (also pinned by revision in the
+  # committed Package.resolved), so CI and local builds never pick up a
+  # new SDK without a commit. Bump both together on purpose.
   PostHog:
     url: https://github.com/PostHog/posthog-ios
-    from: "3.0.0"
+    exactVersion: "3.94.4"
 
 targets:
   SouthMountainExplorer:
@@ -28,6 +31,16 @@ targets:
         product: PostHog
       - target: TrekDexLiveActivity
         embed: true
+    # Writes BuildStamp.plist (the git SHA) into Debug builds, and into
+    # Release builds only with TREKDEX_STAMP_COMMIT=YES (phone builds from
+    # scripts/install-device.sh), so Settings shows the commit. Info.plist
+    # and TestFlight archives are untouched (TestFlight sets the run number).
+    postBuildScripts:
+      - name: Stamp local build commit
+        script: /bin/bash "$SRCROOT/../scripts/stamp-local-build.sh"
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/BuildStamp.plist
+        basedOnDependencyAnalysis: false
     resources:
       - path: SouthMountainExplorer/Resources
       - path: SouthMountainExplorer/Assets.xcassets

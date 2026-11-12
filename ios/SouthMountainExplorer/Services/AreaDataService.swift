@@ -551,7 +551,8 @@ final class AreaDataService {
             trailCount: area.trailCount,
             totalMi: area.totalMi,
             cachedAt: area.cachedAt,
-            parking: area.parking
+            parking: area.parking,
+            distinctMi: area.distinctMi
         )
     }
 

@@ -36,6 +36,13 @@ struct Area: Codable, Identifiable, Sendable {
     /// memberwise-init call sites compile unchanged (same trick as
     /// `rawTrails`), but it IS in `CodingKeys` so it decodes from the geom.
     var parking: [ParkingLot]? = nil
+    /// Distinct-ground miles from the geom's `distinct_mi`: the area's trail
+    /// miles with ground shared by two or more trails counted once
+    /// (`trailforge/serve/distinct_ground.py`). Absent from geom published
+    /// before that field existed, so `nil` falls back to `totalMi`. `var … = nil`
+    /// for the same reason as `parking`: it decodes, and existing memberwise
+    /// call sites compile unchanged.
+    var distinctMi: Double? = nil
     /// In-memory-only carrier for the pre-decimation trail geometry.
     /// `trails` is the decimated render-side data; `rawTrails`, when
     /// set, holds the dense node set used for spatial-grid build,
@@ -49,7 +56,9 @@ struct Area: Codable, Identifiable, Sendable {
     var rawTrails: [Trail]? = nil
 
     var resolvedTrailCount: Int { trailCount ?? trails.count }
-    var resolvedTotalMi: Double { totalMi ?? trails.reduce(0) { $0 + $1.distanceMi } }
+    /// The area's miles as shown on the area screen: distinct ground when the
+    /// geom carries it, otherwise today's `total_mi`, otherwise the trail sum.
+    var resolvedTotalMi: Double { distinctMi ?? totalMi ?? trails.reduce(0) { $0 + $1.distanceMi } }
 
     enum CodingKeys: String, CodingKey {
         case id, name, subtitle, zoom, bbox, trails, parking
@@ -57,6 +66,7 @@ struct Area: Codable, Identifiable, Sendable {
         case centerLon = "center_lon"
         case trailCount = "trail_count"
         case totalMi = "total_mi"
+        case distinctMi = "distinct_mi"
         case cachedAt = "cached_at"
     }
 }
@@ -85,6 +95,8 @@ struct AreaRow: Codable, Sendable {
     /// decode). `var … = nil` both decodes AND stays out of the memberwise
     /// init, so the manual `AreaRow(...)` stubs compile unchanged.
     var parking: [ParkingLot]? = nil
+    /// `distinct_mi` from the geom, when present (see `Area.distinctMi`).
+    var distinctMi: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, state, zoom, bbox, trails, parking
@@ -92,6 +104,7 @@ struct AreaRow: Codable, Sendable {
         case centerLon = "center_lon"
         case trailCount = "trail_count"
         case totalMi = "total_mi"
+        case distinctMi = "distinct_mi"
         case cachedAt = "cached_at"
         case osmRelationId = "osm_relation_id"
     }
@@ -116,7 +129,8 @@ struct AreaRow: Codable, Sendable {
             // background refresh on every open, which non-deterministically
             // re-shuffled trail IDs and double-counted completions.
             cachedAt: cachedAt.flatMap { formatter.date(from: $0) } ?? Date(),
-            parking: parking
+            parking: parking,
+            distinctMi: distinctMi
         )
     }
 }
@@ -141,6 +155,7 @@ extension Area {
             totalMi: totalMi,
             cachedAt: cachedAt,
             parking: parking,
+            distinctMi: distinctMi,
             rawTrails: newRawTrails
         )
     }
@@ -187,7 +202,8 @@ extension Area {
             trailCount: trailCount,
             totalMi: totalMi,
             cachedAt: cachedAt,
-            parking: parking
+            parking: parking,
+            distinctMi: distinctMi
         )
     }
 

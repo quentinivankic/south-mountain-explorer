@@ -35,13 +35,32 @@ final class AreaMapGestureTests: XCTestCase {
         print("MAPGESTURE idleDiff=\(idle) probe=\(probe) mapFrame=\(map.frame)")
         XCTAssertLessThan(idle, 0.05, "Map is not idle before the drag")
 
+        // CI run 43282233385 attempt 1: the drag was synthesized, but the map
+        // stayed pixel-identical for the whole recording (no move, no snap
+        // back), so the touch never reached MapKit. The app adds no pan
+        // blocker (only a standalone tap recognizer). So: a longer drag at a
+        // fixed speed with a hold at the end (no fling), measured only once
+        // the camera settles, and ONE re-issue only when the map did not
+        // change at all (< 1% of pixels). A real "pan ignored" regression
+        // stays pixel-identical on both tries and still fails.
         let start = app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: probe.x, dy: probe.y))
-        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: -120, dy: 90)))
-        sleep(4)
-        let s2 = shot("map-2-after-drag")
-        let drag = diff(s1, s2, around: probe)
+        let dragOnce = {
+            start.press(forDuration: 0.1,
+                        thenDragTo: start.withOffset(CGVector(dx: -150, dy: 110)),
+                        withVelocity: 600, thenHoldForDuration: 0.3)
+        }
+        dragOnce()
+        var s2 = settledShot("map-2-after-drag", around: probe)
+        var drag = diff(s1, s2, around: probe)
         print("MAPGESTURE dragDiff=\(drag)")
+        if drag < 0.01 {
+            print("MAPGESTURE drag not delivered (map unchanged), re-issuing once")
+            dragOnce()
+            s2 = settledShot("map-2-after-drag-retry", around: probe)
+            drag = diff(s1, s2, around: probe)
+            print("MAPGESTURE dragDiff retry=\(drag)")
+        }
         XCTAssertGreaterThan(drag, 0.3, "One-finger drag did not move the Area map")
 
         // Programmatic camera move: selecting a trail from the list.
@@ -97,8 +116,7 @@ final class AreaMapGestureTests: XCTestCase {
             app.coordinate(withNormalizedOffset: .zero)
                 .withOffset(CGVector(dx: probe.x, dy: probe.y)).doubleTap()
         }
-        sleep(6)
-        let s1 = shot("sat-1-after-zoom")
+        let s1 = settledShot("sat-1-after-zoom", around: probe)
         let zoom = diff(s0, s1, around: probe)
         let w1 = lineWidth(s1, in: band)
         print("MAPGESTURE sat zoomDiff=\(zoom) after width=\(w1.median) px=\(w1.pixels)")
@@ -106,12 +124,17 @@ final class AreaMapGestureTests: XCTestCase {
                              centerHittable ? "Pinch did not zoom the satellite Area map"
                                             : "Double tap did not zoom the satellite Area map")
 
-        // 3 pt strokes measure 2.67-3.0 pt here (8-9 px at 3x); with the
-        // compensation turned off they measured 5.0-5.33 pt (iOS 27.3 Duo).
+        // 3 pt strokes measured 2.67-3.67 pt across devices: 2.67-3.0 on the
+        // iOS 27.3 Duo, 2.83-3.30 on CI's iPhone 18 Pro Max, 3.67 on iPhone
+        // 17e (1 px steps at 3x are 0.33 pt). With the compensation turned
+        // off they measured 5.0-5.33 pt. The upper limit is the midpoint of
+        // the good max (3.67) and the bad min (5.0): 4.33 pt, about 2 px of
+        // margin each way. The old 4.0 limit was 1 px above the 17e reading.
+        let maxWidth = 4.33
         for (label, w) in [("before", w0), ("after", w1)] {
             XCTAssertGreaterThanOrEqual(w.pixels, 2000, "Too few trail-line pixels to measure (\(label) zoom)")
             XCTAssertGreaterThan(w.median, 1.5, "Satellite trail lines too thin \(label) zoom: \(w.median) pt")
-            XCTAssertLessThan(w.median, 4.0, "Satellite trail lines too thick \(label) zoom: \(w.median) pt")
+            XCTAssertLessThan(w.median, maxWidth, "Satellite trail lines too thick \(label) zoom: \(w.median) pt")
         }
         let ratio = w1.median / w0.median
         XCTAssertTrue((0.7...1.43).contains(ratio),
@@ -181,6 +204,25 @@ final class AreaMapGestureTests: XCTestCase {
         } else {
             element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
+    }
+
+    /// Waits for the camera to stop moving after a gesture, then attaches the
+    /// settled frame. Samples every 0.5 s and returns once two samples in a
+    /// row match (< 1% changed pixels around `p`), after at least 1 s and at
+    /// most 15 s. Replaces a fixed sleep so a slow runner can't measure a
+    /// camera that is still animating, and a fast one doesn't wait for nothing.
+    private func settledShot(_ name: String, around p: CGPoint) -> UIImage {
+        Thread.sleep(forTimeInterval: 1.0)
+        var last = XCUIScreen.main.screenshot().image
+        let deadline = Date().addingTimeInterval(14)
+        while Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.5)
+            let next = XCUIScreen.main.screenshot().image
+            let moving = diff(last, next, around: p)
+            last = next
+            if moving >= 0, moving < 0.01 { break }
+        }
+        return shot(name)
     }
 
     private func shot(_ name: String) -> UIImage {

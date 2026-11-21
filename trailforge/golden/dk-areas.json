@@ -2087,7 +2087,7 @@
       "hold": "curated-do-not-ship",
       "est_trails": 5,
       "est_mi": 5.5,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report."
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Scale batch 1 (dk-v3 replay 2026-11-21, local, not blessed): HOLD stays. Replay yields Hoved ruten - Marielundskoven, Marielundsskoven Hjertesti (Hjerteforeningen; misspelt, no official source for a name fix), Troldhedestien and Kløversti - Leg & Aktivitet (exercise/play network, must be excluded). Alternative routes to hovedruten drops for a relation gap. The set is a municipal town-forest loop, truncated, and the Kolding Skov label is not what locals call it (Marielundskoven). Unlock: official Marielundskoven route list, OSM name/gap fixes, then a ruling on the area name."
     },
     {
       "id": "lindet-skov-dk",
@@ -4570,6 +4570,85 @@
       ],
       "est_trails": 2,
       "est_mi": 6.6
+    },
+    {
+      "id": "skjern-birk-plantage-dk",
+      "name": "Skjern Birk Plantage",
+      "state": "Denmark",
+      "relation_id": 6120514,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "trail_name_prefix": "Skjern Birk",
+      "container_by_id": {
+        "reason": "Skjern Birk Plantage forest polygon (relation 6120514) is 0.015 x 0.008 degrees, under the 0.01 boundary floor; it is the named forest and the three signed walks come in whole via include_trails"
+      },
+      "include_trails": [
+        {
+          "id": "r13147028",
+          "name": "Rød rute",
+          "reason": "Ringkøbing-Skjern Kommune lwn red walk in Skjern Birk Plantage, whole route"
+        },
+        {
+          "id": "r13147029",
+          "name": "Gul rute",
+          "reason": "Ringkøbing-Skjern Kommune lwn yellow walk in Skjern Birk Plantage, whole route"
+        },
+        {
+          "id": "r13147030",
+          "name": "Blå rute",
+          "reason": "Ringkøbing-Skjern Kommune lwn blue walk in Skjern Birk Plantage, whole route"
+        }
+      ],
+      "est_trails": 3,
+      "est_mi": 4.0,
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 6120514 (landuse=forest, 0.5 km2). 3 signed Ringkøbing-Skjern Kommune walks not live: Rød rute, Gul rute, Blå rute (4.0 mi). Bare colour names take the place prefix. No live overlap. Local replay is a rehearsal; bless only from the Actions qualify run. HOLD (scale batch 1 local replay 2026-11-21): all 3 trails are bare colour names (generic share 1.0, qualify says EXCLUDE-RECOMMENDED even with the Skjern Birk prefix); 0.5 km2 plantation, 4.0 mi of which 3.6 distinct; municipal, no operator page or destination page. Unlock: a ruling that a prefixed bare-colour kommune set counts, or an official route list."
+    },
+    {
+      "id": "hovens-skov-dk",
+      "name": "Hovens Skov",
+      "state": "Denmark",
+      "relation_id": 1982345,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "display_name": "Houens Odde og Hovens Skov",
+      "container_by_id": {
+        "reason": "Hovens Skov forest polygon (relation 1982345) is 0.031 x 0.009 degrees, under the 0.01 boundary floor on one side; it is the named forest and the two signed walks come in whole via include_trails"
+      },
+      "include_trails": [
+        {
+          "id": "r16276362",
+          "name": "Houens Odde Hollies Sti",
+          "reason": "lwn walk on Houens Odde in Hovens Skov, whole route"
+        },
+        {
+          "id": "r16276363",
+          "name": "Houens Odde Vandretur",
+          "reason": "lwn walk on Houens Odde in Hovens Skov, whole route"
+        }
+      ],
+      "est_trails": 2,
+      "est_mi": 5.3,
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 1982345 (landuse=forest, source Kolding Kommune, 0.44 km2). 2 named signed routes: Houens Odde Hollies Sti and Houens Odde Vandretur (5.3 mi). Locals say Houens Odde, so display_name carries both. No live overlap. Bless only from the Actions qualify run."
+    },
+    {
+      "id": "linnebjerg-plantage-dk",
+      "name": "Linnebjerg Plantage",
+      "state": "Denmark",
+      "way_id": 32939155,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 2.3,
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): way-backed polygon (way 32939155, landuse=forest, 0.38 km2). 2 named signed routes: Rød Rute, Linnebjerg Bakke and Gul Rute, Linnebjerg Bakke (2.3 mi); names already carry the place. No live overlap. Bless only from the Actions qualify run. HOLD (scale batch 1 local replay 2026-11-21): replay is clean (2 trails, 2.3 mi, 1.8 distinct, no live overlap) but it is below the 2.5 mi / 2 trail line applied to Rødding Skov and Klim Bjerg in batch K, and no operator or destination page names it. Unlock: the same ruling that 2 short signed walks suffice."
     }
   ]
 }

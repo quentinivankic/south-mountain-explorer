@@ -75,7 +75,7 @@ def test_registry_validator_wired():
 def test_live_registry_loads_and_adopted_hikes_present():
     reg = ca_publish.load_registry()
     names = {e["name"] for a in reg["areas"] for e in a.get("adopt_ways", [])}
-    assert {"Johnson Lake Loop", "Sunwapta Falls", "Malady Head"} <= names
+    assert {"Johnson Lake Loop", "Sunwapta Falls"} <= names
 
 
 # ------------------------------------------------------------------ adoption
@@ -170,7 +170,7 @@ def _cli(tmp_path, adopt, with_boundary=True):
     trails = tmp_path / "t.trails.geojson"
     trails.write_text(json.dumps({"type": "FeatureCollection", "features": [trail()]}))
     if with_boundary:
-        (tmp_path / "t.trails.exact-area.geojson").write_text(json.dumps(
+        (tmp_path / "t.exact-area.geojson").write_text(json.dumps(
             {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {},
                                                          "geometry": shapely_geometry.mapping(BOX)}]}))
     report = tmp_path / "r.json"

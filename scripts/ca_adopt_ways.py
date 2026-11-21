@@ -11,7 +11,7 @@ Checks, all fail closed (exit 2 "SAFETY BLOCK"; the trails file is untouched on 
   every way is in the extract and is a path/footway/steps/pedestrian way; no access=private|no,
   foot=no, mtb:scale, or piste:type (unless listed in allow_piste); the ways chain into one route
   (shared nodes, remaining gaps <= max_gap_m, default 30); at least 90% of the length lies inside the
-  area boundary (`<trails stem>.exact-area.geojson`, written by assemble --require-exact-area); no way
+  area boundary (`<id>.exact-area.geojson` beside `<id>.trails.geojson`, written by assemble --require-exact-area); no way
   is already a member of an assembled trail; the name is not already an assembled trail.
 """
 from __future__ import annotations
@@ -223,7 +223,8 @@ def read_ways(pbf: str, wanted: set[int]) -> dict[int, dict]:
 
 
 def load_boundary(trails_path: Path) -> Any:
-    path = trails_path.with_name(trails_path.name.replace(".geojson", ".exact-area.geojson"))
+    # assemble.py writes data/aoi/<id>.exact-area.geojson beside <id>.trails.geojson.
+    path = trails_path.with_name(trails_path.name.replace(".trails.geojson", ".exact-area.geojson"))
     if not path.is_file():
         return None
     from shapely.geometry import shape

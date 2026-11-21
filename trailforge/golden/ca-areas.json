@@ -290,16 +290,6 @@
           "name": "West River Trail",
           "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
           "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
-        },
-        {
-          "name": "Grafton Woods Trail",
-          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/rando-hiking",
-          "reason": "Parks Canada Kejimkujik hiking page lists Grafton Woods Trail (day-use loops of 1.6 km); OSM maps the 0.84 mi loop as an nwn relation wholly inside the park, dropped only by the network rule."
-        },
-        {
-          "name": "Roger Brook Trail",
-          "source": "https://novascotia.com/listing/rogers-brook-trail-kejimkujik-national-park-and-national-historic-site/",
-          "reason": "Tourism Nova Scotia listing for the Parks Canada Rogers Brook Trail: 1 km (0.6 mi) loop; OSM 0.545 mi is the whole signed loop, dropped only by the 0.6 mi fragment floor."
         }
       ],
       "exclude_trails": [
@@ -2744,16 +2734,6 @@
           "name": "Mill Cove Lookout Trail",
           "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
           "reason": "Official name Mill Cove Lookout Trail"
-        }
-      ],
-      "adopt_ways": [
-        {
-          "name": "Malady Head",
-          "way_ids": [
-            619363865
-          ],
-          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
-          "reason": "Parks Canada Terra Nova hiking list names Malady Head (blind audit 6). The 1.7 km path to the viewpoint (node 5970120485) is unnamed in OSM."
         }
       ]
     },
@@ -10111,11 +10091,6 @@
           "name": "Joe Creek Nature Trail",
           "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
           "reason": "Ontario Parks lists the Joe Creek Nature Trail; mapped 0.40 mi footway inside the park polygon"
-        },
-        {
-          "name": "Thunder Bay Bogs Nature Trail",
-          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
-          "reason": "Ontario Parks lists the 0.7 km Thunder Bay Bogs Nature Trail loop; OSM 0.373 mi (0.6 km) is the whole loop, dropped only by the 0.6 mi fragment floor"
         }
       ],
       "trail_name_fixes": [

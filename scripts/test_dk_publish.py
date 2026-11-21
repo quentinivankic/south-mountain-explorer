@@ -330,11 +330,15 @@ SCALE2_CLUSTER = ["bramslev-bakker-dk", "louns-halvo-dk", "sottrup-skov-dk", "mo
                   "illerup-adal-dk", "kong-mose-dk", "varming-hede-dk", "ornhoj-dk", "aarup-dk",
                   "arrild-ferieby-dk", "fyrkat-hobro-dk", "gudernes-straede-dk", "skovsgaard-tasinge-dk"]
 SCALE2_ALL = [*SCALE2_CLUSTER, *SCALE2_WAY]
+# Scale batch 3 (2026-11-21): two route-cluster areas ship (bbox null until the Actions qualify); three failed the local replay closed and are held.
+SCALE3_SHIP = ["trelde-naes-dk", "nordborg-mjels-so-dk"]
+SCALE3_HELD = ["thise-dk", "vellev-dk", "augustenborg-dk"]
+SCALE3_CLUSTER = [*SCALE3_SHIP, *SCALE3_HELD]
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 223
+    assert len(areas) == 228
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
@@ -351,7 +355,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -474,7 +478,7 @@ def test_batch_l_route_cluster_ships_and_holds():
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None
     # the opt-in is used by exactly the batch L entries
     assert {i for i, a in by_id.items() if "container_from_routes" in a} == {
-        *BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER}
+        *BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER}
     # est counts = the replay (trails, miles) on main f6f819949; centre inside the bbox
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_L_SHIP} == {
         "bangsbo-skov-dk": (3, 5.6),
@@ -543,9 +547,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 130, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 132, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 61, "superseded": 6}
+        "curated-do-not-ship": 64, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)
@@ -776,7 +780,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
             *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K, *DK_V3_BATCH_L,
-            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL)}
+            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -2988,7 +2992,7 @@ def test_run_area_script_passes_container_from_routes_only_when_set():
     assert "--dk-container-from-routes" in script
 def test_only_batch_l_and_batch_3_registry_entries_use_container_from_routes():
     assert {a["id"] for a in json.loads(REGISTRY.read_text(encoding="utf-8"))["areas"]
-            if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER}
+            if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER}
 
 
 # ------------------------------------------------------------ BATCH-3 pins ----

@@ -5207,6 +5207,166 @@
       "est_trails": 3,
       "est_mi": 15.3,
       "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-080): polygon way 1322918934 (Hals Mose protected area, 6.1 km2). Three Aalborg Kommune colour walks lie inside. Bless only from the Actions qualify run."
+    },
+    {
+      "id": "trelde-naes-dk",
+      "name": "Trelde Næs",
+      "state": "Denmark",
+      "relation_id": 3532907,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 11.3,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-138): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Trelde Næs; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r3532907",
+          "name": "Fredericia til Trelde Næs",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12411875",
+          "name": "Trelde Næs Rundtur",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "nordborg-mjels-so-dk",
+      "name": "Nordborg og Mjels Sø",
+      "state": "Denmark",
+      "relation_id": 1851505,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 19.2,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-097 + cluster-140 + als-dk island split (Sønderborg Kommune Rundt om walks, north Als)): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Nordborg og Mjels Sø; container derived from the 5 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r1851505",
+          "name": "Rundt om Nordborg Sø",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1851507",
+          "name": "Rundt om Oldenor",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1851506",
+          "name": "Rundt om Gammeldam",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6098362",
+          "name": "Bundsøstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1851508",
+          "name": "Rundt om Mjels Sø",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "thise-dk",
+      "name": "Thise",
+      "state": "Denmark",
+      "relation_id": 20629683,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 14.3,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-127): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: both routes removed as unresolved-relation-gap, 0 trails.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Thise; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r20629683",
+          "name": "Lille Thise Sti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r20633672",
+          "name": "Thise Stien - Lang rute",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "vellev-dk",
+      "name": "Vellev og Ulstrup",
+      "state": "Denmark",
+      "relation_id": 14604615,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 9.4,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-143): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: run rc=2, 0 trails.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Vellev og Ulstrup; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r14604615",
+          "name": "Jordemoderstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13845215",
+          "name": "Naturstien Ulstrup-Vellev",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "augustenborg-dk",
+      "name": "Augustenborg og Stevning Nor",
+      "state": "Denmark",
+      "relation_id": 1849433,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 2,
+      "est_mi": 7.4,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census als-dk island split): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: route cluster 0.140 x 0.063 degrees, over the 0.12 cap (two places).",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Augustenborg og Stevning Nor; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r1849433",
+          "name": "Augustenborgstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1850786",
+          "name": "Stevning Nor stien",
+          "reason": "signed named walk, whole route"
+        }
+      ]
     }
   ]
 }

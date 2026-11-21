@@ -118,7 +118,9 @@ def province_of(area_id: str) -> str:
 
 
 def pbf_url(province: str) -> str:
-    return f"https://download.geofabrik.de/{EXTRACT_BASE}/{PROVINCES[province]}-latest.osm.pbf"
+    # Geofabrik moved Canadian extracts to <base>/<slug>/<slug>-latest.osm.pbf (old flat URL 301s to a 404).
+    slug = PROVINCES[province]
+    return f"https://download.geofabrik.de/{EXTRACT_BASE}/{slug}/{slug}-latest.osm.pbf"
 
 
 # ----------------------------------------------------------------- registry --

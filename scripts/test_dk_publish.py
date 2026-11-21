@@ -240,6 +240,7 @@ BATCH_L_HELD_NEW = ("hindsgavl-dk", "gesten-dk", "faarup-so-dk", "borum-dk", "st
 # BATCH-3 (2026-11-01): national-park splits, two merges and new destinations. The four park umbrellas and the two merged
 # areas are hold=superseded (unlisted from the app, objects kept); the new/unheld areas carry a registry bbox/centre.
 BATCH_3_REMOVED = (*PARKS, "sandkule-skov-dk", "klintenborg-plantage-dk")
+BATCH_S1_SHIP = ("hovens-skov-dk",)
 BATCH_3_SHIP = ("gribskov-dk", "tisvilde-hegn-dk", "frederiksvaerk-dk", "gurre-dk",
                 "boserup-skov-dk", "bidstrup-skovene-dk",
                 "tvorup-klitplantage-dk", "nystrup-klitplantage-dk", "vandet-klitplantage-dk", "vilsbol-klitplantage-dk",
@@ -559,7 +560,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert set(table) == ({MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                            *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                            *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
-                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP)
+                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP)
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
@@ -596,7 +597,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (3, 13.7), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6)}
+        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (3, 13.7), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):

@@ -4611,8 +4611,16 @@
       "name": "Hovens Skov",
       "state": "Denmark",
       "relation_id": 1982345,
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        9.53,
+        55.49,
+        9.62,
+        55.545
+      ],
+      "center": [
+        55.517,
+        9.574
+      ],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -4633,8 +4641,8 @@
         }
       ],
       "est_trails": 2,
-      "est_mi": 5.3,
-      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 1982345 (landuse=forest, source Kolding Kommune, 0.44 km2). 2 named signed routes: Houens Odde Hollies Sti and Houens Odde Vandretur (5.3 mi). Locals say Houens Odde, so display_name carries both. No live overlap. Bless only from the Actions qualify run."
+      "est_mi": 4.3,
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 1982345 (landuse=forest, source Kolding Kommune, 0.44 km2). 2 named signed routes: Houens Odde Hollies Sti and Houens Odde Vandretur (4.3 mi). Locals say Houens Odde, so display_name carries both. No live overlap. Bless only from the Actions qualify run."
     },
     {
       "id": "linnebjerg-plantage-dk",

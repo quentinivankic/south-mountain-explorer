@@ -439,9 +439,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 13.7,
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Tisvilde Hegn Gul rute (whole route, 10.5 mi) plus the two Asserbo/Arrenakke walks on the same Halsnæs coast.",
+      "est_trails": 2,
+      "est_mi": 11.2,
+      "notes": "Scale batch 4 (wf_554aec60e2e8401d, blind audit 7): Asserbo Golfklub Hjertesti (r15764225) dropped, a golf-club heart loop is not a local-expert pick. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Tisvilde Hegn Gul rute (whole route, 10.5 mi) plus the two Asserbo/Arrenakke walks on the same Halsnæs coast.",
       "display_name": "Tisvilde Hegn og Asserbo · Nationalpark Kongernes Nordsjælland",
       "exclude_trails": [
         {"id": "n:Troldeskovsporet", "name": "Troldeskovsporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
@@ -449,7 +449,6 @@
         {"id": "n:Triangelsporet", "name": "Triangelsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"}
       ],
       "include_trails": [
-        {"id": "r15764225", "name": "Asserbo Golfklub Hjertesti", "reason": "OSM lwn hiking relation r15764225 (2.5 mi), whole route, waymarked white:white:red_triangle_turned; Asserbo Plantage heart path next to Tisvilde Hegn, was in the umbrella"},
         {"id": "r12589905", "name": "Arrenakke Bakker", "reason": "Halsnæs Kommune lwn hiking relation r12589905 (2.55 mi), whole route, waymarked blue:white:blue_hiker; Halsnæs Kommune walk at Arrenakke Bakker, 2 km from Asserbo"}
       ]
     },
@@ -1263,14 +1262,19 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 10.0,
+      "est_trails": 3,
+      "est_mi": 9.3,
       "notes": "Tier 2I island, Islands. Held: island. bbox/center computed by the qualify run. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): four Haderslev Kommune colour routes are clean (grøn 0.66, lilla 2.5, rød 2.7, gul 4.1 mi), but two name-stitches are both named Aarø (0.9 and 1.3 mi) and a curated exclusion must match exactly one trail, so they cannot be removed. Batch D (dk-v3 replay with the n*: multi-match exclude of PR 658, 2026-10-31): SHIP. n*:Aarø removes both island-name stitches. 4 Haderslev Kommune colour routes / 10.0 mi (grøn 0.66, lilla 2.50, rød 2.69, gul 4.13), all fully inside the Årø polygon. One small island, one destination.",
       "exclude_trails": [
         {
           "id": "n*:Aarø",
           "name": "Aarø",
           "reason": "two name-stitches that carry only the island name (0.9 and 1.3 mi), not signed routes; the four Haderslev Kommune colour routes are named 'Aarø, <colour> rute' and are kept"
+        },
+        {
+          "id": "n:Aarø, grøn rute",
+          "name": "Aarø, grøn rute",
+          "reason": "scale batch 4 (blind audit 7): 0.66 mi, 100% inside Aarø, rød rute, not a separate walk"
         }
       ]
     },
@@ -1362,9 +1366,12 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 5,
-      "est_mi": 16.9,
+      "est_trails": 4,
+      "est_mi": 14.9,
       "notes": "Tier 2 forest, Zealand. OSM boundary is the Store Klinteskov forest relation; the app name is Moens Klint via display_name (Moens Klint has no OSM relation). Id changed from store-klinteskov-dk to mons-klint-dk BEFORE any publish (nothing live), so the id matches the app name. dk-v3: Klintekongens Rige (9.54 mi) whole; the two cliff stairs via include_trails. bbox/center computed by the qualify run. Release note: 4 mapped routes + 2 stairs; Naturstyrelsen lists 7 marked walks. BATCH-1 2026-11-01: Maglevandstrappen (0.28 mi, one staircase, not a walk) removed from include_trails; Gråryg Fald (0.65 mi) stays.",
+      "exclude_trails": [
+        {"id": "n:Jydelejet", "name": "Jydelejet", "reason": "96% inside Kvalitetssti Møns Klint, not a separate walk (blind audit 7)"}
+      ],
       "include_trails": [
         {
           "id": "n:Gråryg Fald",
@@ -2196,11 +2203,11 @@
       "rules": "dk-v2",
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 5.3,
+      "est_trails": 3,
+      "est_mi": 3.5,
       "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run.",
-      "trail_name_fixes": [
-        {"osm_name": "Gul Rute, Skelhøj Plantage2", "name": "Gul Rute, Skelhøj Plantage", "source": "https://www.visitdenmark.com/denmark/plan-your-trip/skelhoje-plantation-gdk603346", "reason": "typo: stray digit; the sibling routes Blå, Rød and Grøn Rute are named 'Skelhøj Plantage' without a digit (VisitDenmark: Skelhøj Plantation)"}
+      "exclude_trails": [
+        {"id": "n:Gul Rute, Skelhøj Plantage2", "name": "Gul Rute, Skelhøj Plantage2", "reason": "100% inside Rød Rute, not a separate walk (blind audit 7); the stray-digit name fix is dropped with it"}
       ]
     },
     {
@@ -2701,19 +2708,14 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 13.8,
-      "notes": "Batch C (dk-v3 replay, 2026-10-31): Stråsø Plantage rød rute 3.65 and Sønder Vosborg Hede gul rute 3.65 (Naturstyrelsen) plus Gl. Jagtsti (0.96 mi, no operator). Held: Lystbæk og Klovsig Nørre Plantage blå is missing (neighbouring plantation, needs include) and Gl. Jagtsti is unverified. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 Naturstyrelsen routes / 11.4 mi: Stråsø Plantage rød rute 3.65, Sønder Vosborg Hede gul rute 3.65, Lystbæk og Klovsig Nørre Plantage blå rute 4.08 (include r12498108, neighbouring plantation, whole route). Gl. Jagtsti (0.97 mi, no operator, unverified) excluded. Second review: Stolbjergturen rød rute (r12498157, Naturstyrelsen, one of the three marked Stråsø walks) added as an include, 4 trails. Known omission: Fejsø Plantage gul rute (r12498200) is not named on the Naturstyrelsen Stråsø page and is not part of this area. Naturstyrelsen guide page not opened; routes verified through OSM operator=Naturstyrelsen.",
+      "est_trails": 3,
+      "est_mi": 11.4,
+      "notes": "Scale batch 4 (blind audit 7): Stolbjergturen rød rute (r12498157) removed so the trail lives in one area; 53% of it runs on Troldtoft-ruten (live in ornhoj-dk, 8% of Troldtoft is shared). Batch C (dk-v3 replay, 2026-10-31): Stråsø Plantage rød rute 3.65 and Sønder Vosborg Hede gul rute 3.65 (Naturstyrelsen) plus Gl. Jagtsti (0.96 mi, no operator). Held: Lystbæk og Klovsig Nørre Plantage blå is missing (neighbouring plantation, needs include) and Gl. Jagtsti is unverified. Batch E (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP. 3 Naturstyrelsen routes / 11.4 mi: Stråsø Plantage rød rute 3.65, Sønder Vosborg Hede gul rute 3.65, Lystbæk og Klovsig Nørre Plantage blå rute 4.08 (include r12498108, neighbouring plantation, whole route). Gl. Jagtsti (0.97 mi, no operator, unverified) excluded. Second review: Stolbjergturen rød rute (r12498157, Naturstyrelsen, one of the three marked Stråsø walks) added as an include, 4 trails. Known omission: Fejsø Plantage gul rute (r12498200) is not named on the Naturstyrelsen Stråsø page and is not part of this area. Naturstyrelsen guide page not opened; routes verified through OSM operator=Naturstyrelsen.",
       "include_trails": [
         {
           "id": "r12498108",
           "name": "Lystbæk og Klovsig Nørre Plantage blå rute",
           "reason": "Naturstyrelsen blue walk of the neighbouring Lystbæk and Klovsig Nørre plantations, part of the Stråsø nature national park walks; outside the Stråsø polygon, whole route"
-        },
-        {
-          "id": "r12498157",
-          "name": "Stolbjergturen rød rute",
-          "reason": "Naturstyrelsen Stolbjergturen, one of the three marked Stråsø walks; outside the Stråsø polygon, whole route"
         }
       ],
       "exclude_trails": [
@@ -4673,21 +4675,16 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 7,
-      "est_mi": 18.9,
-      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-001 near Bramslev Bakker): container_from_routes. Bless only from the Actions qualify run.",
+      "est_trails": 6,
+      "est_mi": 17.6,
+      "notes": "Scale batch 4 (blind audit 7): Rød rute kort (r9463415) dropped, 100% inside Panoramaruten and Hegedal Rød rute. Scale batch 2 (wf_554aec60e2e8401d, census cluster-001 near Bramslev Bakker): container_from_routes. Bless only from the Actions qualify run.",
       "container_from_routes": {
-        "reason": "No usable named OSM polygon for Bramslev Bakker; container derived from the 7 included signed routes"
+        "reason": "No usable named OSM polygon for Bramslev Bakker; container derived from the 6 included signed routes"
       },
       "include_trails": [
         {
           "id": "r20700161",
           "name": "Ormeskoven",
-          "reason": "signed named walk, whole route"
-        },
-        {
-          "id": "r9463415",
-          "name": "Rød rute kort",
           "reason": "signed named walk, whole route"
         },
         {

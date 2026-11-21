@@ -3425,7 +3425,9 @@ def test_batch2_names_and_pins_are_recorded_in_the_registry():
     assert fixes("klosterhede-plantage-dk")["Kronheden Ellebækturen"]["name"] == "Kronhede Ellebækturen"
     assert fixes("pamhule-skov-dk")["Hjertestien, Hindemaj"]["name"] == "Hjertestien, Hindemade"
     assert fixes("harte-skov-dk")["Lilla rute i Harde Skov"]["name"] == "Lilla rute i Harte Skov"
-    assert fixes("skelhoj-plantage-dk")["Gul Rute, Skelhøj Plantage2"]["name"] == "Gul Rute, Skelhøj Plantage"
+    # scale batch 4: the Gul route is 100% inside the Rød route and is excluded, so its stray-digit fix is gone
+    assert fixes("skelhoj-plantage-dk") == {}
+    assert {x["id"] for x in by_id["skelhoj-plantage-dk"]["exclude_trails"]} == {"n:Gul Rute, Skelhøj Plantage2"}
     assert fixes("nordskoven-416103-dk")["Gul Rute"]["name"] == "Nordskov Gul"
     assert fixes("sindal-dk")["Skovstien"]["name"] == "Sindal Skovstien"
     assert fixes("nysted-dk")["En kultur- og natursti rundt om Nysted"]["name"] == "Nysted rundt"

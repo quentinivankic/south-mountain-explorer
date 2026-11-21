@@ -284,7 +284,7 @@ BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
 BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r15655203", "r15655204"},
                    "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
 BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
-                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.809, 12.005]}
+                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.705, 11.993]}
 def test_batch_g_registry_prefixes_includes_excludes_and_centres():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     for aid, prefix in BATCH_G_PREFIX.items():

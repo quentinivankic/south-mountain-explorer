@@ -2916,8 +2916,8 @@
       ]
     },
     "kluane-national-park-and-reserve-ca-yt": {
-      "trail_count": 9,
-      "total_mi": 47.7,
+      "trail_count": 10,
+      "total_mi": 48.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2932,7 +2932,6 @@
         "Orange Loop",
         "Rock Glacier Trail",
         "Slims River West Trail",
-        "Soldier's Summit Interpretive Trail",
         "Soldiers Summit Trail",
         "Thechàl Dhâl Trail"
       ]

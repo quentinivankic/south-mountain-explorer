@@ -2420,6 +2420,30 @@
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": []
+    },
+    "nordborg-mjels-so-dk": {
+      "trail_count": 5,
+      "total_mi": 19.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Alsstien",
+        "E Govl",
+        "Kløftestien",
+        "Nedermarksvej",
+        "Riegelsstien"
+      ]
+    },
+    "trelde-naes-dk": {
+      "trail_count": 2,
+      "total_mi": 11.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Egehavevej",
+        "Skovholtvej",
+        "Trelde Næsvej"
+      ]
     }
   }
 }

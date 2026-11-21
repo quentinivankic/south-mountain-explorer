@@ -2735,6 +2735,35 @@
           "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
           "reason": "Official name Mill Cove Lookout Trail"
         }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Malady Head",
+          "way_ids": [
+            619363865
+          ],
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Parks Canada Terra Nova hiking list names Malady Head (blind audit 6). The 1.7 km path to the viewpoint (node 5970120485) is unnamed in OSM."
+        },
+        {
+          "name": "Sandy Pond Trail",
+          "way_ids": [
+            500803237,
+            500803238,
+            500803239,
+            500803240,
+            500803241,
+            500803242,
+            500803243,
+            500803244,
+            500803245,
+            500803246,
+            500803247,
+            500803248
+          ],
+          "source": "https://parks.canada.ca/pn-np/nl/terranova/activ/ran-hik",
+          "reason": "Parks Canada Terra Nova hiking list names Sandy Pond (blind audit 6). The loop around Sandy Pond (OSM water a307839490) is 12 unnamed footway and boardwalk ways in OSM, about 3.3 km."
+        }
       ]
     },
     {

@@ -2278,6 +2278,148 @@
       "forbidden_names": [
         "Houens Odde"
       ]
+    },
+    "skjern-birk-plantage-dk": {
+      "trail_count": 3,
+      "total_mi": 4.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "linnebjerg-plantage-dk": {
+      "trail_count": 2,
+      "total_mi": 2.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "bramslev-bakker-dk": {
+      "trail_count": 7,
+      "total_mi": 18.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bramslev Bakker",
+        "Hobro Østerskovturen"
+      ]
+    },
+    "louns-halvo-dk": {
+      "trail_count": 4,
+      "total_mi": 10.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Strandvejen"
+      ]
+    },
+    "sottrup-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 7.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Kærhalvø Sti"
+      ]
+    },
+    "mosely-mariager-dk": {
+      "trail_count": 2,
+      "total_mi": 4.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Hohøj-Mosely"
+      ]
+    },
+    "horning-dk": {
+      "trail_count": 3,
+      "total_mi": 12.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Vandreruten Aarhus-Silkeborg"
+      ]
+    },
+    "illerup-adal-dk": {
+      "trail_count": 4,
+      "total_mi": 12.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Anebjerggårdsvej",
+        "Damstien",
+        "Skolestien",
+        "Vandreruten Aarhus-Silkeborg"
+      ]
+    },
+    "kong-mose-dk": {
+      "trail_count": 3,
+      "total_mi": 13.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Sydsjælland",
+        "Fra Fjord til Fjord Naturstien"
+      ]
+    },
+    "varming-hede-dk": {
+      "trail_count": 2,
+      "total_mi": 3.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "ornhoj-dk": {
+      "trail_count": 3,
+      "total_mi": 28.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Fejsøvej",
+        "Lyngruten 1"
+      ]
+    },
+    "aarup-dk": {
+      "trail_count": 5,
+      "total_mi": 17.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "arrild-ferieby-dk": {
+      "trail_count": 6,
+      "total_mi": 11.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Skikkildbjergvej"
+      ]
+    },
+    "skovsgaard-tasinge-dk": {
+      "trail_count": 3,
+      "total_mi": 3.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Spodsbejrg - Bukkemose Strand"
+      ]
+    },
+    "fyrkat-hobro-dk": {
+      "trail_count": 2,
+      "total_mi": 2.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Adelgade",
+        "Bundgårdsvej",
+        "Thostrup Hovgaard"
+      ]
+    },
+    "hals-mose-dk": {
+      "trail_count": 3,
+      "total_mi": 15.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

@@ -245,11 +245,6 @@
           "id": "n:Falsters Virke",
           "name": "Falsters Virke",
           "reason": "0.4 mi name-stitch of a forest-estate path, not a signed route"
-        },
-        {
-          "id": "r2776061",
-          "name": "Alternativ rute",
-          "reason": "scale batch 2 (2026-11-21): bare generic relation name, a 10.1 mi alternative leg of a regional route, not a destination walk of its own; appeared on the newer Geofabrik extract and was never part of the blessed Falster set"
         }
       ]
     },
@@ -3312,8 +3307,8 @@
       "name": "Klim Bjerg",
       "state": "Denmark",
       "relation_id": 13579668,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.12, 57.05, 9.23, 57.17],
+      "center": [57.1096, 9.1732],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,

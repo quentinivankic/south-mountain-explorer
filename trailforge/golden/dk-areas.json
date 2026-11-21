@@ -5356,6 +5356,147 @@
           "reason": "signed named walk, whole route"
         }
       ]
+    },
+    {
+      "id": "almind-so-dk",
+      "name": "Almind Sø",
+      "state": "Denmark",
+      "relation_id": 12718474,
+      "bbox": [9.46, 56.1, 9.62, 56.22],
+      "center": [56.159, 9.541],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.9,
+      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-134 near Sydbyen): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Almind Sø; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12718474",
+          "name": "Almind Sø Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12563795",
+          "name": "Silkeruten",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "farum-sondersoe-dk",
+      "name": "Farum Søndersø",
+      "state": "Denmark",
+      "relation_id": 11894927,
+      "bbox": [12.28, 55.72, 12.43, 55.86],
+      "center": [55.789, 12.355],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.8,
+      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-098 near Dronningholm): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Farum Søndersø; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r11894927",
+          "name": "Søndersø Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12478038",
+          "name": "Farum Søsti",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "hortoft-dk",
+      "name": "Hørtoft",
+      "state": "Denmark",
+      "relation_id": 1872028,
+      "bbox": [9.54, 54.95, 9.68, 55.09],
+      "center": [55.021, 9.608],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 11.6,
+      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-030 near Hørtoft): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Hørtoft; container derived from the 4 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r1872028",
+          "name": "Blåbækstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1872016",
+          "name": "Poststien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1871506",
+          "name": "Skovsøstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1871480",
+          "name": "Naldtangstien",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "kong-gummerup-dk",
+      "name": "Køng og Gummerup",
+      "state": "Denmark",
+      "relation_id": 12800660,
+      "bbox": [10.06, 55.19, 10.24, 55.34],
+      "center": [55.263, 10.146],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 12.4,
+      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-010 near Dolebanke): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Køng og Gummerup; container derived from the 5 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12800660",
+          "name": "Lærkedal",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13661850",
+          "name": "Slåentornsruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13687271",
+          "name": "Køng-Gummerup stierne - Vest",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13677154",
+          "name": "Køng-Gummerup stierne - Øst",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12688784",
+          "name": "Søholmstien",
+          "reason": "signed named walk, whole route"
+        }
+      ]
     }
   ]
 }

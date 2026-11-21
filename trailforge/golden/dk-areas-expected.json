@@ -157,11 +157,13 @@
       ]
     },
     "skelhoj-plantage-dk": {
-      "trail_count": 4,
-      "total_mi": 10.4,
+      "trail_count": 3,
+      "total_mi": 8.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Gul Rute, Skelhøj Plantage"
+        "Blå Rute, Skelhøj Plantage",
+        "Rød Rute, Skelhøj Plantage",
+        "Grøn Rute, Skelhøj Plantage"
       ],
       "forbidden_names": [
         "Gul Rute, Skelhøj Plantage2"
@@ -353,10 +355,15 @@
       ]
     },
     "mons-klint-dk": {
-      "trail_count": 5,
-      "total_mi": 16.9,
+      "trail_count": 4,
+      "total_mi": 14.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Klintekongens Rige",
+        "Kvalitetssti Møns Klint",
+        "Kridtstien",
+        "Gråryg Fald"
+      ],
       "forbidden_names": [
         "Camønoen",
         "Gammel Klintevej",
@@ -364,9 +371,10 @@
         "Grønvejen",
         "Havrelukkevej",
         "Hyltedalsvej",
+        "Jydelejet",
+        "Maglevandstrappen",
         "Nellerendevej",
-        "Sandskredsvej",
-        "Maglevandstrappen"
+        "Sandskredsvej"
       ]
     },
     "nymindegab-blabjerg-dk": {
@@ -873,12 +881,17 @@
       ]
     },
     "aro-dk": {
-      "trail_count": 4,
-      "total_mi": 10.0,
+      "trail_count": 3,
+      "total_mi": 9.3,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Aarø, gul rute",
+        "Aarø, rød rute",
+        "Aarø, lilla rute"
+      ],
       "forbidden_names": [
         "Aarø",
+        "Aarø, grøn rute",
         "Camino Haderslev Næs"
       ]
     },
@@ -1068,12 +1081,13 @@
       ]
     },
     "straaso-plantage-dk": {
-      "trail_count": 4,
-      "total_mi": 13.8,
+      "trail_count": 3,
+      "total_mi": 11.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Lystbæk og Klovsig Nørre Plantage blå rute",
-        "Stolbjergturen rød rute"
+        "Stråsø Plantage rød rute",
+        "Sønder Vosborg Hede gul rute"
       ],
       "forbidden_names": [
         "Blåbjergvej",
@@ -1694,12 +1708,11 @@
       ]
     },
     "tisvilde-hegn-dk": {
-      "trail_count": 3,
-      "total_mi": 13.7,
+      "trail_count": 2,
+      "total_mi": 11.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Tisvilde Hegn - Gul rute",
-        "Asserbo Golfklub Hjertesti",
         "Arrenakke Bakker"
       ],
       "forbidden_names": [
@@ -2294,10 +2307,17 @@
       "forbidden_names": []
     },
     "bramslev-bakker-dk": {
-      "trail_count": 7,
-      "total_mi": 18.9,
+      "trail_count": 6,
+      "total_mi": 17.6,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Panoramaruten",
+        "Valsgaard Blå rute",
+        "Hegedal Rød rute",
+        "Bramslev Bakker Gul rute",
+        "Frisdalruten",
+        "Ormeskoven"
+      ],
       "forbidden_names": [
         "Bramslev Bakker",
         "Hobro Østerskovturen"

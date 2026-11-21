@@ -433,8 +433,8 @@
       ]
     },
     "banff-national-park-ca-ab": {
-      "trail_count": 102,
-      "total_mi": 346.3,
+      "trail_count": 103,
+      "total_mi": 348.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Glacier Lake Route",
@@ -898,8 +898,8 @@
       ]
     },
     "jasper-national-park-ca-ab": {
-      "trail_count": 41,
-      "total_mi": 350.5,
+      "trail_count": 42,
+      "total_mi": 351.3,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

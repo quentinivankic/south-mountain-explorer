@@ -2275,7 +2275,9 @@
         "Houens Odde Hollies Sti",
         "Houens Odde Vandretur"
       ],
-      "forbidden_names": []
+      "forbidden_names": [
+        "Houens Odde"
+      ]
     }
   }
 }

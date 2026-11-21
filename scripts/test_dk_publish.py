@@ -577,11 +577,11 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
-        "skelhoj-plantage-dk": (4, 10.4), "hammer-bakker-dk": (4, 10.2),
+        "skelhoj-plantage-dk": (3, 8.6), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (7, 13.7),
         "pamhule-skov-dk": (8, 18.0), "godding-skov-dk": (3, 5.4),
         "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
-        "rold-skov-dk": (9, 38.9), "mons-klint-dk": (5, 16.9),
+        "rold-skov-dk": (9, 38.9), "mons-klint-dk": (4, 14.9),
         "randbol-hede-frederikshab-dk": (9, 26.6), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 15.9), "store-hareskov-dk": (2, 6.4),
         "stursbol-plantage-dk": (2, 4.8), "norreskoven-pa-als-dk": (2, 2.9), "harrild-hede-dk": (3, 11.0),
@@ -590,8 +590,8 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (3, 12.5),
         "svanninge-bjerge-dk": (8, 30.9), "staurby-skov-dk": (4, 8.1), "kongenshus-dk": (2, 4.7),
         "fejo-dk": (4, 9.4), "froslev-plantage-dk": (2, 4.9),
-        "ro-plantage-dk": (2, 9.9), "aro-dk": (4, 10.0), "harte-skov-dk": (7, 10.2),
-        "straaso-plantage-dk": (4, 13.8), "kelstrup-plantage-dk": (3, 10.1), "kiskelund-plantage-dk": (2, 3.6),
+        "ro-plantage-dk": (2, 9.9), "aro-dk": (3, 9.3), "harte-skov-dk": (7, 10.2),
+        "straaso-plantage-dk": (3, 11.4), "kelstrup-plantage-dk": (3, 10.1), "kiskelund-plantage-dk": (2, 3.6),
         "kollund-skov-dk": (4, 5.7), "sogard-skov-dk": (3, 6.2), "toftlund-skov-dk": (2, 2.8),
         "draved-skov-dk": (2, 3.9), "barsbol-skov-dk": (3, 5.9), "lindet-skov-dk": (2, 5.1),
         "osterskoven-dk": (4, 9.7), "kompedal-plantage-dk": (2, 6.6),
@@ -610,12 +610,12 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (3, 13.7), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (7, 18.9), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2)}
+        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (2, 11.2), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (6, 17.6), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
         assert name in table[aid]["required_names"]
-    assert "Stolbjergturen rød rute" in table["straaso-plantage-dk"]["required_names"]
+    assert "Stolbjergturen rød rute" not in table["straaso-plantage-dk"]["required_names"]  # dropped in scale batch 4 (53% inside Troldtoft-ruten)
     assert not any("Hjertestien" in n for v in table.values() for n in v["forbidden_names"])
     assert "velling-skov-dk" not in table and "urhoje-plantage-dk" not in table
     # batch F: the re-blessed updates and the new areas carry their required names
@@ -3425,7 +3425,9 @@ def test_batch2_names_and_pins_are_recorded_in_the_registry():
     assert fixes("klosterhede-plantage-dk")["Kronheden Ellebækturen"]["name"] == "Kronhede Ellebækturen"
     assert fixes("pamhule-skov-dk")["Hjertestien, Hindemaj"]["name"] == "Hjertestien, Hindemade"
     assert fixes("harte-skov-dk")["Lilla rute i Harde Skov"]["name"] == "Lilla rute i Harte Skov"
-    assert fixes("skelhoj-plantage-dk")["Gul Rute, Skelhøj Plantage2"]["name"] == "Gul Rute, Skelhøj Plantage"
+    # scale batch 4: the Gul route is 100% inside the Rød route and is excluded, so its stray-digit fix is gone
+    assert fixes("skelhoj-plantage-dk") == {}
+    assert {x["id"] for x in by_id["skelhoj-plantage-dk"]["exclude_trails"]} == {"n:Gul Rute, Skelhøj Plantage2"}
     assert fixes("nordskoven-416103-dk")["Gul Rute"]["name"] == "Nordskov Gul"
     assert fixes("sindal-dk")["Skovstien"]["name"] == "Sindal Skovstien"
     assert fixes("nysted-dk")["En kultur- og natursti rundt om Nysted"]["name"] == "Nysted rundt"

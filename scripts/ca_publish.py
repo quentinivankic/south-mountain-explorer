@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ca_adopt_ways  # noqa: E402
 import ca_trail_filter  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
@@ -178,6 +179,16 @@ def _check_keep_trails(aid: str, entry: dict[str, Any]) -> None:
         raise CaError(str(error)) from None
 
 
+def _check_adopt_ways(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: name a set of unnamed OSM ways as one agency-listed trail (scripts/ca_adopt_ways.py)."""
+    if "adopt_ways" not in entry:
+        return
+    try:
+        ca_adopt_ways.validate_adopt_ways(entry["adopt_ways"], f"{aid}: adopt_ways")
+    except ca_adopt_ways.AdoptError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: adopt_ways needs a relation-backed entry (the exact-area boundary file)")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -335,6 +346,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             raise CaError(f"{aid}: hold {hold!r} is not one of {sorted(HOLD_REASONS)}")
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
+        _check_adopt_ways(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name

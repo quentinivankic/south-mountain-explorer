@@ -274,12 +274,12 @@
         44.53
       ],
       "center": [
-        44.4,
-        -65.3
+        44.431,
+        -65.296
       ],
       "tier": 1,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q1): 7 trails, 8.8 mi, pre/post clip 34>30. live-fix1 2026-11-02: Liberty Lake Loop dropped (7.7 mi hole). Hemlocks and Hardwoods Trail is kept: it is the park's signature day trail, listed on its own by Parks Canada, and stays independently completable although its ground lies inside Channel Lake Loop.",
+      "notes": "Qualify 2026-11-02 (run q1): 7 trails, 8.8 mi, pre/post clip 34>30. live-fix1 2026-11-02: Liberty Lake Loop dropped (7.7 mi hole). Hemlocks and Hardwoods Trail is kept: it is the park's signature day trail, listed on its own by Parks Canada, and stays independently completable although its ground lies inside Channel Lake Loop. Pin moved from 44.4,-65.3 to the kept-trail vertex nearest the curated trail-extent midpoint (44.431,-65.296).",
       "keep_trails": [
         {
           "name": "Channel Lake Loop",
@@ -290,6 +290,16 @@
           "name": "West River Trail",
           "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/camping/arriere-back/ap-randonee-hiking-bc",
           "reason": "Parks Canada lists this as a Kejimkujik backcountry hiking route/side trip; wholly inside one park. OSM tags it rwn."
+        },
+        {
+          "name": "Grafton Woods Trail",
+          "source": "https://parks.canada.ca/pn-np/ns/kejimkujik/activ/rando-hiking",
+          "reason": "Parks Canada Kejimkujik hiking page lists Grafton Woods Trail (day-use loops of 1.6 km); OSM maps the 0.84 mi loop as an nwn relation wholly inside the park, dropped only by the network rule."
+        },
+        {
+          "name": "Roger Brook Trail",
+          "source": "https://novascotia.com/listing/rogers-brook-trail-kejimkujik-national-park-and-national-historic-site/",
+          "reason": "Tourism Nova Scotia listing for the Parks Canada Rogers Brook Trail: 1 km (0.6 mi) loop; OSM 0.545 mi is the whole signed loop, dropped only by the 0.6 mi fragment floor."
         }
       ],
       "exclude_trails": [

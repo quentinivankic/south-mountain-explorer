@@ -4350,6 +4350,15 @@
           ],
           "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
           "reason": "Parks Canada Banff hiking list names Johnson Lake Loop (blind audits 5 and 6). The shore path is unnamed in OSM (ways within 60 m of lake way 40021099); no live trail overlaps it."
+        },
+        {
+          "name": "Consolation Lakes Trail",
+          "way_ids": [
+            31276799,
+            1565159837
+          ],
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Parks Canada Banff hiking list names Consolation Lakes Trail (2.9 km one way from Moraine Lake). OSM carries it as the rockpile footpath (way 31276799, unnamed) plus the good-visibility path 1565159837 named Panorama Ridge Route, which ends at the first lake; it is not the alpine Panorama Ridge route (way 264674133, trail_visibility bad, not adopted)."
         }
       ]
     },

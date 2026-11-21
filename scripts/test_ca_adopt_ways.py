@@ -40,9 +40,9 @@ def trail(name="Other Trail", member_ways=(99,)):
             "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]}}
 
 
-def build(entries=None, ways=None, features=None, boundary=BOX):
+def build(entries=None, ways=None, features=None, boundary=BOX, excluded=frozenset()):
     return aw.build_features(entries or [entry()], ways or WAYS, features if features is not None else [trail()],
-                             boundary, "Test Park")
+                             boundary, "Test Park", excluded)
 
 
 # ------------------------------------------------------------------ validator
@@ -210,3 +210,13 @@ def test_run_area_step_is_conditional():
     step = script.index("ca_adopt_ways.py")
     assert 'if [ -n "$ADOPT_COUNT" ]' in script[:step]
     assert script.index("assemble.py") < step < script.index("ca_trail_filter.py --registry")
+
+
+def test_ways_of_a_registry_excluded_trail_may_be_adopted():
+    owner = trail("Panorama Ridge Route", member_ways=(1, 99))
+    with pytest.raises(aw.AdoptError, match="already in an assembled trail"):
+        build(features=[owner])
+    new, _ = build(features=[owner], excluded=frozenset({"Panorama Ridge Route"}))
+    assert [f["properties"]["name"] for f in new] == ["Test Loop"]
+    with pytest.raises(aw.AdoptError, match="already in an assembled trail"):
+        build(features=[owner], excluded=frozenset({"Some Other Trail"}))

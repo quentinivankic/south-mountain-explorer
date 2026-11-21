@@ -187,9 +187,11 @@ def test_select_cli_writes_ids_and_getid_args(tmp_path):
 
 
 def test_pbf_urls_use_the_geofabrik_canada_province_extracts():
-    assert ca.pbf_url("pe") == "https://download.geofabrik.de/north-america/canada/prince-edward-island-latest.osm.pbf"
-    assert ca.pbf_url("nl").endswith("/canada/newfoundland-and-labrador-latest.osm.pbf")
+    assert ca.pbf_url("pe") == "https://download.geofabrik.de/north-america/canada/prince-edward-island/prince-edward-island-latest.osm.pbf"
+    assert ca.pbf_url("nl").endswith("/canada/newfoundland-and-labrador/newfoundland-and-labrador-latest.osm.pbf")
     assert set(ca.PROVINCES) == {"ab", "bc", "mb", "nb", "nl", "ns", "on", "pe", "qc", "sk", "yt", "nt", "nu"}
+    for code, slug in ca.PROVINCES.items():
+        assert ca.pbf_url(code) == f"https://download.geofabrik.de/north-america/canada/{slug}/{slug}-latest.osm.pbf"
 
 
 # ---------------------------------------------------------- blessed table ----
@@ -241,5 +243,5 @@ def test_expected_table_rejects_foreign_ids_and_wrong_schema(tmp_path):
 
 
 def test_territory_extracts_use_the_geofabrik_canada_slugs():
-    assert ca.pbf_url("nt").endswith("/canada/northwest-territories-latest.osm.pbf")
-    assert ca.pbf_url("nu").endswith("/canada/nunavut-latest.osm.pbf")
+    assert ca.pbf_url("nt").endswith("/canada/northwest-territories/northwest-territories-latest.osm.pbf")
+    assert ca.pbf_url("nu").endswith("/canada/nunavut/nunavut-latest.osm.pbf")

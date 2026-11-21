@@ -2472,6 +2472,63 @@
       "forbidden_names": [
         "Bøge-alleen"
       ]
+    },
+    "almind-so-dk": {
+      "trail_count": 2,
+      "total_mi": 9.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bryrupbanestien",
+        "Etape 10 - Gudenåstien",
+        "Etape 10b - Gudenåstien",
+        "Etape 11 - Gudenåstien (første del)",
+        "Gjernstien",
+        "Naturstien Bryrupbanestien",
+        "Naturstien Gjernstien",
+        "Vandreruten Aarhus-Silkeborg",
+        "Vestergade",
+        "Ørnsøstien",
+        "Østre Sektor Ind",
+        "Østre Sektor Ud"
+      ]
+    },
+  "farum-sondersoe-dk": {
+      "trail_count": 2,
+      "total_mi": 9.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Dalsø Park",
+        "Den danske Pilgrimsrute - Nordsjælland",
+        "Kulsviervej",
+        "Mølleådalen",
+        "Nordsjællandsruten",
+        "Præstemosestien",
+        "Præsteskovvej",
+        "Sortemosevej",
+        "Sortmosen",
+        "Sækkedamsvej"
+      ]
+    },
+  "hortoft-dk": {
+      "trail_count": 4,
+      "total_mi": 11.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Skovsøvej",
+        "Varnæs Hoved stien"
+      ]
+    },
+  "kong-gummerup-dk": {
+      "trail_count": 5,
+      "total_mi": 10.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute - Sydfyn"
+      ]
     }
   }
 }

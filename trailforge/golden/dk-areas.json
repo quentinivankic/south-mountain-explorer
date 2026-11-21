@@ -218,7 +218,7 @@
       "state": "Denmark",
       "relation_id": 5178556,
       "bbox": [11.65, 54.51, 12.22, 55.02],
-      "center": [54.809, 12.005],
+      "center": [54.705, 11.993],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,

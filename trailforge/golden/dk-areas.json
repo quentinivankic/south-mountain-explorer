@@ -828,9 +828,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 9,
-      "est_mi": 26.6,
-      "notes": "Tier 2 state_forest_like, Jutland. ONE destination (Naturstyrelsen guide 'Randbøl Hede og Frederikshåb Plantage'). The exact path supports one boundary polygon, so the Frederikshåb Plantage relation is the container and the Randbøl Hede routes come in through include_trails (whole OSM relations, nothing clipped). The sibling randbol-hede-dk stays held merge-pending and must never be published. bbox/center computed by the qualify run (pad 0.05 covers Randbøl Hede). BATCH-1 2026-11-01: KEEP Randbøl Rød Rute (0.49 mi). Naturstyrelsen lwn relation with its own distance=1 km tag, listed as the guide's red trail in the batch-D curation; the NST hiking-folder PDF could not be opened this session. BATCH-4 (audit 2): KEEP Frederikshåb plantage og Randbøl Hede Rundtur (r12417118, Naturstyrelsen) and Randbøl Rød Rute (r2900915, Naturstyrelsen, OSM distance 1 km, red dot). The Rundtur is one connected relation (source gap 0 m); the audit's 2.0 mi jump is polyline order. Bare 'Randbøl rute' names stay: no official source for a better name.",
+      "est_trails": 8,
+      "est_mi": 25.7,
+      "notes": "Tier 2 state_forest_like, Jutland. ONE destination (Naturstyrelsen guide 'Randbøl Hede og Frederikshåb Plantage'). The exact path supports one boundary polygon, so the Frederikshåb Plantage relation is the container and the Randbøl Hede routes come in through include_trails (whole OSM relations, nothing clipped). The sibling randbol-hede-dk stays held merge-pending and must never be published. bbox/center computed by the qualify run (pad 0.05 covers Randbøl Hede). BATCH-1 2026-11-01: KEEP Randbøl Rød Rute (0.49 mi). Naturstyrelsen lwn relation with its own distance=1 km tag, listed as the guide's red trail in the batch-D curation; the NST hiking-folder PDF could not be opened this session. BATCH-4 (audit 2): KEEP Frederikshåb plantage og Randbøl Hede Rundtur (r12417118, Naturstyrelsen) and Randbøl Rød Rute (r2900915, Naturstyrelsen, OSM distance 1 km, red dot). The Rundtur is one connected relation (source gap 0 m); the audit's 2.0 mi jump is polyline order. Bare 'Randbøl rute' names stay: no official source for a better name. SCALE BATCH 7 (audit 10): DROP Mergel-sporet (n:Mergel-sporet, 0.9 mi, 6 points, not a relation, no network or symbol; a local would not seek it out). KEEP Randbøl Rød Rute (r2900915): Naturstyrelsen relation listed as the guide's red trail, 0.5 mi.",
       "include_trails": [
         {
           "id": "r2900959",
@@ -846,11 +846,6 @@
           "id": "r2900915",
           "name": "Rød Rute",
           "reason": "Naturstyrelsen lwn relation, distance=1 km (0.49 mi OSM length matches); the guide's red trail to Vorbasse Studevej"
-        },
-        {
-          "id": "n:Mergel-sporet",
-          "name": "Mergel-sporet",
-          "reason": "single 0.9 mi dirt path named Mergel-sporet inside Randbøl Hede (marl-track heritage path); not a relation, lower confidence, kept for completeness"
         }
       ],
       "trail_name_prefix": "Randbøl",

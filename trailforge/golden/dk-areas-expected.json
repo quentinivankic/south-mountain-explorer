@@ -402,8 +402,8 @@
       ]
     },
     "randbol-hede-frederikshab-dk": {
-      "trail_count": 9,
-      "total_mi": 26.6,
+      "trail_count": 8,
+      "total_mi": 25.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Randbøl Blå Rute",
@@ -425,7 +425,8 @@
         "Voldborgvej",
         "Ranbøl rute",
         "Ranbøl rute 2",
-        "Grøn vandrerute i Fredrikshåb Plantage"
+        "Grøn vandrerute i Fredrikshåb Plantage",
+        "Mergel-sporet"
       ]
     },
     "rold-skov-dk": {

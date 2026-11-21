@@ -144,10 +144,13 @@ def _components(ways: dict[int, dict], ids: list[int], gap_m: float) -> tuple[in
 
 
 def build_features(entries: list[dict], ways: dict[int, dict], features: list[dict], boundary: Any,
-                   area_name: str) -> tuple[list[dict], list[dict]]:
-    """(new features, per-entry evidence). Raises AdoptError on any failed check."""
+                   area_name: str, excluded: frozenset[str] = frozenset()) -> tuple[list[dict], list[dict]]:
+    """(new features, per-entry evidence). Raises AdoptError on any failed check.
+    `excluded`: exact names of assembled trails the registry's exclude_trails removes in the next
+    step (ca_trail_filter). Their ways may be adopted: the owner never reaches the output."""
     existing = {ca_trail_filter.fold((f.get("properties") or {}).get("name")) for f in features}
-    taken = {w for f in features for w in (f.get("properties") or {}).get("member_ways") or []}
+    taken = {w for f in features if (f.get("properties") or {}).get("name") not in excluded
+             for w in (f.get("properties") or {}).get("member_ways") or []}
     new, evidence = [], []
     for entry in entries:
         label = f"adopt_ways {entry['name']!r}"
@@ -252,7 +255,9 @@ def main(argv: list[str] | None = None) -> int:
         doc = json.loads(trails_path.read_text(encoding="utf-8"))
         features = doc["features"]
         ways = read_ways(args.pbf, {i for e in entries for i in e["way_ids"]})
-        new, evidence = build_features(entries, ways, features, load_boundary(trails_path), entry["name"])
+        new, evidence = build_features(entries, ways, features, load_boundary(trails_path), entry["name"],
+                                    frozenset(i["id"].split(":", 1)[1] for i in entry.get("exclude_trails") or []
+                                              if str(i.get("id", "")).startswith(("n:", "n*:"))))
     except (AdoptError, OSError, ValueError, KeyError) as error:
         print(f"SAFETY BLOCK: {error}", file=sys.stderr)
         return 2

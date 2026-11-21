@@ -4294,6 +4294,24 @@
           "source": "https://parks.canada.ca/pn-np/ab/banff/activ/escalade-scrambling/rundle",
           "reason": "Parks Canada's Mount Rundle Scrambler's Guide names the route from Spray River East the Mount Rundle Trail; OSM 'Rundle 1' is a climber's label"
         }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Johnson Lake Loop",
+          "way_ids": [
+            121982665,
+            121982666,
+            355358942,
+            584374805,
+            584374806,
+            584374815,
+            595641829,
+            595641830,
+            924847142
+          ],
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Parks Canada Banff hiking list names Johnson Lake Loop (blind audits 5 and 6). The shore path is unnamed in OSM (ways within 60 m of lake way 40021099); no live trail overlaps it."
+        }
       ]
     },
     {
@@ -4958,6 +4976,17 @@
           "name": "Brazeau Lake Trail",
           "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
           "reason": "House style capitalises 'Trail'; case-only change, trail id unchanged"
+        }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Sunwapta Falls",
+          "way_ids": [
+            80517135,
+            1457821373
+          ],
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
+          "reason": "Parks Canada Jasper trail list names Sunwapta Falls (blind audit 5). The 1.1 km walk from the falls viewpoints is unnamed in OSM."
         }
       ]
     },

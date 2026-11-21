@@ -336,12 +336,14 @@ SCALE2_ALL = [*SCALE2_CLUSTER, *SCALE2_WAY]
 # Scale batch 3 (2026-11-21): two route-cluster areas ship (bbox null until the Actions qualify); three failed the local replay closed and are held.
 SCALE3_SHIP = ["trelde-naes-dk", "nordborg-mjels-so-dk"]
 SCALE3_HELD = ["thise-dk", "vellev-dk", "augustenborg-dk"]
-SCALE3_CLUSTER = [*SCALE3_SHIP, *SCALE3_HELD]
+# Scale batch 6 (2026-11-21): four route-cluster areas ship (replay b9 ok, no cross-area duplicates; bbox null until the Actions qualify)
+SCALE6_SHIP = ["almind-so-dk", "farum-sondersoe-dk", "hortoft-dk", "kong-gummerup-dk"]
+SCALE3_CLUSTER = [*SCALE3_SHIP, *SCALE3_HELD, *SCALE6_SHIP]
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 228
+    assert len(areas) == 232
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
@@ -553,7 +555,7 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 133, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 137, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
         "curated-do-not-ship": 63, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,

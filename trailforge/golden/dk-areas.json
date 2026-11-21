@@ -218,7 +218,7 @@
       "state": "Denmark",
       "relation_id": 5178556,
       "bbox": [11.65, 54.51, 12.22, 55.02],
-      "center": [54.705, 11.993],
+      "center": [54.809, 12.005],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -245,6 +245,11 @@
           "id": "n:Falsters Virke",
           "name": "Falsters Virke",
           "reason": "0.4 mi name-stitch of a forest-estate path, not a signed route"
+        },
+        {
+          "id": "r2776061",
+          "name": "Alternativ rute",
+          "reason": "scale batch 2 (2026-11-21): bare generic relation name, a 10.1 mi alternative leg of a regional route, not a destination walk of its own; appeared on the newer Geofabrik extract and was never part of the blessed Falster set"
         }
       ]
     },
@@ -344,7 +349,7 @@
       "state": "Denmark",
       "relation_id": 5178553,
       "bbox": [10.15, 54.77, 10.59, 55.02],
-      "center": [54.9, 10.4],
+      "center": [54.853, 10.442],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -4492,7 +4497,7 @@
       "state": "Denmark",
       "relation_id": 11279229,
       "bbox": [8.61, 55.22, 8.8, 55.38],
-      "center": [55.299, 8.701],
+      "center": [55.289, 8.684],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -4576,11 +4581,11 @@
       "name": "Skjern Birk Plantage",
       "state": "Denmark",
       "relation_id": 6120514,
-      "bbox": null,
-      "center": null,
+      "bbox": [8.47, 55.89, 8.59, 56.0],
+      "center": [55.948, 8.529],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "trail_name_prefix": "Skjern Birk",
       "container_by_id": {
         "reason": "Skjern Birk Plantage forest polygon (relation 6120514) is 0.015 x 0.008 degrees, under the 0.01 boundary floor; it is the named forest and the three signed walks come in whole via include_trails"
@@ -4604,7 +4609,7 @@
       ],
       "est_trails": 3,
       "est_mi": 4.0,
-      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 6120514 (landuse=forest, 0.5 km2). 3 signed Ringkøbing-Skjern Kommune walks not live: Rød rute, Gul rute, Blå rute (4.0 mi). Bare colour names take the place prefix. No live overlap. Local replay is a rehearsal; bless only from the Actions qualify run. HOLD (scale batch 1 local replay 2026-11-21): all 3 trails are bare colour names (generic share 1.0, qualify says EXCLUDE-RECOMMENDED even with the Skjern Birk prefix); 0.5 km2 plantation, 4.0 mi of which 3.6 distinct; municipal, no operator page or destination page. Unlock: a ruling that a prefixed bare-colour kommune set counts, or an official route list."
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): polygon relation 6120514 (landuse=forest, 0.5 km2). 3 signed Ringkøbing-Skjern Kommune walks not live: Rød rute, Gul rute, Blå rute (4.0 mi). Bare colour names take the place prefix. No live overlap. Local replay is a rehearsal; bless only from the Actions qualify run. UNHELD (scale batch 2, 2026-11-21, orchestrator ruling): a municipal signed colour-walk set under a place prefix counts as signed and named; the qualify EXCLUDE-RECOMMENDED (generic names) is a reviewer flag to be accepted only at the bless step."
     },
     {
       "id": "hovens-skov-dk",
@@ -4649,14 +4654,559 @@
       "name": "Linnebjerg Plantage",
       "state": "Denmark",
       "way_id": 32939155,
+      "bbox": [9.06, 56.15, 9.17, 56.26],
+      "center": [56.205, 9.115],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.3,
+      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): way-backed polygon (way 32939155, landuse=forest, 0.38 km2). 2 named signed routes: Rød Rute, Linnebjerg Bakke and Gul Rute, Linnebjerg Bakke (2.3 mi); names already carry the place. No live overlap. Bless only from the Actions qualify run. UNHELD (scale batch 2, 2026-11-21, orchestrator ruling): two short signed walks from one place that already carry its name ship; replay is clean (2 trails, 2.3 mi)."
+    },
+    {
+      "id": "bramslev-bakker-dk",
+      "name": "Bramslev Bakker",
+      "state": "Denmark",
+      "relation_id": 20700161,
+      "bbox": [9.76, 56.58, 9.92, 56.72],
+      "center": [56.652, 9.841],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 7,
+      "est_mi": 18.9,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-001 near Bramslev Bakker): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bramslev Bakker; container derived from the 7 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r20700161",
+          "name": "Ormeskoven",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r9463415",
+          "name": "Rød rute kort",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r9463408",
+          "name": "Hegedal Rød rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8758836",
+          "name": "Panoramaruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8758869",
+          "name": "Bramslev Bakker Gul rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8758889",
+          "name": "Valsgaard Blå rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21164125",
+          "name": "Frisdalruten",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "louns-halvo-dk",
+      "name": "Louns Halvø",
+      "state": "Denmark",
+      "relation_id": 21846763,
+      "bbox": [9.11, 56.62, 9.24, 56.74],
+      "center": [56.679, 9.177],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 10.4,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-029 near Hessel Skovhuse): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Louns Halvø; container derived from the 4 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r21846763",
+          "name": "Louns halvøen - Blå rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21875873",
+          "name": "Louns halvøen - Gul rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21846764",
+          "name": "Louns halvøen - Grøn rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21845784",
+          "name": "Louns halvøen - Rød rute",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "sottrup-skov-dk",
+      "name": "Sottrup Skov og Alssund",
+      "state": "Denmark",
+      "relation_id": 125351,
+      "bbox": [9.67, 54.9, 9.82, 55.03],
+      "center": [54.965, 9.747],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.7,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-046 near Sottrupskov): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Sottrup Skov og Alssund; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r125351",
+          "name": "Nydamstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1851475",
+          "name": "Arnkilsøre-turen",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "mosely-mariager-dk",
+      "name": "Mosely ved Mariager",
+      "state": "Denmark",
+      "relation_id": 12841997,
+      "bbox": [9.87, 56.57, 10.06, 56.72],
+      "center": [56.644, 9.963],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.5,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-039 near Mariager): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Mosely ved Mariager; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12841997",
+          "name": "Mosely",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12856186",
+          "name": "Låenhusruten",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "horning-dk",
+      "name": "Hørning",
+      "state": "Denmark",
+      "relation_id": 21053636,
+      "bbox": [9.93, 56.02, 10.11, 56.15],
+      "center": [56.088, 10.02],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 12.0,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-069 near Hørning): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Hørning; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r21053636",
+          "name": "Banestien Hørning",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21040378",
+          "name": "Hørningstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12728331",
+          "name": "Jeksen Bæk og Bjertrupskov rundtur",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "illerup-adal-dk",
+      "name": "Illerup Ådal",
+      "state": "Denmark",
+      "relation_id": 21040984,
+      "bbox": [9.91, 55.97, 10.08, 56.11],
+      "center": [56.039, 9.995],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 12.5,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-011 near Fruering): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Illerup Ådal; container derived from the 4 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r21040984",
+          "name": "Udsigtsruten, blå rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21057524",
+          "name": "Skårup - Illerup ådal ruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21057886",
+          "name": "Vestermøllestien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21011746",
+          "name": "Pilbrodalen",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "kong-mose-dk",
+      "name": "Køng Mose",
+      "state": "Denmark",
+      "relation_id": 12940711,
+      "bbox": [11.78, 55.03, 11.97, 55.16],
+      "center": [55.097, 11.875],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 13.8,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-059 near Espelund): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Køng Mose; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12940711",
+          "name": "Fjord til Fjord Naturstien - Rød rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12799796",
+          "name": "Køng Mose rundtur",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12937381",
+          "name": "Fjord til fjord - Pink rute",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "varming-hede-dk",
+      "name": "Varming Hede",
+      "state": "Denmark",
+      "relation_id": 3079907,
+      "bbox": [8.81, 55.24, 8.92, 55.37],
+      "center": [55.308, 8.865],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.1,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-085 near Varming): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Varming Hede; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r3079907",
+          "name": "Munkesø",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8237111",
+          "name": "Varming Nørhede",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "ornhoj-dk",
+      "name": "Ørnhøj",
+      "state": "Denmark",
+      "relation_id": 12884946,
+      "bbox": [8.42, 56.14, 8.62, 56.31],
+      "center": [56.221, 8.519],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 28.7,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-089 near Ørnhøj): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Ørnhøj; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12884946",
+          "name": "Troldtoft-ruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12897610",
+          "name": "Ørnhøj-ruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r18007687",
+          "name": "Lyngruten 5",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "aarup-dk",
+      "name": "Aarup",
+      "state": "Denmark",
+      "relation_id": 4031332,
+      "bbox": [9.98, 55.31, 10.12, 55.43],
+      "center": [55.372, 10.051],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 5,
+      "est_mi": 17.9,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-008 near Aarup): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Aarup; container derived from the 5 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r4031332",
+          "name": "Skydebjerg stien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r4030888",
+          "name": "Skydebjerg Mose",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r4031300",
+          "name": "Brende Å",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r4030782",
+          "name": "Møllegårdsskovstien i Aarup",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r4030932",
+          "name": "Tokeskovstien",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "arrild-ferieby-dk",
+      "name": "Arrild Ferieby",
+      "state": "Denmark",
+      "relation_id": 1926918,
+      "bbox": [8.88, 55.1, 9.02, 55.21],
+      "center": [55.156, 8.949],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 11.9,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-005 near Hønning): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Arrild Ferieby; container derived from the 6 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r1926918",
+          "name": "Vandreruter i Arrild Ferieby, rød",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1926920",
+          "name": "Vandreruter i Arrild Ferieby, lilla",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2811680",
+          "name": "Vandreruter i Arrild Ferieby, gul",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1926917",
+          "name": "Vandreruter i Arrild Ferieby, grøn",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1926919",
+          "name": "Vandreruter i Arrild Ferieby, blå",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2704266",
+          "name": "Vandreruter i Arrild Ferieby, orange",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "skovsgaard-tasinge-dk",
+      "name": "Skovsgaard på Tåsinge",
+      "state": "Denmark",
+      "relation_id": 12688904,
+      "bbox": [10.69, 54.79, 10.84, 54.9],
+      "center": [54.843, 10.765],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 3.7,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-087 near Vindeby Udflyttere): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Skovsgaard på Tåsinge; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12688904",
+          "name": "Skovsgaard - Voldstedet og Skovsgaard Mølle",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12688909",
+          "name": "Skovsgaard - Agerlykke",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12415074",
+          "name": "Skovsgaard - Påø Enge",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "gudernes-straede-dk",
+      "name": "Gudernes Stræde",
+      "state": "Denmark",
+      "relation_id": 13278768,
       "bbox": null,
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
+      "est_trails": 3,
+      "est_mi": 5.5,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-070 near Karlstrup): container_from_routes. Bless only from the Actions qualify run. Batch 2 qualify 44921603993 ok (3 trails 5.4 mi) but two of three trails are Alternativ sloejfe variants of one walk, so the place has one real signed walk (floor is 2). Held at bless.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Gudernes Stræde; container derived from the 3 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r13278768",
+          "name": "Gudernes Stræde - Alternativ sløjfe",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13278754",
+          "name": "Gudernes Stræde - Havdrup mose",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13278804",
+          "name": "Gudernes Stræde - Alternativ sløjfe 2",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "fyrkat-hobro-dk",
+      "name": "Fyrkat ved Hobro",
+      "state": "Denmark",
+      "relation_id": 21203525,
+      "bbox": [9.72, 56.57, 9.84, 56.69],
+      "center": [56.63, 9.783],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
       "est_trails": 2,
-      "est_mi": 2.3,
-      "notes": "Scale batch 1 (census 2026-11-21, wf_554aec60e2e8401d): way-backed polygon (way 32939155, landuse=forest, 0.38 km2). 2 named signed routes: Rød Rute, Linnebjerg Bakke and Gul Rute, Linnebjerg Bakke (2.3 mi); names already carry the place. No live overlap. Bless only from the Actions qualify run. HOLD (scale batch 1 local replay 2026-11-21): replay is clean (2 trails, 2.3 mi, 1.8 distinct, no live overlap) but it is below the 2.5 mi / 2 trail line applied to Rødding Skov and Klim Bjerg in batch K, and no operator or destination page names it. Unlock: the same ruling that 2 short signed walks suffice."
+      "est_mi": 2.8,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-109 near Hobro): container_from_routes. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Fyrkat ved Hobro; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r21203525",
+          "name": "Fyrkat Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21206518",
+          "name": "Fyrkatstien",
+          "reason": "signed named walk, whole route"
+        }
+      ]
+    },
+    {
+      "id": "hals-mose-dk",
+      "name": "Hals Mose",
+      "state": "Denmark",
+      "way_id": 1322918934,
+      "bbox": [10.24, 56.95, 10.39, 57.11],
+      "center": [57.028, 10.322],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "container_by_id": {
+        "reason": "Hals Mose protected-area polygon (way 1322918934) is the named place; the three signed walks come in whole via include_trails"
+      },
+      "include_trails": [
+        {
+          "id": "r12994862",
+          "name": "Hals Mose Grøn rute",
+          "reason": "Aalborg Kommune signed walk in Hals Mose, whole route"
+        },
+        {
+          "id": "r12994863",
+          "name": "Hals Mose Gul rute",
+          "reason": "Aalborg Kommune signed walk in Hals Mose, whole route"
+        },
+        {
+          "id": "r12994850",
+          "name": "Hals Mose Rød rute",
+          "reason": "Aalborg Kommune signed walk in Hals Mose, whole route"
+        }
+      ],
+      "est_trails": 3,
+      "est_mi": 15.3,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-080): polygon way 1322918934 (Hals Mose protected area, 6.1 km2). Three Aalborg Kommune colour walks lie inside. Bless only from the Actions qualify run."
     }
   ]
 }

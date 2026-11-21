@@ -10130,6 +10130,11 @@
           "name": "Joe Creek Nature Trail",
           "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
           "reason": "Ontario Parks lists the Joe Creek Nature Trail; mapped 0.40 mi footway inside the park polygon"
+        },
+        {
+          "name": "Thunder Bay Bogs Nature Trail",
+          "source": "https://www.ontarioparks.ca/park/sleepinggiant/activities",
+          "reason": "Ontario Parks lists the 0.7 km Thunder Bay Bogs Nature Trail loop; OSM 0.373 mi (0.6 km) is the whole loop, dropped only by the 0.6 mi fragment floor"
         }
       ],
       "trail_name_fixes": [

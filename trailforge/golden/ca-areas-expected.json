@@ -119,16 +119,16 @@
       ]
     },
     "kejimkujik-national-park-and-national-historic-site-ca-ns": {
-      "trail_count": 9,
-      "total_mi": 28.0,
+      "trail_count": 11,
+      "total_mi": 29.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Channel Lake Loop",
+        "Grafton Woods Trail",
         "West River Trail"
       ],
       "forbidden_names": [
         "Flowing Waters",
-        "Grafton Woods Trail",
         "Liberty Lake Loop",
         "Portage A",
         "Portage C",
@@ -146,8 +146,7 @@
         "Portage R",
         "Portage U",
         "Portage V",
-        "Portage W",
-        "Roger Brook Trail"
+        "Portage W"
       ]
     },
     "north-river-wilderness-area-ca-ns": {

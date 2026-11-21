@@ -21088,6 +21088,478 @@
       "est_trails": 4,
       "est_mi": 4.5,
       "notes": "Phase C P3-6 Atlantic curation 2026-11-12 (chat/ca-c-nbnsnl; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7/C10. Two Rivers Wildlife Park site (https://www.tworiverspark.ca/) names only the 'Wildlife Trail' (the zoo walkway) and mentions unnamed hiking trails; OSM 'Two Rivers Short/Long Loop Hiking Trail' and 'Two Rivers Perimeter' are descriptive names, unverified."
+    },
+    {
+      "id": "ghost-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7210018,
+      "name": "Ghost Public Land Use Zone",
+      "bbox": [
+        -115.56,
+        51.15,
+        -114.8,
+        51.71
+      ],
+      "center": [
+        51.28,
+        -114.999
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.8,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Ghost) whose named hiking trails no live area claims. Kept 2 signed named footpaths (Lesueur Ridge Trail, Kolbassa Tower Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names. Pin moved from 51.322,-115.284 to the clamped midpoint of the curated trail-extent midpoint (51.396,-115.179). Pin moved from 51.28,-115.07 to the kept-trail vertex nearest the curated trail-extent midpoint (51.28,-114.999).",
+      "exclude_trails": [
+        {
+          "id": "n:South Ghost Trail",
+          "name": "South Ghost Trail",
+          "reason": "boundary-clipped, 60% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Black Rock Mountain Trail",
+          "name": "Black Rock Mountain Trail",
+          "reason": "boundary-clipped, 33% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Indian Springs Trail",
+          "name": "Indian Springs Trail",
+          "reason": "rides a highway=track (vehicle road), not a footpath"
+        },
+        {
+          "id": "n:Shortcut - Burnt Timber Lookout Trail",
+          "name": "Shortcut - Burnt Timber Lookout Trail",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:End Mountain Trail",
+          "name": "End Mountain Trail",
+          "reason": "boundary-clipped, 37% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:End Mountain Route",
+          "name": "End Mountain Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Waiparous Creek Trail",
+          "name": "Waiparous Creek Trail",
+          "reason": "boundary-clipped, 85% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Phantom Bluffs Walking Route",
+          "name": "Phantom Bluffs Walking Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Carrot Peak Trail",
+          "name": "Carrot Peak Trail",
+          "reason": "boundary-clipped, 43% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Ghost Peak Trail",
+          "name": "Ghost Peak Trail",
+          "reason": "boundary-clipped, 52% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Ghost River Trail (Open Dec01 - March 31)",
+          "name": "Ghost River Trail (Open Dec01 - March 31)",
+          "reason": "rides a highway=track (vehicle road), not a footpath"
+        },
+        {
+          "id": "n:Mount Oliver Trail",
+          "name": "Mount Oliver Trail",
+          "reason": "boundary-clipped, 53% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Orient Point Trail",
+          "name": "Orient Point Trail",
+          "reason": "boundary-clipped, 8% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Orient Point Route",
+          "name": "Orient Point Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Meadow Creek Trail",
+          "name": "Meadow Creek Trail",
+          "reason": "rides a highway=track (vehicle road), not a footpath"
+        },
+        {
+          "id": "n:Burnt Timber Lookout Trail",
+          "name": "Burnt Timber Lookout Trail",
+          "reason": "Centre gate: sits 0.24 deg north of Lesueur Ridge and Kolbassa Tower, so no pin within 0.1 deg of the extent midpoint lies on a trail with it included. A valid hike, left out of this zone entry rather than pinned off-trail."
+        }
+      ]
+    },
+    {
+      "id": "job-cline-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7210019,
+      "name": "Job/Cline Public Land Use Zone",
+      "bbox": [
+        -117.06,
+        51.96,
+        -116.34,
+        52.69
+      ],
+      "center": [
+        52.11,
+        -116.578
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 15.5,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Job/Cline) whose named hiking trails no live area claims. Kept 6 signed named footpaths (Lake of Falls Trail, Lioness Peak Trail, Resolute Mountain Trail, Resolute Meadow Loop, Mount Ernest Ross Trail, Mount Stelfox Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names.",
+      "exclude_trails": [
+        {
+          "id": "n:Sunset Pass Trail",
+          "name": "Sunset Pass Trail",
+          "reason": "boundary-clipped, 15% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Owen Creek Tail",
+          "name": "Owen Creek Tail",
+          "reason": "boundary-clipped, 13% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Mount Cline Trail",
+          "name": "Mount Cline Trail",
+          "reason": "boundary-clipped, 77% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Allstones Lake Trail",
+          "name": "Allstones Lake Trail",
+          "reason": "boundary-clipped, 43% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Whirlpool Point Route",
+          "name": "Whirlpool Point Route",
+          "reason": "boundary-clipped, 36% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Two O'Clock Ridge Trail",
+          "name": "Two O'Clock Ridge Trail",
+          "reason": "boundary-clipped, 54% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Pinto Lake Trail",
+          "name": "Pinto Lake Trail",
+          "reason": "boundary-clipped, 95% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Whirlpool Ridge Trail",
+          "name": "Whirlpool Ridge Trail",
+          "reason": "boundary-clipped, 62% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Coral Creek Trail",
+          "name": "Coral Creek Trail",
+          "reason": "boundary-clipped, 94% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Landslide Lake Trail",
+          "name": "Landslide Lake Trail",
+          "reason": "boundary-clipped, 90% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Dasent Peak Trail",
+          "name": "Dasent Peak Trail",
+          "reason": "boundary-clipped, 93% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Tuff Puff Trail",
+          "name": "Tuff Puff Trail",
+          "reason": "boundary-clipped, 94% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Coral Creek Canyon Forest Trail",
+          "name": "Coral Creek Canyon Forest Trail",
+          "reason": "boundary-clipped, 63% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Kinglet Lake Trail",
+          "name": "Kinglet Lake Trail",
+          "reason": "boundary-clipped, 89% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Abraham Mountain Trail",
+          "name": "Abraham Mountain Trail",
+          "reason": "boundary-clipped, 62% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Coral Ridge Route",
+          "name": "Coral Ridge Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Whirlpool Ridge Alt Route",
+          "name": "Whirlpool Ridge Alt Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Whitegoat Pass",
+          "name": "Whitegoat Pass",
+          "reason": "boundary-clipped, 86% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Whitegoat",
+          "name": "Whitegoat",
+          "reason": "name is not a clean signed trail name in OSM (generic, lower-case or misspelled)"
+        },
+        {
+          "id": "n:Vision Quest Ridge Peak Route",
+          "name": "Vision Quest Ridge Peak Route",
+          "reason": "boundary-clipped, 78% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Epiphany Peak Trail",
+          "name": "Epiphany Peak Trail",
+          "reason": "boundary-clipped, 82% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Vision Quest Ridge Scramble",
+          "name": "Vision Quest Ridge Scramble",
+          "reason": "Scramble route name, unsigned; not a signed named trail"
+        }
+      ]
+    },
+    {
+      "id": "upper-clearwater-ram-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7210029,
+      "name": "Upper Clearwater/Ram Public Land Use Zone",
+      "bbox": [
+        -116.71,
+        51.65,
+        -115.38,
+        52.3
+      ],
+      "center": [
+        52.052,
+        -116.03
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 29.9,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Upper Clearwater/Ram) whose named hiking trails no live area claims. Kept 6 signed named footpaths (Canary Creek Trail, Cline Fire Lookout Trail, Eagle Mountain Trail, Loudon Creek Trail, Scalp Peak Trail, Willson Peak Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names. Pin moved from 51.963,-115.93 to the kept-trail vertex nearest the curated trail-extent midpoint (52.052,-116.03).",
+      "exclude_trails": [
+        {
+          "id": "n:Onion Lake Trail",
+          "name": "Onion Lake Trail",
+          "reason": "rides a highway=track (vehicle road), not a footpath"
+        },
+        {
+          "id": "n:Ranger Creek Trail",
+          "name": "Ranger Creek Trail",
+          "reason": "18.8 mi backcountry trail; long-distance scale, not a day-hike area entry"
+        },
+        {
+          "id": "n:South Ram River Trail",
+          "name": "South Ram River Trail",
+          "reason": "20.7 mi backcountry trail; long-distance scale, not a day-hike area entry"
+        },
+        {
+          "id": "n:Humingbird Creek Trail",
+          "name": "Humingbird Creek Trail",
+          "reason": "name is not a clean signed trail name in OSM (generic, lower-case or misspelled)"
+        },
+        {
+          "id": "n:Siffleur Falls Trail",
+          "name": "Siffleur Falls Trail",
+          "reason": "boundary-clipped, 91% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Mount Michener (north) Trail",
+          "name": "Mount Michener (north) Trail",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Poplar Peak Route",
+          "name": "Poplar Peak Route",
+          "reason": "boundary-clipped, 49% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Eagle Lake Trail",
+          "name": "Eagle Lake Trail",
+          "reason": "boundary-clipped, 87% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Evangeline Peak Route",
+          "name": "Evangeline Peak Route",
+          "reason": "boundary-clipped, 85% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Siffleur Wilderness Area Access",
+          "name": "Siffleur Wilderness Area Access",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Wapiti Mountain Trail",
+          "name": "Wapiti Mountain Trail",
+          "reason": "boundary-clipped, 85% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Wellsite Mountain Route",
+          "name": "Wellsite Mountain Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Falls Lookout Route",
+          "name": "Falls Lookout Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Onion Peak Route",
+          "name": "Onion Peak Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Hat Mountain Route",
+          "name": "Hat Mountain Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:The Hat",
+          "name": "The Hat",
+          "reason": "name is not a clean signed trail name in OSM (generic, lower-case or misspelled)"
+        },
+        {
+          "id": "n:North Saskatchewan River Trail",
+          "name": "North Saskatchewan River Trail",
+          "reason": "generic river-corridor name, no signed trail identity"
+        },
+        {
+          "id": "n:Terrace Trail",
+          "name": "Terrace Trail",
+          "reason": "generic name with no place identity"
+        },
+        {
+          "id": "n:Whiterabbit trail",
+          "name": "Whiterabbit trail",
+          "reason": "lower-case informal name, no signed identity"
+        },
+        {
+          "id": "n:Eagle Mountain Route",
+          "name": "Eagle Mountain Route",
+          "reason": "Route name that runs the same ground as Eagle Mountain Trail (one trail in one area)"
+        }
+      ]
+    },
+    {
+      "id": "panther-corners-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7210028,
+      "name": "Panther Corners Public Land Use Zone",
+      "bbox": [
+        -115.75,
+        51.54,
+        -115.27,
+        51.78
+      ],
+      "center": [
+        51.62,
+        -115.493
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 12.1,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Panther Corners) whose named hiking trails no live area claims. Kept 3 signed named footpaths (Mount Minos Trail, Dormer Mountain Trail, Hidden Falls Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names. Pin moved from 51.616,-115.496 to the kept-trail vertex nearest the curated trail-extent midpoint (51.62,-115.493).",
+      "exclude_trails": [
+        {
+          "id": "n:Barrier Mountain Trail",
+          "name": "Barrier Mountain Trail",
+          "reason": "boundary-clipped, 16% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Labyrinth Mountain Route",
+          "name": "Labyrinth Mountain Route",
+          "reason": "boundary-clipped, 91% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Panther River Trail",
+          "name": "Panther River Trail",
+          "reason": "rides a highway=track (vehicle road), not a footpath"
+        },
+        {
+          "id": "n:The Diamond Route",
+          "name": "The Diamond Route",
+          "reason": "unsigned route/alternate/seasonal name, not a signed named trail"
+        },
+        {
+          "id": "n:Warden Rock Trail",
+          "name": "Warden Rock Trail",
+          "reason": "boundary-clipped, 72% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Panther Wagon Trail Reroute",
+          "name": "Panther Wagon Trail Reroute",
+          "reason": "boundary-clipped, 93% of the whole route inside the zone (not a whole route)"
+        }
+      ]
+    },
+    {
+      "id": "willow-creek-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "way_id": 492446327,
+      "name": "Willow Creek Public Land Use Zone",
+      "bbox": [
+        -114.52,
+        50.11,
+        -114.25,
+        50.32
+      ],
+      "center": [
+        50.228,
+        -114.369
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.4,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Willow Creek) whose named hiking trails no live area claims. Kept 2 signed named footpaths (Johnson Creek Ridge Trail, Cell Phone Ridge Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names. Pin moved from 50.214,-114.389 to the kept-trail vertex nearest the curated trail-extent midpoint (50.228,-114.369).",
+      "exclude_trails": [
+        {
+          "id": "n:Windy Peak Hills Route",
+          "name": "Windy Peak Hills Route",
+          "reason": "boundary-clipped, 95% of the whole route inside the zone (not a whole route)"
+        },
+        {
+          "id": "n:Windy Peak to Saddle Mountain Route",
+          "name": "Windy Peak to Saddle Mountain Route",
+          "reason": "boundary-clipped, 8% of the whole route inside the zone (not a whole route)"
+        }
+      ]
+    },
+    {
+      "id": "dormer-sheep-public-land-use-zone-ca-ab",
+      "province": "ab",
+      "state": "Canada",
+      "relation_id": 7210017,
+      "name": "Dormer/Sheep Public Land Use Zone",
+      "bbox": [
+        -115.59,
+        51.45,
+        -115.29,
+        51.67
+      ],
+      "center": [
+        51.556,
+        -115.46
+      ],
+      "tier": 3,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 14.3,
+      "notes": "AB-2 curation 2026-11-21 (chat/canada-bc-2; T1 discovery on origin/main d2906d0c8; OSM only, no OSM edits). Alberta Public Land Use Zone (Dormer/Sheep) whose named hiking trails no live area claims. Kept 2 signed named footpaths (Otuskwan Peak Trail, Winchester Ridge Trail). Rule applied to every candidate: whole route (at least 95% of the stitched route inside the zone), highway=path/footway only, a Trail/Loop/Lookout name, under 12 mi, no horse/ski/MTB designation. Excluded below with the reason per trail; vehicle tracks (quad, Panther River, Indian Springs, Meadow Creek) and Route/Scramble names are out. No official trail list was read for the zone; names are the OSM names. Pin moved from 51.556,-115.459 to the kept-trail vertex nearest the curated trail-extent midpoint (51.556,-115.46)."
     }
   ]
 }

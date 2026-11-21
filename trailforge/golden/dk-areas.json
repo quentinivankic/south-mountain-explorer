@@ -730,6 +730,13 @@
       "est_trails": 28,
       "est_mi": 15.8,
       "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. dk-v3 (2026-10-30, live upgrade batch 1): whole named routes instead of polygon-clipped fragments; no removals; live-upgrade review p1c. BATCH-4 (audit 2): KEEP Søruten (r17901842, red:grey:red_dot hiking relation). The audit's 2.8 mi jump is the order of its separate polylines; widest source gap 75.3 m (bridged), nearest OSM ways in it are walkable paths. Nothing synthesized.",
+      "exclude_trails": [
+        {
+          "id": "r17902346",
+          "name": "Bjergturen",
+          "reason": "scale batch 5 (2026-11-21): 98% of Bøgedalsruten runs on it and Bjergturen is broken into two parts 825 m apart (31% of its length is gap), no signed network or symbol tag; the continuous Bøgedalsruten stays"
+        }
+      ],
       "display_name": "Himmelbjerget og Rye Nørreskov",
       "allow_rename": {"from": "Rye Nørreskov", "reason": "audit item 8 (reviewed 2026-11-01, BATCH-2): the Himmelbjerget summit (OSM peak node, 147 m) lies inside a member polygon of the Rye Nørreskov relation and Lynghedeturen passes 0.1 mi from it; Naturstyrelsen runs the nearby guide Himmelbjerget og Slåensø, so the name tells the visitor what the area contains"}
     },
@@ -2436,16 +2443,11 @@
       "hold": null,
       "est_trails": 4,
       "est_mi": 5.0,
-      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31). Display name 'Fovslet, Hoppeshuse og Svanemosen' applied through allow_rename (update mode).",
+      "notes": "Way-backed (way 157392184, Fovslet Skov). Wayback curation (dk-v3): ship with note. Three lwn colour routes named for the forest (Rød, Blå, Gul i Fovslet skov, whole, gap 0 m). The Naturstyrelsen destination 'Svanemosen, Hoppes og Fovslet Skov' is wider (about 6 km2): the Hoppeshuse and Svanemosen routes (Blå/Gul i Hoppeshuse, Gul/Rød i Svanemosen) lie in neighbouring polygons and are included as whole routes (batch G, 4 routes). Rød rute i Hoppeshuse (r15655202) omitted: OSM fixme, existence unverified (second review 2026-10-31). Scale batch 5 (2026-11-21): Gul rute - Hoppeshuse Skov (r17635362) dropped, 39% of its 1.44 mi is a gap (two parts 898 m apart). Display name 'Fovslet, Hoppeshuse og Svanemosen' applied through allow_rename (update mode).",
       "include_trails": [
         {
           "id": "r17635361",
           "name": "Blå rute i Hoppeshuse",
-          "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
-        },
-        {
-          "id": "r17635362",
-          "name": "Gul rute - Hoppeshuse Skov",
           "reason": "lwn hiking relation (Naturstyrelsen guide 'Svanemosen, Hoppes og Fovslet Skov' is one destination with the Fovslet Skov routes); outside the Fovslet Skov way, so a whole-route include"
         },
         {
@@ -3314,7 +3316,7 @@
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 2.2,
       "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD (thin). Klim Bjerg forest (relation 13579668, 0.42 km2, 0.010 x 0.012 degrees, so it needs container_by_id): Klim Bjerg blå rute 0.62 mi and grøn rute 1.56 mi (lwn, dot waymarks, no operator) = 2.2 mi. Parabelstien (1.49 mi) lies entirely outside the forest and is not added. Under the 2.5 mi line. Unlock: a ruling that 2 short signed walks suffice.",
@@ -3727,11 +3729,11 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 6,
-      "est_mi": 16.7,
+      "est_trails": 5,
+      "est_mi": 12.7,
       "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): SHIP. Skælskør (Slagelse Kommune): Noret Rundt, Lystskov, Lodshusstien, Inderfjord, Borreby Mose (Slagelse Kommune and Danmarks Naturfredningsforening folder routes) plus the Dansk Vandrelaug Kobæk Kvalitetssti at Kobæk Strand, which sits inside the same container and is a certified quality path. Lagunestien is a Sjællandsleden regional leg (rwn) and stays out.",
       "container_from_routes": {
-        "reason": "No usable named OSM polygon for Skælskør; container derived from the 6 included signed routes"
+        "reason": "No usable named OSM polygon for Skælskør; container derived from the 5 included signed routes"
       },
       "include_trails": [
         {
@@ -3743,11 +3745,6 @@
           "id": "r16239311",
           "name": "Skælskør Lystskov",
           "reason": "Slagelse Kommune walk (folder), whole route"
-        },
-        {
-          "id": "r16239950",
-          "name": "Lodshusstien",
-          "reason": "lwn walk, Danmarks Naturfredningsforening Slagelse folder, whole route"
         },
         {
           "id": "r16240035",
@@ -4788,7 +4785,7 @@
       "state": "Denmark",
       "relation_id": 12841997,
       "bbox": [9.87, 56.57, 10.06, 56.72],
-      "center": [56.644, 9.963],
+      "center": [56.66, 9.9528],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,

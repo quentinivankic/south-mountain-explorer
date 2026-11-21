@@ -228,6 +228,8 @@ BATCH_K_SHIP = ("osteradalen-dk", "vrogum-klitplantage-dk", "stoubaek-krat-dk", 
 BATCH_K_HELD_NEW = ("grene-sande-dk", "kaergard-klitplantage-dk", "kollemorten-krat-dk", "rodding-skov-dk",
                     "klim-bjerg-dk", "storring-praestegards-skov-dk", "anebjerg-skov-dk", "alstrup-krat-dk",
                     "fosdal-plantage-dk")
+# scale batch 5 (2026-11-21): Klim Bjerg unheld (two signed lwn walks, qualify replay ok 2 trails 2.2 mi); bbox/centre come from the Actions qualify bless
+SCALE5_SHIP = ("klim-bjerg-dk",)
 BATCH_K_WAY = ("osteradalen-dk", "stoubaek-krat-dk", "storring-praestegards-skov-dk")
 # batch L (container_from_routes from PR 677): nineteen shipping route-cluster areas (slivso-dk was the batch I hold,
 # now relation-anchored) and eight new held entries (Hindsgavl held after the Actions qualify); registry bbox/centre of the shipping areas set in the curation PR
@@ -279,7 +281,7 @@ def test_prefix_curated_areas_carry_their_prefix_and_the_expected_hold():
 BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
                   "randbol-hede-frederikshab-dk": "Randbøl", "nationalpark-thy-dk": "Thy",
                   "nationalpark-vadehavet-dk": "Vadehavet"}
-BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r17635362", "r15655203", "r15655204"},
+BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r15655203", "r15655204"},
                    "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
 BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
                    "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.809, 12.005]}
@@ -453,6 +455,9 @@ def test_batch_k_ships_holds_and_opt_ins():
         if i in BATCH_3_SHIP:      # Fosdalen ships in BATCH-3
             assert by_id[i]["hold"] is None and by_id[i]["bbox"] and "Batch K" in by_id[i]["notes"] + "Batch K"
             continue
+        if i in SCALE5_SHIP:       # Klim Bjerg unheld in scale batch 5, not yet blessed
+            assert by_id[i]["hold"] is None and by_id[i]["bbox"] is None
+            continue
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None and "Batch K" in by_id[i]["notes"]
     # Klim Bjerg and Storring are under the 0.01 degree boundary floor, so they need container_by_id plus whole routes
     for i in ("klim-bjerg-dk", "storring-praestegards-skov-dk"):
@@ -489,7 +494,7 @@ def test_batch_l_route_cluster_ships_and_holds():
         "slivso-dk": (2, 4.1),
         "ammitsbol-baek-dk": (3, 4.0),
         "tinglev-dk": (6, 18.4),
-        "skaelskor-dk": (6, 16.7),
+        "skaelskor-dk": (5, 12.7),
         "hingelbjerge-dk": (2, 3.3),
         "nybol-nor-dk": (2, 11.4),
         "skamlingsbanken-dk": (3, 5.0),
@@ -510,7 +515,7 @@ def test_batch_l_route_cluster_ships_and_holds():
         "slivso-dk": 2,
         "ammitsbol-baek-dk": 3,
         "tinglev-dk": 6,
-        "skaelskor-dk": 6,
+        "skaelskor-dk": 5,
         "hingelbjerge-dk": 2,
         "nybol-nor-dk": 2,
         "skamlingsbanken-dk": 3,
@@ -548,9 +553,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 132, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 133, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 64, "superseded": 6}
+        "curated-do-not-ship": 63, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)

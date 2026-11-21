@@ -212,11 +212,12 @@
       ]
     },
     "rye-norreskov-dk": {
-      "trail_count": 7,
-      "total_mi": 13.7,
+      "trail_count": 6,
+      "total_mi": 12.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
+        "Bjergturen",
         "Bob & Leth",
         "Død Ko",
         "Etape 9 - Gudenåstien",
@@ -602,12 +603,11 @@
       ]
     },
     "fovslet-skov-dk": {
-      "trail_count": 7,
-      "total_mi": 10.5,
+      "trail_count": 6,
+      "total_mi": 9.1,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Blå rute i Hoppeshuse",
-        "Gul rute - Hoppeshuse Skov",
         "Gul rute i Svanemosen",
         "Rød rute i Svanemosen"
       ],
@@ -1499,12 +1499,11 @@
       ]
     },
     "skaelskor-dk": {
-      "trail_count": 6,
-      "total_mi": 16.6,
+      "trail_count": 5,
+      "total_mi": 12.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Noret Rundt",
-        "Lodshusstien",
         "Kobæk Kvalitetssti",
         "Skælskør Lystskov",
         "Skælskør Inderfjord",
@@ -2463,6 +2462,15 @@
         "Egehavevej",
         "Skovholtvej",
         "Trelde Næsvej"
+      ]
+    },
+    "klim-bjerg-dk": {
+      "trail_count": 2,
+      "total_mi": 2.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bøge-alleen"
       ]
     }
   }

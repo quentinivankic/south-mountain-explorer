@@ -5232,6 +5232,14 @@
           "reason": "Parks Canada Waterton day-hike page lists Lost Lake; OSM maps the 0.69 mi path as Lost Lake Route (way 376450717), wholly inside the park, ending at Lost Lake. The unsigned-route exclusion is lifted because the hike is agency-listed."
         }
       ],
+      "way_name_overrides": [
+        {
+          "name": "Carthew-Alderson Trail",
+          "way_ids": [449624607, 449624630, 1059660150, 1059660151],
+          "evidence": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists Carthew-Alderson (12.4 mi one way, Cameron Lake to Cameron Falls). OSM has no way named Carthew-Alderson: the whole route is four ways named Great Divide Trail (the park section of the long-distance route), so the vocabulary filter drops it. Summit Lake and Alderson Lake are access points on this same route per the agency page, not separate hikes."
+        }
+      ],
       "trail_name_fixes": [
         {
           "osm_name": "Crypt Lake Trail",
@@ -9598,8 +9606,8 @@
         -81.547
       ],
       "tier": 1,
-      "hold": "needs-rescope",
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 6 trails / 5.3 mi, identical to 2026-11-02 (Cyprus Lake 2.11, Georgian Bay 0.84, Horse Lake 0.72, Wild Garden 0.62, Halfway Log Dump 0.56, Marr Lake 0.50); the Grotto / Indian Head Cove shoreline is Bruce Trail (excluded, MANDATE decision 5). Stays held.",
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 6 trails / 5.3 mi, identical to 2026-11-02 (Cyprus Lake 2.11, Georgian Bay 0.84, Horse Lake 0.72, Wild Garden 0.62, Halfway Log Dump 0.56, Marr Lake 0.50); the Grotto / Indian Head Cove shoreline is Bruce Trail (excluded, MANDATE decision 5). Stays held. Reconcile audit 7 (2026-11-22) row 1.2: UNHELD, SHIP. Six whole signed trails ship (Cyprus Lake, Georgian Bay, Horse Lake, Wild Garden, Halfway Log Dump, Marr Lake). Grotto / Indian Head Cove / Overhanging Point shoreline is Bruce Trail main line (excluded, long-distance); Singing Sands and Little Dunks are unmapped; Cyprus Lake and Georgian Bay are understated by OSM mapping.",
       "keep_trails": [
         {
           "name": "Marr Lake Trail",
@@ -10248,12 +10256,12 @@
         48.46
       ],
       "center": [
-        48.386,
-        -89.615
+        48.397,
+        -89.623
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/kakabekafalls/activities): Boardwalk, Mountain Portage, Little Falls, Poplar Point present; Boardwalk and Mountain Portage waived (the Mountain Portage Trail is an official hiking loop past the falls, not a canoe portage). Beaver Meadows and River Terrace excluded: ski trails not maintained in summer.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/kakabekafalls/activities): Boardwalk, Mountain Portage, Little Falls, Poplar Point present; Boardwalk and Mountain Portage waived (the Mountain Portage Trail is an official hiking loop past the falls, not a canoe portage). Beaver Meadows and River Terrace excluded: ski trails not maintained in summer. Reconcile audit 7 row 5.6: centre moved to the kept-trail vertex nearest the trail-extent midpoint (48.397, -89.623; 0.022 mi from a Little Falls Trail vertex).",
       "exclude_trails": [
         {
           "id": "n:Beaver Meadow Trail",
@@ -10382,12 +10390,12 @@
         44.48
       ],
       "center": [
-        44.418,
-        -81.472
+        44.405,
+        -81.48
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/macgregorpoint/activities): Lake Ridge, Tower, Huron Fringe, Kempf's present (last two waived). Old Shore Road Trail excluded: 68% inside the polygon (2.6 of 3.8 mi), not whole. Deer Run (multi-use) not mapped as hiking. Thin: 4 trails.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/macgregorpoint/activities): Lake Ridge, Tower, Huron Fringe, Kempf's present (last two waived). Old Shore Road Trail excluded: 68% inside the polygon (2.6 of 3.8 mi), not whole. Deer Run (multi-use) not mapped as hiking. Thin: 4 trails. Reconcile audit 7 row 5.9: centre moved to the kept-trail vertex nearest the trail-extent midpoint (44.405, -81.48; 0.002 mi from a Lake Ridge Trail vertex).",
       "exclude_trails": [
         {
           "id": "n:Old Shore Road Trail",
@@ -11580,7 +11588,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine. live-fix1 2026-11-02: the five Grey Owl Trail campsite legs and the Kingsmere River connector dropped as stage legs. The Grey Owl Trail itself needs a merge of its legs or one OSM relation (follow-up). live-fix1 2026-11-02: pin moved from [53.897, -106.366] (6.64 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): the five Grey Owl Trail legs restored until a merged Grey Owl Trail exists. ca-cleanup 2026-11-02: pin moved from [53.899, -106.276] (4.77 mi from the nearest trail) to [53.98, -106.282] on Narrows Peninsula Trail, inside the 0.1 deg publish gate of the trail midpoint [53.897, -106.366]. Grey Owl legs and Valleyview loops kept: Parks Canada lists Valleyview Easy/Moderate/Difficult as separate trails and the legs cannot be merged in the registry.",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada PANP trail list (https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions): Amyot Lake, Boundary Bog, Freight Tait Springs, Mud Creek, Narrows Peninsula, Red Deer (Blue, Red, Yellow loops), Shady Lake, Spruce River Highland, Stoney Plain Meadow Spur, Valleyview (Difficult, Easy, Moderate loops) and Waskesiu River Trail present. The 20 km Grey Owl Trail is mapped in OSM as five campsite-to-campsite legs (11.8 mi); two legs carry the word Portage and are waived, all five are labelled Grey Owl Trail: <leg>. Kingsmere River to Northend Campsite (0.87 mi) kept as OSM labels it. Known omissions (no named OSM way): Elk Trail, Fisher Trail, Treebeard Trail, Hunters Trail, Height of Land Tower, Valleyview Lookout; Kingsmere River Trail is only the 0.87 mi leg. Canoe portages (Kingsmere - Clare Lake, Lily - Clare Lake) dropped by the engine. live-fix1 2026-11-02: the five Grey Owl Trail campsite legs and the Kingsmere River connector dropped as stage legs. The Grey Owl Trail itself needs a merge of its legs or one OSM relation (follow-up). live-fix1 2026-11-02: pin moved from [53.897, -106.366] (6.64 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): the five Grey Owl Trail legs restored until a merged Grey Owl Trail exists. ca-cleanup 2026-11-02: pin moved from [53.899, -106.276] (4.77 mi from the nearest trail) to [53.98, -106.282] on Narrows Peninsula Trail, inside the 0.1 deg publish gate of the trail midpoint [53.897, -106.366]. Grey Owl legs and Valleyview loops kept: Parks Canada lists Valleyview Easy/Moderate/Difficult as separate trails and the legs cannot be merged in the registry. leg-merge 2026-11-22 (mechanism 4): the five Grey Owl Trail legs merge into one Grey Owl Trail (11.8 mi, join gap 0 m); the per-leg name fixes and Portage waivers are retired.",
       "trail_name_fixes": [
         {
           "osm_name": "Blue Red Deer Trail",
@@ -11593,36 +11601,6 @@
           "name": "Spruce River Highland Trail",
           "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
           "reason": "Parks Canada lists Spruce River Highland Trail"
-        },
-        {
-          "osm_name": "Trailhead to Westwind Campsite",
-          "name": "Grey Owl Trail: Trailhead to Westwind Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "OSM leg of the Parks Canada Grey Owl Trail (20 km); official trail name prefixed to the OSM leg label"
-        },
-        {
-          "osm_name": "Westwind Campsite to Chipewyan Portage Campsite",
-          "name": "Grey Owl Trail: Westwind Campsite to Chipewyan Portage Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
-        },
-        {
-          "osm_name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "name": "Grey Owl Trail: Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
-        },
-        {
-          "osm_name": "Sandy Beach Campsite to Northend Campsite",
-          "name": "Grey Owl Trail: Sandy Beach Campsite to Northend Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
-        },
-        {
-          "osm_name": "Northend Campsite to Grey Owl's Cabin",
-          "name": "Grey Owl Trail: Northend Campsite to Grey Owl's Cabin",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "OSM leg of the Parks Canada Grey Owl Trail; official trail name prefixed to the OSM leg label"
         }
       ],
       "exclude_trails": [
@@ -11632,16 +11610,51 @@
           "reason": "Stage leg of a campsite-to-campsite route (Quentin bar: stage legs do not stay); the route is not one OSM-named trail so it cannot be merged in the registry"
         }
       ],
-      "keep_trails": [
+      "leg_merges": [
         {
-          "name": "Westwind Campsite to Chipewyan Portage Campsite",
+          "name": "Grey Owl Trail",
+          "legs": [
+            {
+              "name": "Trailhead to Westwind Campsite",
+              "way_ids": [
+                313310830
+              ]
+            },
+            {
+              "name": "Westwind Campsite to Chipewyan Portage Campsite",
+              "way_ids": [
+                313310832
+              ]
+            },
+            {
+              "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
+              "way_ids": [
+                313310825
+              ]
+            },
+            {
+              "name": "Sandy Beach Campsite to Northend Campsite",
+              "way_ids": [
+                313310829
+              ]
+            },
+            {
+              "name": "Northend Campsite to Grey Owl's Cabin",
+              "way_ids": [
+                313310828
+              ]
+            }
+          ],
           "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
-        },
-        {
-          "name": "Chipewyan Portage Campsite to Sandy Beach Campsite",
-          "source": "https://parks.canada.ca/pn-np/sk/princealbert/activ/experiences/randonee-hiking/etat-sentiers-trail-conditions",
-          "reason": "Leg of the 20 km Grey Owl Trail (Parks Canada trail list); the word Portage is a campsite name, not a canoe portage"
+          "reason": "Parks Canada lists the Grey Owl Trail (20 km) as one trail; OSM maps it as five campsite-to-campsite legs (ways 313310830, 313310832, 313310825, 313310829, 313310828) that chain end to end with no gap. Replaces the five Grey Owl Trail: <leg> rows; the Kingsmere River connector stays excluded.",
+          "new_id": "grey-owl-trail",
+          "old_ids": [
+            "trailhead-to-westwind-campsite",
+            "westwind-campsite-to-chipewyan-portage-campsite",
+            "chipewyan-portage-campsite-to-sandy-beach-campsite",
+            "sandy-beach-campsite-to-northend-campsite",
+            "northend-campsite-to-grey-owl-s-cabin"
+          ]
         }
       ]
     },
@@ -12045,7 +12058,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop).",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop). leg-merge 2026-11-22 (mechanism 4): Reeve Ravine (a) and (b) merge into one Reeve Ravine (live ids reeve-ravine-a/-b replaced by reeve-ravine).",
       "exclude_trails": [
         {
           "id": "n:Brûlé",
@@ -12076,6 +12089,33 @@
           "id": "n:Hilton",
           "name": "Hilton",
           "reason": "Not on the Parks Canada RMNP 2026 summer trail list; unverified, left out"
+        }
+      ],
+      "leg_merges": [
+        {
+          "name": "Reeve Ravine",
+          "legs": [
+            {
+              "name": "Reeve Ravine (a)",
+              "way_ids": [
+                908918864
+              ]
+            },
+            {
+              "name": "Reeve Ravine (b)",
+              "way_ids": [
+                908918862,
+                908918863
+              ]
+            }
+          ],
+          "source": "https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf",
+          "reason": "The Parks Canada RMNP 2026 summer guide lists Reeve Ravine as one trail; OSM maps it as pieces (a) and (b) that touch (join gap 0 m). The 0.38 mi Reeves Ravine (c) piece and the 0.01 mi stem are not merged.",
+          "new_id": "reeve-ravine",
+          "old_ids": [
+            "reeve-ravine-a",
+            "reeve-ravine-b"
+          ]
         }
       ]
     },
@@ -13677,7 +13717,71 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413)."
+      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413). leg-merge 2026-11-22 (mechanism 4): Loop A-D and the Prospector's Trail stem merge into one Prospector's Trail Loop (live ids prospector-s-trail-loop-a/-b replaced by prospector-s-trail-loop).",
+      "leg_merges": [
+        {
+          "name": "Prospector's Trail Loop",
+          "legs": [
+            {
+              "name": "Prospector's Trail Loop A",
+              "way_ids": [
+                298460749,
+                1236487384,
+                1236487386,
+                165400798,
+                169642461,
+                169642463,
+                169642479,
+                298460748,
+                169642482,
+                298460747,
+                1236487453
+              ]
+            },
+            {
+              "name": "Prospector's Trail Loop B",
+              "way_ids": [
+                169642478,
+                298460751,
+                298460750
+              ]
+            },
+            {
+              "name": "Loop C",
+              "way_ids": [
+                165400799
+              ]
+            },
+            {
+              "name": "Prospector's Trail",
+              "way_ids": [
+                169642466,
+                169642475,
+                169642468,
+                169642469,
+                169642470,
+                169642471,
+                169642473,
+                298460743,
+                298460744
+              ]
+            },
+            {
+              "name": "Loop D",
+              "way_ids": [
+                364820561
+              ]
+            }
+          ],
+          "source": "https://www.nwtparks.ca/find-a-park/fred-henne-territorial-park",
+          "reason": "OSM maps the one Prospector's Trail Loop (about 2.7 mi, 5.3 km) as Loop A, B, C, D and a short stem named Prospector's Trail; the pieces touch end to end (widest join gap 0 m). Loop C, Loop D and the stem were each dropped under the 0.6 mi floor, so only A and B shipped.",
+          "new_id": "prospector-s-trail-loop",
+          "old_ids": [
+            "prospector-s-trail-loop-a",
+            "prospector-s-trail-loop-b"
+          ]
+        }
+      ]
     },
     {
       "id": "hidden-lake-territorial-park-ca-nt",
@@ -15497,7 +15601,7 @@
       "hold": null,
       "est_trails": 17,
       "est_mi": 76.6,
-      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks trail summary (https://nrs.objectstore.gov.bc.ca/kuwyyf/south_chilcotin_mountains_park_trail_summary_db4328f6b5.pdf, December 2019) lists the major trails: Gun Creek, Gun Meadows, Warner Pass, Spruce Lake, High Trail (with South Branch), Tyaughton Creek, Deer Pass, Open Heart, WD, Relay Creek, Little Paradise (AKA Manson Creek), Castle Pass, Elbow and Lorna Pass, Lower and Mid Grasslands, Camel Pass, Lick Creek, B&F Creek and Taylor Creek; hikers, horses and bikes share them (https://bcparks.ca/south-chilcotin-mountains-park/). Kept (17): High Trail (84.7% inside; waiver: the summary's High Trail ends outside the park near Tyaughton Lake, so the in-park 10.8 of 12.7 mi is the agency trail), Gun Creek Trail plus Lower Gun Creek Trail and Mid Gun Creek Trail (flagship waiver: three OSM sections of the summary's Gun Creek Trail, Jewel Bridge trailhead to the Deer Pass/Warner Pass junction past Trigger Lake; Gun Creek 83% inside, Lower Gun Creek 81% inside with its out-of-park part below the boundary clipped, Mid Gun Creek 100% inside and joins Gun Creek, Deer Pass and Warner Pass; the eastern 8 km is an old roadbed to Gun Creek Road), Lower/Mid/Upper Tyaughton Creek Trail (three OSM sections of the summary's Tyaughton Creek Trail), Deer Pass, Little Paradise Creek and Manson Creek (two adjoining OSM halves of the Little Paradise AKA Manson Creek trail), Castle Pass, Lick Creek, High Trail South (the South Branch), Spruce Lake Main, WD Trail, Lower Grasslands Trail, Gun Meadows. Excluded: clipped trails (Relay Creek, Warner Pass, Lorna Pass, Relay Col, Little Graveyard, Camel Pass, Upper Grasslands), unlisted names (Lizard Creek, SpruceCreek, LS Bluffs), Ridge-o-rama (bike name), Tyoax Pass Connector. Known omissions: Open Heart, B&F Creek, Taylor Creek, Warner Pass (clipped). Cinnabar Mining Road dropped by the engine. Pin moved from 51.056,-123.024 to the kept-trail vertex nearest the curated trail-extent midpoint (51.049,-122.967).",
+      "notes": "BC-3 curation 2026-11-10 (Phase A, chat/ca-a-bc3; T1 draft from scripts/ca_discover.py on main 355c619e4). SHIP. BC Parks trail summary (https://nrs.objectstore.gov.bc.ca/kuwyyf/south_chilcotin_mountains_park_trail_summary_db4328f6b5.pdf, December 2019) lists the major trails: Gun Creek, Gun Meadows, Warner Pass, Spruce Lake, High Trail (with South Branch), Tyaughton Creek, Deer Pass, Open Heart, WD, Relay Creek, Little Paradise (AKA Manson Creek), Castle Pass, Elbow and Lorna Pass, Lower and Mid Grasslands, Camel Pass, Lick Creek, B&F Creek and Taylor Creek; hikers, horses and bikes share them (https://bcparks.ca/south-chilcotin-mountains-park/). Kept (17): High Trail (84.7% inside; waiver: the summary's High Trail ends outside the park near Tyaughton Lake, so the in-park 10.8 of 12.7 mi is the agency trail), Gun Creek Trail plus Lower Gun Creek Trail and Mid Gun Creek Trail (flagship waiver: three OSM sections of the summary's Gun Creek Trail, Jewel Bridge trailhead to the Deer Pass/Warner Pass junction past Trigger Lake; Gun Creek 83% inside, Lower Gun Creek 81% inside with its out-of-park part below the boundary clipped, Mid Gun Creek 100% inside and joins Gun Creek, Deer Pass and Warner Pass; the eastern 8 km is an old roadbed to Gun Creek Road), Lower/Mid/Upper Tyaughton Creek Trail (three OSM sections of the summary's Tyaughton Creek Trail), Deer Pass, Little Paradise Creek and Manson Creek (two adjoining OSM halves of the Little Paradise AKA Manson Creek trail), Castle Pass, Lick Creek, High Trail South (the South Branch), Spruce Lake Main, WD Trail, Lower Grasslands Trail, Gun Meadows. Excluded: clipped trails (Relay Creek, Warner Pass, Lorna Pass, Relay Col, Little Graveyard, Camel Pass, Upper Grasslands), unlisted names (Lizard Creek, SpruceCreek, LS Bluffs), Ridge-o-rama (bike name), Tyoax Pass Connector. Known omissions: Open Heart, B&F Creek, Taylor Creek, Warner Pass (clipped). Cinnabar Mining Road dropped by the engine. Pin moved from 51.056,-123.024 to the kept-trail vertex nearest the curated trail-extent midpoint (51.049,-122.967). leg-merge 2026-11-22 (mechanism 4): Gun Creek Trail (3 sections) and Tyaughton Creek Trail (Lower + Mid) merge; Upper Tyaughton Creek Trail is 1047 m from the Mid section and stays separate.",
       "exclude_trails": [
         {
           "id": "n:Relay Creek Trail",
@@ -15558,6 +15662,79 @@
           "id": "n:Camel Pass Trail",
           "name": "Camel Pass Trail",
           "reason": "Boundary-clipped: under 85% of the OSM trail lies inside the park polygon (whole-route rule) (77%)"
+        }
+      ],
+      "leg_merges": [
+        {
+          "name": "Gun Creek Trail",
+          "legs": [
+            {
+              "name": "Gun Creek Trail",
+              "way_ids": [
+                124483578,
+                124483591,
+                443446394,
+                507704741,
+                507704742,
+                507704743,
+                569799165
+              ]
+            },
+            {
+              "name": "Lower Gun Creek Trail",
+              "way_ids": [
+                124478000,
+                124480199,
+                443446393
+              ]
+            },
+            {
+              "name": "Mid Gun Creek Trail",
+              "way_ids": [
+                124477089,
+                513471393,
+                513471394
+              ]
+            }
+          ],
+          "source": "https://nrs.objectstore.gov.bc.ca/kuwyyf/south_chilcotin_mountains_park_trail_summary_db4328f6b5.pdf",
+          "reason": "The BC Parks trail summary lists one Gun Creek Trail (Jewel Bridge trailhead to the Deer Pass/Warner Pass junction); OSM maps it as three sections that touch (join gap 0 m).",
+          "new_id": "gun-creek-trail",
+          "old_ids": [
+            "gun-creek-trail",
+            "lower-gun-creek-trail",
+            "mid-gun-creek-trail"
+          ]
+        },
+        {
+          "name": "Tyaughton Creek Trail",
+          "legs": [
+            {
+              "name": "Mid Tyaughton Creek Trail",
+              "way_ids": [
+                124482662,
+                124482702,
+                420084073,
+                513471397
+              ]
+            },
+            {
+              "name": "Lower Tyaughton Creek Trail",
+              "way_ids": [
+                420095657,
+                420095663,
+                420095664,
+                420096849
+              ]
+            }
+          ],
+          "source": "https://nrs.objectstore.gov.bc.ca/kuwyyf/south_chilcotin_mountains_park_trail_summary_db4328f6b5.pdf",
+          "reason": "The BC Parks trail summary lists one Tyaughton Creek Trail; OSM maps the Lower and Mid sections touching (join gap 0 m). Upper Tyaughton Creek Trail stays separate: it sits 1047 m from the Mid section, far beyond the 30 m tolerance, so it is not merged.",
+          "new_id": "tyaughton-creek-trail",
+          "old_ids": [
+            "mid-tyaughton-creek-trail",
+            "lower-tyaughton-creek-trail"
+          ]
         }
       ]
     },

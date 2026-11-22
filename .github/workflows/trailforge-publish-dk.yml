@@ -5,7 +5,7 @@ name: Trailforge — publish Danish areas (registry, N per run)
 # download + prefilter + discovery, then every selected area runs the SAME
 # exact pipeline in its own work dir (scripts/dk-run-area.sh):
 #   discovery check -> AOI cut -> relation-root ledgers -> exact assemble
-#   -> exact-boundary publish_areas (--no-elevation, one --only-area per call)
+#   -> exact-boundary publish_areas (DEM elevation sampled inline, one --only-area per call)
 #
 # mode=qualify  DRY RUN. Writes nothing to main. Uploads a per-area report
 #               artifact (counts, miles, removed categories, full trail names,

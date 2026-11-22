@@ -21345,7 +21345,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6). Mech2 CA ship 2026-11-22 (local expert): replay with park_boundary (mechanism 1) gives 2 trails / 2.5 mi, Signal Hill Trail 1.8 mi and Old Town Tear 0.71 mi. Old Town Tear is a Trailforks singletrack mountain-bike trail (https://www.trailforks.com/trails/old-town-tear/), so it fails rule 2; one signed walk is left (rule 6: fewer than 2). Stays HELD (needs-rescope)."
     },
     {
       "id": "wanuskewin-heritage-park-ca-sk",

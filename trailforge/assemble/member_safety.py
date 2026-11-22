@@ -265,13 +265,43 @@ def _service_exclusion(tags: Mapping[str, Any]) -> tuple[str | None, tuple[str, 
     return None, tokens
 
 
-def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
+MOTOR_TRACK_OPT_IN_REASON = "restored-opt-in-motor-track"
+
+
+def motor_track_opt_in_eligible(tags: Mapping[str, Any]) -> bool:
+    """Return whether one way is the narrow shape the Denmark opt-in keeps.
+
+    The shape is a ``highway=track`` that OSM tags ``motorcar=yes`` or
+    ``motor_vehicle=yes`` and gives no foot tag at all: a signed hiking relation
+    runs over a forest or heath track that is open to cars as well. A matching
+    ``motorcycle=yes`` is allowed. ``designated`` (a road signed for motor
+    traffic) and every other highway stay excluded, and the caller still applies
+    every other member-safety gate (atv, ohv, snowmobile, 4wd_only included).
+    """
+    if normalize(tags.get("highway")) != "track":
+        return False
+    if normalize(tags.get("foot")):
+        return False
+    if normalize(tags.get("motorcycle")) not in {"", "yes"}:
+        return False
+    values = {normalize(tags.get(key)) for key in ("motor_vehicle", "motorcar")}
+    return "yes" in values and values <= {"yes", ""}
+
+
+def dk_relation_member_decision(tags: Mapping[str, Any], *,
+                                keep_motor_track: bool = False
+                                ) -> MemberDecision:
     """Decide Denmark hiking-relation main-line eligibility with a reason.
 
     A signed hiking relation supplies walking purpose, but never overrides an
     explicit pedestrian prohibition or a known unsafe/malformed road subtype.
     This relation-only default must not be reused for standalone checklist
     admission.
+
+    ``keep_motor_track`` is the reviewed per-relation opt-in (registry
+    ``keep_motor_tracks``): it keeps a member that
+    :func:`motor_track_opt_in_eligible` accepts and changes nothing else. The
+    default keeps every caller's decision identical.
     """
     foot = normalize(tags.get("foot"))
     explicit_foot = foot in POSITIVE_FOOT_VALUES
@@ -290,7 +320,15 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
     nonhiking = nonhiking_reason(tags)
     if nonhiking is not None:
         return MemberDecision(False, False, nonhiking)
-    motor_reason = motorized_reason(tags, include_road_motor=False)
+    opt_in_motor_track = (keep_motor_track
+                          and motor_track_opt_in_eligible(tags))
+    motor_tags = tags
+    if opt_in_motor_track and normalize(tags.get("motorcycle")) == "yes":
+        # motorcar/motor_vehicle=yes already admits motorcycles, so a matching
+        # motorcycle=yes is the same permission, not an extra motorized signal.
+        motor_tags = {key: value for key, value in tags.items()
+                      if key != "motorcycle"}
+    motor_reason = motorized_reason(motor_tags, include_road_motor=False)
     if motor_reason is not None:
         return MemberDecision(False, False, motor_reason)
 
@@ -306,7 +344,8 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
     # ordinary service road must not bypass the same explicit-foot gate used by
     # unclassified and living-street members.
     if (explicit_motor_access and not explicit_foot
-            and highway not in motor_default_classes):
+            and highway not in motor_default_classes
+            and not opt_in_motor_track):
         return MemberDecision(False, False, "motor-access-without-positive-foot")
 
     if highway == "service":
@@ -335,6 +374,8 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
             return MemberDecision(
                 False, False, f"road-like-track-{road_kind}",
                 road_like_track_kind=road_kind)
+        if opt_in_motor_track:
+            return MemberDecision(True, True, MOTOR_TRACK_OPT_IN_REASON)
 
     standalone = standalone_member_decision(tags)
     if standalone.eligible:

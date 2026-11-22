@@ -175,8 +175,10 @@ def _dk_quality():
     spec.loader.exec_module(module)
     return module
 def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
-    """dk-v3-only opt-ins: accept_gap (per-relation wide-gap acceptance) and
-    accept_directional_roles (forward/backward hiking-relation members)."""
+    """dk-v3-only opt-ins: accept_gap (per-relation wide-gap acceptance),
+    accept_directional_roles (forward/backward hiking-relation members) and
+    keep_motor_tracks (per-relation: keep signed-route tracks tagged motorcar=yes
+    or motor_vehicle=yes that carry no foot tag)."""
     if "accept_gap" in entry:
         if entry.get("rules") != "dk-v3":
             raise DkError(f"{aid}: accept_gap requires rules dk-v3")
@@ -192,6 +194,13 @@ def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
             raise DkError(f"{aid}: accept_directional_roles requires rules dk-v3")
         if entry["accept_directional_roles"] is not True:
             raise DkError(f"{aid}: accept_directional_roles must be true when present")
+    if "keep_motor_tracks" in entry:
+        if entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: keep_motor_tracks requires rules dk-v3")
+        try:
+            _dk_quality().validate_dk_keep_motor_tracks(entry["keep_motor_tracks"])
+        except ValueError as error:
+            raise DkError(f"{aid}: keep_motor_tracks is invalid: {error}") from None
 def _dk_areas():
     """trailforge/assemble/areas.py (the one definition of the polygons a container_by_id
     entry may name), loaded by path like _dk_names. Its top-level imports are stdlib only."""

@@ -82,11 +82,12 @@ BUNDLE_REPO = "ios/SouthMountainExplorer/Resources/areas-index.json"
 REGISTRY_SCHEMA = "trekdex-dk-areas-v1"
 EXPECTED_SCHEMA = "trekdex-dk-areas-expected-v1"
 EXTRACT, STATE, REGION = "europe/denmark", "Denmark", "dk"
-# Denmark area floor: every area carries at least DK_MIN_TRAILS real signed walks (curation
-# convention since the first batch, now enforced at qualify and at publish). The only exception
-# is the registry opt-in `island_floor` (Denmark-only, dk-v3): a named island whose single
-# signed named walk is a whole OSM route of at least ISLAND_FLOOR_MIN_MI miles (Quentin,
-# decision 6, 2026-11-21). The boundary must be an OSM island/islet (ISLAND_PLACES).
+# Island floor (Quentin, decision 6, 2026-11-21). The curation convention is DK_MIN_TRAILS
+# trails per area; it is NOT newly enforced for ordinary areas. Only the registry opt-in
+# `island_floor` (Denmark-only, dk-v3) changes behaviour: a named island (boundary tagged
+# place=island|islet, ISLAND_PLACES) may ship ISLAND_FLOOR_TRAILS trail when that trail is the
+# one pinned, hiking/foot-tagged, named OSM route (relation_id + trail_name in the opt-in), a
+# whole route of at least ISLAND_FLOOR_MIN_MI miles.
 DK_MIN_TRAILS = 2
 ISLAND_FLOOR_TRAILS = 1
 ISLAND_FLOOR_MIN_MI = 3.0
@@ -225,12 +226,17 @@ def _check_boundary_by_id(aid: str, entry: dict[str, Any]) -> None:
 def _check_island_floor(aid: str, entry: dict[str, Any]) -> None:
     """dk-v3-only opt-in {"reason"}: this named island may ship with ISLAND_FLOOR_TRAILS trail
     (its one signed named walk of at least ISLAND_FLOOR_MIN_MI miles). The boundary itself must
-    be the island, so a derived or borrowed container is refused; the island tag, the walk's
-    length and its signed whole-route status are checked at prepare, qualify and publish."""
+    be the island, so a derived or borrowed container is refused. The island tag and the pinned
+    route's PBF tags are checked at prepare (qualify and publish); the single trail's identity
+    (relation, whole route, name) at qualify, its name and length at publish."""
     item = entry["island_floor"]
-    if (not isinstance(item, dict) or set(item) != {"reason"}
-            or not isinstance(item["reason"], str) or not item["reason"].strip()):
-        raise DkError(f"{aid}: island_floor must be exactly {{\"reason\": text}} when present")
+    if (not isinstance(item, dict) or set(item) != {"reason", "relation_id", "trail_name"}
+            or not isinstance(item["reason"], str) or not item["reason"].strip()
+            or type(item["relation_id"]) is not int or item["relation_id"] <= 0
+            or not isinstance(item["trail_name"], str) or not item["trail_name"].strip()
+            or item["trail_name"] != unicodedata.normalize("NFC", item["trail_name"])):
+        raise DkError(f"{aid}: island_floor must be exactly {{\"reason\": text, \"relation_id\": "
+                      "positive int, \"trail_name\": NFC text} when present")
     if entry.get("rules") != "dk-v3":
         raise DkError(f"{aid}: island_floor requires rules dk-v3")
     if "container_from_routes" in entry or "container_by_id" in entry:
@@ -691,34 +697,53 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         if not (DK_LON[0] <= box[0] and box[2] <= DK_LON[1] and DK_LAT[0] <= box[1] and box[3] <= DK_LAT[1]):
             problems.append(f"boundary bbox {box} is outside Denmark")
     return problems
-def island_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
-    """island_floor entries only: the registry boundary (relation or way) must itself be tagged
-    place=island or place=islet in the PBF. A forest or park on an island does not qualify."""
+def island_problems(entry: dict[str, Any], info: dict[str, Any] | None,
+                    route_info: dict[str, Any] | None = None) -> list[str]:
+    """island_floor entries only. The registry boundary (relation or way) must itself be tagged
+    place=island or place=islet in the PBF (a forest or park on an island does not qualify), and
+    the pinned relation must be present once as a hiking/foot route named trail_name, not a
+    generic colour/number name."""
+    pin = entry["island_floor"]
+    problems: list[str] = []
     place = ((info or {}).get("tags") or {}).get("place")
-    if place in ISLAND_PLACES:
-        return []
-    return [f"island_floor needs a boundary tagged place={'/'.join(sorted(ISLAND_PLACES))}, "
-            f"found place={place!r}"]
+    if place not in ISLAND_PLACES:
+        problems.append(f"island_floor needs a boundary tagged place={'/'.join(sorted(ISLAND_PLACES))}, "
+                        f"found place={place!r}")
+    tags = (route_info or {}).get("tags")
+    rid = pin["relation_id"]
+    if tags is None:
+        problems.append(f"island_floor route relation {rid} is not in the PBF")
+        return problems
+    if (route_info or {}).get("count") != 1:
+        problems.append(f"island_floor route relation {rid} occurs {(route_info or {}).get('count')} times")
+    kind = (tags.get("route") or "").strip().lower()
+    if tags.get("type") != "route" or kind not in _dk_areas().ROUTE_CLUSTER_ROUTE_KINDS:
+        problems.append(f"island_floor relation {rid} is type={tags.get('type')!r} route={tags.get('route')!r}, "
+                        "expected a hiking/foot route")
+    osm_name = unicodedata.normalize("NFC", tags.get("name") or "")
+    if osm_name != pin["trail_name"]:
+        problems.append(f"island_floor relation {rid} is named {osm_name!r}, registry says {pin['trail_name']!r}")
+    if is_generic_trail_name(pin["trail_name"]):
+        problems.append(f"island_floor trail_name {pin['trail_name']!r} is a generic name")
+    return problems
 def floor_problems(entry: dict[str, Any] | None, trail_count: int, total_mi: Any,
-                   signed_route: bool | None = None) -> list[str]:
-    """The Denmark area floor. [] when the area has DK_MIN_TRAILS or more trails. Below that,
-    only an island_floor entry with exactly ISLAND_FLOOR_TRAILS trail of at least
-    ISLAND_FLOOR_MIN_MI miles passes. signed_route is True/False when the caller can see that
-    the one trail is a whole, named, signed OSM route (qualify), None when it cannot (the
-    geom has no relation ids), which skips only that part of the check."""
-    if trail_count >= DK_MIN_TRAILS:
+                   signed_route: bool) -> list[str]:
+    """The island floor. [] for every area that is not an island_floor opt-in (ordinary areas
+    are not judged here) and for an opt-in with DK_MIN_TRAILS or more trails. Otherwise exactly
+    ISLAND_FLOOR_TRAILS trail of at least ISLAND_FLOOR_MIN_MI miles, and signed_route True: the
+    caller has bound that one trail to the pinned route (qualify: relation id, whole route and
+    name; publish: the geom trail name)."""
+    if entry is None or "island_floor" not in entry or trail_count >= DK_MIN_TRAILS:
         return []
-    aid = (entry or {}).get("id", "?")
-    if entry is None or "island_floor" not in entry:
-        return [f"{aid}: {trail_count} trail(s), below the Denmark floor of {DK_MIN_TRAILS} "
-                "(only a registry island_floor opt-in may ship fewer)"]
+    aid = entry.get("id", "?")
     problems: list[str] = []
     if trail_count != ISLAND_FLOOR_TRAILS:
         problems.append(f"{aid}: island_floor needs exactly {ISLAND_FLOOR_TRAILS} trail, found {trail_count}")
     if not _is_num(total_mi) or total_mi < ISLAND_FLOOR_MIN_MI:
         problems.append(f"{aid}: island_floor needs a walk of at least {ISLAND_FLOOR_MIN_MI} mi, found {total_mi}")
-    if signed_route is False:
-        problems.append(f"{aid}: island_floor needs the single trail to be a whole, named, signed OSM route")
+    if signed_route is not True:
+        problems.append(f"{aid}: island_floor needs the single trail to be the pinned whole signed route "
+                        f"{entry['island_floor']['trail_name']!r} (relation {entry['island_floor']['relation_id']})")
     return problems
 def cluster_problems(entry: dict[str, Any], boundary: list[float] | None,
                      infos: dict[int, dict[str, Any]]) -> list[str]:
@@ -768,7 +793,8 @@ def center_of(box: list[float]) -> list[float]:
 def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, discovery_center: Any,
                         mode: str, relation_info: dict[str, Any] | None = None,
                         include_boxes: list[list[float]] | None = None,
-                        cluster_infos: dict[int, dict[str, Any]] | None = None) -> dict[str, Any]:
+                        cluster_infos: dict[int, dict[str, Any]] | None = None,
+                        route_info: dict[str, Any] | None = None) -> dict[str, Any]:
     """Derive/check one area's bbox + centre. Returns the per-area prepare record.
     include_boxes (dk-v3 include_trails relation bboxes found in the PBF) widen only the
     ceiling of the margin check and the proposed bbox: the window must be able to reach the
@@ -817,7 +843,7 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, dis
             rec["container"] = "route-cluster"
             problems += cluster_problems(entry, boundary, cluster_infos)
     if "island_floor" in entry:
-        problems += island_problems(entry, relation_info)
+        problems += island_problems(entry, relation_info, route_info)
     if reg is None:
         if mode == "publish":
             problems.append("registry bbox/center missing: run qualify and commit the proposed values first")
@@ -855,7 +881,8 @@ def prepare_areas(args: argparse.Namespace) -> int:
     entries = [registry["by_id"][i] for i in ids]
     rel_entries = [e for e in entries if "way_id" not in e]
     way_entries = [e for e in entries if "way_id" in e]
-    inc_ids = sorted({r for e in entries for r in include_relation_ids(e)})
+    pins = {e["island_floor"]["relation_id"] for e in entries if "island_floor" in e}
+    inc_ids = sorted({r for e in entries for r in include_relation_ids(e)} | pins)
     infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries] + inc_ids)
     way_infos = (way_boundary_info(args.bounds_pbf, [e["way_id"] for e in way_entries])
                  if way_entries else {})
@@ -871,7 +898,9 @@ def prepare_areas(args: argparse.Namespace) -> int:
             cluster_infos = {r: infos.get(r) or {} for r in include_relation_ids(entry)}
             boxes = [i.get("bbox") for i in cluster_infos.values()]
             boundary = union_bbox(boxes) if boxes and all(b is not None for b in boxes) else None
-        rec = check_area_geometry(entry, boundary, disc_center, args.mode, info, inc_boxes, cluster_infos)
+        pin = entry["island_floor"]["relation_id"] if "island_floor" in entry else None
+        rec = check_area_geometry(entry, boundary, disc_center, args.mode, info, inc_boxes, cluster_infos,
+                                  infos.get(pin) if pin is not None else None)
         if rec["status"] == "ok":
             rec["bbox_arg"] = bbox_arg(rec["effective_bbox"])
             rec["display_name"] = entry.get("display_name") or entry["name"]
@@ -1066,17 +1095,18 @@ def report_area(args: argparse.Namespace) -> int:
         if area["id"] in table:
             rec["blessed_match"] = expected_problems(geom, area["id"], table[area["id"]]) or "match"
     if (rec["trail_count"] or 0) < DK_MIN_TRAILS:
-        # Only areas below the floor read the registry, so every other report is unchanged.
-        # An id outside the registry cannot come from prepare-areas; it is not judged here.
+        # Only areas below DK_MIN_TRAILS read the registry; only an island_floor opt-in is judged,
+        # so every other report (and every area outside the registry) is unchanged.
         entry = load_registry(getattr(args, "registry", REGISTRY_PATH))["by_id"].get(area["id"])
-        one = [p for p in kept if p.get("kind") == "route"]
-        signed = (len(identities) == 1 and bool(one) and all(p.get("dk_whole_route") for p in one)
-                  and bool(identities[0]["relation_ids"]) and not is_generic_trail_name(names[0]))
-        below = floor_problems(entry, rec["trail_count"] or 0, rec["total_mi"], signed) if entry else []
-        if below:
-            rec.update(status="failed", stage="floor", problems=below)
-        elif entry is not None and "island_floor" in entry:
-            rec["island_floor"] = {"trails": rec["trail_count"], "total_mi": rec["total_mi"]}
+        if entry is not None and "island_floor" in entry:
+            pin = entry["island_floor"]
+            signed = (names == [pin["trail_name"]] and identities[0]["relation_ids"] == [pin["relation_id"]]
+                      and identities[0]["whole"])
+            below = floor_problems(entry, rec["trail_count"] or 0, rec["total_mi"], signed)
+            if below:
+                rec.update(status="failed", stage="floor", problems=below)
+            else:
+                rec["island_floor"] = {"trails": rec["trail_count"], "total_mi": rec["total_mi"]}
     _write_json(args.out, rec)
     print(f"{area['id']}: {rec['trail_count']} trails, {rec['total_mi']} mi, removed {rec['removed_category_counts']}")
     return 0
@@ -1181,7 +1211,10 @@ def check_new_row(row: list[Any], entry: dict[str, Any], geom: dict[str, Any], c
     if (row[5] != geom.get("trail_count") or row[5] != len(geom.get("trails") or [])
             or not _is_num(row[6]) or row[6] != geom.get("total_mi") or row[6] <= 0 or row[5] <= 0):
         raise DkError(f"{context}: {entry['id']} row counts differ from its geom")
-    below = floor_problems(entry, row[5], row[6])
+    trails = geom.get("trails") or []
+    pinned = ("island_floor" in entry and len(trails) == 1
+              and trails[0].get("name") == entry["island_floor"]["trail_name"])
+    below = floor_problems(entry, row[5], row[6], pinned)
     if below:
         raise DkError(f"{context}: " + "; ".join(below))
 

@@ -12812,9 +12812,9 @@
         -123.482
       ],
       "tier": 3,
-      "hold": "needs-rescope",
+      "hold": null,
       "park_boundary": {
-        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py."
       },
       "exclude_trails": [
         {

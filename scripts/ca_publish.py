@@ -45,6 +45,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
+import ca_hiking_tag_wins  # noqa: E402
 import ca_park_boundary  # noqa: E402
 import ca_trail_filter  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
@@ -192,6 +193,20 @@ def _check_adopt_ways(aid: str, entry: dict[str, Any]) -> None:
         raise CaError(str(error)) from None
     if "way_id" in entry:
         raise CaError(f"{aid}: adopt_ways needs a relation-backed entry (the exact-area boundary file)")
+def _check_hiking_tag_wins(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: keep hiking ways the ingest filter drops for a skitour/nordic tag (scripts/ca_hiking_tag_wins.py)."""
+    if "hiking_tag_wins" not in entry:
+        return
+    try:
+        ca_hiking_tag_wins.validate_hiking_tag_wins(entry["hiking_tag_wins"], f"{aid}: hiking_tag_wins")
+    except ca_hiking_tag_wins.HikingTagWinsError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: hiking_tag_wins needs a relation-backed entry (the exact-area boundary file)")
+    overlap = {i for e in entry.get("adopt_ways", []) for i in e["way_ids"]} & {
+        i for e in entry["hiking_tag_wins"] for i in e.get("way_ids", [])}
+    if overlap:
+        raise CaError(f"{aid}: hiking_tag_wins and adopt_ways both list way ids {sorted(overlap)[:6]}")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -358,6 +373,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
         _check_adopt_ways(aid, entry)
+        _check_hiking_tag_wins(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name

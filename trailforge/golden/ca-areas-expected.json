@@ -108,6 +108,20 @@
         "Dayuse Connector"
       ]
     },
+    "francis-king-regional-park-ca-bc": {
+      "trail_count": 3,
+      "total_mi": 3.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bridle Trail",
+        "Elsie King Trail",
+        "Grand Fir Trail",
+        "High Ridge Trail",
+        "Marsh Loop Trail",
+        "Panhandle Trail"
+      ]
+    },
     "gully-lake-wilderness-area-ca-ns": {
       "trail_count": 4,
       "total_mi": 13.7,
@@ -214,6 +228,48 @@
         "Bens Ct connector",
         "E off Lynwood connector",
         "Portage (Grand Lake-Ragged Lake)"
+      ]
+    },
+    "thetis-lake-regional-park-ca-bc": {
+      "trail_count": 12,
+      "total_mi": 13.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Castlehedge",
+        "Centra Gas Trail",
+        "Double Track",
+        "Electric House",
+        "Electric Light",
+        "Fairedge",
+        "Faygrass",
+        "Frank and Fizzle Connector",
+        "Frank's Trail",
+        "Freyport",
+        "Lighthouse Connector",
+        "Lighthouse Extension",
+        "Millburn",
+        "Mostly Open",
+        "Phelps Connector",
+        "Rock Climb Bypass",
+        "Scafe Hill Climb (Push Up)",
+        "Scafe Hill Descent",
+        "Scafe Hill Loop Trail (North)",
+        "Scafe Hill Trail",
+        "Seaborn Trail",
+        "Springkeep",
+        "Springvale",
+        "Steep And Deep",
+        "Stewart Connector",
+        "Stewart Mountain Trail",
+        "Stewart Mountain Trail (North)",
+        "Stewart Switchback Climb",
+        "Swamp Bypass",
+        "Thank You Next",
+        "Toms Trail",
+        "Valcrest",
+        "Wraithscafe (Lower)",
+        "Wraithscafe (Upper)"
       ]
     },
     "thomas-raddall-provincial-park-ca-ns": {
@@ -432,8 +488,8 @@
       ]
     },
     "banff-national-park-ca-ab": {
-      "trail_count": 104,
-      "total_mi": 350.2,
+      "trail_count": 105,
+      "total_mi": 355.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Glacier Lake Route",
@@ -897,7 +953,7 @@
     },
     "jasper-national-park-ca-ab": {
       "trail_count": 42,
-      "total_mi": 351.3,
+      "total_mi": 356.9,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -1214,7 +1270,7 @@
     },
     "e-c-manning-provincial-park-ca-bc": {
       "trail_count": 28,
-      "total_mi": 118.7,
+      "total_mi": 124.0,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -1258,8 +1314,8 @@
       ]
     },
     "glacier-national-park-ca-bc": {
-      "trail_count": 14,
-      "total_mi": 27.4,
+      "trail_count": 16,
+      "total_mi": 30.5,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

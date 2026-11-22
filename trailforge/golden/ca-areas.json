@@ -12627,6 +12627,9 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Thetis Lake RP (r1793712, leisure=park): prefilter drops the boundary (found []), same as East Sooke. Re-check 2026-11-10 (BC-1): a local replay with the park boundary merged in gives 16 trails / 17.0 mi, and the CRD map (https://www.crd.ca/media/file/thetis-lake-regional-park) names Upper/Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Phelps, Scafe Hill Loop, Lighthouse, Lewis Clark and Trillium (about 10 ship-quality trails). Blocked: r1793712 is leisure=park with no operator tag, so keep_park_boundary (needs both) refuses and the workflow prefilter drops the boundary. Needs an OSM operator tag (no OSM edits now) or a lane change. Stays held."
     },
     {
@@ -18093,6 +18096,9 @@
       "hold": "needs-rescope",
       "est_trails": 3,
       "est_mi": 3.2,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS)."
     },
     {
@@ -18839,6 +18845,9 @@
       "hold": "needs-rescope",
       "est_trails": 4,
       "est_mi": 11.7,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -18949,6 +18958,9 @@
       "hold": "needs-rescope",
       "est_trails": 18,
       "est_mi": 28.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6/C8 (community forest, mtb share 0.33). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19081,6 +19093,9 @@
       "hold": "needs-rescope",
       "est_trails": 12,
       "est_mi": 12.8,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19103,6 +19118,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 3.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19401,6 +19419,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 5.4,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19570,6 +19591,9 @@
       "hold": "needs-rescope",
       "est_trails": 6,
       "est_mi": 4.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -20853,6 +20877,9 @@
       "hold": "needs-rescope",
       "est_trails": 3,
       "est_mi": 3.1,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (mtb share 0.49). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -20875,6 +20902,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 2.8,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -21030,6 +21060,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 2.5,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {

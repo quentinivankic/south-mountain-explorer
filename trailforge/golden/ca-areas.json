@@ -13768,7 +13768,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413). leg-merge 2026-11-22 (mechanism 4): Loop A-D and the Prospector's Trail stem merge into one Prospector's Trail Loop (live ids prospector-s-trail-loop-a/-b replaced by prospector-s-trail-loop).",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413). leg-merge 2026-11-22 (mechanism 4): Loop A-D and the Prospector's Trail stem merge into one Prospector's Trail Loop (live ids prospector-s-trail-loop-a/-b replaced by prospector-s-trail-loop). Ship NT 2026-11-22: update publish retires prospector-s-trail-loop-a/-b and adds prospector-s-trail-loop (2.8 mi), no other id change.",
       "leg_merges": [
         {
           "name": "Prospector's Trail Loop",

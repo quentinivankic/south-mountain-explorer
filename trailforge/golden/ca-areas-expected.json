@@ -4384,6 +4384,18 @@
         "Windy Peak Hills Route",
         "Windy Peak to Saddle Mountain Route"
       ]
+    },
+    "bruce-peninsula-national-park-ca-on": {
+      "trail_count": 6,
+      "total_mi": 5.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bruce Trail",
+        "Bruce Trail - Peninsula section",
+        "Bruce Trail - Peninsula section side trails",
+        "High Dump Side Trail (Bruce Trail)"
+      ]
     }
   }
 }

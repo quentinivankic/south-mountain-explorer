@@ -2065,7 +2065,7 @@
       ]
     },
     "prince-albert-national-park-ca-sk": {
-      "trail_count": 20,
+      "trail_count": 16,
       "total_mi": 51.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
@@ -2224,7 +2224,7 @@
       ]
     },
     "riding-mountain-national-park-ca-mb": {
-      "trail_count": 34,
+      "trail_count": 33,
       "total_mi": 185.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
@@ -2901,8 +2901,8 @@
       ]
     },
     "fred-henne-territorial-park-ca-nt": {
-      "trail_count": 2,
-      "total_mi": 1.9,
+      "trail_count": 1,
+      "total_mi": 2.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -3433,7 +3433,7 @@
       ]
     },
     "south-chilcotin-mountains-provincial-park-ca-bc": {
-      "trail_count": 17,
+      "trail_count": 14,
       "total_mi": 76.6,
       "total_mi_tolerance": 0.05,
       "required_names": [],

@@ -371,7 +371,11 @@ def profile_ft(sampled: list[tuple[list, list]], max_points: int = 256) -> list[
     return profile_and_gaps(sampled, max_points)[0]
 
 
-def process_area(geom: dict, sampler) -> tuple[int, dict]:
+FRAGMENT_SEGMENTS_PER_MILE = 20
+
+
+def process_area(geom: dict, sampler,
+                 skip_fragmented: bool = False) -> tuple[int, dict]:
     """Set `gainFt` + a gain-aware `difficulty` per trail and a per-area
     `total_gain_ft`, sampling elevation via `sampler.elevation(lat, lon)`.
 
@@ -399,9 +403,17 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
             print(f"    ! gain failed for {t.get('id')}: {e}", file=sys.stderr)
             continue
         old = t.get("difficulty")
-        new = difficulty_label(miles, g)
-        t["gainFt"] = int(g)
-        t["difficulty"] = new
+        fragmented = (skip_fragmented
+                      and len(t.get("segments") or []) / max(miles, 0.05)
+                      > FRAGMENT_SEGMENTS_PER_MILE)
+        if fragmented:
+            new = old
+            t.pop("gainFt", None)
+        else:
+            new = difficulty_label(miles, g)
+            t["gainFt"] = int(g)
+            t["difficulty"] = new
+            total_gain += g
         if prof:
             t["profileFt"] = prof
             # Only present when the trail actually has a discontinuity, so the
@@ -411,7 +423,6 @@ def process_area(geom: dict, sampler) -> tuple[int, dict]:
                 t["profileGaps"] = prof_gaps
             else:
                 t.pop("profileGaps", None)
-        total_gain += g
         changed += 1
         if old != new:
             delta[f"{old}->{new}"] = delta.get(f"{old}->{new}", 0) + 1

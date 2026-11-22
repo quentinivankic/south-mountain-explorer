@@ -196,6 +196,32 @@ class ProcessArea(unittest.TestCase):
         self.assertEqual(geom["total_gain_ft"], 0)
 
 
+    def _frag_geom(self):
+        # 30 tiny 1-m segments over a 0.4 mi trail = 75 segments/mi (> 20)
+        segs = [[[i * 1e-5, 0.0], [(i + 1) * 1e-5, 0.0]] for i in range(30)]
+        return {"trails": [{"id": "f", "distanceMi": 0.4, "difficulty": "Easy",
+                            "segments": segs}]}
+    def test_skip_fragmented_keeps_old_label_and_omits_gain(self):
+        geom = self._frag_geom()
+        changed, delta = e.process_area(geom, self._Ramp(), skip_fragmented=True)
+        t = geom["trails"][0]
+        self.assertEqual(changed, 1)
+        self.assertNotIn("gainFt", t)
+        self.assertEqual(t["difficulty"], "Easy")
+        self.assertEqual(geom["total_gain_ft"], 0)
+        self.assertEqual(delta, {})
+    def test_fragmented_untouched_by_default(self):
+        # control: without the flag (US and every other state) behavior is unchanged
+        geom = self._frag_geom()
+        e.process_area(geom, self._Ramp())
+        self.assertIn("gainFt", geom["trails"][0])
+    def test_skip_fragmented_leaves_normal_trail_alone(self):
+        seg = [[0.0, 0.0], [500 / 111320, 0.0]]
+        geom = {"trails": [{"id": "t1", "distanceMi": 0.4,
+                            "difficulty": "Easy", "segments": [seg]}]}
+        e.process_area(geom, self._Ramp(), skip_fragmented=True)
+        self.assertEqual(geom["trails"][0]["difficulty"], "Hard")
+        self.assertGreater(geom["trails"][0]["gainFt"], 1000)
 if __name__ == "__main__":
     unittest.main()
 

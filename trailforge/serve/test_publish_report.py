@@ -445,7 +445,7 @@ class PublishReport(unittest.TestCase):
                         with self.subTest(sampler=sampler, extra=extra), \
                                 self.assertRaises(FileNotFoundError):
                             publish.main(self._lane_argv(tmp, "Arizona", *extra))
-    def _publish_with_sampled(self, state, sampled):
+    def _publish_with_sampled(self, state, sampled, calls=None):
         index = [[_AREA_ID, _AREA_NAME, state, 56.2, 10.6, None, None, _RELATION_ID]]
         with TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -459,7 +459,9 @@ class PublishReport(unittest.TestCase):
                 patch.object(publish.elevation, "build_sampler",
                              return_value=object()),
                 patch.object(publish.elevation, "process_area",
-                             return_value=(sampled, {})),
+                             side_effect=lambda row, sampler, **kw: (
+                                 calls.append(kw) if calls is not None else None,
+                                 (sampled, {}))[1]),
                 redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()),
             ):
                 rc = publish.main([
@@ -479,6 +481,12 @@ class PublishReport(unittest.TestCase):
                 self.assertEqual(self._publish_with_sampled(state, 0), (0, False))
         # Control: another state keeps the old per-trail best-effort behavior.
         self.assertEqual(self._publish_with_sampled("Arizona", 0), (0, True))
+    def test_fragmented_gain_skip_is_country_lane_only(self):
+        for state, expected in (("Canada", True), ("Denmark", True),
+                                ("Arizona", False)):
+            calls = []
+            self._publish_with_sampled(state, 1, calls)
+            self.assertEqual(calls, [{"skip_fragmented": expected}], state)
     def test_dry_run_exact_boundary_still_requires_preview(self):
         with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
@@ -498,7 +506,7 @@ class PublishReport(unittest.TestCase):
     def test_prior_parking_key_follows_elevation_keys_in_written_json(self):
         # US byte-identity: pre-Denmark order wrote `parking` after the keys
         # elevation.process_area adds. Seeded out-dir must not reorder keys.
-        def fake_elevation(row, _sampler):
+        def fake_elevation(row, _sampler, **_kw):
             row["total_gain_ft"] = 123
             return len(row["trails"]), {}
         parking = [{"id": "existing"}]

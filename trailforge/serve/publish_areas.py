@@ -1149,7 +1149,9 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             # swallowed inside process_area; a whole-area failure falls back to
             # the length-based difficulty conv.convert already set.
             try:
-                sampled, _label_changes = elevation.process_area(row, sampler)
+                sampled, _label_changes = elevation.process_area(
+                    row, sampler,
+                    skip_fragmented=args.state in _ELEVATION_REQUIRED_STATES)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
                 sampled = None

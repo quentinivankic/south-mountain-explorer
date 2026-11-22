@@ -12783,11 +12783,6 @@
       },
       "exclude_trails": [
         {
-          "id": "n:Lighthouse Extension",
-          "name": "Lighthouse Extension",
-          "reason": "Not on the CRD Thetis Lake trail list; an unnamed extension of the listed Lighthouse Trail, shipped once as Lighthouse"
-        },
-        {
           "id": "n:Scafe Hill Loop Trail (North)",
           "name": "Scafe Hill Loop Trail (North)",
           "reason": "Second OSM piece of the one CRD Scafe Hill Loop Trail (4.0 km); shipped once as Scafe Hill Loop Trail"
@@ -12803,7 +12798,7 @@
           "reason": "Not on the CRD Thetis Lake trail list; unofficial mountain-bike line"
         }
       ],
-      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area). RE-HELD 2026-11-22 (needs-rescope): GitHub qualify run 45066997770 on the full BC extract hit SAFETY BLOCK 'exclude n:Lighthouse Extension matches no assembled trail' (the local clipped replay assembled it). Re-curate on the full extract (drop or fix that exclude, re-check the 12 CRD names) before unholding."
+      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area). Mech2 CA ship 2026-11-22: the exclude for 'Lighthouse Extension' was removed because current OSM (Geofabrik 2026-11-21) no longer has a way with that name (the Actions qualify hit a ca_trail_filter SAFETY BLOCK: matches no assembled trail); the other three excludes still match."
     },
     {
       "id": "elk-falls-provincial-park-ca-bc",

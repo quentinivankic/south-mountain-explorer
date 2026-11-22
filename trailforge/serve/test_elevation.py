@@ -196,6 +196,56 @@ class ProcessArea(unittest.TestCase):
         self.assertEqual(geom["total_gain_ft"], 0)
 
 
+    def _frag_geom(self):
+        # 30 tiny 1-m segments over a 0.4 mi trail = 75 segments/mi (> 20)
+        segs = [[[i * 1e-5, 0.0], [(i + 1) * 1e-5, 0.0]] for i in range(30)]
+        return {"trails": [{"id": "f", "distanceMi": 0.4, "difficulty": "Easy",
+                            "segments": segs}]}
+    def test_skip_fragmented_keeps_old_label_and_omits_gain(self):
+        geom = self._frag_geom()
+        changed, delta = e.process_area(geom, self._Ramp(), skip_fragmented=True)
+        t = geom["trails"][0]
+        self.assertEqual(changed, 1)
+        self.assertNotIn("gainFt", t)
+        self.assertEqual(t["difficulty"], "Easy")
+        self.assertEqual(geom["total_gain_ft"], 0)
+        self.assertEqual(delta, {})
+    def test_fragmented_untouched_by_default(self):
+        # control: without the flag (US and every other state) behavior is unchanged
+        geom = self._frag_geom()
+        e.process_area(geom, self._Ramp())
+        self.assertIn("gainFt", geom["trails"][0])
+    def test_skip_fragmented_leaves_normal_trail_alone(self):
+        seg = [[0.0, 0.0], [500 / 111320, 0.0]]
+        geom = {"trails": [{"id": "t1", "distanceMi": 0.4,
+                            "difficulty": "Easy", "segments": [seg]}]}
+        e.process_area(geom, self._Ramp(), skip_fragmented=True)
+        self.assertEqual(geom["trails"][0]["difficulty"], "Hard")
+        self.assertGreater(geom["trails"][0]["gainFt"], 1000)
+
+    def _flat_geom(self, miles, old):
+        seg = [[0.0, 0.0], [1e-5, 0.0]]
+        return {"trails": [{"id": "k", "distanceMi": miles, "difficulty": old,
+                            "segments": [seg]}]}
+
+    def test_keep_technical_never_lowers_short_hard_or_moderate(self):
+        for miles, old, want in ((0.6, "Hard", "Hard"), (4.0, "Hard", "Hard"),
+                                 (1.5, "Moderate", "Moderate"),
+                                 (3.0, "Moderate", "Easy"),   # > 2 mi: length-only, may drop
+                                 (4.5, "Hard", "Easy")):      # > 4 mi: may drop
+            geom = self._flat_geom(miles, old)
+            e.process_area(geom, self._Ramp(), keep_technical=True)
+            self.assertEqual(geom["trails"][0]["difficulty"], want, (miles, old))
+
+    def test_keep_technical_default_off_control(self):
+        geom = self._flat_geom(0.6, "Hard")
+        e.process_area(geom, self._Ramp())
+        self.assertEqual(geom["trails"][0]["difficulty"], "Easy")
+
+    def test_keep_technical_gain_floor_only_with_flag(self):
+        self.assertEqual(e._keep_technical("Easy", "Moderate", 1.9, 1600), "Hard")
+        self.assertEqual(e._keep_technical("Easy", "Moderate", 1.9, 1400), "Moderate")
+        self.assertEqual(e._keep_technical(None, "Easy", 1.0, 100), "Easy")
 if __name__ == "__main__":
     unittest.main()
 

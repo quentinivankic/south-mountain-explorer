@@ -179,13 +179,14 @@ if [ -n "$NAME_FIXES" ]; then
   python3 ../scripts/dk_trail_name_fix.py --trails "data/aoi/$AREA_ID.trails.geojson" \
     --fixes "$A/dk-trail-name-fixes.json" --report "$A/trail-name-fixes.json"
 fi
-# Exact park polygon + exact assembly, no elevation, one --only-area per call.
+# Exact park polygon + exact assembly, DEM elevation sampled inline (gainFt, profileFt,
+# total_gain_ft, gain-aware difficulty), one --only-area per call.
 python3 serve/publish_areas.py \
   --trails "data/aoi/$AREA_ID.trails.geojson" \
   --hiking "data/aoi/$AREA_ID.osm.pbf" \
   --state Denmark --index "$A/index.json" \
   --out-dir "$A/geom" --only-area "$AREA_ID" \
-  --no-boundary-fetch --no-elevation \
+  --no-boundary-fetch \
   --exact-boundary "data/aoi/$AREA_ID.exact-area.geojson"
 
 # The geom dir must hold exactly this area's file.

@@ -30,9 +30,11 @@ def test_run_area_script_is_the_generic_path_with_no_denmark_machinery():
     for needle in ("bash extract/aoi.sh", "check-boundary-unique", "assemble/assemble.py",
                    "--only-area \"$AREA_NAME\"", "--expected-area-relation-id \"$RELATION_ID\"",
                    "--require-exact-area", "--min-length-mi 0.1 --per-area-merge", "ca_trail_filter.py",
-                   "serve/publish_areas.py", "--state Canada", "--no-boundary-fetch", "--no-elevation",
+                   "serve/publish_areas.py", "--state Canada", "--no-boundary-fetch",
                    "index-for-publish", "finish-publish"):
         assert needle in code, needle
+    # Elevation is sampled inline: the lane must not pass --no-elevation (the engine refuses it).
+    assert "--no-elevation" not in code
     # The ONLY engine opt-ins are registry-gated: the id-pinned boundary, and the per-relation accept_gap /
     # keep_superroute lists. Each adds `--region ca` in its own gated branch; no other flag reaches assemble.
     assert code.count("--region") == 2 and "--region ca --boundary-by-id" in code

@@ -284,7 +284,7 @@ BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
 BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r15655203", "r15655204"},
                    "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
 BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
-                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.705, 11.993]}
+                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.645, 11.956]}
 def test_batch_g_registry_prefixes_includes_excludes_and_centres():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     for aid, prefix in BATCH_G_PREFIX.items():
@@ -339,19 +339,21 @@ SCALE3_HELD = ["thise-dk", "vellev-dk", "augustenborg-dk"]
 # Scale batch 6 (2026-11-21): four route-cluster areas ship (replay b9 ok, no cross-area duplicates; bbox null until the Actions qualify)
 SCALE6_SHIP = ["almind-so-dk", "farum-sondersoe-dk", "hortoft-dk", "kong-gummerup-dk"]
 SCALE3_CLUSTER = [*SCALE3_SHIP, *SCALE3_HELD, *SCALE6_SHIP]
+ISLAND_SHIP = ("lyo-dk", "drejo-dk", "barso-dk", "livo-dk")
+ISLAND_NEW_WAY = ["lyo-dk", "drejo-dk", "barso-dk"]   # Livo was already way-backed (BATCH_E_WAY)
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 232
+    assert len(areas) == 237
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
     assert len(set(ids)) == len(ids) and all(i.endswith("-dk") for i in ids)
     assert len(set(rels)) == len(rels) and len(set(ways)) == len(ways) == (
-        len(WAYBACK_ALL) + len(BATCH_B_WAY) + len(BATCH_E_WAY) + len(BATCH_H_WAY) + len(BATCH_I_WAY) + len(BATCH_K_WAY) + len(BATCH_3_WAY) + len(SCALE1_WAY) + len(SCALE2_WAY))
+        len(WAYBACK_ALL) + len(BATCH_B_WAY) + len(BATCH_E_WAY) + len(BATCH_H_WAY) + len(BATCH_I_WAY) + len(BATCH_K_WAY) + len(BATCH_3_WAY) + len(SCALE1_WAY) + len(SCALE2_WAY) + len(ISLAND_NEW_WAY))
     assert {a["id"] for a in areas if "way_id" in a} == (
-        set(WAYBACK_ALL) | set(BATCH_B_WAY) | set(BATCH_E_WAY) | set(BATCH_H_WAY) | set(BATCH_I_WAY) | set(BATCH_K_WAY) | set(BATCH_3_WAY) | set(SCALE1_WAY) | set(SCALE2_WAY))
+        set(WAYBACK_ALL) | set(BATCH_B_WAY) | set(BATCH_E_WAY) | set(BATCH_H_WAY) | set(BATCH_I_WAY) | set(BATCH_K_WAY) | set(BATCH_3_WAY) | set(SCALE1_WAY) | set(SCALE2_WAY) | set(ISLAND_NEW_WAY))
     assert [a["id"] for a in areas[:5]][0] == MOLS and set(PARKS) <= set(ids)
     assert all(a["bbox"] is None for a in areas
                if a["id"] != MOLS and a["id"] not in PARKS and a["id"] not in BATCH2
@@ -360,7 +362,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -395,7 +397,7 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
     assert [t["id"] for t in by_id["hastrup-plantage-dk"]["include_trails"]] == ["r6395876"]
     assert {t["id"] for t in by_id["svinklov-klitplantage-dk"]["include_trails"]} == {
         "r12700220", "r12700248", "r10043412", "r13482006"}
-    assert by_id["samso-dk"]["display_name"] == "Nordby Bakker på Samsø"
+    assert by_id["samso-dk"]["display_name"] == "Samsø · Nordby Bakker"
     assert (by_id["hastrup-plantage-dk"]["est_trails"], by_id["hastrup-plantage-dk"]["est_mi"]) == (4, 7.1)
     assert (by_id["oro-dk"]["est_trails"], by_id["oro-dk"]["est_mi"]) == (4, 12.4)
     assert (by_id["samso-dk"]["est_trails"], by_id["samso-dk"]["est_mi"]) == (4, 13.2)
@@ -555,9 +557,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 137, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 141, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 63, "superseded": 6}
+        "curated-do-not-ship": 64, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)
@@ -580,7 +582,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert set(table) == ({MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                            *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                            *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
-                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP)
+                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP) | set(ISLAND_SHIP)
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
@@ -617,7 +619,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "klim-bjerg-dk": (2, 2.2), "almind-so-dk": (2, 9.7), "farum-sondersoe-dk": (2, 9.7), "hortoft-dk": (4, 11.5), "kong-gummerup-dk": (5, 10.9), "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (2, 11.2), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (6, 17.6), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2)}
+        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (2, 11.2), "frederiksvaerk-dk": (3, 9.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (6, 17.6), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2),
+        # island floor batch (local qualify; the Actions qualify run re-confirms)
+        "lyo-dk": (1, 7.5), "drejo-dk": (1, 3.6), "barso-dk": (1, 4.1), "livo-dk": (1, 4.0)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -788,7 +792,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
             *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K, *DK_V3_BATCH_L,
-            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER)}
+            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER, *ISLAND_BATCH)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -1501,17 +1505,22 @@ def _guard_argv(tmp, *extra, state="Denmark"):
             "--out-dir", f"{tmp}/out", "--state", state, "--exact-boundary", f"{tmp}/exact.geojson", *extra]
 
 
-def test_publish_areas_guard_accepts_registry_areas_only(tmp_path):
+def test_publish_areas_guard_accepts_registry_areas_only(tmp_path, monkeypatch):
     tmp = str(tmp_path)
+    monkeypatch.setattr(publish_areas.elevation, "build_sampler", lambda **_k: object())
     for aid in (MOLS, "nationalpark-thy-dk"):
-        ok = ["--no-boundary-fetch", "--no-elevation", "--only-area", aid]
+        ok = ["--no-boundary-fetch", "--only-area", aid]      # elevation sampled inline (the DK lane)
         with pytest.raises(FileNotFoundError):          # guards pass; fails later on the missing index
             publish_areas.main(_guard_argv(tmp, *ok))
-    for extra, state in ((["--no-boundary-fetch", "--no-elevation", "--only-area", "not-in-registry-dk"], "Denmark"),
-                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk"], "Denmark"),
-                         (["--no-boundary-fetch", "--no-elevation"], "Denmark"),
-                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk"], "Arizona"),
-                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk",
+    # the reviewed pinned-Mols pilot (trailforge-publish.yml mols_simple) keeps its --no-elevation call
+    with pytest.raises(FileNotFoundError):
+        publish_areas.main(_guard_argv(tmp, "--no-boundary-fetch", "--no-elevation", "--only-area", MOLS))
+    for extra, state in ((["--no-boundary-fetch", "--only-area", "not-in-registry-dk"], "Denmark"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk"], "Denmark"),
+                         (["--no-boundary-fetch"], "Denmark"),
+                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk"], "Arizona"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", MOLS], "Arizona"),
+                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk",
                            "--preview-json", f"{tmp}/p.json", "--preview-root", tmp], "Denmark")):
         with pytest.raises(SystemExit) as raised:
             publish_areas.main(_guard_argv(tmp, *extra, state=state))
@@ -1609,11 +1618,13 @@ def test_run_area_script_copies_the_mols_simple_exact_pipeline_flags():
                    "build_relation_slice.py", "export_relation_members.py", "--only-area \"$AREA_NAME\"",
                    "--require-exact-area", "--expected-area-relation-id \"$RELATION_ID\"",
                    "--relation-authority", "--prefilter-authority", "--aoi-relation-members",
-                   "--min-length-mi 0.1 --per-area-merge --region dk", "--no-boundary-fetch", "--no-elevation",
+                   "--min-length-mi 0.1 --per-area-merge --region dk", "--no-boundary-fetch",
                    "--exact-boundary \"data/aoi/$AREA_ID.exact-area.geojson\"", "--only-area \"$AREA_ID\"",
                    "--state Denmark"):
         assert needle in script, needle
     assert "--dry-run" not in script.split("serve/publish_areas.py", 1)[1]
+    # elevation is sampled inline: the lane must not pass --no-elevation (the engine refuses it)
+    assert "--no-elevation" not in "\n".join(l for l in script.splitlines() if not l.lstrip().startswith("#"))
     assert subprocess.run(["bash", "-n", str(ROOT / "scripts/dk-run-area.sh")]).returncode == 0
 
 
@@ -3484,3 +3495,371 @@ def test_trail_name_fixes_registry_validation(tmp_path):
     path.write_text(json.dumps(doc), encoding="utf-8")
     with pytest.raises(dk.DkError):
         dk.load_registry(path)                                           # legacy rules: refused
+# ------------------------------------------------------------ island floor ----
+ISLAND = "livo-dk"          # real dk-v3 way-backed island entry; the opt-in is added to a copy only
+TRAIL, REL = "Livø rundtur", 111
+def _pin(**over):
+    return {"reason": "single signed named island walk of at least 3 mi",
+            "relation_id": REL, "trail_name": TRAIL, **over}
+def _island_registry(tmp_path, **extra):
+    def mutate(d):
+        entry = next(a for a in d["areas"] if a["id"] == ISLAND)
+        entry["island_floor"] = _pin()
+        entry.update(extra)
+    return _write_registry(tmp_path / "island.json", mutate)
+def _strip_island_opt_in(d):
+    """The real registry now carries the opt-in on ISLAND; the 'no opt-in' controls remove it from a copy."""
+    next(a for a in d["areas"] if a["id"] == ISLAND).pop("island_floor", None)
+def _island_entry(tmp_path):
+    return dk.load_registry(_island_registry(tmp_path))["by_id"][ISLAND]
+def _plain_entry():
+    return {"id": "plain-dk", "name": "Plain", "rules": "dk-v3"}
+def _route_info(**over):
+    tags = {"type": "route", "route": "hiking", "name": TRAIL}
+    tags.update(over.pop("tags", {}))
+    return {"bbox": [10.0, 55.0, 10.05, 55.04], "tags": tags, "count": 1, **over}
+ISLAND_HELD = {"endelave-dk", "hindo-dk"}
+ISLAND_BATCH = {            # island id -> (pinned OSM route relation, OSM route name); the batch is exactly these six
+    "lyo-dk": (164625, "Ly\u00f8 rundtur"), "endelave-dk": (12787516, "Kaninoen"),
+    "drejo-dk": (12769634, "Drej\u00f8 rundtur"), "barso-dk": (12812753, "Bars\u00f8 Rundtur"),
+    "livo-dk": (12554510, "Liv\u00f8"), "hindo-dk": (11847393, "Hind\u00f8turen"),
+}
+def test_real_registry_island_floor_opt_ins_are_exactly_the_reviewed_batch():
+    reg = dk.load_registry(REGISTRY)["by_id"]
+    assert sorted(a["id"] for a in reg.values() if "island_floor" in a) == sorted(ISLAND_BATCH)
+    for aid, (rid, name) in ISLAND_BATCH.items():
+        e = reg[aid]
+        assert e["island_floor"]["relation_id"] == rid and e["island_floor"]["trail_name"] == name
+        assert e["rules"] == "dk-v3" and e["est_trails"] == 1 and e["est_mi"] >= 3.0
+        # shipped islands have a hold of None; Endelave (truncated by the member-safety rule) and
+        # Hind\u00f8 (2.6 mi inside the island) stay held with their evidence in the notes
+        assert (e["hold"] is None) == (aid not in ISLAND_HELD) and ("HOLD" in e["notes"]) == (aid in ISLAND_HELD)
+        assert ("way_id" in e) != ("relation_id" in e)
+        assert not {"container_from_routes", "container_by_id", "include_trails"} & set(e)
+        assert ("exclude_trails" in e) == (aid == "livo-dk")
+    assert [x["id"] for x in reg["livo-dk"]["exclude_trails"]] == ["n:Enebærstien", "n:Enebærsti"]
+def test_select_getid_args_carry_the_island_floor_pinned_route(tmp_path):
+    index = tmp_path / "index.json"
+    index.write_text("[]", encoding="utf-8")
+    def run(areas):
+        out, gh = tmp_path / "sel.txt", tmp_path / "gh.txt"
+        gh.write_text("")
+        dk.select_cmd(Namespace(registry=REGISTRY, expected=None, mode="qualify", index=index,
+                                areas=areas, chunk_size=25, out=out, github_output=gh))
+        return [l for l in gh.read_text().splitlines() if l.startswith("getid_args=")][0].split("=", 1)[1].split()
+    assert run("lyo-dk") == ["w4121958", "r164625"]
+    assert run("endelave-dk,hindo-dk") == ["r5326472", "r12750418", "r12787516", "r11847393"]
+    plain = next(a["id"] for a in dk.load_registry(REGISTRY)["areas"]
+                 if a.get("hold") is None and "island_floor" not in a and "include_trails" not in a
+                 and a.get("rules") != "legacy")
+    assert not [x for x in run(plain) if x.startswith("r") and int(x[1:]) in {v[0] for v in ISLAND_BATCH.values()}]
+def test_island_floor_boundary_may_be_thin_but_an_ordinary_area_may_not(tmp_path):
+    thin = [8.197, 56.1455, 8.2359, 56.1542]            # Hind\u00f8: 0.039 x 0.009 degrees
+    entry = _island_entry(tmp_path)
+    info = {"bbox": thin, "tags": {"name": entry["name"], "place": "island"}, "closed": True, "count": 1}
+    assert not [p for p in dk.way_problems(entry, info) if "implausible" in p]
+    plain = {k: v for k, v in entry.items() if k != "island_floor"}
+    assert [p for p in dk.way_problems(plain, info) if "implausible" in p]
+    rel = {"id": "r-dk", "name": "R", "relation_id": 5, "island_floor": _pin()}
+    rinfo = {"bbox": thin, "tags": {"type": "multipolygon", "name": "R", "place": "island"}, "count": 1}
+    assert not [p for p in dk.relation_problems(rel, rinfo) if "implausible" in p]
+    assert [p for p in dk.relation_problems({k: v for k, v in rel.items() if k != "island_floor"}, rinfo)
+            if "implausible" in p]
+    tiny = [8.197, 56.1455, 8.2359, 56.1475]            # 0.002 high: still implausible for an island
+    assert [p for p in dk.way_problems(entry, dict(info, bbox=tiny)) if "implausible" in p]
+def test_registry_accepts_island_floor_only_as_a_pinned_dk_v3_opt_in(tmp_path):
+    assert _island_entry(tmp_path)["island_floor"]["relation_id"] == REL
+    def bad(mutate):
+        def apply(d):
+            entry = next(a for a in d["areas"] if a["id"] == ISLAND)
+            entry["island_floor"] = _pin()
+            mutate(entry)
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "bad.json", apply))
+    bad(lambda e: e.update(island_floor=True))
+    bad(lambda e: e.update(island_floor={}))
+    bad(lambda e: e.update(island_floor={"reason": "x"}))                   # no pin
+    bad(lambda e: e.update(island_floor=_pin(reason="  ")))
+    bad(lambda e: e.update(island_floor=_pin(relation_id=0)))
+    bad(lambda e: e.update(island_floor=_pin(relation_id=True)))
+    bad(lambda e: e.update(island_floor=_pin(relation_id="111")))
+    bad(lambda e: e.update(island_floor=_pin(trail_name=" ")))
+    bad(lambda e: e.update(island_floor=_pin(trail_name="Livo\u0308 rundtur")))   # not NFC
+    bad(lambda e: e.update(island_floor=_pin(min_mi=0)))
+    bad(lambda e: e.update(rules="dk-v2"))
+    bad(lambda e: e.update(container_by_id={"reason": "x"}, include_trails=[
+        {"id": "r1", "name": "A", "reason": "x"}]))
+def test_floor_problems_only_judges_island_opt_ins():
+    isl = {"id": "i-dk", "island_floor": _pin()}
+    for entry in (_plain_entry(), None):                             # ordinary areas: never judged
+        for count, mi in ((0, 0), (1, 0.5), (1, 9.0), (2, 0.1), (5, 9.0)):
+            assert dk.floor_problems(entry, count, mi, False) == []
+    assert dk.floor_problems(isl, 1, 3.0, True) == []                # 3 mi is enough
+    assert dk.floor_problems(isl, 2, 0.1, False) == []               # opt-in with 2 trails: ordinary
+    assert dk.floor_problems(isl, 1, 2.99, True)                     # too short
+    assert dk.floor_problems(isl, 1, None, True)
+    assert dk.floor_problems(isl, 1, 4.3, False)                     # not the pinned signed route
+    assert dk.floor_problems(isl, 1, 4.3, None)                      # unknown is refused
+    assert dk.floor_problems(isl, 0, 0.0, True)
+def _row_and_geom(entry, names, mi):
+    center = [56.2, 10.6]
+    entry.update(center=center)
+    return ([entry["id"], entry["name"], "Denmark", center[0], center[1], len(names), mi],
+            _geom(entry["id"], names=names, total_mi=mi))
+def test_check_new_row_binds_the_publish_row_to_the_pinned_trail(tmp_path):
+    entry = _island_entry(tmp_path)
+    plain = {k: v for k, v in entry.items() if k != "island_floor"}
+    r, g = _row_and_geom(entry, [TRAIL], 4.3)
+    plain.update(center=entry["center"])
+    dk.check_new_row(r, entry, g, "t")                               # pinned name, 4.3 mi
+    dk.check_new_row(r, plain, g, "t")                               # ordinary 1-trail area: unchanged
+    for names, mi in (([TRAIL], 2.9), (["Andet navn"], 4.3), (["A", "B"], 1.0)):
+        r, g = _row_and_geom(entry, names, mi)
+        if len(names) == 2:
+            dk.check_new_row(r, entry, g, "t")                       # 2 trails: ordinary rules
+        else:
+            with pytest.raises(dk.DkError, match="island_floor"):
+                dk.check_new_row(r, entry, g, "t")
+# Live rows whose registry pin or title changed in an update PR that is not published yet
+# (dk-quality-fixes: falster-dk pin onto Bøtøskoven, samso-dk retitle). Delete the entries once the
+# update publish data commit lands on main.
+PENDING_UPDATE_ROWS = {"falster-dk", "samso-dk"}
+def test_every_live_danish_row_is_untouched_by_the_floor():
+    registry = dk.load_registry(REGISTRY)["by_id"]
+    rows = [r for r in json.loads((ROOT / "public/areas/index.json").read_text()) if r[0].endswith("-dk")]
+    assert rows
+    for r in rows:
+        geom = json.loads((ROOT / "public/areas/geom" / f"{r[0]}.json").read_text())
+        assert dk.floor_problems(registry[r[0]], r[5], r[6], False) == []
+        if r[0] in PENDING_UPDATE_ROWS:
+            continue  # registry already holds the new pin/title; the live row follows on the update publish
+        dk.check_new_row(r, registry[r[0]], geom, r[0])
+def test_island_boundary_and_pinned_route_are_checked_against_the_pbf(tmp_path):
+    entry = _island_entry(tmp_path)
+    isl = {"tags": {"place": "island"}}
+    assert dk.island_problems(entry, isl, _route_info()) == []
+    assert dk.island_problems(entry, {"tags": {"place": "islet"}}, _route_info()) == []
+    for tags in ({"landuse": "forest"}, {"place": "locality"}, {}, None):
+        assert dk.island_problems(entry, {"tags": tags}, _route_info())
+    assert dk.island_problems(entry, None, _route_info())
+    for bad in (None, {"bbox": None, "tags": None, "count": 0}, _route_info(count=2),
+                _route_info(tags={"route": "bicycle"}), _route_info(tags={"route": "mtb"}),
+                _route_info(tags={"type": "multipolygon"}), _route_info(tags={"name": "Andet navn"}),
+                _route_info(tags={"name": None})):
+        assert dk.island_problems(entry, isl, bad), bad
+    assert dk.island_problems(entry, isl, _route_info(tags={"route": "foot"})) == []
+    generic = dict(entry, island_floor=_pin(trail_name="Rød rute"))
+    assert dk.island_problems(generic, isl, _route_info(tags={"name": "Rød rute"}))
+    box = [10.0, 55.0, 10.05, 55.04]
+    info = {"bbox": box, "tags": {"name": entry["name"], "place": "island"}, "closed": True, "count": 1}
+    ok = dk.check_area_geometry(entry, box, None, "qualify", info, None, None, _route_info())
+    assert not [p for p in ok["problems"] if "island_floor" in p]
+    wrong = dk.check_area_geometry(entry, box, None, "qualify", info, None, None, _route_info(tags={"route": "bicycle"}))
+    assert any("island_floor" in p for p in wrong["problems"]) and wrong["status"] == "failed"
+    info["tags"] = {"name": entry["name"], "landuse": "forest"}
+    bad = dk.check_area_geometry(entry, box, None, "qualify", info, None, None, _route_info())
+    assert any("island_floor needs a boundary" in p for p in bad["problems"]) and bad["status"] == "failed"
+    plain = {k: v for k, v in entry.items() if k != "island_floor"}
+    other = dk.check_area_geometry(plain, box, None, "qualify", info)
+    assert not [p for p in other["problems"] if "island_floor" in p]
+def _island_report(tmp_path, registry, area_id, features, names, total_mi):
+    d = tmp_path / area_id
+    d.mkdir(exist_ok=True)
+    (d / "area.json").write_text(json.dumps({"id": area_id, "name": "X", "relation_id": 1}), encoding="utf-8")
+    (d / "geom.json").write_text(json.dumps(_geom(area_id, names=names, total_mi=total_mi)))
+    (d / "trails.geojson").write_text(json.dumps({"features": features}))
+    (d / "removed.geojson").write_text(json.dumps({"features": []}))
+    (d / "assembly.json").write_text(json.dumps({}))
+    assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                    "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+                    "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json"),
+                    "--registry", str(registry), "--live-geom-dir", str(tmp_path / "nolive")]) == 0
+    return json.loads((d / "report.json").read_text())
+def _isl_route(name=TRAIL, mi=4.3, whole=True, rels=(REL,)):
+    return {"type": "Feature", "geometry": None, "properties": {
+        "name": name, "kind": "route", "length_mi": mi, "relation_ids": list(rels), "dk_whole_route": whole}}
+def _report_cases(tmp_path):
+    """(label, features, names, mi, registry, area_id, expect_ok) for the qualify path."""
+    reg = _island_registry(tmp_path)
+    plain = _write_registry(tmp_path / "plain.json", _strip_island_opt_in)
+    return [
+        ("pinned route", [_isl_route()], [TRAIL], 4.3, reg, ISLAND, True),
+        ("exactly 3 mi", [_isl_route(mi=3.0)], [TRAIL], 3.0, reg, ISLAND, True),
+        ("under 3 mi", [_isl_route(mi=2.9)], [TRAIL], 2.9, reg, ISLAND, False),
+        ("clipped, not whole", [_isl_route(whole=False)], [TRAIL], 4.3, reg, ISLAND, False),
+        ("no relation", [_isl_route(rels=())], [TRAIL], 4.3, reg, ISLAND, False),
+        ("other relation", [_isl_route(rels=(222,))], [TRAIL], 4.3, reg, ISLAND, False),
+        ("extra relation", [_isl_route(rels=(REL, 222))], [TRAIL], 4.3, reg, ISLAND, False),
+        ("other name", [_isl_route(name="Andet navn")], ["Andet navn"], 4.3, reg, ISLAND, False),
+        ("no opt-in, 1 trail: unchanged", [_isl_route()], [TRAIL], 4.3, plain, ISLAND, True),
+        ("id outside the registry: unchanged", [_isl_route()], [TRAIL], 4.3, REGISTRY, "unregistered-dk", True),
+    ]
+def test_report_area_judges_the_island_opt_in_and_nothing_else(tmp_path):
+    for label, features, names, mi, registry, area_id, ok in _report_cases(tmp_path):
+        sub = tmp_path / label.replace(" ", "_").replace(",", "").replace(":", "")
+        sub.mkdir()
+        rep = _island_report(sub, registry, area_id, features, names, mi)
+        if ok:
+            assert rep["status"] == "ok" and "stage" not in rep, label
+        else:
+            assert rep["status"] == "failed" and rep["stage"] == "floor" and rep["problems"], label
+    (tmp_path / "ok").mkdir()
+    ok = _island_report(tmp_path / "ok", _island_registry(tmp_path), ISLAND, [_isl_route()], [TRAIL], 4.3)
+    assert ok["island_floor"] == {"trails": 1, "total_mi": 4.3}
+def test_report_area_is_untouched_for_areas_at_or_above_the_floor(tmp_path):
+    rep = _island_report(tmp_path, tmp_path / "never-read.json", "two-dk",
+                         [_isl_route(name="A"), _isl_route(name="B", rels=(2,))], ["A", "B"], 1.0)
+    assert rep["status"] == "ok" and "island_floor" not in rep and "stage" not in rep
+def test_one_trail_report_of_an_ordinary_area_is_identical_to_base(tmp_path):
+    """A 1-trail non-island report must equal what the code on base produced (no floor keys)."""
+    plain = _write_registry(tmp_path / "plain.json", _strip_island_opt_in)
+    rep = _island_report(tmp_path, plain, ISLAND, [_isl_route()], [TRAIL], 4.3)
+    assert rep["status"] == "ok" and not {"stage", "problems", "island_floor"} & set(rep)
+# ------------------------------------------------------------ mutation test ----
+# Real source mutation: each mutant edits dk_publish.py text, is exec'd as a fresh module, and
+# the whole scenario table (pure helpers, qualify reports, publish rows, prepare wiring) must
+# change. A surviving mutant fails the test.
+SRC = (ROOT / "scripts" / "dk_publish.py").read_text(encoding="utf-8")
+def _load_mutant(source):
+    import types
+    mod = types.ModuleType("dk_mutant")
+    mod.__file__ = str(ROOT / "scripts" / "dk_publish.py")
+    exec(compile(source, mod.__file__, "exec"), mod.__dict__)
+    return mod
+def _scenarios(mod, tmp_path):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    out = []
+    isl = {"id": "i-dk", "island_floor": _pin()}
+    plain = _plain_entry()
+    for e, c, mi, sg in ((plain, 1, 9.0, False), (plain, 0, 0, False), (isl, 1, 3.0, True), (isl, 1, 2.9, True),
+                         (isl, 2, 9.0, True), (isl, 0, 9.0, True), (isl, 1, 9.0, False), (None, 1, 9.0, False),
+                         (isl, 3, 0.1, False)):
+        out.append(bool(mod.floor_problems(e, c, mi, sg)))
+    entry = {**isl, "id": ISLAND}
+    for info, route in (({"tags": {"place": "island"}}, _route_info()), ({"tags": {"place": "islet"}}, _route_info()),
+                        ({"tags": {"landuse": "forest"}}, _route_info()), ({"tags": {"place": "locality"}}, _route_info()),
+                        ({"tags": {"place": "island"}}, None), ({"tags": {"place": "island"}}, _route_info(count=2)),
+                        ({"tags": {"place": "island"}}, _route_info(tags={"route": "bicycle"})),
+                        ({"tags": {"place": "island"}}, _route_info(tags={"route": "foot"})),
+                        ({"tags": {"place": "island"}}, _route_info(tags={"type": "site"})),
+                        ({"tags": {"place": "island"}}, _route_info(tags={"name": "Andet navn"})),
+                        ({"tags": {"place": "island"}}, _route_info(tags={"name": TRAIL, "x": "y"}))):
+        out.append(bool(mod.island_problems(entry, info, route)))
+    generic = {**isl, "id": ISLAND, "island_floor": _pin(trail_name="Rød rute")}
+    out.append(bool(mod.island_problems(generic, {"tags": {"place": "island"}}, _route_info(tags={"name": "Rød rute"}))))
+    reg = _island_registry(tmp_path)
+    out.append(_prepare_floor_problems(mod, tmp_path, reg))
+    for n, (label, features, names, mi, registry, area_id, ok) in enumerate(_report_cases(tmp_path)):
+        sub = tmp_path / f"m{n}"
+        sub.mkdir()
+        rep = _run_report(mod, sub, registry, area_id, features, names, mi)
+        out.append((rep["status"], rep.get("stage")))
+    real = dk.load_registry(reg)["by_id"][ISLAND]
+    for names, mi in (([TRAIL], 4.3), ([TRAIL], 2.9), (["Andet navn"], 4.3), ([TRAIL, "B"], 1.0)):
+        r, g = _row_and_geom(real, names, mi)
+        try:
+            mod.check_new_row(r, real, g, "t")
+            out.append("ok")
+        except mod.DkError:
+            out.append("refused")
+    box = [10.0, 55.0, 10.05, 55.04]
+    info = {"bbox": box, "tags": {"name": real["name"], "place": "island"}, "closed": True, "count": 1}
+    for route in (_route_info(), _route_info(tags={"route": "bicycle"}), None):
+        out.append(mod.check_area_geometry(real, box, None, "qualify", info, None, None, route)["status"])
+    return tuple(out)
+def _prepare_floor_problems(mod, tmp_path, registry):
+    """Run prepare_areas on the island entry with a fake PBF reader; return its island_floor problems
+    for a good pinned route and a bicycle route (the pin must be fetched and handed to the check)."""
+    import types
+    seen = []
+    result = []
+    for kind in ("hiking", "bicycle"):
+        def fake_boundary_info(pbf, ids, kind=kind):
+            seen.append(sorted(ids))
+            return {i: _route_info(tags={"route": kind}) for i in ids}
+        def fake_way_info(pbf, ids):
+            return {i: {"bbox": [10.0, 55.0, 10.05, 55.04], "tags": {"place": "island"}, "closed": True, "count": 1}
+                    for i in ids}
+        sub = tmp_path / f"prep_{kind}"
+        sub.mkdir()
+        (sub / "sel.txt").write_text(ISLAND)
+        (sub / "disc.json").write_text(json.dumps({"candidates": []}))
+        old = (mod.boundary_info, mod.way_boundary_info)
+        mod.boundary_info, mod.way_boundary_info = fake_boundary_info, fake_way_info
+        try:
+            mod.prepare_areas(Namespace(selected=sub / "sel.txt", discovery_report=sub / "disc.json",
+                                        bounds_pbf=sub / "x.pbf", registry=registry, mode="qualify",
+                                        out_dir=sub / "out"))
+        finally:
+            mod.boundary_info, mod.way_boundary_info = old
+        rec = json.loads((sub / "out" / "prepare.json").read_text())["areas"][0]
+        result.append(tuple(p for p in rec["problems"] if "island_floor" in p))
+    return (tuple(map(tuple, seen)), tuple(result))
+def _run_report(mod, tmp_path, registry, area_id, features, names, mi):
+    d = tmp_path
+    (d / "area.json").write_text(json.dumps({"id": area_id, "name": "X", "relation_id": 1}), encoding="utf-8")
+    (d / "geom.json").write_text(json.dumps(_geom(area_id, names=names, total_mi=mi)))
+    (d / "trails.geojson").write_text(json.dumps({"features": features}))
+    (d / "removed.geojson").write_text(json.dumps({"features": []}))
+    (d / "assembly.json").write_text(json.dumps({}))
+    args = Namespace(area_json=d / "area.json", geom=d / "geom.json", trails_geojson=d / "trails.geojson",
+                     removed_geojson=d / "removed.geojson", assembly_json=d / "assembly.json", out=d / "r.json",
+                     registry=registry, expected=None, live_geom_dir=d / "nolive")
+    assert mod.report_area(args) == 0
+    return json.loads((d / "r.json").read_text())
+MUTANT_EDITS = {
+    "floor of 1 for everyone": ("DK_MIN_TRAILS = 2", "DK_MIN_TRAILS = 1"),
+    "floor of 3 for everyone": ("DK_MIN_TRAILS = 2", "DK_MIN_TRAILS = 3"),
+    "island length not checked": ("ISLAND_FLOOR_MIN_MI = 3.0", "ISLAND_FLOOR_MIN_MI = 0.0"),
+    "island length too strict": ("ISLAND_FLOOR_MIN_MI = 3.0", "ISLAND_FLOOR_MIN_MI = 9.5"),
+    "island may carry two trails": ("ISLAND_FLOOR_TRAILS = 1", "ISLAND_FLOOR_TRAILS = 2"),
+    "island may carry zero trails": ("ISLAND_FLOOR_TRAILS = 1", "ISLAND_FLOOR_TRAILS = 0"),
+    "any place is an island": ('ISLAND_PLACES = {"island", "islet"}', 'ISLAND_PLACES = {"island", "islet", "locality"}'),
+    "islets refused": ('ISLAND_PLACES = {"island", "islet"}', 'ISLAND_PLACES = {"island"}'),
+    "floor applies to ordinary areas": ('if entry is None or "island_floor" not in entry or trail_count',
+                                        'if entry is None or trail_count'),
+    "signed flag ignored": ("if signed_route is not True:", "if False:"),
+    "length check dropped": ("if not _is_num(total_mi) or total_mi < ISLAND_FLOOR_MIN_MI:", "if False:"),
+    "trail count check dropped": ("if trail_count != ISLAND_FLOOR_TRAILS:", "if False:"),
+    "route kind unchecked": ('if tags.get("type") != "route" or kind not in _dk_areas().ROUTE_CLUSTER_ROUTE_KINDS:',
+                             "if False:"),
+    "route name unchecked": ("if osm_name != pin[\"trail_name\"]:", "if False:"),
+    "route uniqueness unchecked": ('if (route_info or {}).get("count") != 1:', "if False:"),
+    "route missing from PBF tolerated": ("    if tags is None:\n        problems.append(f\"island_floor route",
+                                          "    if False:\n        problems.append(f\"island_floor route"),
+    "island tag unchecked": ("if place not in ISLAND_PLACES:", "if False:"),
+    "generic name allowed": ("if is_generic_trail_name(pin[\"trail_name\"]):", "if False:"),
+    "qualify: whole flag dropped": ('\n                      and identities[0]["whole"])', ")"),
+    "qualify: relation id unchecked": ('identities[0]["relation_ids"] == [pin["relation_id"]]', "True"),
+    "qualify: relation set loosened": ('identities[0]["relation_ids"] == [pin["relation_id"]]',
+                                       'pin["relation_id"] in identities[0]["relation_ids"]'),
+    "qualify: name unchecked": ('names == [pin["trail_name"]] and ', ""),
+    "qualify: floor result ignored": ("            if below:\n                rec.update(status=\"failed\", stage=\"floor\"",
+                                      "            if False:\n                rec.update(status=\"failed\", stage=\"floor\""),
+    "publish: floor call removed": ("    below = floor_problems(entry, row[5], row[6], pinned)\n    if below:",
+                                    "    below = []\n    if below:"),
+    "publish: pinned name unchecked": ('and trails[0].get("name") == entry["island_floor"]["trail_name"])', ")"),
+    "publish: pinned flag forced": ("below = floor_problems(entry, row[5], row[6], pinned)",
+                                    "below = floor_problems(entry, row[5], row[6], True)"),
+    "prepare: island check removed": ('    if "island_floor" in entry:\n        problems += island_problems(entry, relation_info, route_info)',
+                                      "    if False:\n        problems += island_problems(entry, relation_info, route_info)"),
+    "prepare: route info not passed": ("island_problems(entry, relation_info, route_info)",
+                                       "island_problems(entry, relation_info, None)"),
+    "prepare: pinned relation not fetched": ("| pins)", ")"),
+}
+def test_floor_mutation_every_guard_and_wiring_is_load_bearing(tmp_path):
+    base = _scenarios(dk, tmp_path / "base")
+    assert _scenarios(_load_mutant(SRC), tmp_path / "same") == base       # the harness itself is faithful
+    survivors, unapplied = [], []
+    for n, (label, (old, new)) in enumerate(MUTANT_EDITS.items()):
+        if SRC.count(old) != 1:
+            unapplied.append(label)
+            continue
+        try:
+            got = _scenarios(_load_mutant(SRC.replace(old, new)), tmp_path / f"mut{n}")
+        except Exception:                                                 # a crash also kills the mutant
+            continue
+        if got == base:
+            survivors.append(label)
+    assert not unapplied, f"mutant edits no longer match the source: {unapplied}"
+    assert not survivors, f"surviving mutants: {survivors}"

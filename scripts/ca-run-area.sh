@@ -6,7 +6,7 @@
 #
 #   aoi.sh (plain mode) -> ca_publish check-boundary-unique -> assemble.py (--only-area, exact relation
 #   id when relation-backed) -> ca_trail_filter.py -> publish_areas.py (--state Canada, one-row index,
-#   --no-boundary-fetch --no-elevation)
+#   --no-boundary-fetch; DEM elevation is sampled inline, --no-elevation is refused)
 #
 # Inputs (env): AREA_ID AREA_NAME BBOX (lon_min,lat_min,lon_max,lat_max), EXACTLY ONE of RELATION_ID or
 #               WAY_ID, W (run work dir holding $AREA_ID/area.json and $AREA_ID/index.json from
@@ -83,6 +83,15 @@ ROOT="$(pwd)"
 
 cd trailforge
 HIKING=data/hiking.osm.pbf NAME="$AREA_ID" BBOX="$BBOX" bash extract/aoi.sh
+# Optional park_boundary (registry; relation or way): re-add the area's own leisure=park boundary (the
+# prefilter drops it) from the raw province PBF into the AOI PBF. Absent = this step does not run.
+PARK_BOUNDARY="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("park_boundary") then "yes" else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$PARK_BOUNDARY" ]; then
+  python3 ../scripts/ca_park_boundary.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --raw-pbf "data/raw/canada-${AREA_ID##*-}.osm.pbf" --aoi-pbf "data/aoi/$AREA_ID.osm.pbf" \
+    --report "$A/ca-park-boundary.json"
+fi
 python3 ../scripts/ca_publish.py check-boundary-unique --area-id "$AREA_ID" --pbf "data/aoi/$AREA_ID.osm.pbf"
 python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --out "data/aoi/$AREA_ID.trails.geojson" \
@@ -104,6 +113,44 @@ if [ -n "$ADOPT_COUNT" ]; then
   python3 ../scripts/ca_adopt_ways.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
     --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-adopt.json"
 fi
+# Optional hiking_tag_wins (registry; relation-backed only): keep hiking ways the ingest filter drops for a
+# skitour/nordic piste tag, appended to the assembled trails before the filter. Absent = this step does not run.
+HTW_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("hiking_tag_wins") then (.hiking_tag_wins | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$HTW_COUNT" ]; then
+  if [ "$HTW_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: hiking_tag_wins must be a non-empty list on a relation-backed area" >&2
+    exit 2
+  fi
+  python3 ../scripts/ca_hiking_tag_wins.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-hiking-tag-wins.json"
+fi
+# Optional way_name_overrides (registry; relation-backed only; each entry carries an agency evidence URL): name
+# specific ways with the signed trail name, for hikes that ride ways OSM names after a long-distance or winter
+# route. Appended to the assembled trails before the filter. Absent = this step does not run.
+WNO_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("way_name_overrides") then (.way_name_overrides | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$WNO_COUNT" ]; then
+  if [ "$WNO_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: way_name_overrides must be a non-empty list on a relation-backed area" >&2
+    exit 2
+  fi
+  python3 ../scripts/ca_way_name_override.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-way-name-override.json"
+fi
+# Optional leg_merges (registry; relation-backed only): merge the OSM legs/pieces of one agency trail into ONE
+# named trail (whole route only: a gap wider than the entry's tolerance fails closed). Legs are replaced by the
+# merged trail before the filter. Absent = this step does not run.
+LM_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("leg_merges") then (.leg_merges | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$LM_COUNT" ]; then
+  if [ "$LM_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: leg_merges must be a non-empty list on a relation-backed area" >&2
+    exit 2
+  fi
+  python3 ../scripts/ca_leg_merge.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --trails "data/aoi/$AREA_ID.trails.geojson" --removed "$A/removed.geojson" --report "$A/ca-leg-merge.json"
+fi
 # Canadian vocabulary + registry exclusions/fixes; its drops are appended to $A/removed.geojson.
 python3 ../scripts/ca_trail_filter.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
   --trails "data/aoi/$AREA_ID.trails.geojson" --removed "$A/removed.geojson" --report "$A/ca-filter.json"
@@ -115,7 +162,7 @@ python3 serve/publish_areas.py \
   --hiking "data/aoi/$AREA_ID.osm.pbf" \
   --state Canada --index "$A/publish-index.json" \
   --out-dir "$A/geom" \
-  --no-boundary-fetch --no-elevation
+  --no-boundary-fetch
 # publish_areas writes no geom for an area with no trail inside it ("no trails touch this area").
 test -f "$A/geom/$AREA_ID.json" || { echo "SAFETY BLOCK: $AREA_ID has no publishable trails after the Canada filter" >&2; exit 3; }
 # --registry applies the area's optional trail_id_pins opt-in (keep a live trail id); absent = no change.

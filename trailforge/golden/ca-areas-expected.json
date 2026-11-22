@@ -4493,23 +4493,22 @@
       ]
     },
     "garibaldi-provincial-park-ca-bc": {
-      "trail_count": 21,
-      "total_mi": 58.8,
+      "trail_count": 14,
+      "total_mi": 47.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Castle Towers Route",
         "Elfin Lakes Trail",
-        "Garibaldi Lake Trail",
-        "Half Arete Route",
-        "North East Arete Route"
+        "Garibaldi Lake Trail"
       ],
       "forbidden_names": [
         "19th Hole",
+        "Armchair Traverse",
         "Baddy Wire",
         "Birdwire",
         "Black Tusk/Cinder Flats Trail",
         "Blue Balls",
         "Cakewalk",
+        "Castle Towers Route",
         "Columnar / Gargoyles Route",
         "Columnar Peak Trail",
         "Deathgrip",
@@ -4518,9 +4517,13 @@
         "Gentlemen Broncos",
         "Glue Factory",
         "Gravitas",
+        "Half Arete Route",
         "Helm Creek/Black Tusk Trail",
         "High Note Trail",
         "Loam Ranger",
+        "Mount Cook Trail",
+        "Mount Weart Trail",
+        "North East Arete Route",
         "Nose Beers",
         "Overlord Trail",
         "P-Nut's Wild Ride",
@@ -4529,6 +4532,7 @@
         "The Gargoyles Trail",
         "Top of the World",
         "Wedge Couloir Route",
+        "Wedge Mountain Trail",
         "Wedgemont Glacier Approach",
         "Wedgemount Lake Trail"
       ]

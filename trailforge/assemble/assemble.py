@@ -1051,6 +1051,14 @@ def main(argv=None) -> int:
                          "hard-capped at 1000) is published as its connected "
                          "parts, never bridged; dk-v3 only, fail-closed when "
                          "an entry is stale, unneeded or over its limit")
+    ap.add_argument("--dk-keep-motor-tracks", dest="dk_keep_motor_tracks",
+                    help="JSON list of {relation, reason} (registry "
+                         "keep_motor_tracks): the listed signed route relation "
+                         "keeps its highway=track members tagged "
+                         "motorcar=yes or motor_vehicle=yes that have no foot "
+                         "tag; every other member-safety gate still applies; "
+                         "dk-v3 exact Denmark only, fail-closed when an entry "
+                         "is stale")
     ap.add_argument("--ca-accept-gap", dest="ca_accept_gap",
                     help="JSON list of {relation, max_gap_m, reason} (Canada registry "
                          "accept_gap): the listed route relation gets back the member "
@@ -1160,6 +1168,21 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-accept-gap is invalid: {error}")
+    args.dk_motor = []
+    if args.dk_keep_motor_tracks:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-keep-motor-tracks requires --dk-rules dk-v3")
+        if (not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error("--dk-keep-motor-tracks is limited to exact Denmark "
+                     "assembly")
+        try:
+            import quality as quality_motor_args
+            args.dk_motor = quality_motor_args.validate_dk_keep_motor_tracks(
+                json.loads(Path(args.dk_keep_motor_tracks).read_text(
+                    encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-keep-motor-tracks is invalid: {error}")
     if args.ca_dedupe_ring_way and (
             model.member_safety.normalize(args.region) != "ca"
             or not args.require_exact_area or args.dk_rules != "legacy"
@@ -1406,7 +1429,16 @@ def main(argv=None) -> int:
                                             for e in args.ca_gap}
                                            if args.ca_gap else None),
                             ca_keep_superroute=args.ca_keep or None,
-                            ca_rule_report=ca_rule_report)
+                            ca_rule_report=ca_rule_report,
+                            dk_keep_motor_tracks=(
+                                frozenset(int(e["relation"][1:])
+                                          for e in args.dk_motor) or None))
+    dk_motor_failures, dk_motor_evidence = [], None
+    if args.dk_motor:
+        import quality as quality_motor_run
+        dk_motor_failures, dk_motor_evidence = \
+            quality_motor_run.dk_keep_motor_tracks_evidence(
+                args.dk_motor, relation_member_audit)
     features = [t.to_feature() for t in trails]
     curation_removed_features = [t.to_feature() for t in removed]
     terminal_absorption_targets = (
@@ -1561,6 +1593,12 @@ def main(argv=None) -> int:
         terminal_absorption_failure = (
             "dk-accept-gap failures: "
             + "; ".join(quality_report["dk_accept_gap_failures"]))
+        print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+    if dk_motor_failures:
+        # A keep_motor_tracks entry that names a relation not assembled here, or
+        # that no member way needs, fails the area: it is only ever on purpose.
+        terminal_absorption_failure = (
+            "dk-keep-motor-tracks failures: " + "; ".join(dk_motor_failures))
         print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if exact_denmark and terminal_absorption_unresolved:
         terminal_absorption_failure = (
@@ -1762,6 +1800,8 @@ def main(argv=None) -> int:
         **({"name_prefix": name_prefix_report}
            if name_prefix_report is not None else {}),
         **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
+        **({"dk_keep_motor_tracks": dk_motor_evidence}
+           if dk_motor_evidence is not None else {}),
         **({"ca_ring_way_dedupe": {"relation": args.expected_area_relation_id,
                                    "dropped_ring_ways": ring_dropped}}
            if args.ca_dedupe_ring_way else {}),

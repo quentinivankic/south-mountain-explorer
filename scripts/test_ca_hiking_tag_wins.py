@@ -87,13 +87,21 @@ def test_live_registry_loads_and_intended_areas_are_opted_in():
     reg = ca.load_registry()
     got = {a["id"]: [e["name"] for e in a["hiking_tag_wins"]] for a in reg["areas"] if "hiking_tag_wins" in a}
     assert got == {
+        "garibaldi-provincial-park-ca-bc": ["Garibaldi Lake Trail", "Elfin Lakes Trail"],
         "glacier-national-park-ca-bc": ["Great Glacier Trail", "Meeting of the Waters Trail", "Avalanche Crest Trail"],
         "jasper-national-park-ca-ab": ["Bald Hills Trail"],
         "banff-national-park-ca-ab": ["Healy Pass Trail"],
         "e-c-manning-provincial-park-ca-bc": ["Frosty Mountain"],
     }
-    assert all(not a.get("hold") for a in reg["areas"] if "hiking_tag_wins" in a)
+    # Garibaldi stays held (Black Tusk and Panorama Ridge are still stubs); every other opted-in area is live.
+    assert [a["id"] for a in reg["areas"] if "hiking_tag_wins" in a and a.get("hold")] == ["garibaldi-provincial-park-ca-bc"]
     assert all(a["id"].endswith(("-ca-bc", "-ca-ab")) for a in reg["areas"] if "hiking_tag_wins" in a)
+    flagged = {(a["id"], e["name"]): len(e["way_ids"]) for a in reg["areas"] for e in a.get("hiking_tag_wins", [])
+               if "named_sac_evidence" in e}
+    assert flagged == {("garibaldi-provincial-park-ca-bc", "Garibaldi Lake Trail"): 13,
+                       ("garibaldi-provincial-park-ca-bc", "Elfin Lakes Trail"): 13}
+    assert all(e["named_sac_evidence"] is True for a in reg["areas"] for e in a.get("hiking_tag_wins", [])
+               if "named_sac_evidence" in e)
 # ------------------------------------------------ gate 2: piste tag present, skitour/nordic only --
 def test_valid_relation_and_way_forms_build_one_feature():
     for item in (entry(), way_entry()):
@@ -261,6 +269,221 @@ def test_mutation_too_many_ways():
                    **{"piste:type": "skitour"}) for i in range(1, 62)}
     relations = {7000: {"tags": {"type": "route", "route": "hiking"}, "ways": list(ways)}}
     refused("more than 60", ways=ways, relations=relations)
+# ------------------------------------------------ gate 9: named_sac_evidence (Garibaldi Lake / Elfin Lakes) --
+SAC = {"foot": "yes", "sac_scale": "hiking"}
+def sac_chain(**tags):
+    """Way 1 is the plain hiking way (the assembled stub, no piste tag); ways 2 and 3 are skitour-tagged ways
+    of the same trail with foot=yes and a hiking sac_scale. No hiking relation exists."""
+    ways = chain(**{**SAC, **tags})
+    del ways[1]["tags"]["piste:type"]
+    return ways
+def sac_stub():
+    return trail("Great Glacier Trail", member_ways=(1,))
+def sac_entry(**over):
+    return way_entry(**{"named_sac_evidence": True, **over})
+def sac_build(ways=None, entries=None, features=None, **kw):
+    return build(entries or [sac_entry()], ways=ways if ways is not None else sac_chain(), relations={},
+                 features=features if features is not None else [trail(), sac_stub()], **kw)
+def sac_refused(match, ways=None, entries=None, features=None):
+    with pytest.raises(htw.HikingTagWinsError, match=match):
+        sac_build(ways=ways, entries=entries, features=features)
+def test_named_sac_evidence_keeps_foot_yes_sac_scale_piste_ways_named_like_a_plain_way():
+    new, evidence, replaced = sac_build()
+    assert [f["properties"]["name"] for f in new] == ["Great Glacier Trail"]
+    assert new[0]["properties"]["member_ways"] == [1, 2, 3] and len(replaced) == 1
+    assert evidence[0]["named_sac_evidence_ways"] == [2, 3] and evidence[0]["hiking_relations"] == []
+@pytest.mark.parametrize("sac", ["hiking", "mountain_hiking", "demanding_mountain_hiking"])
+def test_named_sac_evidence_accepts_the_hiking_sac_scales(sac):
+    ways = sac_chain(sac_scale=sac)
+    ways[1]["tags"]["sac_scale"] = sac
+    assert names(sac_build(ways=ways)) == ["Great Glacier Trail"]
+def test_mutation_without_the_flag_the_same_ways_are_refused():
+    with pytest.raises(htw.HikingTagWinsError, match="not in a route=hiking relation"):
+        build([way_entry()], ways=sac_chain(), relations={}, features=[trail(), sac_stub()])
+    assert names(sac_build()) == ["Great Glacier Trail"]          # control: flag on
+@pytest.mark.parametrize("sac", [None, "", "none", "alpine_hiking", "demanding_alpine_hiking", "difficult_alpine_hiking",
+                                 "ski", "Hiking"])
+def test_mutation_needs_a_hiking_sac_scale(sac):
+    ways = sac_chain()
+    for i in (2, 3):
+        if sac is None:
+            del ways[i]["tags"]["sac_scale"]
+        else:
+            ways[i]["tags"]["sac_scale"] = sac
+    sac_refused("not in a route=hiking relation", ways=ways)
+@pytest.mark.parametrize("foot", [None, "no", "permissive", "private", "customers", "Yes"])
+def test_mutation_needs_foot_yes(foot):
+    ways = sac_chain()
+    if foot is None:
+        del ways[3]["tags"]["foot"]
+    else:
+        ways[3]["tags"]["foot"] = foot
+    sac_refused("way 3: not in a route=hiking", ways=ways)
+def test_mutation_needs_the_exact_name_of_a_plain_way_of_the_entry():
+    for other in ("Great Glacier Trail ", "great glacier trail", "Great Glacier Trail Loop", "", None):
+        ways = sac_chain()
+        if other is None:
+            del ways[3]["tags"]["name"]
+        else:
+            ways[3]["tags"]["name"] = other
+        with pytest.raises(htw.HikingTagWinsError):
+            sac_build(ways=ways)
+def test_mutation_ski_only_trail_has_no_plain_anchor_and_stays_out():
+    # Every way of the trail is a skitour way with foot=yes and sac_scale: nothing non-piste to name-match.
+    ways = chain(**SAC)
+    sac_refused("not in a route=hiking relation", ways=ways, features=[trail()])
+    nordic = chain(**{**SAC, "piste:type": "nordic"})
+    sac_refused("not in a route=hiking relation", ways=nordic, features=[trail()])
+def test_mutation_the_anchor_must_not_carry_a_piste_tag():
+    ways = sac_chain()
+    ways[1]["tags"]["piste:type"] = "skitour"
+    ways[1]["tags"].pop("name")                               # piste-tagged, unnamed, is no anchor either
+    sac_refused("way 2: not in a route=hiking", ways=ways, features=[trail()])
+    ways = sac_chain()
+    ways[1]["tags"]["piste:type"] = "downhill"
+    sac_refused("piste:type=downhill", ways=ways, features=[trail()])
+def test_mutation_an_anchor_in_another_entry_does_not_count():
+    ways = sac_chain()
+    ways[4] = way([(-115.95, 51.065), (-115.95, 51.07)], [4, 5], name="Other Hike", **SAC)
+    ways[5] = way([(-115.95, 51.07), (-115.95, 51.075)], [5, 6], name="Other Hike", **{**SAC, "piste:type": "skitour"})
+    ways[6] = way([(-115.95, 51.08), (-115.95, 51.085)], [8, 9], name="Great Glacier Trail", **{**SAC, "piste:type": "skitour"})
+    first = sac_entry(way_ids=[1, 2, 3])
+    second = sac_entry(name="Other Hike", way_ids=[4, 5, 6])
+    stubs = [trail(), sac_stub(), trail("Other Hike", member_ways=(4,))]
+    refused("way 6: not in a route=hiking", entries=[first, second], ways=ways, relations={}, features=stubs)
+    second["way_ids"] = [4, 5]                                  # control: the entry that owns an anchor passes
+    assert names(build([first, second], ways=ways, relations={}, features=stubs)) == [
+        "Great Glacier Trail", "Other Hike"]
+@pytest.mark.parametrize("piste", ["downhill", "sled", "alpine", "snow_park", "nordic;fatbike", "skitour;downhill", "hike", ""])
+def test_mutation_other_piste_values_stay_out_with_the_flag(piste):
+    ways = sac_chain()
+    ways[3]["tags"]["piste:type"] = piste
+    sac_refused("piste:type", ways=ways)
+def test_flag_keeps_the_track_gate():
+    ways = sac_chain()
+    ways[3]["tags"]["highway"] = "track"
+    assert names(sac_build(ways=ways)) == ["Great Glacier Trail"]      # foot=yes track, no motor tag
+    for key in ("motor_vehicle", "motorcar", "vehicle"):
+        bad = sac_chain()
+        bad[3]["tags"].update(highway="track", **{key: "yes"})
+        sac_refused("highway=track with", ways=bad)
+    nofoot = sac_chain()
+    nofoot[3]["tags"].update(highway="track", foot="permissive")
+    sac_refused("highway=track needs foot", ways=nofoot)
+@pytest.mark.parametrize("tags,why", [
+    ({"highway": "cycleway"}, "highway='cycleway'"), ({"highway": "service"}, "highway='service'"),
+    ({"highway": "unclassified"}, "highway='unclassified'"), ({"access": "private"}, "access=private"),
+    ({"mtb:scale": "2"}, "mtb:scale"), ({"mtb:scale": "5"}, "mtb:scale"), ({"mtb:scale": ""}, "mtb:scale"),
+    ({"mtb:scale": "1;2"}, "mtb:scale"), ({"mtb:scale:uphill": "3"}, "never-matches"),
+])
+def test_flag_keeps_the_unwalkable_way_checks(tags, why):
+    ways = sac_chain()
+    ways[3]["tags"].update(tags)
+    if why == "never-matches":                                   # a different tag key is not tolerated or checked
+        assert names(sac_build(ways=ways)) == ["Great Glacier Trail"]
+    else:
+        with pytest.raises(htw.HikingTagWinsError, match=why):
+            sac_build(ways=ways)
+def test_flag_tolerates_access_no_only_with_foot_and_a_hiking_sac_scale():
+    ways = sac_chain(access="no")                                 # footbridge: foot=yes overrides access=no
+    new, evidence, _ = sac_build(ways=ways)
+    assert names((new,)) == ["Great Glacier Trail"] and evidence[0]["tolerated_access_or_mtb_ways"] == [1, 2, 3]
+    ways[3]["tags"]["foot"] = "designated"
+    assert names(sac_build(ways=ways)) == ["Great Glacier Trail"]
+    for key, bad in (("foot", "permissive"), ("sac_scale", "alpine_hiking"), ("sac_scale", None)):
+        mutated = sac_chain(access="no")
+        if bad is None:
+            del mutated[1]["tags"][key]
+        else:
+            mutated[1]["tags"][key] = bad
+        with pytest.raises(htw.HikingTagWinsError, match="access=no"):
+            sac_build(ways=mutated)
+    no_foot = sac_chain(access="no")
+    del no_foot[1]["tags"]["foot"]
+    with pytest.raises(htw.HikingTagWinsError, match="access=no"):
+        sac_build(ways=no_foot)
+    plain = chain(access="no")                                    # control: no flag, the adopt rule is unchanged
+    with pytest.raises(htw.HikingTagWinsError, match="access=no"):
+        build([way_entry()], ways=plain)
+    unflagged = sac_chain(access="no")                            # same tags as a flagged entry, flag absent
+    with pytest.raises(htw.HikingTagWinsError, match="access=no"):
+        build([way_entry()], ways=unflagged, relations=HIKING, features=[trail(), sac_stub()])
+    with pytest.raises(htw.HikingTagWinsError, match="mtb:scale"):
+        build([way_entry()], ways=sac_chain(**{"mtb:scale": "1"}), relations=HIKING, features=[trail(), sac_stub()])
+def test_flag_tolerates_easy_mtb_scale_only_with_foot_and_a_hiking_sac_scale():
+    for scale in ("0", "1"):
+        ways = sac_chain(**{"mtb:scale": scale})
+        new, evidence, _ = sac_build(ways=ways)
+        assert names((new,)) == ["Great Glacier Trail"] and evidence[0]["tolerated_access_or_mtb_ways"] == [1, 2, 3]
+    for scale in ("2", "3", "0+", "x"):
+        with pytest.raises(htw.HikingTagWinsError, match="mtb:scale"):
+            sac_build(ways=sac_chain(**{"mtb:scale": scale}))
+    for key in ("foot", "sac_scale"):
+        ways = sac_chain(**{"mtb:scale": "1"})
+        del ways[1]["tags"][key]
+        with pytest.raises(htw.HikingTagWinsError, match="mtb:scale"):
+            sac_build(ways=ways)
+    with pytest.raises(htw.HikingTagWinsError, match="mtb:scale"):    # control: no flag
+        build([way_entry()], ways=chain(**{"mtb:scale": "1"}), relations=HIKING)
+@pytest.mark.parametrize("truthy", ["true", "yes", 1, [True], False, None])
+def test_mutation_build_acts_only_on_the_literal_true(truthy):
+    sac_refused("not in a route=hiking", entries=[sac_entry(named_sac_evidence=truthy)])
+def test_flag_in_relation_form_adds_nothing():
+    relations = {7000: {"tags": {"type": "route", "route": "hiking"}, "ways": [1, 2, 3]}}
+    ways = sac_chain(access="no")
+    with pytest.raises(htw.HikingTagWinsError, match="access=no"):
+        build([entry(named_sac_evidence=True)], ways=ways, relations=relations, features=[trail(), sac_stub()])
+def test_flag_does_not_touch_the_input_ways_or_other_entries():
+    ways = sac_chain(access="no", **{"mtb:scale": "1"})
+    before = copy.deepcopy(ways)
+    sac_build(ways=ways)
+    assert ways == before
+def test_flag_still_needs_chaining_boundary_and_name_checks():
+    ways = sac_chain()
+    ways[3] = way([(-115.95, 51.08), (-115.95, 51.085)], [8, 9], name="Great Glacier Trail", **{**SAC, "piste:type": "skitour"})
+    sac_refused("do not chain", ways=ways)
+    with pytest.raises(htw.HikingTagWinsError, match="inside the boundary"):
+        sac_build(boundary=shapely_geometry.box(-114.0, 51.0, -113.9, 51.1))
+    # a same-name trail holding other ways is not the entry's shorter copy: its way 1 is not replaced, so the
+    # plain way has no assembled stub behind it and the entry is refused
+    sac_refused("way 1: no piste:type", features=[trail("Great Glacier Trail", member_ways=(1, 99))])
+def test_flag_does_not_replace_a_trail_with_another_name():
+    other = trail("Another Trail", member_ways=(1,))
+    with pytest.raises(htw.HikingTagWinsError, match="way 1: no piste:type"):   # another trail's way is not ours
+        sac_build(features=[other])
+@pytest.mark.parametrize("bad", [False, None, "true", 1, "yes", []])
+def test_validator_mutation_flag_must_be_exactly_true(bad):
+    with pytest.raises(htw.HikingTagWinsError, match="named_sac_evidence"):
+        htw.validate_hiking_tag_wins([sac_entry(named_sac_evidence=bad)])
+def test_validator_mutation_flag_is_way_ids_only():
+    with pytest.raises(htw.HikingTagWinsError, match="way_ids only"):
+        htw.validate_hiking_tag_wins([entry(named_sac_evidence=True)])
+    assert htw.validate_hiking_tag_wins([sac_entry()])
+def test_registry_loader_accepts_and_rejects_the_flag(tmp_path):
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, hiking_tag_wins=[sac_entry()])]))
+    with pytest.raises(ca.CaError, match="named_sac_evidence"):
+        ca.load_registry(_registry(tmp_path, [_entry(0, hiking_tag_wins=[entry(named_sac_evidence=True)])]))
+def test_cli_named_sac_evidence_on_a_real_extract(tmp_path):
+    plain = {"highway": "path", "name": "Great Glacier Trail", **SAC}
+    osm = _osm(_way_xml(1, [1, 2], plain) + _way_xml(2, [2, 3], {**plain, "piste:type": "skitour"}))
+    stub = trail("Great Glacier Trail", member_ways=(1,))
+    run, trails, report = _cli(tmp_path, [sac_entry(way_ids=[1, 2])], osm=osm, features=[trail(), stub])
+    assert run.returncode == 0, run.stderr
+    assert _names(trails) == ["Other Trail", "Great Glacier Trail"]
+    assert json.loads(report.read_text())["kept"][0]["named_sac_evidence_ways"] == [2]
+    ski_only = _osm(_way_xml(1, [1, 2], {**plain, "piste:type": "nordic"}) + _way_xml(2, [2, 3], {**plain, "piste:type": "nordic"}))
+    (tmp_path / "ski").mkdir()
+    run, trails, report = _cli(tmp_path / "ski", [sac_entry(way_ids=[1, 2])], osm=ski_only)
+    assert run.returncode == 2 and "ski-only" in run.stderr and _names(trails) == ["Other Trail"] and not report.exists()
+    (tmp_path / "noflag").mkdir()
+    run, trails, _ = _cli(tmp_path / "noflag", [way_entry(way_ids=[1, 2])], osm=osm, features=[trail(), stub])
+    assert run.returncode == 2 and _names(trails) == ["Other Trail", "Great Glacier Trail"] and "SAFETY BLOCK" in run.stderr
+def test_flagged_opt_in_is_confined_to_one_area_and_the_two_trails():
+    reg = json.loads((ROOT / "trailforge/golden/ca-areas.json").read_text())
+    users = [(a["id"], e["name"]) for a in reg["areas"] for e in a.get("hiking_tag_wins", []) if "named_sac_evidence" in e]
+    assert users == [("garibaldi-provincial-park-ca-bc", "Garibaldi Lake Trail"),
+                     ("garibaldi-provincial-park-ca-bc", "Elfin Lakes Trail")]
+    assert "named_sac_evidence" not in SCRIPT                      # the shell step only passes the registry through
 # ------------------------------------------------ CLI on a real (XML) extract --
 def _osm(ways, relations=""):
     nodes = "".join(f'<node id="{i}" version="1" lat="{51.05 + 0.005 * (i - 1)}" lon="-115.95"/>' for i in range(1, 8))

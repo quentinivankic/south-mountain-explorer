@@ -92,7 +92,7 @@
     },
     "five-bridge-lakes-wilderness-area-ca-ns": {
       "trail_count": 5,
-      "total_mi": 19.3,
+      "total_mi": 19.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -1317,7 +1317,7 @@
     },
     "glacier-national-park-ca-bc": {
       "trail_count": 16,
-      "total_mi": 30.5,
+      "total_mi": 30.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -4493,6 +4493,45 @@
         "Wedge Couloir Route",
         "Wedgemont Glacier Approach",
         "Wedgemount Lake Trail"
+      ]
+    },
+    "parc-national-de-la-gaspesie-ca-qc": {
+      "trail_count": 9,
+      "total_mi": 36.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "La Grande Traversée - Sentier International des Appalaches SIA-IAT",
+        "La Grande traversée - Sentier International des Appalaches SIA-IAT",
+        "Le Mont des Pics",
+        "SIA, 3-Haute Gaspésie",
+        "SIA, 4-Parc de la Gaspésie",
+        "SIA, 5-Réserve faunique de Matane",
+        "Sentier International des Appalaches - International Appalachian Trail",
+        "Sentier International des Appalaches SIA-IAT",
+        "Sentier d'hiver",
+        "Sentier de belvédère de la Lucarne",
+        "Sentier du Mont Richardson",
+        "Sentier du mont Logan",
+        "Sentier international des Appalaches",
+        "Sentier international des Appalaches, Québec",
+        "detour"
+      ]
+    },
+    "parc-national-du-fjord-du-saguenay-ca-qc": {
+      "trail_count": 6,
+      "total_mi": 52.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sentier d'hiver",
+        "Sentier de Montagne Blanche",
+        "Sentier de l'Anse-de-Tabatière",
+        "Sentier de l'Anse-à-l'Eau",
+        "Sentier de la Pinède",
+        "Sentier de la Pointe de l'Islet",
+        "Sentier de la Statue",
+        "Sentier du Fjord"
       ]
     }
   }

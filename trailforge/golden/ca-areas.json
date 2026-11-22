@@ -427,8 +427,8 @@
         44.75
       ],
       "center": [
-        44.673,
-        -63.729
+        44.684,
+        -63.707
       ],
       "tier": 2,
       "hold": null,
@@ -797,8 +797,8 @@
         44.73
       ],
       "center": [
-        44.6,
-        -63.8
+        44.634,
+        -63.798
       ],
       "tier": 2,
       "hold": null,
@@ -824,8 +824,8 @@
         45.46
       ],
       "center": [
-        45.394,
-        -64.06
+        45.393,
+        -64.046
       ],
       "tier": 2,
       "hold": null,
@@ -1628,8 +1628,8 @@
         43.9
       ],
       "center": [
-        43.837,
-        -64.906
+        43.844,
+        -64.888
       ],
       "tier": 2,
       "hold": null,
@@ -8640,6 +8640,22 @@
           "name": "Wedgemount Lake Trail",
           "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
         }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Garibaldi Lake Trail",
+          "way_ids": [257054094, 389495777, 389495778, 75207615, 257054096, 313910191, 1390297477, 75207612, 75207625, 389495776, 1390297482, 1390297484, 75207624],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Black Tusk/Garibaldi Lake (Rubble Creek). OSM names 13 ways Garibaldi Lake Trail (5.76 mi); the seven without a piste tag assemble as a 1.31 mi stub. The other six carry piste:type=skitour (backcountry ski route) with foot=yes and sac_scale=hiking, and no hiking relation exists, so each is kept by the exact name of a non-piste way of this entry. w389495777 and w75207624 are access=no footbridges with foot=yes. Joined by shared nodes the 13 form one route (widest remaining gap 21.8 m)."
+        },
+        {
+          "name": "Elfin Lakes Trail",
+          "way_ids": [75773161, 257054105, 205591447, 469325103, 469325105, 87238018, 257054099, 257054101, 257054103, 257054106, 257054107, 1267019380, 1267019381],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Diamond Head: Elfin Lakes. OSM names 13 ways Elfin Lakes Trail (7.11 mi, one connected piece); the five without a piste tag assemble as a 2.21 mi stub. The other eight are highway=track ways that carry piste:type=skitour with foot=yes, sac_scale=mountain_hiking and mtb:scale 0|1 (the hiking road that bikes also use), no motor-vehicle access and no hiking relation."
+        }
       ]
     },
     {
@@ -12058,7 +12074,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop). leg-merge 2026-11-22 (mechanism 4): Reeve Ravine (a) and (b) merge into one Reeve Ravine (live ids reeve-ravine-a/-b replaced by reeve-ravine).",
+      "notes": "SK/MB curation 2026-11-02. Whole park. Compared with the Parks Canada RMNP 2026 summer visitor guide trail table (https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf): Arrowhead, Bald Hill, Baldy Lake, Beach Ridges, Bead Lakes, Boreal, Breezy Hill, Central, Clear Lake North and South Shore, Cowan Lake, Escarpment, Gorge Creek, Grasshopper Valley, Grey Owl, Gunn Lake, J.E.T., Kinosao, Kippan's Mill, Lake Katherine, Link, Long Lake, Moon Lake, Oak Ridge, Ochre River, Reeve Ravine (two OSM pieces), Scott Creek, South Lake, Strathclair, Sugarloaf, Tilson Lake and Vern Jordan present. Known omissions (not mapped by name or sub-0.6 mi pieces): Brûlé (accent-mangled permanent id, excluded), Lakeshore Walk, Ominnik Marsh (0.40 mi piece), Onanole Trail, Wasagaming Trail, South Lake East/West as separate names, Lake Audy, Edwards Creek short and long, Crawford Creek, East Gate Link (0.27 mi piece), East Deep Lake, Central West. Grasshopper East kept (part of the 19 km Grasshopper Valley loop). leg-merge 2026-11-22 (mechanism 4): Reeve Ravine (a) and (b) merge into one Reeve Ravine (live ids reeve-ravine-a/-b replaced by reeve-ravine). Ship MB 2026-11-22: qualify run 45077104211 matches blessed 33 / 185.2; update publish retires reeve-ravine-a/-b and adds reeve-ravine (3.2 mi, join gap 0 m), no other id or distance change.",
       "exclude_trails": [
         {
           "id": "n:Brûlé",
@@ -12728,7 +12744,7 @@
         -123.482
       ],
       "tier": 3,
-      "hold": null,
+      "hold": "needs-rescope",
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
@@ -12754,7 +12770,7 @@
           "reason": "Not on the CRD Thetis Lake trail list; unofficial mountain-bike line"
         }
       ],
-      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area)."
+      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area). RE-HELD 2026-11-22 (needs-rescope): GitHub qualify run 45066997770 on the full BC extract hit SAFETY BLOCK 'exclude n:Lighthouse Extension matches no assembled trail' (the local clipped replay assembled it). Re-curate on the full extract (drop or fix that exclude, re-check the 12 CRD names) before unholding."
     },
     {
       "id": "elk-falls-provincial-park-ca-bc",
@@ -13747,7 +13763,7 @@
       ],
       "tier": 2,
       "hold": null,
-      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413). leg-merge 2026-11-22 (mechanism 4): Loop A-D and the Prospector's Trail stem merge into one Prospector's Trail Loop (live ids prospector-s-trail-loop-a/-b replaced by prospector-s-trail-loop).",
+      "notes": "Territories batch 2026-11-02 (ca-terr). Yellowknife. Kept: Prospector's Trail Loop A (1.03 mi) and Loop B (0.82 mi), the signed Prospector's Trail loops (NWT Parks). Engine-dropped under the 0.6 mi floor: Loop C, Loop D, a 0.23 mi Prospector's Trail stub inside the polygon. Frame Lake, Niven Lake, Range Lake and Trans Canada Trail relations are municipal or long-distance and fall in the removed list. Centre is the trail-extent midpoint (62.475, -114.413). leg-merge 2026-11-22 (mechanism 4): Loop A-D and the Prospector's Trail stem merge into one Prospector's Trail Loop (live ids prospector-s-trail-loop-a/-b replaced by prospector-s-trail-loop). Ship NT 2026-11-22: update publish retires prospector-s-trail-loop-a/-b and adds prospector-s-trail-loop (2.8 mi), no other id change.",
       "leg_merges": [
         {
           "name": "Prospector's Trail Loop",
@@ -21324,7 +21340,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6). Mech2 CA ship 2026-11-22 (local expert): replay with park_boundary (mechanism 1) gives 2 trails / 2.5 mi, Signal Hill Trail 1.8 mi and Old Town Tear 0.71 mi. Old Town Tear is a Trailforks singletrack mountain-bike trail (https://www.trailforks.com/trails/old-town-tear/), so it fails rule 2; one signed walk is left (rule 6: fewer than 2). Stays HELD (needs-rescope)."
     },
     {
       "id": "wanuskewin-heritage-park-ca-sk",

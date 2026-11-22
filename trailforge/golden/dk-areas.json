@@ -1311,12 +1311,15 @@
       "hold": null,
       "est_trails": 3,
       "est_mi": 5.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out.",
-      "accept_gap": [
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out. ENGINE-1 (2026-11-22): keep_motor_tracks on Rød r6153047 and Gul r6153048 keeps the member tracks I. Vej and Brandlinjen (highway=track, motorcar=yes, no foot tag) that the member-safety rule dropped. The 130 m source gap of Rød r6153047 was those dropped tracks, so with the opt-in the route has no gap (widest gap 0 m) and its accept_gap was withdrawn: the area now fails closed if it is put back.",
+      "keep_motor_tracks": [
         {
           "relation": "r6153047",
-          "max_gap_m": 200,
-          "reason": "Søndre plantage Rød vandrerute: the OSM relation has a 130 m gap between 3 pieces (a signed walking loop; no geometry is synthesized, the three parts ship as separate segments)"
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Søndre plantage Rød vandrerute: member tracks I. Vej (ways 411755586, 411757985, 398664780) and Brandlinjen (way 411755598) are highway=track motorcar=yes motor_vehicle=yes with no foot tag; they join the loop's pieces"
+        },
+        {
+          "relation": "r6153048",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Søndre plantage Gul vandrerute: member tracks way 411752663 and Brandlinjen (ways 411755598, 411755590) are highway=track motorcar=yes motor_vehicle=yes with no foot tag; they join the loop's pieces"
         }
       ]
     },
@@ -1693,7 +1696,13 @@
           "reason": "lwn Naturstyrelsen relation 1.8 km on the Søbakke heath that links Kollerup and Svinkløv plantations (guide section Hederne/Jættestuer på Søbakke); outside the forest polygon, whole route"
         }
       ],
-      "trail_name_prefix": "Svinkløv"
+      "trail_name_prefix": "Svinkløv",
+      "keep_motor_tracks": [
+        {
+          "relation": "r10043412",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Svinkløv Hjertesti, Rød rute: member tracks Sømærkevej (ways 301623296, 1029682631) are highway=track motorcar=yes motorcycle=yes with no foot tag (the matching motorcycle=yes is the same permission); they join the loop's pieces"
+        }
+      ]
     },
     {
       "id": "kompedal-plantage-dk",
@@ -2991,7 +3000,13 @@
         "reason": "Named island with a single signed named walk of at least 3 mi (Kaninoen, relation 12787516); decision 6",
         "relation_id": 12787516,
         "trail_name": "Kaninoen"
-      }
+      },
+      "keep_motor_tracks": [
+        {
+          "relation": "r12787516",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Kaninoen (Horsens Kommune, lwn) runs 2 member tracks, Øvre (way 38245819, way 38245821), tagged highway=track motorcar=yes with no foot tag; the 2.5 mi northern tip is part of the signed walk"
+        }
+      ]
     },
     {
       "id": "drejo-dk",
@@ -3318,7 +3333,13 @@
       "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 2.9,
-      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough."
+      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough.",
+      "keep_motor_tracks": [
+        {
+          "relation": "r12571926",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Læsø Klitplantage Gul rute (Naturstyrelsen, lwn) runs 3 member tracks tagged highway=track motor_vehicle=yes with no foot tag (Horneksvejen ways 146454762 and 1050032940, way 1050032941); 1.9 km of the 4.9 km walk"
+        }
+      ]
     },
     {
       "id": "horslund-krat-dk",

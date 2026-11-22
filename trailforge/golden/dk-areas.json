@@ -6032,35 +6032,6 @@
       }
     },
     {
-      "id": "sydhavnen-dk",
-      "name": "Sydhavnen",
-      "state": "Denmark",
-      "relation_id": 6250557,
-      "bbox": [12.48, 55.58, 12.65, 55.73],
-      "center": [55.655, 12.564],
-      "rules": "dk-v3",
-      "tier": 2,
-      "hold": null,
-      "est_trails": 2,
-      "est_mi": 10.1,
-      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D361. Copenhagen Sydhavn: Havneringen 8.3 mi and Sydhavnstippen 2.0 mi (lwn). Sydhavnen water relation 2365410 is not an accepted container polygon, so the container derives from the routes. Det Grønne Strøg r18898074 (gap 104 m) and 3'eren (road line) stay out. Bless only from the Actions qualify run.",
-      "include_trails": [
-        {
-          "id": "r6250557",
-          "name": "Havneringen",
-          "reason": "signed named walk, whole route"
-        },
-        {
-          "id": "r12285951",
-          "name": "Sydhavnstippen",
-          "reason": "signed named walk, whole route"
-        }
-      ],
-      "container_from_routes": {
-        "reason": "No accepted polygon for Sydhavnen (the water relation fails the container rule); container derived from the 2 included signed routes"
-      }
-    },
-    {
       "id": "gulstav-klint-dk",
       "name": "Gulstav Klint",
       "state": "Denmark",

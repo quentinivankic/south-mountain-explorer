@@ -346,8 +346,8 @@ R13A_SHIP = ["odense-adal-dk", "molleaadalen-dk", "maribosoerne-dk", "stevns-kli
 R13A_WAY = ["lonstrup-rubjerg-dk", "grejsdalen-dk"]
 R13A_CONTAINER = ["stevns-klint-dk", "lonstrup-rubjerg-dk", "grejsdalen-dk"]   # container_by_id
 R13A_CLUSTER = ["odense-adal-dk", "molleaadalen-dk", "maribosoerne-dk", "hindsholm-dk"]   # container_from_routes
-# Reconcile 14 batch 1 (2026-11-22): eleven new areas; Arreskov Sø is way-container, the other ten are container_from_routes
-R14B1_SHIP = ["klokkerholm-dk", "esbjerg-energistier-dk", "arreskov-so-dk", "rudolph-tegner-esrum-dk", "vojens-dk", "sydhavnen-dk",
+# Reconcile 14 batch 1 (2026-11-22): ten new areas (Sydhavnen held: Havneringen gap on the Actions PBF); Arreskov Sø is way-container, the other nine are container_from_routes
+R14B1_SHIP = ["klokkerholm-dk", "esbjerg-energistier-dk", "arreskov-so-dk", "rudolph-tegner-esrum-dk", "vojens-dk",
               "gulstav-klint-dk", "lykkesholm-slot-dk", "legind-bjerge-dk", "markmandsstien-dk", "oster-nykirke-dk"]
 R14B1_WAY = ["arreskov-so-dk"]
 R14B1_CONTAINER = ["arreskov-so-dk"]   # container_by_id
@@ -356,7 +356,7 @@ R14B1_CLUSTER = [i for i in R14B1_SHIP if i not in R14B1_CONTAINER]   # containe
 
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 255
+    assert len(areas) == 254
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
@@ -575,7 +575,7 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 159, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 158, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
         "curated-do-not-ship": 64, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
@@ -645,7 +645,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "lonstrup-rubjerg-dk": (3, 9.3), "hindsholm-dk": (2, 15.8), "grejsdalen-dk": (3, 15.5),
         # reconcile 14 batch 1 (local qualify on denmark-261121; the Actions qualify run re-confirms)
         "klokkerholm-dk": (2, 2.9), "esbjerg-energistier-dk": (6, 12.6), "arreskov-so-dk": (2, 5.7), "rudolph-tegner-esrum-dk": (2, 5.5),
-        "vojens-dk": (2, 4.0), "sydhavnen-dk": (2, 10.1), "gulstav-klint-dk": (2, 3.6), "lykkesholm-slot-dk": (2, 3.9),
+        "vojens-dk": (2, 4.0), "gulstav-klint-dk": (2, 3.6), "lykkesholm-slot-dk": (2, 3.9),
         "legind-bjerge-dk": (2, 4.6), "markmandsstien-dk": (2, 7.7), "oster-nykirke-dk": (2, 3.9)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),

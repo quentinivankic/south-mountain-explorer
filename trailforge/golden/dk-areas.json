@@ -5619,6 +5619,231 @@
           "reason": "signed named walk, whole route"
         }
       ]
+    },
+    {
+      "id": "odense-adal-dk",
+      "name": "Odense Ådal",
+      "state": "Denmark",
+      "relation_id": 14447613,
+      "bbox": [10.17, 55.21, 10.28, 55.32],
+      "center": [55.263, 10.226],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.5,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Odense Å valley: Rød sti 3.08 mi and Gul sti 1.47 mi (lwn, both clean). Nørre Broby Hjertesti (class A heart walk) stays out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14447613",
+          "name": "Odense Ådal - Rød sti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14447614",
+          "name": "Odense Ådal - Gul sti",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Odense Å valley; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "molleaadalen-dk",
+      "name": "Mølleådalen",
+      "state": "Denmark",
+      "relation_id": 12772210,
+      "bbox": [12.38, 55.72, 12.56, 55.86],
+      "center": [55.787, 12.467],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 12.4,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Mølleådalen north of Copenhagen (Lyngby, Brede, Bagsværd). Anchor Mølleådalen v/Lyngby og Brede (Lyngby-Taarbæk Kommune) carries the place name; Malmmose rundtur and Bagsværd Sø rundt are clean lwn loops. Furesø rundt stays out (would widen the span past 0.12 deg). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12772210",
+          "name": "Mølleådalen v/Lyngby og Brede",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12478686",
+          "name": "Malmmose rundtur",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12100366",
+          "name": "Bagsværd Sø rundt",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Mølleådalen; container derived from the 3 included signed routes"
+      }
+    },
+    {
+      "id": "maribosoerne-dk",
+      "name": "Maribosøerne",
+      "state": "Denmark",
+      "relation_id": 2115132,
+      "bbox": [11.43, 54.69, 11.64, 54.82],
+      "center": [54.756, 11.533],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 15.2,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Maribo lakes on Lolland: Maribosøerne Rundt (Sjællandsleden, 13.4 mi) and Søholt Storskov (Naturlandet Lolland-Falster, network=Local, 1.8 mi). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r2115132",
+          "name": "Maribosøerne Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14778190",
+          "name": "Søholt Storskov",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Maribo lakes; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "stevns-klint-dk",
+      "name": "Stevns Klint",
+      "state": "Denmark",
+      "relation_id": 12520555,
+      "bbox": [12.29, 55.2, 12.5, 55.45],
+      "center": [55.362, 12.399],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 17.5,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Stevns Klint (UNESCO chalk cliff): Stevns Klint Trampesti 13.7 mi and Gjorslevstien 3.8 mi. Container: relation 12520555 Gjorslev Bøgeskov (landuse=forest multipolygon) on the northern cliff; no polygon is named Stevns Klint and Højeruplund (way 400363392) is under the 0.005 deg boundary floor. Trails come whole via include_trails. Klintstien r2835037 needs member restoration and stays out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r2774223",
+          "name": "Stevns Klint Trampesti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2835052",
+          "name": "Gjorslevstien",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Gjorslev Bøgeskov forest relation 12520555 on the northern Stevns Klint coast; no polygon is named Stevns Klint"
+      }
+    },
+    {
+      "id": "lonstrup-rubjerg-dk",
+      "name": "Lønstrup og Rubjerg Knude",
+      "state": "Denmark",
+      "way_id": 94456107,
+      "bbox": [9.72, 57.39, 9.88, 57.54],
+      "center": [57.445, 9.79],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 9.4,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Lønstrup Turistforening Kløversti set (Blå 3.2, Rød 4.6, Grøn 1.6 mi): themed coastal walks, orchestrator exception to class ruling A (not kommune health loops). Container: way 94456107 Rubjerg Knude Klitplantage (landuse=forest). Landskabsruten r14453808 (102 m gap) stays out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14453809",
+          "name": "Planter og Dyr - Blå kløversti Lønstrup",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14453811",
+          "name": "Vesterhavet - Rød Kløversti Lønstrup",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14453810",
+          "name": "Normanns vandretur - Grøn Kløversti Lønstrup",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Rubjerg Knude Klitplantage forest way 94456107, the dune plantation around Rubjerg Knude and Lønstrup"
+      }
+    },
+    {
+      "id": "hindsholm-dk",
+      "name": "Hindsholm",
+      "state": "Denmark",
+      "relation_id": 12642305,
+      "bbox": [10.45, 55.39, 10.63, 55.6],
+      "center": [55.494, 10.538],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 16.3,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Hindsholm peninsula (Kerteminde/Nordfyn): Munkebostien 10.6 mi (VisitKerteminde) and Enebærodde 5.8 mi (Nordfyns Kommune), both lwn. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12642305",
+          "name": "Munkebostien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12349977",
+          "name": "Enebærodde",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Hindsholm peninsula walks; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "grejsdalen-dk",
+      "name": "Grejsdalen",
+      "state": "Denmark",
+      "way_id": 1425580850,
+      "bbox": [9.37, 55.66, 9.59, 55.82],
+      "center": [55.757, 9.515],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 15.6,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Grejsdalen near Vejle: Grejsdalstien 9.6 mi (Vejle Kommune), Østengård 2.5 mi, Lerbæk Skov rundtur 3.5 mi. Prior failure was the 0.12 deg cluster cap (0.121); container is way 1425580850 Grejs Skov (landuse=forest). accept_gap on Grejsdalstien: one real 130 m OSM hole, no geometry synthesized. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r11295724",
+          "name": "Grejsdalstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r3237342",
+          "name": "Østengård",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12724634",
+          "name": "Lerbæk Skov rundtur",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Grejs Skov forest way 1425580850 in Grejsdalen; the walk set exceeds the route-cluster span cap"
+      },
+      "accept_gap": [
+        {
+          "relation": "r11295724",
+          "max_gap_m": 150,
+          "reason": "Grejsdalstien (Vejle Kommune): one real OSM hole of 130 m in 9.6 mi (0.8%); the parts ship as separate segments, no geometry is synthesized"
+        }
+      ]
     }
   ]
 }

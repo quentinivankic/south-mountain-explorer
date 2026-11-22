@@ -226,7 +226,14 @@ def test_canada_only_no_shared_engine_or_other_lane_references_the_opt_in():
     for name in (".github/workflows/trailforge-publish.yml", ".github/workflows/trailforge-publish-dk.yml"):
         assert "park_boundary" not in (ROOT / name).read_text(), name
     assert "park_boundary" not in (ROOT / "scripts/dk_publish.py").read_text() if (ROOT / "scripts/dk_publish.py").exists() else True
-def test_live_registry_loads_and_every_park_boundary_row_is_held():
+def test_live_registry_loads_and_park_boundary_opt_ins_are_intact():
+    # Rows are unheld one province at a time after curation (ship BC unheld Thetis Lake and Francis/King),
+    # so the opt-in key itself is what must stay on all 11 intended rows.
     reg = ca.load_registry(ca.REGISTRY_PATH)
-    flagged = [a for a in reg["areas"] if "park_boundary" in a]
-    assert all(a.get("hold") for a in flagged), [a["id"] for a in flagged if not a.get("hold")]
+    flagged = {a["id"] for a in reg["areas"] if "park_boundary" in a}
+    intended = {"thetis-lake-regional-park-ca-bc", "francis-king-regional-park-ca-bc",
+                "bear-creek-recreation-site-ca-bc", "cranbrook-community-forest-recreation-site-ca-bc",
+                "mount-abriel-recreation-site-ca-bc", "mount-cartier-recreation-site-ca-bc",
+                "west-kokanee-recreation-site-ca-bc", "foothills-park-ca-bc", "sunnybrook-park-ca-on",
+                "12-mile-coulee-ca-ab", "tatagwa-parkway-ca-sk"}
+    assert intended <= flagged, sorted(intended - flagged)

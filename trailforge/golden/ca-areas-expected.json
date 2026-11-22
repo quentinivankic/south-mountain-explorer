@@ -432,8 +432,8 @@
       ]
     },
     "banff-national-park-ca-ab": {
-      "trail_count": 104,
-      "total_mi": 350.2,
+      "trail_count": 105,
+      "total_mi": 355.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Glacier Lake Route",
@@ -494,8 +494,8 @@
       ]
     },
     "waterton-lakes-national-park-ca-ab": {
-      "trail_count": 24,
-      "total_mi": 81.2,
+      "trail_count": 25,
+      "total_mi": 92.8,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Lost Lake Route",
@@ -898,7 +898,7 @@
     },
     "jasper-national-park-ca-ab": {
       "trail_count": 42,
-      "total_mi": 351.3,
+      "total_mi": 356.9,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

@@ -21162,7 +21162,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (mtb share 0.49). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (mtb share 0.49). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6). Ship-ON curation 2026-11-22 (wf_c0d6a68ddf8fc89e, park_boundary r21843734 replay: 5 trails / 4.9 mi): STAYS HELD (needs-rescope). Fewer than 2 agency-listed signed walks: Trash Panda, Sixplay and Parkours! are unsanctioned Don Valley mountain-bike trails (Class C7), Sunnybrook Equestrian Trail is a bridle trail, Glendon Riparian is a 0.91 mi stewardship segment; no City of Toronto page lists any as a named walk. Walkers use the municipal-deferred Toronto ravine paths. The park_boundary opt-in is kept."
     },
     {
       "id": "12-mile-coulee-ca-ab",

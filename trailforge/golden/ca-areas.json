@@ -8645,6 +8645,22 @@
           "name": "Wedgemount Lake Trail",
           "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
         }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Garibaldi Lake Trail",
+          "way_ids": [257054094, 389495777, 389495778, 75207615, 257054096, 313910191, 1390297477, 75207612, 75207625, 389495776, 1390297482, 1390297484, 75207624],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Black Tusk/Garibaldi Lake (Rubble Creek). OSM names 13 ways Garibaldi Lake Trail (5.76 mi); the seven without a piste tag assemble as a 1.31 mi stub. The other six carry piste:type=skitour (backcountry ski route) with foot=yes and sac_scale=hiking, and no hiking relation exists, so each is kept by the exact name of a non-piste way of this entry. w389495777 and w75207624 are access=no footbridges with foot=yes. Joined by shared nodes the 13 form one route (widest remaining gap 21.8 m)."
+        },
+        {
+          "name": "Elfin Lakes Trail",
+          "way_ids": [75773161, 257054105, 205591447, 469325103, 469325105, 87238018, 257054099, 257054101, 257054103, 257054106, 257054107, 1267019380, 1267019381],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Diamond Head: Elfin Lakes. OSM names 13 ways Elfin Lakes Trail (7.11 mi, one connected piece); the five without a piste tag assemble as a 2.21 mi stub. The other eight are highway=track ways that carry piste:type=skitour with foot=yes, sac_scale=mountain_hiking and mtb:scale 0|1 (the hiking road that bikes also use), no motor-vehicle access and no hiking relation."
+        }
       ]
     },
     {
@@ -12733,7 +12749,7 @@
         -123.482
       ],
       "tier": 3,
-      "hold": null,
+      "hold": "needs-rescope",
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
@@ -12759,7 +12775,7 @@
           "reason": "Not on the CRD Thetis Lake trail list; unofficial mountain-bike line"
         }
       ],
-      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area)."
+      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area). RE-HELD 2026-11-22 (needs-rescope): GitHub qualify run 45066997770 on the full BC extract hit SAFETY BLOCK 'exclude n:Lighthouse Extension matches no assembled trail' (the local clipped replay assembled it). Re-curate on the full extract (drop or fix that exclude, re-check the 12 CRD names) before unholding."
     },
     {
       "id": "elk-falls-provincial-park-ca-bc",

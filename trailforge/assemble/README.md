@@ -365,6 +365,30 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   roles exactly as before. The independent Mols-only `final` validator
   (`validate_publish_pilot.py`) recomputes roles without this opt-in and is not
   used by the Denmark pipeline.
+- **Keep motor tracks** (registry `keep_motor_tracks`, `--dk-keep-motor-tracks`,
+  dk-v3 exact Denmark only): `[{"relation": "r<id>", "reason": "..."}]`. A signed
+  hiking route often runs over a forest or heath `highway=track` that OSM also
+  tags `motorcar=yes` or `motor_vehicle=yes` and gives no foot tag. The default
+  member-safety rule drops such a member (`motor-access-without-positive-foot`),
+  so the route has a hole and the relation-gap gate withdraws it or it publishes
+  short. For each listed route relation, a main-role member is kept when it is a
+  `highway=track` with no foot tag (a blank value counts as none) and its motor
+  tags are `yes` only (`designated`, `no` or a contradictory pair stay out; a
+  `motorcycle=yes` beside it is the same permission and is allowed, while
+  `motorcycle=designated` or `no` keeps the member out), and it still passes every
+  other member-safety gate (access, foot=no/private, road-like lanes or name,
+  atv/ohv/snowmobile/4wd_only, non-hiking tags). It is
+  reported as `restored-opt-in-motor-track` (restored), so the quality report lists
+  it with the other restored members, and the assembly report carries
+  `dk_keep_motor_tracks` (per relation, the way ids kept). The opt-in is scoped
+  to the named root relation: another route that shares the same way keeps
+  dropping it. FAIL CLOSED: an entry whose relation was not assembled in the
+  area, or that no member way needs (OSM now gives the track a foot tag, or the
+  tags changed), fails the area (assemble exits 2). Tracks that already carry a
+  foot tag (including `motor_vehicle=forestry` with `foot=yes`) need no opt-in.
+  Off by default: every other area decides members exactly as before. The
+  Mols-only `final` validator (`validate_publish_pilot.py`) recomputes members
+  without this opt-in and is not used by the Denmark pipeline.
 - **Boundary by id** (registry `boundary_by_id: true`, `--dk-boundary-by-id`,
   dk-v3 exact Denmark only): `--require-exact-area` normally needs exactly one
   boundary with the area name. When OSM holds several (a relation and a way

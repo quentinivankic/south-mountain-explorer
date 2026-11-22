@@ -375,12 +375,15 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     assert by_id["egholm-dk"]["accept_directional_roles"] is True and by_id["egholm-dk"]["hold"] is None
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in by_id if "accept_gap" in by_id[i]}
     assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "hammeren-dk": {"r14573576": 300},
-                    "varde-sondre-plantage-dk": {"r6153047": 200}, "vestre-stigtehave-dk": {"r12667890": 300},
+                    "vestre-stigtehave-dk": {"r12667890": 300},
                     "hald-so-dk": {"r10876676": 300, "r19703948": 200},
                     # batch H: Orø Tur 4, Samsø Grøn (under the 1000 m cap); Kegnæs Langs sydkysten was withdrawn in BATCH-1
                     "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250},
                     # reconcile 13 batch A: Grejsdalstien (one real 130 m OSM hole)
                     "grejsdalen-dk": {"r11295724": 150}}
+    # ENGINE-1 (keep_motor_tracks): Varde Rød r6153047's 130 m "gap" was its dropped motor tracks; with the opt-in the
+    # route has no gap, so its accept_gap was withdrawn (an unneeded entry fails the area closed).
+    assert "accept_gap" not in by_id["varde-sondre-plantage-dk"]
     # BATCH-3: Cirkelstien (and its reviewed accept_gap) moved with the other Hammeren walks to hammeren-dk
     assert "r14573576" in {t["id"] for t in by_id["hammeren-dk"]["include_trails"]}
     assert "r14573576" not in {t["id"] for t in by_id["ro-plantage-dk"]["include_trails"]}

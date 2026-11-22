@@ -21,6 +21,12 @@ Hiking evidence for every piste-tagged way, all fail closed (exit 2 "SAFETY BLOC
   out); and the adopt_ways way checks pass: path/footway/steps/pedestrian (a highway=track only with
   foot=yes|designated and no motor-vehicle access tag), no access=private|no, foot=no, mtb:scale.
 A way in only a ski-route relation, or a bare piste way, is refused, so a ski-only trail never gets in.
+Per-trail opt-in `named_sac_evidence: true` (way_ids form only, no hiking relation exists; Garibaldi Lake
+Trail, Elfin Lakes Trail) adds one more kind of evidence for a piste-tagged way of THAT entry: foot=yes, a
+hiking sac_scale (hiking, mountain_hiking, demanding_mountain_hiking) and the exact name of a way of the same
+entry that carries no piste:type tag. Under the same flag, and only for a way with foot=yes|designated and such
+a sac_scale, access=no (foot overrides it) and an easy mtb:scale 0|1 (a hiking road that bikes also use) no
+longer trip the adopt_ways way checks; mtb:scale >= 2, access=private and every other check stay in force.
 Chaining, 90% inside the area boundary, no way already in another assembled trail and no name clash
 are the adopt_ways checks, reused unchanged.
 Nothing here touches shared engine code; no OSM edit is made. Absent key = this step never runs.
@@ -36,7 +42,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
 import ca_trail_filter  # noqa: E402
 HTW_KEYS = {"name", "source", "reason"}
-OPTIONAL_KEYS = {"way_ids", "relation", "max_gap_m"}
+OPTIONAL_KEYS = {"way_ids", "relation", "max_gap_m", "named_sac_evidence"}
+SAC_HIKING = {"hiking", "mountain_hiking", "demanding_mountain_hiking"}
+EASY_MTB = {"0", "1"}
 PISTE_OK = {"skitour", "nordic"}
 ALLOWED_HIGHWAY = ca_adopt_ways.ALLOWED_HIGHWAY | {"track"}
 MOTOR_TAGS = ("motor_vehicle", "motorcar", "vehicle")
@@ -63,6 +71,8 @@ def validate_hiking_tag_wins(items: object, where: str = "hiking_tag_wins") -> l
         base["way_ids"] = item.get("way_ids", [1])
         if "max_gap_m" in item:
             base["max_gap_m"] = item["max_gap_m"]
+        if "named_sac_evidence" in item and (item["named_sac_evidence"] is not True or "way_ids" not in item):
+            raise HikingTagWinsError(f"{label}: named_sac_evidence must be true and goes with way_ids only")
         try:
             ca_adopt_ways.validate_adopt_ways([base], where)
         except ca_adopt_ways.AdoptError as error:
@@ -109,6 +119,22 @@ def evidence_problems(wid: int, tags: dict[str, str], hiking_relations: list[int
     if tags.get("foot") in ("yes", "designated") and tags.get("name") and tags["name"] in named_evidence:
         return []
     return [f"way {wid}: not in a route=hiking relation and no foot=designated (a ski-only way stays out)"]
+def sac_named_evidence(tags: dict[str, str], anchors: set[str]) -> bool:
+    """Opt-in evidence (named_sac_evidence): foot=yes, a hiking sac_scale and the exact name of a non-piste way
+    of the same entry (`anchors`)."""
+    return (tags.get("foot") == "yes" and tags.get("sac_scale") in SAC_HIKING
+            and bool(tags.get("name")) and tags["name"] in anchors)
+def tolerated_tags(tags: dict[str, str]) -> dict[str, str]:
+    """named_sac_evidence entries only: the tags with access=no (when foot=yes|designated) and an easy mtb:scale
+    (0|1) taken out, for a way that has foot=yes|designated and a hiking sac_scale. Else the same dict."""
+    if tags.get("foot") not in ("yes", "designated") or tags.get("sac_scale") not in SAC_HIKING:
+        return tags
+    out = dict(tags)
+    if out.get("access") == "no":
+        del out["access"]
+    if out.get("mtb:scale") in EASY_MTB:
+        del out["mtb:scale"]
+    return out if out != tags else tags
 def read_relations(pbf: str) -> dict[int, dict]:
     """{relation id: {tags, ways}} for every relation in the extract (members of type way only)."""
     import osmium
@@ -158,6 +184,7 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
     can use (explicit or relation members). Raises HikingTagWinsError on any failed check."""
     hiking = hiking_relations_of(relations)
     adopt_entries = []
+    view = dict(ways)            # what the adopt_ways way checks see; differs only for named_sac_evidence ways
     replaced: list[dict] = []
     extra: list[dict] = []
     for entry in resolve(entries, relations):
@@ -181,6 +208,10 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
                      for w in (f.get("properties") or {}).get("member_ways") or []}
             skipped = [w for w in ids if w in owned]
             ids = [w for w in ids if w not in owned]
+        flagged = entry.get("named_sac_evidence") is True and not relation_mode   # validator: way_ids form only
+        anchors = {ways[i]["tags"]["name"] for i in ids
+                   if "piste:type" not in ways[i]["tags"] and ways[i]["tags"].get("name")}
+        sac_ways: list[int] = []
         named_evidence = {ways[i]["tags"]["name"] for i in ids
                           if "piste:type" in ways[i]["tags"] and ways[i]["tags"].get("name")
                           and (hiking.get(i) or ways[i]["tags"].get("foot") == "designated")}
@@ -190,7 +221,11 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
             if i in partial_ways:
                 continue          # the assembler's own ingest filter already accepted this way
             if "piste:type" in tags:
-                problems += piste_problems(i, tags) + evidence_problems(i, tags, hiking.get(i, []), named_evidence)
+                evidence = evidence_problems(i, tags, hiking.get(i, []), named_evidence)
+                if evidence and flagged and sac_named_evidence(tags, anchors):
+                    evidence = []
+                    sac_ways.append(i)
+                problems += piste_problems(i, tags) + evidence
             elif not relation_mode:
                 problems += piste_problems(i, tags)
             problems += track_problems(i, tags)
@@ -198,18 +233,26 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
             raise HikingTagWinsError(f"{label}: " + "; ".join(problems[:6]))
         if len(ids) > ca_adopt_ways.MAX_WAYS:
             raise HikingTagWinsError(f"{label}: {len(ids)} ways is more than {ca_adopt_ways.MAX_WAYS}")
+        overrides = []
+        if flagged:
+            for i in ids:
+                loosened = tolerated_tags(ways[i]["tags"])
+                if loosened is not ways[i]["tags"]:
+                    view[i] = {**ways[i], "tags": loosened}
+                    overrides.append(i)
         adopt = {"name": entry["name"], "way_ids": ids, "source": entry["source"], "reason": entry["reason"],
                  "allow_piste": [i for i in ids if "piste:type" in ways[i]["tags"]]}
         if "max_gap_m" in entry:
             adopt["max_gap_m"] = entry["max_gap_m"]
         adopt_entries.append(adopt)
         replaced += partial
-        extra.append({"left_with_other_trails": skipped})
+        extra.append({"left_with_other_trails": skipped, "named_sac_evidence_ways": sorted(sac_ways),
+                      "tolerated_access_or_mtb_ways": sorted(overrides)})
     # A partial copy the whole route replaces, or a trail the registry's exclude_trails removes next, is not a clash.
     live = [f for f in features if (f.get("properties") or {}).get("name") not in excluded
             and not any(f is r for r in replaced)]
     try:
-        new, evidence = ca_adopt_ways.build_features(adopt_entries, ways, live, boundary, area_name, excluded,
+        new, evidence = ca_adopt_ways.build_features(adopt_entries, view, live, boundary, area_name, excluded,
                                                   ALLOWED_HIGHWAY)
     except ca_adopt_ways.AdoptError as error:
         raise HikingTagWinsError(str(error).replace("adopt_ways", "hiking_tag_wins", 1)) from None

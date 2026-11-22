@@ -8645,6 +8645,22 @@
           "name": "Wedgemount Lake Trail",
           "reason": "Boundary-clipped: 2.2 of 3.5 mi lie inside the polygon; not a whole route"
         }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Garibaldi Lake Trail",
+          "way_ids": [257054094, 389495777, 389495778, 75207615, 257054096, 313910191, 1390297477, 75207612, 75207625, 389495776, 1390297482, 1390297484, 75207624],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Black Tusk/Garibaldi Lake (Rubble Creek). OSM names 13 ways Garibaldi Lake Trail (5.76 mi); the seven without a piste tag assemble as a 1.31 mi stub. The other six carry piste:type=skitour (backcountry ski route) with foot=yes and sac_scale=hiking, and no hiking relation exists, so each is kept by the exact name of a non-piste way of this entry. w389495777 and w75207624 are access=no footbridges with foot=yes. Joined by shared nodes the 13 form one route (widest remaining gap 21.8 m)."
+        },
+        {
+          "name": "Elfin Lakes Trail",
+          "way_ids": [75773161, 257054105, 205591447, 469325103, 469325105, 87238018, 257054099, 257054101, 257054103, 257054106, 257054107, 1267019380, 1267019381],
+          "named_sac_evidence": true,
+          "source": "https://bcparks.ca/garibaldi-park/",
+          "reason": "BC Parks Garibaldi page lists Diamond Head: Elfin Lakes. OSM names 13 ways Elfin Lakes Trail (7.11 mi, one connected piece); the five without a piste tag assemble as a 2.21 mi stub. The other eight are highway=track ways that carry piste:type=skitour with foot=yes, sac_scale=mountain_hiking and mtb:scale 0|1 (the hiking road that bikes also use), no motor-vehicle access and no hiking relation."
+        }
       ]
     },
     {

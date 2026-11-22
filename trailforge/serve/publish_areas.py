@@ -1151,7 +1151,8 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             try:
                 sampled, _label_changes = elevation.process_area(
                     row, sampler,
-                    skip_fragmented=args.state in _ELEVATION_REQUIRED_STATES)
+                    skip_fragmented=args.state in _ELEVATION_REQUIRED_STATES,
+                    keep_technical=args.state in _ELEVATION_REQUIRED_STATES)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
                 sampled = None

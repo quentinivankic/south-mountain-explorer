@@ -486,7 +486,8 @@ class PublishReport(unittest.TestCase):
                                 ("Arizona", False)):
             calls = []
             self._publish_with_sampled(state, 1, calls)
-            self.assertEqual(calls, [{"skip_fragmented": expected}], state)
+            self.assertEqual(calls, [{"skip_fragmented": expected,
+                                      "keep_technical": expected}], state)
     def test_dry_run_exact_boundary_still_requires_preview(self):
         with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:

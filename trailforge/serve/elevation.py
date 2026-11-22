@@ -372,10 +372,29 @@ def profile_ft(sampled: list[tuple[list, list]], max_points: int = 256) -> list[
 
 
 FRAGMENT_SEGMENTS_PER_MILE = 20
+_LEVEL = {"Easy": 0, "Moderate": 1, "Hard": 2}
+GAIN_HARD_FLOOR_FT = 1500
+
+
+def _keep_technical(old: str | None, new: str, miles: float, gain_ft: float) -> str:
+    """Canada/Denmark relabel guard. The geoms carry no sac_scale/visibility,
+    so a length-only old label of Hard at <= 4 mi (or Moderate at <= 2 mi) can
+    only have come from a technical tag; never lower it. A trail gaining
+    >= GAIN_HARD_FLOOR_FT is Hard whatever its length. Only ever raises."""
+    floor = new
+    if old == "Hard" and miles <= 4:
+        floor = "Hard"
+    elif old == "Moderate" and miles <= 2 and _LEVEL[new] < 1:
+        floor = "Moderate"
+    if gain_ft >= GAIN_HARD_FLOOR_FT:
+        floor = "Hard"
+    return floor if _LEVEL.get(floor, 0) > _LEVEL[new] else new
+
 
 
 def process_area(geom: dict, sampler,
-                 skip_fragmented: bool = False) -> tuple[int, dict]:
+                 skip_fragmented: bool = False,
+                 keep_technical: bool = False) -> tuple[int, dict]:
     """Set `gainFt` + a gain-aware `difficulty` per trail and a per-area
     `total_gain_ft`, sampling elevation via `sampler.elevation(lat, lon)`.
 
@@ -411,6 +430,8 @@ def process_area(geom: dict, sampler,
             t.pop("gainFt", None)
         else:
             new = difficulty_label(miles, g)
+            if keep_technical:
+                new = _keep_technical(old, new, miles, g)
             t["gainFt"] = int(g)
             t["difficulty"] = new
             total_gain += g

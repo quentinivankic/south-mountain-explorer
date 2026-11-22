@@ -12729,14 +12729,44 @@
       "state": "Canada",
       "relation_id": 1793712,
       "name": "Thetis Lake Regional Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -123.55,
+        48.41,
+        -123.4,
+        48.57
+      ],
+      "center": [
+        48.494,
+        -123.482
+      ],
       "tier": 3,
-      "hold": "needs-rescope",
+      "hold": null,
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Thetis Lake RP (r1793712, leisure=park): prefilter drops the boundary (found []), same as East Sooke. Re-check 2026-11-10 (BC-1): a local replay with the park boundary merged in gives 16 trails / 17.0 mi, and the CRD map (https://www.crd.ca/media/file/thetis-lake-regional-park) names Upper/Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Phelps, Scafe Hill Loop, Lighthouse, Lewis Clark and Trillium (about 10 ship-quality trails). Blocked: r1793712 is leisure=park with no operator tag, so keep_park_boundary (needs both) refuses and the workflow prefilter drops the boundary. Needs an OSM operator tag (no OSM edits now) or a lane change. Stays held."
+      "exclude_trails": [
+        {
+          "id": "n:Lighthouse Extension",
+          "name": "Lighthouse Extension",
+          "reason": "Not on the CRD Thetis Lake trail list; an unnamed extension of the listed Lighthouse Trail, shipped once as Lighthouse"
+        },
+        {
+          "id": "n:Scafe Hill Loop Trail (North)",
+          "name": "Scafe Hill Loop Trail (North)",
+          "reason": "Second OSM piece of the one CRD Scafe Hill Loop Trail (4.0 km); shipped once as Scafe Hill Loop Trail"
+        },
+        {
+          "id": "n:Scafe Hill Descent",
+          "name": "Scafe Hill Descent",
+          "reason": "Not on the CRD Thetis Lake trail list (a Scafe Hill spur, not an official named trail)"
+        },
+        {
+          "id": "n:Thank You Next",
+          "name": "Thank You Next",
+          "reason": "Not on the CRD Thetis Lake trail list; unofficial mountain-bike line"
+        }
+      ],
+      "notes": "Missing-destination batch 2026-11-02, re-curated 2026-11-22 (ship BC, local expert). SHIP. Thetis Lake RP (r1793712, leisure=park) is kept by the park_boundary opt-in (mechanism 1, PR #828); no OSM edit needed. Curated against the CRD trail map by name (https://www.crd.ca/media/file/thetis-lake-regional-park, March 2025): the replay's 16 OSM trails reduce to 12 listed names: Bellamy, Upper Thetis Lake, Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Mount Work Connector, Phelps, Scafe Hill Loop, Lighthouse (CRD 'Lighthouse Trail'), Panhandle, Lewis Clark, Trillium. Four dropped (see exclude_trails): Lighthouse Extension, Scafe Hill Loop Trail (North), Scafe Hill Descent, Thank You Next. Not in OSM as whole named trails (not shipped): Better than the Road, Electric Avenue Connector, Fairedge, Mostly Open, Phelps Connector, Scafe Hill Summit, Seaborn, Seymour Hill, Steep and Deep, Stewart Connector/Mountain/Switchback Climb, Swamp Bypass, Tom's. Panhandle Trail is also on the Francis/King map; it ships here only (no geometry overlap with Francis/King's three trails). Registry bbox = qualify proposal; pin set on a published trail point (48.494,-123.482, Upper Thetis Lake area)."
     },
     {
       "id": "elk-falls-provincial-park-ca-bc",
@@ -18336,13 +18366,13 @@
         -123.447
       ],
       "tier": 3,
-      "hold": "needs-rescope",
+      "hold": null,
       "est_trails": 3,
       "est_mi": 3.2,
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS)."
+      "notes": "Phase B P2-2 BC curation 2026-11-12, re-curated 2026-11-22 (ship BC, local expert). SHIP. The leisure=park boundary (r2045173) is re-added by the park_boundary opt-in (mechanism 1, PR #828). CRD map by trail name (https://www.crd.ca/media/file/rpfkwebsitefebruary-2026pdf, February 2026) lists all three OSM trails as official named trails: Centennial Trail (3 km), High Ridge Loop Trail (1 km), Shooting Star Trail (1 km); replay 3 trails / 3.2 mi (about 5.1 km, matching the listed 5 km). The CRD page (https://www.crd.ca/parks-recreation/find-park-or-trail/francisking-regional-park) names Shooting Star, Centennial and Grand Fir plus the Elsie King accessible loop; Elsie King (800 m), Grand Fir, Panhandle, High Ridge Trail (865 m), Marsh, Bridle and Skunk Cabbage Loop are not whole named OSM trails here and are not shipped. Panhandle Trail ships in Thetis Lake, not here."
     },
     {
       "id": "kanaka-creek-regional-park-ca-bc",
@@ -19091,7 +19121,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-1 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 replay runs: 4 trails / 11.7 mi: McDougall Rim, McDougall Creek FSR (forest service road, not a walk), Root-a-Toot-Toot (mountain-bike trail), Christie Falls Trail (0.7 mi). No Rec Sites listing names a hiking trail set here; after rule 2 at most 1 whole signed walk remains (rule 6: fewer than 2). Class C8."
     },
     {
       "id": "blue-mountain-recreation-site-ca-bc",
@@ -19204,7 +19234,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6/C8 (community forest, mtb share 0.33). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-1 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 (park_boundary, PR #828) now lets the replay run: 26 trails / 42.6 mi, but every trail is a Star Wars-named mountain-bike line (Pod Racer, Chewbacca Rocka, Padawan, R2D Tour, Ewok And Roll, Loop Skywalker, Toothless Grin ...) in a community-forest MTB network and no agency or municipal hiking list names any of them. Curation rule 2 (no MTB) leaves fewer than 2 signed walks. Class C6/C8."
     },
     {
       "id": "cross-river-canyon-recreation-site-ca-bc",
@@ -19339,7 +19369,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-1 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 replay runs: 12 trails / 12.8 mi, all mountain-bike trails (Ride On, Upper Dusty Panther, Black and Blue, Minty Fresh, Turn 'Er Up, Heavy Pedal, Burn 'Er Up, Badfish ...). No hiking trail list exists; rule 2 (no MTB) leaves 0 signed walks. Class C8."
     },
     {
       "id": "mount-cartier-recreation-site-ca-bc",
@@ -19364,7 +19394,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-1 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 replay runs: 2 trails / 3.6 mi (Sunnyside Up 2.0 mi, a mountain-bike name; Mount Cartier Trail 1.6 mi). No agency listing found for either; fewer than 2 whole signed walks (rule 6). Class C8."
     },
     {
       "id": "mount-gardner-recreation-site-ca-bc",
@@ -19665,7 +19695,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-1 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 replay runs: 2 trails / 5.4 mi, which are West Kokanee Loop Trail (4.5 mi) and its Connector (0.9 mi): one walk plus a leg, a parent + leg pair (rule 3), so 1 signed walk (rule 6: fewer than 2). Class C8."
     },
     {
       "id": "707-community-park-ca-bc",
@@ -19837,7 +19867,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-2 BC curation 2026-11-12; re-curated 2026-11-22 (ship BC). HOLD (needs-rescope) stays. Mechanism 1 replay runs: 6 trails / 4.6 mi (Vansickle's Waltz, Hurford's Trek, Heikkila Canyon, Hinksman's March, Pon Dicks Greenline, Robinson's Reach), community-built multi-use (mountain-bike) trails in the Lantzville foothills; no agency or municipal page lists them as hiking trails. Rule 1 and rule 2 leave 0 signed walks. Class C7."
     },
     {
       "id": "green-timbers-urban-forest-ca-bc",

@@ -4360,6 +4360,24 @@
           "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
           "reason": "Parks Canada Banff hiking list names Consolation Lakes Trail (2.9 km one way from Moraine Lake). OSM carries it as the rockpile footpath (way 31276799, unnamed) plus the good-visibility path 1565159837 named Panorama Ridge Route, which ends at the first lake; it is not the alpine Panorama Ridge route (way 264674133, trail_visibility bad, not adopted)."
         }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Healy Pass Trail",
+          "way_ids": [
+            24831453,
+            1186350072,
+            1186350073,
+            103686399,
+            574660840,
+            1300375506,
+            1300375507,
+            1300375508,
+            1300375509
+          ],
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Parks Canada Banff hiking list names Healy Pass. Six piste:type=skitour ways named Healy Pass Trail carry foot=yes; w574660840 is in the route=hiking relation r8161856, which gives the other five their evidence by exact name. The first three ways are the assembled 0.47 mi stub of the same trail."
+        }
       ]
     },
     {
@@ -5036,6 +5054,14 @@
           "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/randonnee-hiking",
           "reason": "Parks Canada Jasper trail list names Sunwapta Falls (blind audit 5). The 1.1 km walk from the falls viewpoints is unnamed in OSM."
         }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Bald Hills Trail",
+          "relation": "r7467684",
+          "source": "https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails",
+          "reason": "Parks Canada Jasper hike. OSM route=hiking relation r7467684; 15 member ways also carry piste:type=skitour, so only a 0.79 mi stub is live. One member way stays with Maligne Pass Trail."
+        }
       ]
     },
     {
@@ -5209,6 +5235,14 @@
           "name": "Lost Lake Route",
           "source": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
           "reason": "Parks Canada Waterton day-hike page lists Lost Lake; OSM maps the 0.69 mi path as Lost Lake Route (way 376450717), wholly inside the park, ending at Lost Lake. The unsigned-route exclusion is lifted because the hike is agency-listed."
+        }
+      ],
+      "way_name_overrides": [
+        {
+          "name": "Carthew-Alderson Trail",
+          "way_ids": [449624607, 449624630, 1059660150, 1059660151],
+          "evidence": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists Carthew-Alderson (12.4 mi one way, Cameron Lake to Cameron Falls). OSM has no way named Carthew-Alderson: the whole route is four ways named Great Divide Trail (the park section of the long-distance route), so the vocabulary filter drops it. Summit Lake and Alderson Lake are access points on this same route per the agency page, not separate hikes."
         }
       ],
       "trail_name_fixes": [
@@ -8385,6 +8419,11 @@
           "name": "Hemlock grove boardwalk",
           "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
           "reason": "Parks Canada Glacier short hikes page: Hemlock Grove Boardwalk, 350 m loop; short official walk"
+        },
+        {
+          "name": "Meeting of the Waters Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
+          "reason": "Parks Canada Glacier short hikes page lists Meeting of the Waters (3.3 km loop); the OSM relation maps only its short section, under the 0.6 mi floor"
         }
       ],
       "trail_name_fixes": [
@@ -8393,6 +8432,26 @@
           "name": "Hemlock Grove Boardwalk",
           "source": "https://www.openstreetmap.org/way/30606524",
           "reason": "Capitalisation only; same trail"
+        }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Great Glacier Trail",
+          "relation": "r7490020",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike 'Great Glacier' (8.4 km return). OSM route=hiking relation r7490020; all 9 member ways also carry piste:type=skitour, so the assembler drops them."
+        },
+        {
+          "name": "Meeting of the Waters Trail",
+          "relation": "r7490072",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/courte-short",
+          "reason": "Parks Canada Glacier short hike 'Meeting of the Waters'. OSM route=hiking relation r7490072; all 3 member ways also carry piste:type=skitour."
+        },
+        {
+          "name": "Avalanche Crest Trail",
+          "relation": "r7490087",
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike. OSM route=hiking relation r7490087; 6 of 7 member ways also carry piste:type=skitour, so only a 0.85 mi stub is live."
         }
       ]
     },
@@ -8898,6 +8957,14 @@
           "name": "Dry Ridge Trail",
           "source": "https://bcparks.ca/ec-manning-park/",
           "reason": "BC Parks E.C. Manning page: Dry Ridge, 300 m one way; short official walk"
+        }
+      ],
+      "hiking_tag_wins": [
+        {
+          "name": "Frosty Mountain",
+          "relation": "r9982983",
+          "source": "https://bcparks.ca/ec-manning-park/",
+          "reason": "BC Parks Manning Park hike. OSM route=hiking relation r9982983; 3 member ways also carry piste:type=skitour, which cuts the live trail at 5.5 mi (blind audits: 1.68 mi hole)."
         }
       ]
     },
@@ -12627,6 +12694,9 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Thetis Lake RP (r1793712, leisure=park): prefilter drops the boundary (found []), same as East Sooke. Re-check 2026-11-10 (BC-1): a local replay with the park boundary merged in gives 16 trails / 17.0 mi, and the CRD map (https://www.crd.ca/media/file/thetis-lake-regional-park) names Upper/Lower Thetis Lake, McKenzie Creek, Craigflower Creek, Phelps, Scafe Hill Loop, Lighthouse, Lewis Clark and Trillium (about 10 ship-quality trails). Blocked: r1793712 is leisure=park with no operator tag, so keep_park_boundary (needs both) refuses and the workflow prefilter drops the boundary. Needs an OSM operator tag (no OSM edits now) or a lane change. Stays held."
     },
     {
@@ -18093,6 +18163,9 @@
       "hold": "needs-rescope",
       "est_trails": 3,
       "est_mi": 3.2,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Replay refuses: the boundary is a leisure=park multipolygon relation, which check-boundary does not match (found []); plan follow-up 6 (PARK_RELS)."
     },
     {
@@ -18839,6 +18912,9 @@
       "hold": "needs-rescope",
       "est_trails": 4,
       "est_mi": 11.7,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -18949,6 +19025,9 @@
       "hold": "needs-rescope",
       "est_trails": 18,
       "est_mi": 28.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C6/C8 (community forest, mtb share 0.33). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19081,6 +19160,9 @@
       "hold": "needs-rescope",
       "est_trails": 12,
       "est_mi": 12.8,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19103,6 +19185,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 3.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19401,6 +19486,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 5.4,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-1 BC curation 2026-11-12 (chat/ca-c-bc; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C8. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -19570,6 +19658,9 @@
       "hold": "needs-rescope",
       "est_trails": 6,
       "est_mi": 4.6,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-2 BC curation 2026-11-12 (chat/ca-c-bc2; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -20853,6 +20944,9 @@
       "hold": "needs-rescope",
       "est_trails": 3,
       "est_mi": 3.1,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-4 ON curation 2026-11-12 (chat/ca-c-on; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7 (mtb share 0.49). Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -20875,6 +20969,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 2.8,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {
@@ -21030,6 +21127,9 @@
       "hold": "needs-rescope",
       "est_trails": 2,
       "est_mi": 2.5,
+      "park_boundary": {
+        "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
+      },
       "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
     },
     {

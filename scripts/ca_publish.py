@@ -45,7 +45,10 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
+import ca_hiking_tag_wins  # noqa: E402
+import ca_park_boundary  # noqa: E402
 import ca_trail_filter  # noqa: E402
+import ca_way_name_override  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
 
@@ -191,6 +194,36 @@ def _check_adopt_ways(aid: str, entry: dict[str, Any]) -> None:
         raise CaError(str(error)) from None
     if "way_id" in entry:
         raise CaError(f"{aid}: adopt_ways needs a relation-backed entry (the exact-area boundary file)")
+def _check_hiking_tag_wins(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: keep hiking ways the ingest filter drops for a skitour/nordic tag (scripts/ca_hiking_tag_wins.py)."""
+    if "hiking_tag_wins" not in entry:
+        return
+    try:
+        ca_hiking_tag_wins.validate_hiking_tag_wins(entry["hiking_tag_wins"], f"{aid}: hiking_tag_wins")
+    except ca_hiking_tag_wins.HikingTagWinsError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: hiking_tag_wins needs a relation-backed entry (the exact-area boundary file)")
+    overlap = {i for e in entry.get("adopt_ways", []) for i in e["way_ids"]} & {
+        i for e in entry["hiking_tag_wins"] for i in e.get("way_ids", [])}
+    if overlap:
+        raise CaError(f"{aid}: hiking_tag_wins and adopt_ways both list way ids {sorted(overlap)[:6]}")
+def _check_way_name_overrides(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: name specific ways with the signed trail name an agency lists (scripts/ca_way_name_override.py)."""
+    if "way_name_overrides" not in entry:
+        return
+    try:
+        ca_way_name_override.validate_way_name_overrides(entry["way_name_overrides"], f"{aid}: way_name_overrides")
+    except ca_way_name_override.NameOverrideError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: way_name_overrides needs a relation-backed entry (the exact-area boundary file)")
+    listed = {i for e in entry["way_name_overrides"] for i in e["way_ids"]}
+    other = {i for e in entry.get("adopt_ways", []) for i in e["way_ids"]} | {
+        i for e in entry.get("hiking_tag_wins", []) for i in e.get("way_ids", [])}
+    if listed & other:
+        raise CaError(f"{aid}: way_name_overrides and adopt_ways/hiking_tag_wins both list way ids "
+                      f"{sorted(listed & other)[:6]}")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -242,6 +275,14 @@ def _check_canada_boundary_opt_ins(aid: str, entry: dict[str, Any]) -> None:
             raise CaError(f"{aid}: {key} needs a relation-backed entry (relation_id)")
     if "dedupe_ring_way" in entry and "boundary_by_id" in entry:
         raise CaError(f"{aid}: dedupe_ring_way and boundary_by_id are mutually exclusive")
+    if "park_boundary" in entry:
+        # Opt-in: keep this area's own leisure=park relation or way (scripts/ca_park_boundary.py).
+        try:
+            ca_park_boundary.validate_park_boundary(entry["park_boundary"], f"{aid}: park_boundary")
+        except ca_park_boundary.ParkBoundaryError as error:
+            raise CaError(str(error)) from None
+        if "keep_park_boundary" in entry:
+            raise CaError(f"{aid}: park_boundary and keep_park_boundary are mutually exclusive")
 
 
 # Per-area, explicit, Canada-only pin opt-ins (this registry is region=ca only; dk/US never read it).
@@ -349,6 +390,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_exclude_trails(aid, entry)
         _check_keep_trails(aid, entry)
         _check_adopt_ways(aid, entry)
+        _check_hiking_tag_wins(aid, entry)
+        _check_way_name_overrides(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
@@ -660,6 +703,8 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
             tags.get("leisure") == "park" and (tags.get("operator") or "").strip()):
         problems.append(f"relation {entry['relation_id']} is not a leisure=park boundary with an operator "
                         "tag (keep_park_boundary needs both)")
+    if "park_boundary" in entry and tags.get("leisure") != "park":
+        problems.append(f"relation {entry['relation_id']} is not leisure=park (park_boundary needs it)")
     return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 
@@ -676,6 +721,8 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
     names = _names(info["tags"])
     if entry["name"] not in names:
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
+    if "park_boundary" in entry and info["tags"].get("leisure") != "park":
+        problems.append(f"way {entry['way_id']} is not leisure=park (park_boundary needs it)")
     return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 

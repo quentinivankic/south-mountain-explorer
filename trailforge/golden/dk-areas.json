@@ -218,7 +218,7 @@
       "state": "Denmark",
       "relation_id": 5178556,
       "bbox": [11.65, 54.51, 12.22, 55.02],
-      "center": [54.705, 11.993],
+      "center": [54.645, 11.956],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
@@ -336,7 +336,10 @@
           "reason": "red-marked 2.5 km circular walk through Ekkodalen, listed by VisitDenmark/Bornholm as Hiking Route Almindingen Forest - Ekkodalen; lwn route=foot relation, whole route (1.08 mi)"
         }
       ],
-      "trail_name_prefix": "Almindingen"
+      "trail_name_prefix": "Almindingen",
+      "trail_name_fixes": [
+        {"osm_name": "Stillesøen", "name": "Almindingen Stillesøen", "source": "https://www.openstreetmap.org/relation/8306566", "reason": "reviewed 2026-11-22 (blind audits 11 and 12, bare names): OSM lwn hiking relation r8306566 is named only for the lake, 'Stillesøen' says nothing about where it is and is not unique in Denmark; the place prefix puts it in Almindingen. osm_name keeps the OSM name, so the trail id does not move"}
+      ]
     },
     {
       "id": "aero-dk",
@@ -550,6 +553,9 @@
       "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Rude Skov (lwn, blue hiker waymarks, 5.6 mi) and Forskerruten (lwn, 6.7 mi) are the two named signed walks of the forest in OSM. Thin: no operator tags on either; the reviewer decides.",
       "exclude_trails": [
         {"id": "n:Lysløjpe Rudeskov", "name": "Lysløjpe Rudeskov", "reason": "lit jogging/ski track (Lysløjpen, 239 lamps), run-only per Naturstyrelsen; not a hiking trail"}
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Rude Skov", "name": "Rude Skov blå rute", "source": "https://www.openstreetmap.org/relation/12152143", "reason": "reviewed 2026-11-22 (blind audits 11 and 12, area-name-only trail): the trail name equalled the area name. OSM lwn relation r12152143 is waymarked blue (osmc:symbol blue:blue:white_hiker), and the other walk of the area is named by what it is (Forskerruten), so the colour makes the name a route name. osm_name keeps the OSM name, so the trail id does not move"}
       ]
     },
     {
@@ -738,7 +744,11 @@
     {
       "id": "samso-dk",
       "name": "Samsø",
-      "display_name": "Nordby Bakker på Samsø",
+      "display_name": "Samsø · Nordby Bakker",
+      "allow_rename": {
+        "from": "Nordby Bakker på Samsø",
+        "reason": "reviewed (blind audits 11 and 12): the area leads with the island name so a search for Samsø finds it first; the four routes (Samsø Gul, Blå, Grøn and Ballebjergturen) all lie in the Nordby Bakker hills at the north end of the island, so the Nordby Bakker part of the old title stays"
+      },
       "state": "Denmark",
       "relation_id": 4594957,
       "bbox": [10.47, 55.71, 10.74, 56.05],
@@ -1716,6 +1726,9 @@
           "name": "Gul rute",
           "reason": "bare generic colour name from way pieces with no route relation, not a signed route"
         }
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Kompedal Plantage", "name": "Kompedal Plantage blå rute", "source": "https://naturstyrelsen.dk/media/nst/11773560/kort-digital-guide-web-kompedal-detail.pdf", "reason": "reviewed 2026-11-22 (blind audits 11 and 12, area-name-only trail): Naturstyrelsen lwn relation r12524126 (source:url is this Naturstyrelsen Kompedal guide) is waymarked blue (osmc:symbol blue:white:blue_hiker); its sibling in the same guide is named Kompedalen gul rute, so the blue walk reads as a route, not as the area. osm_name keeps the OSM name, so the trail id does not move"}
       ]
     },
     {
@@ -2759,6 +2772,9 @@
           "name": "Smedeby Grube",
           "reason": "Naturstyrelsen walk at Smedeby Grube beside Kiskelund; whole route"
         }
+      ],
+      "trail_name_fixes": [
+        {"osm_name": "Kiskelund Plantage", "name": "Kiskelund Plantage gul rute", "source": "https://www.openstreetmap.org/relation/3205974", "reason": "reviewed 2026-11-22 (blind audits 11 and 12, area-name-only trail): Naturstyrelsen lwn relation r3205974 (3.2 km, roundtrip) is waymarked yellow (osmc:symbol yellow::yellow_dot); the colour makes the name a route name, the other walk of the area is Smedeby Grube. osm_name keeps the OSM name, so the trail id does not move"}
       ]
     },
     {
@@ -4454,22 +4470,18 @@
       "tier": 2,
       "hold": null,
       "display_name": "Frederiksværk og Arresø · Nationalpark Kongernes Nordsjælland",
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Five Halsnæs walks around Frederiksværk and Arresødal.",
-      "container_from_routes": {"reason": "No usable named OSM polygon for Frederiksværk/Arresødal; container derived from the 5 included signed Halsnæs walks"},
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Three Halsnæs walks around Frederiksværk and Arresødal. Gul and Grøn historisk vandring (the short variants of the Rød heritage walk, 100% and 98% inside it, 0 and 62 m of own ground) dropped 2026-11-22 (blind audits 11 and 12, nested routes) under the same rule as Jydelejet and Aarø grøn.",
+      "container_from_routes": {"reason": "No usable named OSM polygon for Frederiksværk/Arresødal; container derived from the 3 included signed Halsnæs walks"},
       "include_trails": [
         {"id": "r17350410", "name": "Rød historisk vandring", "reason": "OSM lwn hiking relation r17350410 (5.59 mi), whole route, waymarked red:red:green_dot; Rød historisk vandring 'Kongemagt og Vandets Kraft' (Frederiksværk/Arresødal)"},
-        {"id": "r17351831", "name": "Gul historisk vandring", "reason": "OSM lwn hiking relation r17351831 (3.68 mi), whole route, waymarked yellow:yellow:green_dot; Gul historisk vandring of the same heritage walk"},
-        {"id": "r17351830", "name": "Grøn historisk vandring", "reason": "Industrimusset og Halsnæs Kommune lwn hiking relation r17351830 (2.38 mi), whole route, waymarked green:green:green_dot; Grøn historisk vandring of the same heritage walk (Industrimuseet og Halsnæs Kommune)"},
         {"id": "r13649318", "name": "Hjertesti ved Magleblik", "reason": "OSM lwn hiking relation r13649318 (2.67 mi), whole route, waymarked red:white:red_triangle_turned; Hjerteforeningen heart path at Magleblik, Frederiksværk (Halsnæs Kommune)"},
         {"id": "r13592991", "name": "Bakkestien", "reason": "OSM lwn hiking relation r13592991 (1.16 mi), whole route; Bakkestien, Halsnæs Kommune walk in Frederiksværk"}
       ],
       "trail_name_fixes": [
-        {"osm_name": "Rød historisk vandring", "name": "Frederiksværk Rød historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"},
-        {"osm_name": "Gul historisk vandring", "name": "Frederiksværk Gul historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"},
-        {"osm_name": "Grøn historisk vandring", "name": "Frederiksværk Grøn historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"}
+        {"osm_name": "Rød historisk vandring", "name": "Frederiksværk Rød historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"}
       ],
-      "est_trails": 5,
-      "est_mi": 15.3
+      "est_trails": 3,
+      "est_mi": 9.3
     },
     {
       "id": "gurre-dk",
@@ -4675,7 +4687,10 @@
         {"id": "r14507560", "name": "Ristinge Halvø", "reason": "Hjerteforeningen lwn hiking relation r14507560 (2.16 mi), whole route; Ristinge Halvø Hjertesti, Hjerteforeningen"}
       ],
       "est_trails": 2,
-      "est_mi": 6.6
+      "est_mi": 6.6,
+      "trail_name_fixes": [
+        {"osm_name": "Ristinge Halvø", "name": "Ristinge Halvø Hjertesti", "source": "https://hjerteforeningen.dk/hjertestier/rute/ristinge-halvoe/", "reason": "reviewed 2026-11-22 (blind audits 11 and 12, area-name-only trail): OSM lwn relation r14507560 is the Hjerteforeningen heart path (operator Hjerteforeningen, source:url this page); the other walk of the area is Ristinge Halvø rundtur, so the two shared one name apart from the area. The Hjertesti suffix is the Hjerteforeningen's own route type, the same wording the registry uses for Hjertesti ved Magleblik. osm_name keeps the OSM name, so the trail id does not move"}
+      ]
     },
     {
       "id": "skjern-birk-plantage-dk",

@@ -90,11 +90,12 @@ def _line_m(coords: list[tuple[float, float]]) -> float:
     return sum(_haversine_m(coords[i], coords[i + 1]) for i in range(len(coords) - 1))
 
 
-def _way_problems(wid: int, way: dict, allow_piste: list[int]) -> list[str]:
+def _way_problems(wid: int, way: dict, allow_piste: list[int],
+                  allowed_highway: frozenset[str] | set[str] = ALLOWED_HIGHWAY) -> list[str]:
     tags = way["tags"]
     out = []
-    if tags.get("highway") not in ALLOWED_HIGHWAY:
-        out.append(f"way {wid}: highway={tags.get('highway')!r} is not one of {sorted(ALLOWED_HIGHWAY)}")
+    if tags.get("highway") not in allowed_highway:
+        out.append(f"way {wid}: highway={tags.get('highway')!r} is not one of {sorted(allowed_highway)}")
     if tags.get("access") in ("private", "no"):
         out.append(f"way {wid}: access={tags['access']}")
     if tags.get("foot") == "no":
@@ -144,7 +145,8 @@ def _components(ways: dict[int, dict], ids: list[int], gap_m: float) -> tuple[in
 
 
 def build_features(entries: list[dict], ways: dict[int, dict], features: list[dict], boundary: Any,
-                   area_name: str, excluded: frozenset[str] = frozenset()) -> tuple[list[dict], list[dict]]:
+                   area_name: str, excluded: frozenset[str] = frozenset(),
+                   allowed_highway: frozenset[str] | set[str] = ALLOWED_HIGHWAY) -> tuple[list[dict], list[dict]]:
     """(new features, per-entry evidence). Raises AdoptError on any failed check.
     `excluded`: exact names of assembled trails the registry's exclude_trails removes in the next
     step (ca_trail_filter). Their ways may be adopted: the owner never reaches the output."""
@@ -158,7 +160,7 @@ def build_features(entries: list[dict], ways: dict[int, dict], features: list[di
         missing = [i for i in ids if i not in ways]
         if missing:
             raise AdoptError(f"{label}: ways missing from the extract: {missing[:8]}")
-        problems = [p for i in ids for p in _way_problems(i, ways[i], entry.get("allow_piste", []))]
+        problems = [p for i in ids for p in _way_problems(i, ways[i], entry.get("allow_piste", []), allowed_highway)]
         if problems:
             raise AdoptError(f"{label}: " + "; ".join(problems[:6]))
         if ca_trail_filter.fold(entry["name"]) in existing:

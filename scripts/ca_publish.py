@@ -45,6 +45,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
+import ca_park_boundary  # noqa: E402
 import ca_trail_filter  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
@@ -242,6 +243,14 @@ def _check_canada_boundary_opt_ins(aid: str, entry: dict[str, Any]) -> None:
             raise CaError(f"{aid}: {key} needs a relation-backed entry (relation_id)")
     if "dedupe_ring_way" in entry and "boundary_by_id" in entry:
         raise CaError(f"{aid}: dedupe_ring_way and boundary_by_id are mutually exclusive")
+    if "park_boundary" in entry:
+        # Opt-in: keep this area's own leisure=park relation or way (scripts/ca_park_boundary.py).
+        try:
+            ca_park_boundary.validate_park_boundary(entry["park_boundary"], f"{aid}: park_boundary")
+        except ca_park_boundary.ParkBoundaryError as error:
+            raise CaError(str(error)) from None
+        if "keep_park_boundary" in entry:
+            raise CaError(f"{aid}: park_boundary and keep_park_boundary are mutually exclusive")
 
 
 # Per-area, explicit, Canada-only pin opt-ins (this registry is region=ca only; dk/US never read it).
@@ -660,6 +669,8 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
             tags.get("leisure") == "park" and (tags.get("operator") or "").strip()):
         problems.append(f"relation {entry['relation_id']} is not a leisure=park boundary with an operator "
                         "tag (keep_park_boundary needs both)")
+    if "park_boundary" in entry and tags.get("leisure") != "park":
+        problems.append(f"relation {entry['relation_id']} is not leisure=park (park_boundary needs it)")
     return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 
@@ -676,6 +687,8 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
     names = _names(info["tags"])
     if entry["name"] not in names:
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
+    if "park_boundary" in entry and info["tags"].get("leisure") != "park":
+        problems.append(f"way {entry['way_id']} is not leisure=park (park_boundary needs it)")
     return problems + _size_problems(info.get("bbox"), _span_max(entry))
 
 

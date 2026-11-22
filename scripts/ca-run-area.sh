@@ -83,6 +83,15 @@ ROOT="$(pwd)"
 
 cd trailforge
 HIKING=data/hiking.osm.pbf NAME="$AREA_ID" BBOX="$BBOX" bash extract/aoi.sh
+# Optional park_boundary (registry; relation or way): re-add the area's own leisure=park boundary (the
+# prefilter drops it) from the raw province PBF into the AOI PBF. Absent = this step does not run.
+PARK_BOUNDARY="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("park_boundary") then "yes" else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$PARK_BOUNDARY" ]; then
+  python3 ../scripts/ca_park_boundary.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --raw-pbf "data/raw/canada-${AREA_ID##*-}.osm.pbf" --aoi-pbf "data/aoi/$AREA_ID.osm.pbf" \
+    --report "$A/ca-park-boundary.json"
+fi
 python3 ../scripts/ca_publish.py check-boundary-unique --area-id "$AREA_ID" --pbf "data/aoi/$AREA_ID.osm.pbf"
 python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   --out "data/aoi/$AREA_ID.trails.geojson" \

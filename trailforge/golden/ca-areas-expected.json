@@ -232,22 +232,22 @@
     },
     "thetis-lake-regional-park-ca-bc": {
       "trail_count": 12,
-      "total_mi": 13.7,
+      "total_mi": 15.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
         "Castlehedge",
         "Centra Gas Trail",
+        "Cougar Bait",
         "Double Track",
         "Electric House",
         "Electric Light",
-        "Fairedge",
+        "Fairedge Trail",
         "Faygrass",
         "Frank and Fizzle Connector",
         "Frank's Trail",
         "Freyport",
         "Lighthouse Connector",
-        "Lighthouse Extension",
         "Millburn",
         "Mostly Open",
         "Phelps Connector",
@@ -4490,6 +4490,47 @@
         "Sentier de la Pointe de l'Islet",
         "Sentier de la Statue",
         "Sentier du Fjord"
+      ]
+    },
+    "garibaldi-provincial-park-ca-bc": {
+      "trail_count": 21,
+      "total_mi": 58.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Castle Towers Route",
+        "Elfin Lakes Trail",
+        "Garibaldi Lake Trail",
+        "Half Arete Route",
+        "North East Arete Route"
+      ],
+      "forbidden_names": [
+        "19th Hole",
+        "Baddy Wire",
+        "Birdwire",
+        "Black Tusk/Cinder Flats Trail",
+        "Blue Balls",
+        "Cakewalk",
+        "Columnar / Gargoyles Route",
+        "Columnar Peak Trail",
+        "Deathgrip",
+        "Demon Ridge Trail",
+        "Gentian Peak Trail",
+        "Gentlemen Broncos",
+        "Glue Factory",
+        "Gravitas",
+        "Helm Creek/Black Tusk Trail",
+        "High Note Trail",
+        "Loam Ranger",
+        "Nose Beers",
+        "Overlord Trail",
+        "P-Nut's Wild Ride",
+        "Red Rot",
+        "The Black Tusk Trail",
+        "The Gargoyles Trail",
+        "Top of the World",
+        "Wedge Couloir Route",
+        "Wedgemont Glacier Approach",
+        "Wedgemount Lake Trail"
       ]
     }
   }

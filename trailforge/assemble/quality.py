@@ -36,6 +36,7 @@ DK_V3_MAX_BRIDGE_M = 100.0
 DK_ACCEPT_GAP_CAP_M = 1000.0
 DK_ACCEPT_GAP_KEYS = {"relation", "max_gap_m", "reason"}
 DK_ACCEPT_GAP_ID = re.compile(r"^r[1-9][0-9]*$")
+DK_KEEP_MOTOR_TRACKS_KEYS = {"relation", "reason"}
 
 # Signed-route road miles and shares are evidence for manual review, never an
 # arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
@@ -207,6 +208,67 @@ def validate_dk_accept_gap(entries: Any) -> list[dict[str, Any]]:
         out.append({"relation": relation, "max_gap_m": float(gap),
                     "reason": entry["reason"].strip()})
     return out
+
+
+def validate_dk_keep_motor_tracks(entries: Any) -> list[dict[str, str]]:
+    """Return a normalized copy of a registry ``keep_motor_tracks`` list or raise
+    ValueError. Entry: {"relation": "r<id>", "reason": text}. The list is never
+    empty and names each relation once."""
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("keep_motor_tracks must be a non-empty list")
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if (not isinstance(entry, dict)
+                or set(entry) != DK_KEEP_MOTOR_TRACKS_KEYS):
+            raise ValueError(
+                f"keep_motor_tracks entry must be an object with exactly "
+                f"{sorted(DK_KEEP_MOTOR_TRACKS_KEYS)}: {entry!r}")
+        relation = entry["relation"]
+        if not (isinstance(relation, str)
+                and DK_ACCEPT_GAP_ID.fullmatch(relation)):
+            raise ValueError(
+                f"keep_motor_tracks relation is invalid: {relation!r}")
+        if not isinstance(entry["reason"], str) or not entry["reason"].strip():
+            raise ValueError(f"keep_motor_tracks {relation}: reason is required")
+        if relation in seen:
+            raise ValueError(f"keep_motor_tracks repeats relation {relation!r}")
+        seen.add(relation)
+        out.append({"relation": relation, "reason": entry["reason"].strip()})
+    return out
+
+
+def dk_keep_motor_tracks_evidence(
+        entries: list[dict[str, str]], audits: list[dict[str, Any]]
+        ) -> tuple[list[str], dict[str, Any]]:
+    """Check each ``keep_motor_tracks`` entry against the relation-member audits.
+
+    Returns ``(failures, evidence)``. An entry fails closed when its relation was
+    not assembled in this area, or when no included member way needs it (the
+    opt-in is stale: OSM changed, or the entry was never needed). Evidence lists,
+    per relation, the way ids the opt-in restored.
+    """
+    by_relation = {audit.get("relation_id"): audit for audit in audits}
+    failures: list[str] = []
+    evidence: dict[str, Any] = {}
+    for entry in entries:
+        relation = entry["relation"]
+        audit = by_relation.get(int(relation[1:]))
+        if audit is None:
+            failures.append(f"{relation}: relation was not assembled in this area")
+            continue
+        restored = list(dict.fromkeys(
+            record["way_id"]
+            for record in audit.get("direct_way_members") or []
+            if record.get("status") == "included"
+            and (record.get("decision") or {}).get("reason")
+            == "restored-opt-in-motor-track"))
+        evidence[relation] = {"reason": entry["reason"],
+                              "restored_way_ids": restored}
+        if not restored:
+            failures.append(
+                f"{relation}: no member way needs the opt-in (stale entry)")
+    return failures, evidence
 
 
 def _dk_exclude_matches(entry: dict[str, str], properties: dict) -> bool:

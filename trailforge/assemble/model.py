@@ -607,9 +607,14 @@ def _scope_relation_statuses(relation_scope_evidence: dict | None,
 def _build_relation_member_audit(
         rel_id: int, relations: dict, ways: dict,
         relation_scope_evidence: dict | None = None,
-        accept_directional_roles: bool = False
+        accept_directional_roles: bool = False,
+        keep_motor_tracks: bool = False
         ) -> tuple[dict, list[int], list[int]]:
-    """Build complete Denmark direct-member evidence for one accepted route."""
+    """Build complete Denmark direct-member evidence for one accepted route.
+
+    ``keep_motor_tracks`` is true only for a route relation the registry names
+    in ``keep_motor_tracks``; it is passed to the main-line member decision.
+    """
     relation = relations[rel_id]
     hierarchy = route_relation_hierarchy(rel_id, relations)
     direct = {
@@ -636,7 +641,7 @@ def _build_relation_member_audit(
                 False, False, "missing-source-way")
         elif effective_role in MAIN_ROLES:
             decision = member_safety.dk_relation_member_decision(
-                way.get("tags") or {})
+                way.get("tags") or {}, keep_motor_track=keep_motor_tracks)
         elif effective_role in SPUR_ROLES:
             decision = member_safety.standalone_member_decision(
                 way.get("tags") or {})
@@ -1067,7 +1072,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              accept_directional_roles: bool = False,
              ca_accept_gap: dict[int, dict] | None = None,
              ca_keep_superroute: list[dict] | None = None,
-             ca_rule_report: dict | None = None
+             ca_rule_report: dict | None = None,
+             dk_keep_motor_tracks: frozenset[int] | None = None
              ) -> list[Trail]:
     if (ca_accept_gap or ca_keep_superroute) and (
             member_safety.normalize(region) != "ca" or exact_denmark):
@@ -1079,6 +1085,10 @@ def assemble(nodes: dict, ways: dict, relations: dict,
     if accept_directional_roles and not exact_denmark:
         raise ValueError(
             "accept_directional_roles is limited to exact Denmark assembly")
+    if dk_keep_motor_tracks and not exact_denmark:
+        raise ValueError(
+            "dk_keep_motor_tracks is limited to exact Denmark assembly")
+    keep_motor_relations = frozenset(dk_keep_motor_tracks or ())
     trails: list[Trail] = []
     claimed: set[int] = set()
     relation_output_way_ids: set[int] = set()
@@ -1177,7 +1187,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         if denmark:
             audit, main_ways, spur_ways = _build_relation_member_audit(
                 rid, relations, ways, relation_scope_evidence,
-                accept_directional_roles)
+                accept_directional_roles,
+                keep_motor_tracks=rid in keep_motor_relations)
             if collect_relation_member_audit is not None:
                 collect_relation_member_audit.append(audit)
             direct_members = audit["direct_relation_way_ids"]
@@ -1263,7 +1274,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             t.restored_relation_ways = [
                 way_id for way_id in dict.fromkeys(main_ways)
                 if member_safety.dk_relation_member_decision(
-                    ways[way_id]["tags"]).restored
+                    ways[way_id]["tags"],
+                    keep_motor_track=rid in keep_motor_relations).restored
             ]
         else:
             t.direct_relation_ways = {

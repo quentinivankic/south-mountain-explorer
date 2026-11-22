@@ -2011,8 +2011,8 @@ def test_check_new_row_expects_the_display_name(tmp_path):
         d["areas"][1].update(display_name="Thy Nationalpark", rules="dk-v2")
     registry = dk.load_registry(_write_registry(tmp_path / "r.json", to_v2))
     entry = registry["areas"][1]
-    geom = _geom(entry["id"], names=["A"], total_mi=1.0)
-    row = [entry["id"], "Thy Nationalpark", "Denmark", entry["center"][0], entry["center"][1], 1, 1.0,
+    geom = _geom(entry["id"], names=["A", "B"], total_mi=1.0)
+    row = [entry["id"], "Thy Nationalpark", "Denmark", entry["center"][0], entry["center"][1], 2, 1.0,
            entry["relation_id"]]
     dk.check_new_row(row, entry, geom, "t")
     row[1] = entry["name"]
@@ -3484,3 +3484,171 @@ def test_trail_name_fixes_registry_validation(tmp_path):
     path.write_text(json.dumps(doc), encoding="utf-8")
     with pytest.raises(dk.DkError):
         dk.load_registry(path)                                           # legacy rules: refused
+# ------------------------------------------------------------ island floor ----
+ISLAND = "livo-dk"          # real dk-v3 way-backed island entry; the opt-in is added to a copy only
+def _island_registry(tmp_path, **extra):
+    def mutate(d):
+        entry = next(a for a in d["areas"] if a["id"] == ISLAND)
+        entry["island_floor"] = {"reason": "single signed named island walk of at least 3 mi"}
+        entry.update(extra)
+    return _write_registry(tmp_path / "island.json", mutate)
+def _island_entry(tmp_path):
+    return dk.load_registry(_island_registry(tmp_path))["by_id"][ISLAND]
+def _plain_entry():
+    return {"id": "plain-dk", "name": "Plain", "rules": "dk-v3"}
+def test_real_registry_has_no_island_floor_opt_in_yet():
+    assert not [a["id"] for a in dk.load_registry(REGISTRY)["areas"] if "island_floor" in a]
+def test_registry_accepts_island_floor_only_as_a_reasoned_dk_v3_opt_in(tmp_path):
+    assert _island_entry(tmp_path)["island_floor"]["reason"]
+    def bad(mutate):
+        def apply(d):
+            entry = next(a for a in d["areas"] if a["id"] == ISLAND)
+            entry["island_floor"] = {"reason": "ok"}
+            mutate(entry)
+        with pytest.raises(dk.DkError):
+            dk.load_registry(_write_registry(tmp_path / "bad.json", apply))
+    bad(lambda e: e.update(island_floor=True))
+    bad(lambda e: e.update(island_floor={}))
+    bad(lambda e: e.update(island_floor={"reason": "  "}))
+    bad(lambda e: e.update(island_floor={"reason": "x", "min_mi": 0}))
+    bad(lambda e: e.update(rules="dk-v2"))
+    bad(lambda e: e.update(container_by_id={"reason": "x"}, include_trails=[
+        {"id": "r1", "name": "A", "reason": "x"}]))
+def test_floor_problems_matrix():
+    isl = {"id": "i-dk", "island_floor": {"reason": "x"}}
+    assert dk.floor_problems(_plain_entry(), 2, 0.1) == []
+    assert dk.floor_problems(None, 5, 9.0) == []
+    assert dk.floor_problems(_plain_entry(), 1, 9.0)                 # no opt-in
+    assert dk.floor_problems(None, 1, 9.0)                           # unknown area
+    assert dk.floor_problems(_plain_entry(), 0, 0)
+    assert dk.floor_problems(isl, 1, 3.0, True) == []                # 3 mi is enough
+    assert dk.floor_problems(isl, 1, 4.3) == []                      # signed unknown: skipped
+    assert dk.floor_problems(isl, 1, 2.99, True)                     # too short
+    assert dk.floor_problems(isl, 1, None, True)
+    assert dk.floor_problems(isl, 1, 4.3, False)                     # not a whole signed route
+    assert dk.floor_problems(isl, 0, 0.0, True)
+def test_check_new_row_enforces_the_floor_and_leaves_two_trail_rows_alone(tmp_path):
+    entry = _island_entry(tmp_path)
+    plain = dict(entry)
+    plain.pop("island_floor")
+    center = [56.2, 10.6]
+    entry.update(center=center)
+    plain.update(center=center)
+    def row(count, mi):
+        names = [f"Rute {i}" for i in range(count)]
+        return ([entry["id"], entry["name"], "Denmark", center[0], center[1], count, mi],
+                _geom(entry["id"], names=names, total_mi=mi))
+    for e in (entry, plain):                                         # 2 trails: unchanged either way
+        r, g = row(2, 1.0)
+        dk.check_new_row(r, e, g, "t")
+    r, g = row(1, 4.3)
+    with pytest.raises(dk.DkError, match="floor"):
+        dk.check_new_row(r, plain, g, "t")
+    dk.check_new_row(r, entry, g, "t")                               # opt-in, 4.3 mi
+    r, g = row(1, 2.9)
+    with pytest.raises(dk.DkError, match="at least 3.0 mi"):
+        dk.check_new_row(r, entry, g, "t")
+def test_every_live_danish_row_still_passes_check_new_row_and_floor():
+    registry = dk.load_registry(REGISTRY)["by_id"]
+    rows = [r for r in json.loads((ROOT / "public/areas/index.json").read_text()) if r[0].endswith("-dk")]
+    assert rows
+    for r in rows:
+        geom = json.loads((ROOT / "public/areas/geom" / f"{r[0]}.json").read_text())
+        assert r[5] >= dk.DK_MIN_TRAILS and dk.floor_problems(registry[r[0]], r[5], r[6]) == []
+        dk.check_new_row(r, registry[r[0]], geom, r[0])
+def test_island_boundary_must_be_tagged_island_or_islet(tmp_path):
+    entry = _island_entry(tmp_path)
+    assert dk.island_problems(entry, {"tags": {"place": "island"}}) == []
+    assert dk.island_problems(entry, {"tags": {"place": "islet"}}) == []
+    for tags in ({"landuse": "forest"}, {"place": "locality"}, {}, None):
+        assert dk.island_problems(entry, {"tags": tags})
+    assert dk.island_problems(entry, None)
+    box = [10.0, 55.0, 10.05, 55.04]
+    info = {"bbox": box, "tags": {"name": entry["name"], "place": "island"}, "closed": True, "count": 1}
+    ok = dk.check_area_geometry(entry, box, None, "qualify", info)
+    assert not [p for p in ok["problems"] if "island_floor" in p]
+    info["tags"] = {"name": entry["name"], "landuse": "forest"}
+    bad = dk.check_area_geometry(entry, box, None, "qualify", info)
+    assert any("island_floor needs a boundary" in p for p in bad["problems"]) and bad["status"] == "failed"
+    plain = {k: v for k, v in entry.items() if k != "island_floor"}
+    other = dk.check_area_geometry(plain, box, None, "qualify", info)
+    assert not [p for p in other["problems"] if "island_floor" in p]
+def _island_report(tmp_path, registry, area_id, features, names, total_mi):
+    d = tmp_path / area_id
+    d.mkdir(exist_ok=True)
+    (d / "area.json").write_text(json.dumps({"id": area_id, "name": "X", "relation_id": 1}), encoding="utf-8")
+    (d / "geom.json").write_text(json.dumps(_geom(area_id, names=names, total_mi=total_mi)))
+    (d / "trails.geojson").write_text(json.dumps({"features": features}))
+    (d / "removed.geojson").write_text(json.dumps({"features": []}))
+    (d / "assembly.json").write_text(json.dumps({}))
+    assert dk.main(["report-area", "--area-json", str(d / "area.json"), "--geom", str(d / "geom.json"),
+                    "--trails-geojson", str(d / "trails.geojson"), "--removed-geojson", str(d / "removed.geojson"),
+                    "--assembly-json", str(d / "assembly.json"), "--out", str(d / "report.json"),
+                    "--registry", str(registry), "--live-geom-dir", str(tmp_path / "nolive")]) == 0
+    return json.loads((d / "report.json").read_text())
+def _isl_route(name="Livø rundtur", mi=4.3, whole=True, rels=(111,)):
+    return {"type": "Feature", "geometry": None, "properties": {
+        "name": name, "kind": "route", "length_mi": mi, "relation_ids": list(rels), "dk_whole_route": whole}}
+def test_report_area_passes_one_signed_island_route_and_fails_everything_else(tmp_path):
+    reg = _island_registry(tmp_path)
+    ok = _island_report(tmp_path, reg, ISLAND, [_isl_route()], ["Livø rundtur"], 4.3)
+    assert ok["status"] == "ok" and ok["island_floor"] == {"trails": 1, "total_mi": 4.3}
+    def failed(features, names, mi, area_id=ISLAND, registry=reg):
+        (tmp_path / "f").mkdir(exist_ok=True)
+        rep = _island_report(tmp_path / "f", registry, area_id, features, names, mi)
+        assert rep["status"] == "failed" and rep["stage"] == "floor" and rep["problems"]
+        return rep
+    failed([_isl_route(mi=2.9)], ["Livø rundtur"], 2.9)                      # under 3 mi
+    failed([_isl_route(whole=False)], ["Livø rundtur"], 4.3)                 # clipped, not a whole route
+    failed([_isl_route(rels=())], ["Livø rundtur"], 4.3)                     # no OSM relation
+    failed([_isl_route(name="Rød rute")], ["Rød rute"], 4.3)                 # generic name
+    plain = _write_registry(tmp_path / "plain.json", lambda d: None)
+    failed([_isl_route()], ["Livø rundtur"], 4.3, registry=plain)           # registry entry without opt-in
+def test_report_area_does_not_judge_an_id_outside_the_registry(tmp_path):
+    rep = _island_report(tmp_path, REGISTRY, "unregistered-dk", [_isl_route()], ["Livø rundtur"], 4.3)
+    assert rep["status"] == "ok" and "stage" not in rep
+def test_report_area_is_untouched_for_areas_at_or_above_the_floor(tmp_path):
+    rep = _island_report(tmp_path, tmp_path / "never-read.json", "two-dk",
+                         [_isl_route(name="A"), _isl_route(name="B", rels=(2,))], ["A", "B"], 1.0)
+    assert rep["status"] == "ok" and "island_floor" not in rep and "stage" not in rep
+# Mutation test: every guard of the floor must be load-bearing. Each mutant weakens one
+# guard; the scenario table below has to notice (its outcome tuple changes).
+def _floor_scenarios():
+    isl = {"id": "i-dk", "island_floor": {"reason": "x"}}
+    plain = _plain_entry()
+    cases = [dk.floor_problems(plain, 1, 9.0), dk.floor_problems(plain, 0, 0), dk.floor_problems(plain, 2, 1.0),
+             dk.floor_problems(isl, 1, 3.0, True), dk.floor_problems(isl, 1, 2.9, True),
+             dk.floor_problems(isl, 2, 9.0, True), dk.floor_problems(isl, 0, 9.0, True),
+             dk.floor_problems(isl, 1, 9.0, False), dk.floor_problems(None, 1, 9.0),
+             dk.floor_problems(plain, 3, 1.0),
+             dk.island_problems(isl, {"tags": {"place": "island"}}), dk.island_problems(isl, {"tags": {"place": "islet"}}),
+             dk.island_problems(isl, {"tags": {"landuse": "forest"}}), dk.island_problems(isl, {"tags": {"place": "locality"}})]
+    return tuple(bool(c) for c in cases)
+MUTANTS = {
+    "floor of 1 for everyone": ("DK_MIN_TRAILS", 1),
+    "floor of 3 for everyone": ("DK_MIN_TRAILS", 3),
+    "island walk length not checked": ("ISLAND_FLOOR_MIN_MI", 0.0),
+    "island walk length too strict": ("ISLAND_FLOOR_MIN_MI", 9.5),
+    "island may carry two trails": ("ISLAND_FLOOR_TRAILS", 2),
+    "island may carry zero trails": ("ISLAND_FLOOR_TRAILS", 0),
+    "any place counts as an island": ("ISLAND_PLACES", {"island", "islet", "locality"}),
+    "islets refused": ("ISLAND_PLACES", {"island"}),
+    "nothing counts as an island": ("ISLAND_PLACES", set()),
+}
+def test_floor_mutation_every_guard_is_load_bearing(monkeypatch):
+    base = _floor_scenarios()
+    assert base == (True, True, False, False, True, False, True, True, True, False, False, False, True, True)
+    survivors = []
+    for label, (attr, value) in MUTANTS.items():
+        with monkeypatch.context() as m:
+            m.setattr(dk, attr, value)
+            if _floor_scenarios() == base:
+                survivors.append(label)
+    always_ok = lambda *a, **k: []                                   # noqa: E731
+    for label, attr in (("floor check removed", "floor_problems"), ("island check removed", "island_problems")):
+        with monkeypatch.context() as m:
+            m.setattr(dk, attr, always_ok)
+            if _floor_scenarios() == base:
+                survivors.append(label)
+    assert not survivors, f"surviving mutants: {survivors}"
+    assert _floor_scenarios() == base                                 # patches fully undone

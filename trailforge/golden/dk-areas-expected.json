@@ -2530,6 +2530,51 @@
       "forbidden_names": [
         "Den danske Pilgrimsrute - Sydfyn"
       ]
+    },
+  "lyo-dk": {
+      "trail_count": 1,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+  "drejo-dk": {
+      "trail_count": 1,
+      "total_mi": 3.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Drejø Brovej",
+        "Drejø Skov"
+      ]
+    },
+  "barso-dk": {
+      "trail_count": 1,
+      "total_mi": 4.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+  "livo-dk": {
+      "trail_count": 1,
+      "total_mi": 4.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bøgevej",
+        "Enebærsti",
+        "Enebærstien",
+        "Gammel Digevej",
+        "Hesselbjergvej",
+        "Kalveskovvej",
+        "Kellervej",
+        "Krebsedamvej",
+        "Krumhøkervej",
+        "Majdalvej",
+        "Skippervej",
+        "Skovvejen",
+        "Sønderskovvej"
+      ]
     }
   }
 }

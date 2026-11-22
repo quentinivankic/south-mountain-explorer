@@ -5,7 +5,7 @@ name: Trailforge — publish Canadian areas (registry, N per run, one province p
 # area runs scripts/ca-run-area.sh in its own work dir:
 #   AOI cut -> unique-boundary check -> assemble (--only-area, exact relation id when
 #   relation-backed) -> ca_trail_filter -> publish_areas (--state Canada, one-row index,
-#   --no-boundary-fetch --no-elevation)
+#   --no-boundary-fetch; DEM elevation is sampled inline, --no-elevation is refused)
 # No --region, no --dk-* flags, no discovery validator, no relation-slice ledgers.
 #
 # mode=qualify  DRY RUN. Writes nothing to main. Uploads a per-area report artifact (counts,

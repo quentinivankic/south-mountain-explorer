@@ -125,6 +125,32 @@ if [ -n "$HTW_COUNT" ]; then
   python3 ../scripts/ca_hiking_tag_wins.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
     --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-hiking-tag-wins.json"
 fi
+# Optional way_name_overrides (registry; relation-backed only; each entry carries an agency evidence URL): name
+# specific ways with the signed trail name, for hikes that ride ways OSM names after a long-distance or winter
+# route. Appended to the assembled trails before the filter. Absent = this step does not run.
+WNO_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("way_name_overrides") then (.way_name_overrides | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$WNO_COUNT" ]; then
+  if [ "$WNO_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: way_name_overrides must be a non-empty list on a relation-backed area" >&2
+    exit 2
+  fi
+  python3 ../scripts/ca_way_name_override.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-way-name-override.json"
+fi
+# Optional leg_merges (registry; relation-backed only): merge the OSM legs/pieces of one agency trail into ONE
+# named trail (whole route only: a gap wider than the entry's tolerance fails closed). Legs are replaced by the
+# merged trail before the filter. Absent = this step does not run.
+LM_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("leg_merges") then (.leg_merges | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$LM_COUNT" ]; then
+  if [ "$LM_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    echo "SAFETY BLOCK: leg_merges must be a non-empty list on a relation-backed area" >&2
+    exit 2
+  fi
+  python3 ../scripts/ca_leg_merge.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
+    --trails "data/aoi/$AREA_ID.trails.geojson" --removed "$A/removed.geojson" --report "$A/ca-leg-merge.json"
+fi
 # Canadian vocabulary + registry exclusions/fixes; its drops are appended to $A/removed.geojson.
 python3 ../scripts/ca_trail_filter.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
   --trails "data/aoi/$AREA_ID.trails.geojson" --removed "$A/removed.geojson" --report "$A/ca-filter.json"

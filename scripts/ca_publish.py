@@ -46,8 +46,10 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
 import ca_hiking_tag_wins  # noqa: E402
+import ca_leg_merge  # noqa: E402
 import ca_park_boundary  # noqa: E402
 import ca_trail_filter  # noqa: E402
+import ca_way_name_override  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
 
@@ -207,6 +209,66 @@ def _check_hiking_tag_wins(aid: str, entry: dict[str, Any]) -> None:
         i for e in entry["hiking_tag_wins"] for i in e.get("way_ids", [])}
     if overlap:
         raise CaError(f"{aid}: hiking_tag_wins and adopt_ways both list way ids {sorted(overlap)[:6]}")
+def _check_way_name_overrides(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: name specific ways with the signed trail name an agency lists (scripts/ca_way_name_override.py)."""
+    if "way_name_overrides" not in entry:
+        return
+    try:
+        ca_way_name_override.validate_way_name_overrides(entry["way_name_overrides"], f"{aid}: way_name_overrides")
+    except ca_way_name_override.NameOverrideError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: way_name_overrides needs a relation-backed entry (the exact-area boundary file)")
+    listed = {i for e in entry["way_name_overrides"] for i in e["way_ids"]}
+    other = {i for e in entry.get("adopt_ways", []) for i in e["way_ids"]} | {
+        i for e in entry.get("hiking_tag_wins", []) for i in e.get("way_ids", [])}
+    if listed & other:
+        raise CaError(f"{aid}: way_name_overrides and adopt_ways/hiking_tag_wins both list way ids "
+                      f"{sorted(listed & other)[:6]}")
+def _check_leg_merges(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: merge the OSM legs of one agency trail into one named trail (scripts/ca_leg_merge.py)."""
+    if "leg_merges" not in entry:
+        return
+    try:
+        ca_leg_merge.validate_leg_merges(entry["leg_merges"], f"{aid}: leg_merges")
+    except ca_leg_merge.MergeError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: leg_merges needs a relation-backed entry (the exact-area boundary file)")
+    # The legs stop existing before the filter runs, so a registry row that still names one is stale.
+    leg_names = {leg["name"] for e in entry["leg_merges"] for leg in e["legs"]}
+    stale = {f["osm_name"] for f in entry.get("trail_name_fixes", [])} & leg_names
+    stale |= {k["name"] for k in entry.get("keep_trails", [])} & leg_names
+    stale |= {str(x["id"]).split(":", 1)[1] for x in entry.get("exclude_trails", [])
+              if str(x.get("id", "")).startswith(("n:", "n*:"))} & leg_names
+    if stale:
+        raise CaError(f"{aid}: leg_merges legs are still named by trail_name_fixes/keep_trails/exclude_trails: "
+                      f"{sorted(stale)[:4]}")
+def apply_leg_merge_id_plan(aid: str, geom: dict[str, Any], merges: list[dict[str, Any]], live_path: Path) -> None:
+    """Registry `leg_merges` id plan: each merged trail must carry its planned `new_id`, none of the dropped
+    `old_ids` may remain, and when the area is already live its trail ids must be the plan's "before" (every old
+    id live) or "after" (new id live, no dropped old id) state; anything else is a stale plan. The geom is not
+    changed."""
+    trails = geom.get("trails") or []
+    by_id = {t.get("id"): t for t in trails if isinstance(t, dict)}
+    live_ids: set[Any] | None = None
+    if live_path.is_file():
+        live_ids = {t.get("id") for t in (_read_json(live_path, f"{aid} live geom").get("trails") or [])
+                    if isinstance(t, dict)}
+    for merge in merges:
+        hits = [t for t in trails if isinstance(t, dict) and t.get("name") == merge["name"]]
+        if len(hits) != 1 or hits[0].get("id") != merge["new_id"]:
+            got = [t.get("id") for t in hits]
+            raise CaError(f"{aid}: leg_merges {merge['name']!r} must publish as id {merge['new_id']!r} (got {got})")
+        left = sorted(i for i in merge["old_ids"] if i != merge["new_id"] and i in by_id)
+        if left:
+            raise CaError(f"{aid}: leg_merges {merge['name']!r}: old leg ids still published: {left}")
+        if live_ids is not None:
+            before = set(merge["old_ids"]) <= live_ids
+            after = merge["new_id"] in live_ids and not (set(merge["old_ids"]) - {merge["new_id"]}) & live_ids
+            if not (before or after):
+                raise CaError(f"{aid}: leg_merges {merge['name']!r}: the live trail ids match neither the old ids "
+                              f"{merge['old_ids']} nor the merged result {merge['new_id']!r} (the id plan is stale)")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -374,6 +436,8 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_keep_trails(aid, entry)
         _check_adopt_ways(aid, entry)
         _check_hiking_tag_wins(aid, entry)
+        _check_way_name_overrides(aid, entry)
+        _check_leg_merges(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
@@ -876,6 +940,8 @@ def finish_publish_cmd(args: argparse.Namespace) -> int:
             apply_trail_id_pins(area["id"], geom, entry["trail_id_pins"],
                                 args.live_geom_dir / f"{area['id']}.json")
             changed = True
+        if "leg_merges" in entry:
+            apply_leg_merge_id_plan(area["id"], geom, entry["leg_merges"], args.live_geom_dir / f"{area['id']}.json")
     if shown != geom["name"]:
         geom["name"] = shown
         changed = True

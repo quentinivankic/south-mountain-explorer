@@ -1756,17 +1756,17 @@
       ]
     },
     "frederiksvaerk-dk": {
-      "trail_count": 5,
-      "total_mi": 15.3,
+      "trail_count": 3,
+      "total_mi": 9.3,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Frederiksværk Rød historisk vandring",
-        "Frederiksværk Gul historisk vandring",
         "Hjertesti ved Magleblik",
-        "Frederiksværk Grøn historisk vandring",
         "Bakkestien"
       ],
       "forbidden_names": [
+        "Frederiksværk Gul historisk vandring",
+        "Frederiksværk Grøn historisk vandring",
         "Fjordstien Vandresti",
         "Halsninoen",
         "Hillerød - Frederiksværk",
@@ -2195,7 +2195,7 @@
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Forskerruten",
-        "Rude Skov"
+        "Rude Skov blå rute"
       ],
       "forbidden_names": [
         "Dilholmsvej",
@@ -2271,7 +2271,7 @@
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Ristinge Halvø rundtur",
-        "Ristinge Halvø"
+        "Ristinge Halvø Hjertesti"
       ],
       "forbidden_names": [
         "Bagenkop - Ristinge",
@@ -2529,6 +2529,51 @@
       "required_names": [],
       "forbidden_names": [
         "Den danske Pilgrimsrute - Sydfyn"
+      ]
+    },
+  "lyo-dk": {
+      "trail_count": 1,
+      "total_mi": 7.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+  "drejo-dk": {
+      "trail_count": 1,
+      "total_mi": 3.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Drejø Brovej",
+        "Drejø Skov"
+      ]
+    },
+  "barso-dk": {
+      "trail_count": 1,
+      "total_mi": 4.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+  "livo-dk": {
+      "trail_count": 1,
+      "total_mi": 4.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bøgevej",
+        "Enebærsti",
+        "Enebærstien",
+        "Gammel Digevej",
+        "Hesselbjergvej",
+        "Kalveskovvej",
+        "Kellervej",
+        "Krebsedamvej",
+        "Krumhøkervej",
+        "Majdalvej",
+        "Skippervej",
+        "Skovvejen",
+        "Sønderskovvej"
       ]
     }
   }

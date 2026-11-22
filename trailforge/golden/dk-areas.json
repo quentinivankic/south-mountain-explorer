@@ -2940,18 +2940,130 @@
       "boundary_by_id": true
     },
     {
-      "id": "livo-dk",
-      "name": "Livø",
+      "id": "lyo-dk",
+      "name": "Lyø",
       "state": "Denmark",
-      "way_id": 4125409,
+      "way_id": 4121958,
+      "bbox": [10.07, 54.98, 10.23, 55.12],
+      "center": [55.045, 10.152],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 1,
+      "est_mi": 7.5,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Lyø (South Funen archipelago). One signed named walk, Lyø rundtur (OSM route relation 164625, 7.8 mi, Faaborg-Midtfyn Kommune). Ships under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (way_id 4121958, place=island). Bless only from the Actions qualify run.",
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Lyø rundtur, relation 164625); decision 6",
+        "relation_id": 164625,
+        "trail_name": "Lyø rundtur"
+      }
+    },
+    {
+      "id": "endelave-dk",
+      "name": "Endelave",
+      "state": "Denmark",
+      "relation_id": 5326472,
       "bbox": null,
       "center": null,
       "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
-      "est_trails": 3,
-      "est_mi": 4.9,
-      "notes": "Batch E (dk-v3 replay, 2026-10-31): HOLD: exact-area validation finds no boundary named Livø (the island way has no matching name tag in the boundary set). The Naturstyrelsen Livø route (6.9 km) is a single walk anyway."
+      "est_trails": 1,
+      "est_mi": 12.3,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Endelave (Kattegat). The official name is spelled Kaninoen (a pun on Caminoen), not Kaninøen. One signed named walk, Kaninoen (OSM route relation 12787516, 12.3 mi, Horsens Kommune). Would ship under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (relation_id 5326472, place=island). HOLD (local qualify 2026-11-21): the pipeline publishes Kaninoen at 9.7 of its 12.2 mi. Two member ways named Øvre (way 38245819 1.37 mi, way 38245821 1.16 mi; highway=track, motorcar=yes, no foot tag, the northern tip reserve) are excluded by the member-safety rule 'motor-access-without-positive-foot', so the northern tip, the part Naturstyrelsen and Kystlandet highlight, is missing and the circuit has a 2.5 mi hole. A truncated headline walk is not shipped (same rule as Læsø Klitplantage). Unlock: a reviewed per-area opt-in for signed-route members tagged motorcar=yes on grade4 tracks (shared-engine change, orchestrator decision), then re-qualify. The island also has three shorter colour Kanin routes (12, 8 and 3 km) that OSM does not map as relations; known omission.",
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Kaninoen, relation 12787516); decision 6",
+        "relation_id": 12787516,
+        "trail_name": "Kaninoen"
+      }
+    },
+    {
+      "id": "drejo-dk",
+      "name": "Drejø",
+      "state": "Denmark",
+      "way_id": 146582460,
+      "bbox": [10.31, 54.91, 10.49, 55.03],
+      "center": [54.969, 10.42],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 1,
+      "est_mi": 3.6,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Drejø (South Funen archipelago). One signed named walk, Drejø rundtur (OSM route relation 12769634, 3.6 mi, no operator tag in OSM). Ships under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (way_id 146582460, place=island). Bless only from the Actions qualify run.",
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Drejø rundtur, relation 12769634); decision 6",
+        "relation_id": 12769634,
+        "trail_name": "Drejø rundtur"
+      }
+    },
+    {
+      "id": "barso-dk",
+      "name": "Barsø",
+      "state": "Denmark",
+      "way_id": 4120801,
+      "bbox": [9.49, 55.06, 9.62, 55.18],
+      "center": [55.121, 9.559],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 1,
+      "est_mi": 4.1,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Barsø (Aabenraa Fjord). One signed named walk, Barsø Rundtur (OSM route relation 12812753, 4.1 mi, Aabenraa Kommune). Ships under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (way_id 4120801, place=island). Bless only from the Actions qualify run.",
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Barsø Rundtur, relation 12812753); decision 6",
+        "relation_id": 12812753,
+        "trail_name": "Barsø Rundtur"
+      }
+    },
+    {
+      "id": "livo-dk",
+      "name": "Livø",
+      "state": "Denmark",
+      "way_id": 4125409,
+      "bbox": [9.02, 56.81, 9.18, 56.96],
+      "center": [56.895, 9.083],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 1,
+      "est_mi": 4.0,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Livø (Limfjord, Naturstyrelsen island). One signed named walk, Livø (OSM route relation 12554510, 4.3 mi, Naturstyrelsen). Ships under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (way_id 4125409, place=island). Bless only from the Actions qualify run.",
+      "exclude_trails": [
+        {
+          "id": "n:Enebærstien",
+          "name": "Enebærstien",
+          "reason": "unsigned 0.5 mi named footpath (way 860415067), not a signed route; the Livø walk is the signed Naturstyrelsen route"
+        },
+        {
+          "id": "n:Enebærsti",
+          "name": "Enebærsti",
+          "reason": "unsigned 0.4 mi named footpath (way 112439907), not a signed route; spelling variant of the same path name"
+        }
+      ],
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Livø, relation 12554510); decision 6",
+        "relation_id": 12554510,
+        "trail_name": "Livø"
+      }
+    },
+    {
+      "id": "hindo-dk",
+      "name": "Hindø",
+      "state": "Denmark",
+      "relation_id": 12750418,
+      "bbox": null,
+      "center": null,
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": "curated-do-not-ship",
+      "est_trails": 1,
+      "est_mi": 3.6,
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Hindø (Stadil Fjord, reached by a footbridge). One signed named walk, Hindøturen (OSM route relation 11847393, 3.6 mi, no operator tag in OSM). Would ship under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (relation_id 12750418, place=island). HOLD (local qualify 2026-11-21): Hindøturen is 3.56 mi but the walk starts on the mainland shore and crosses a footbridge, so only 2.6 mi lie inside the 0.84 km2 island polygon (pipeline output: 3 segments with a 2.6 km gap, 2.6 mi). That is under the 3.0 mi island floor and not the whole route. Unlock: a route-cluster container on the Stadil Fjord shore (a single-route container needs a floor ruling) or an island floor that measures the whole route; orchestrator decision.",
+      "island_floor": {
+        "reason": "Named island with a single signed named walk of at least 3 mi (Hindøturen, relation 11847393); decision 6",
+        "relation_id": 11847393,
+        "trail_name": "Hindøturen"
+      }
     },
     {
       "id": "hjermind-skov-dk",

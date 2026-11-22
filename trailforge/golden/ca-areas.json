@@ -9611,8 +9611,8 @@
         -81.547
       ],
       "tier": 1,
-      "hold": "needs-rescope",
-      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 6 trails / 5.3 mi, identical to 2026-11-02 (Cyprus Lake 2.11, Georgian Bay 0.84, Horse Lake 0.72, Wild Garden 0.62, Halfway Log Dump 0.56, Marr Lake 0.50); the Grotto / Indian Head Cove shoreline is Bruce Trail (excluded, MANDATE decision 5). Stays held.",
+      "hold": null,
+      "notes": "ON curation 2026-11-02. Whole park. Parks Canada hiking page read (https://parks.canada.ca/pn-np/on/bruce/activ/sentiers-trails): Cyprus Lake, Georgian Bay - Marr Lake, Horse Lake, Halfway Log Dump, Wild Garden present; Marr Lake and Halfway Log Dump waived (under 0.6 mi). Not mapped as named trails (known omissions): Singing Sands boardwalk, Little Dunks Lookout. Bruce Trail main legs and High Dump side trail excluded as long-distance. Review 708: HELD needs-rescope. Georgian Bay / Grotto / Indian Head Cove route is Bruce Trail shoreline (19.6 mi in-park excluded vs 5.3 mi shipped); needs a Canada-gated in-unit Bruce Trail rule. Retry 2026-11-02 (ca-missing): replay 6 trails / 5.3 mi. OSM scan: the only other long ways are the Bruce Trail (excluded by decision 5) and 15.7 mi of unnamed paths, so no registry-only route to the Grotto / Indian Head Cove / Georgian Bay shoreline walk exists. Wild Garden (0.66 of about 1.9 mi), Cyprus Lake (2.1 of 3.1) and Georgian Bay (0.84 of a 3 km route) stay understated; Singing Sands and Little Dunks are unmapped. Still HOLD needs-rescope. Re-check 2026-11-10 (ON Phase A): replay 6 trails / 5.3 mi, identical to 2026-11-02 (Cyprus Lake 2.11, Georgian Bay 0.84, Horse Lake 0.72, Wild Garden 0.62, Halfway Log Dump 0.56, Marr Lake 0.50); the Grotto / Indian Head Cove shoreline is Bruce Trail (excluded, MANDATE decision 5). Stays held. Reconcile audit 7 (2026-11-22) row 1.2: UNHELD, SHIP. Six whole signed trails ship (Cyprus Lake, Georgian Bay, Horse Lake, Wild Garden, Halfway Log Dump, Marr Lake). Grotto / Indian Head Cove / Overhanging Point shoreline is Bruce Trail main line (excluded, long-distance); Singing Sands and Little Dunks are unmapped; Cyprus Lake and Georgian Bay are understated by OSM mapping.",
       "keep_trails": [
         {
           "name": "Marr Lake Trail",
@@ -10261,12 +10261,12 @@
         48.46
       ],
       "center": [
-        48.386,
-        -89.615
+        48.397,
+        -89.623
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/kakabekafalls/activities): Boardwalk, Mountain Portage, Little Falls, Poplar Point present; Boardwalk and Mountain Portage waived (the Mountain Portage Trail is an official hiking loop past the falls, not a canoe portage). Beaver Meadows and River Terrace excluded: ski trails not maintained in summer.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/kakabekafalls/activities): Boardwalk, Mountain Portage, Little Falls, Poplar Point present; Boardwalk and Mountain Portage waived (the Mountain Portage Trail is an official hiking loop past the falls, not a canoe portage). Beaver Meadows and River Terrace excluded: ski trails not maintained in summer. Reconcile audit 7 row 5.6: centre moved to the kept-trail vertex nearest the trail-extent midpoint (48.397, -89.623; 0.022 mi from a Little Falls Trail vertex).",
       "exclude_trails": [
         {
           "id": "n:Beaver Meadow Trail",
@@ -10395,12 +10395,12 @@
         44.48
       ],
       "center": [
-        44.418,
-        -81.472
+        44.405,
+        -81.48
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/macgregorpoint/activities): Lake Ridge, Tower, Huron Fringe, Kempf's present (last two waived). Old Shore Road Trail excluded: 68% inside the polygon (2.6 of 3.8 mi), not whole. Deer Run (multi-use) not mapped as hiking. Thin: 4 trails.",
+      "notes": "ON curation 2026-11-02. Whole park. Ontario Parks list read (https://www.ontarioparks.ca/park/macgregorpoint/activities): Lake Ridge, Tower, Huron Fringe, Kempf's present (last two waived). Old Shore Road Trail excluded: 68% inside the polygon (2.6 of 3.8 mi), not whole. Deer Run (multi-use) not mapped as hiking. Thin: 4 trails. Reconcile audit 7 row 5.9: centre moved to the kept-trail vertex nearest the trail-extent midpoint (44.405, -81.48; 0.002 mi from a Lake Ridge Trail vertex).",
       "exclude_trails": [
         {
           "id": "n:Old Shore Road Trail",

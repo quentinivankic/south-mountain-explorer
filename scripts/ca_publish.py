@@ -48,6 +48,7 @@ import ca_adopt_ways  # noqa: E402
 import ca_hiking_tag_wins  # noqa: E402
 import ca_park_boundary  # noqa: E402
 import ca_trail_filter  # noqa: E402
+import ca_way_name_override  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
 
@@ -207,6 +208,22 @@ def _check_hiking_tag_wins(aid: str, entry: dict[str, Any]) -> None:
         i for e in entry["hiking_tag_wins"] for i in e.get("way_ids", [])}
     if overlap:
         raise CaError(f"{aid}: hiking_tag_wins and adopt_ways both list way ids {sorted(overlap)[:6]}")
+def _check_way_name_overrides(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: name specific ways with the signed trail name an agency lists (scripts/ca_way_name_override.py)."""
+    if "way_name_overrides" not in entry:
+        return
+    try:
+        ca_way_name_override.validate_way_name_overrides(entry["way_name_overrides"], f"{aid}: way_name_overrides")
+    except ca_way_name_override.NameOverrideError as error:
+        raise CaError(str(error)) from None
+    if "way_id" in entry:
+        raise CaError(f"{aid}: way_name_overrides needs a relation-backed entry (the exact-area boundary file)")
+    listed = {i for e in entry["way_name_overrides"] for i in e["way_ids"]}
+    other = {i for e in entry.get("adopt_ways", []) for i in e["way_ids"]} | {
+        i for e in entry.get("hiking_tag_wins", []) for i in e.get("way_ids", [])}
+    if listed & other:
+        raise CaError(f"{aid}: way_name_overrides and adopt_ways/hiking_tag_wins both list way ids "
+                      f"{sorted(listed & other)[:6]}")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -374,6 +391,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_keep_trails(aid, entry)
         _check_adopt_ways(aid, entry)
         _check_hiking_tag_wins(aid, entry)
+        _check_way_name_overrides(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name

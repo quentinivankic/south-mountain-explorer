@@ -21141,7 +21141,7 @@
       "park_boundary": {
         "reason": "leisure=park boundary that prefilter.sh drops (no operator tag needed); re-added from the raw province PBF by scripts/ca_park_boundary.py. The hold is unchanged."
       },
-      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6)."
+      "notes": "Phase C P3-5 Prairies curation 2026-11-12 (chat/ca-c-abmbsk; T1 draft from scripts/ca_discover.py on main 90768260c; tier 3). HOLD (needs-rescope). Class C7. Boundary is a leisure=park relation: the Canada prefilter drops it and the publish workflow re-adds only r4855708 (PARK_RELS), so check-boundary finds no boundary; publishing needs a workflow change (plan follow-up 6). Ship review 2026-11-22 (mechanism 1 now merged, park_boundary opt-in on this row): replay gives 3 trails / 4.4 mi, all pieces of one City of Calgary natural environment park network split by OSM name suffix (12-Mile Coulee Trail System, (West), (Upper); West Middle, Middle, North dropped as fragments under 0.6 mi). Calgary (calgary.ca/parks/12-mile-coulee.html) lists no named individual walks, only a trail network and a self-guided walk. Fewer than 2 whole signed named walks (curation rule 6), parent plus leg pairs (rule 3): stays HELD."
     },
     {
       "id": "ministik-lake-game-bird-sanctuary-ca-ab",

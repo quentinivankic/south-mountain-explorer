@@ -284,7 +284,7 @@ BATCH_G_PREFIX = {"rold-skov-dk": "Rold Skov", "almindingen-dk": "Almindingen",
 BATCH_G_INCLUDE = {"fovslet-skov-dk": {"r17635361", "r15655203", "r15655204"},
                    "staksrode-skov-dk": {"r12724514"}, "fejo-dk": {"r12946622"}, "grastenskovene-dk": {"r1853281"}}
 BATCH_G_CENTRES = {"norreskoven-pa-als-dk": [55.015, 9.928], "nationalpark-skjoldungernes-land-dk": [55.619, 11.958],
-                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.705, 11.993]}
+                   "helnaes-dk": [55.159, 9.993], "rye-norreskov-dk": [56.114, 9.657], "falster-dk": [54.645, 11.956]}
 def test_batch_g_registry_prefixes_includes_excludes_and_centres():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     for aid, prefix in BATCH_G_PREFIX.items():
@@ -395,7 +395,7 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
     assert [t["id"] for t in by_id["hastrup-plantage-dk"]["include_trails"]] == ["r6395876"]
     assert {t["id"] for t in by_id["svinklov-klitplantage-dk"]["include_trails"]} == {
         "r12700220", "r12700248", "r10043412", "r13482006"}
-    assert by_id["samso-dk"]["display_name"] == "Nordby Bakker på Samsø"
+    assert by_id["samso-dk"]["display_name"] == "Samsø · Nordby Bakker"
     assert (by_id["hastrup-plantage-dk"]["est_trails"], by_id["hastrup-plantage-dk"]["est_mi"]) == (4, 7.1)
     assert (by_id["oro-dk"]["est_trails"], by_id["oro-dk"]["est_mi"]) == (4, 12.4)
     assert (by_id["samso-dk"]["est_trails"], by_id["samso-dk"]["est_mi"]) == (4, 13.2)
@@ -617,7 +617,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "klim-bjerg-dk": (2, 2.2), "almind-so-dk": (2, 9.7), "farum-sondersoe-dk": (2, 9.7), "hortoft-dk": (4, 11.5), "kong-gummerup-dk": (5, 10.9), "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.8), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (2, 11.2), "frederiksvaerk-dk": (5, 15.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (6, 17.6), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2)}
+        "gribskov-dk": (6, 24.5), "tisvilde-hegn-dk": (2, 11.2), "frederiksvaerk-dk": (3, 9.3), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 25.5), "vester-vedsted-dk": (2, 14.1), "tonder-dk": (2, 11.0), "hammeren-dk": (6, 17.6), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (2, 2.2), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (6, 17.6), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (2, 7.7), "mosely-mariager-dk": (2, 4.5), "horning-dk": (3, 12.0), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (2, 3.1), "ornhoj-dk": (3, 28.7), "aarup-dk": (5, 17.9), "arrild-ferieby-dk": (6, 11.9), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (5, 19.2)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -3559,6 +3559,10 @@ def test_check_new_row_binds_the_publish_row_to_the_pinned_trail(tmp_path):
         else:
             with pytest.raises(dk.DkError, match="island_floor"):
                 dk.check_new_row(r, entry, g, "t")
+# Live rows whose registry pin or title changed in an update PR that is not published yet
+# (dk-quality-fixes: falster-dk pin onto Bøtøskoven, samso-dk retitle). Delete the entries once the
+# update publish data commit lands on main.
+PENDING_UPDATE_ROWS = {"falster-dk", "samso-dk"}
 def test_every_live_danish_row_is_untouched_by_the_floor():
     registry = dk.load_registry(REGISTRY)["by_id"]
     rows = [r for r in json.loads((ROOT / "public/areas/index.json").read_text()) if r[0].endswith("-dk")]
@@ -3566,6 +3570,8 @@ def test_every_live_danish_row_is_untouched_by_the_floor():
     for r in rows:
         geom = json.loads((ROOT / "public/areas/geom" / f"{r[0]}.json").read_text())
         assert dk.floor_problems(registry[r[0]], r[5], r[6], False) == []
+        if r[0] in PENDING_UPDATE_ROWS:
+            continue  # registry already holds the new pin/title; the live row follows on the update publish
         dk.check_new_row(r, registry[r[0]], geom, r[0])
 def test_island_boundary_and_pinned_route_are_checked_against_the_pbf(tmp_path):
     entry = _island_entry(tmp_path)

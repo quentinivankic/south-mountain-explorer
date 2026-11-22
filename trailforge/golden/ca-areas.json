@@ -5237,6 +5237,14 @@
           "reason": "Parks Canada Waterton day-hike page lists Lost Lake; OSM maps the 0.69 mi path as Lost Lake Route (way 376450717), wholly inside the park, ending at Lost Lake. The unsigned-route exclusion is lifted because the hike is agency-listed."
         }
       ],
+      "way_name_overrides": [
+        {
+          "name": "Carthew-Alderson Trail",
+          "way_ids": [449624607, 449624630, 1059660150, 1059660151],
+          "evidence": "https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking/journee-day",
+          "reason": "Parks Canada Waterton day-hike page lists Carthew-Alderson (12.4 mi one way, Cameron Lake to Cameron Falls). OSM has no way named Carthew-Alderson: the whole route is four ways named Great Divide Trail (the park section of the long-distance route), so the vocabulary filter drops it. Summit Lake and Alderson Lake are access points on this same route per the agency page, not separate hikes."
+        }
+      ],
       "trail_name_fixes": [
         {
           "osm_name": "Crypt Lake Trail",

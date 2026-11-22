@@ -529,6 +529,10 @@ def select_cmd(args: argparse.Namespace) -> int:
             # to reach them (no include_trails: the list is unchanged).
             for i in chosen:
                 ids += [f"r{r}" for r in include_relation_ids(registry["by_id"][i])]
+                # An island_floor opt-in's pinned route must be in the boundary PBF too, or
+                # prepare-areas cannot check it (the opt-in's own relation is not an include).
+                if "island_floor" in registry["by_id"][i]:
+                    ids.append(f"r{registry['by_id'][i]['island_floor']['relation_id']}")
             relations = " ".join(dict.fromkeys(ids))
             stream.write(f"area_ids={','.join(chosen)}\narea_count={len(chosen)}\n"
                          f"getid_args={relations}\n")
@@ -657,7 +661,7 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
         problems.append(f"relation {entry['relation_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
     box = info.get("bbox")
     if box is not None:
-        span_min = CONTAINER_SPAN_MIN if container else REL_SPAN_MIN
+        span_min = CONTAINER_SPAN_MIN if container or "island_floor" in entry else REL_SPAN_MIN
         w, h = box[2] - box[0], box[3] - box[1]
         if not (span_min <= w <= REL_SPAN_MAX and span_min <= h <= REL_SPAN_MAX):
             problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
@@ -689,7 +693,7 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
     box = info.get("bbox")
     if box is not None:
-        span_min = CONTAINER_SPAN_MIN if container else REL_SPAN_MIN
+        span_min = CONTAINER_SPAN_MIN if container or "island_floor" in entry else REL_SPAN_MIN
         w, h = box[2] - box[0], box[3] - box[1]
         if not (span_min <= w <= REL_SPAN_MAX and span_min <= h <= REL_SPAN_MAX):
             problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "

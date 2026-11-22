@@ -6,7 +6,7 @@
 #
 #   aoi.sh (plain mode) -> ca_publish check-boundary-unique -> assemble.py (--only-area, exact relation
 #   id when relation-backed) -> ca_trail_filter.py -> publish_areas.py (--state Canada, one-row index,
-#   --no-boundary-fetch --no-elevation)
+#   --no-boundary-fetch; DEM elevation is sampled inline, --no-elevation is refused)
 #
 # Inputs (env): AREA_ID AREA_NAME BBOX (lon_min,lat_min,lon_max,lat_max), EXACTLY ONE of RELATION_ID or
 #               WAY_ID, W (run work dir holding $AREA_ID/area.json and $AREA_ID/index.json from
@@ -115,7 +115,7 @@ python3 serve/publish_areas.py \
   --hiking "data/aoi/$AREA_ID.osm.pbf" \
   --state Canada --index "$A/publish-index.json" \
   --out-dir "$A/geom" \
-  --no-boundary-fetch --no-elevation
+  --no-boundary-fetch
 # publish_areas writes no geom for an area with no trail inside it ("no trails touch this area").
 test -f "$A/geom/$AREA_ID.json" || { echo "SAFETY BLOCK: $AREA_ID has no publishable trails after the Canada filter" >&2; exit 3; }
 # --registry applies the area's optional trail_id_pins opt-in (keep a live trail id); absent = no change.

@@ -65,6 +65,12 @@ _MOLS_AREA_ID = "nationalpark-mols-bjerge-dk"
 _MOLS_AREA_NAME = "Nationalpark Mols Bjerge"
 _MOLS_RELATION_ID = 7046785
 _DK_REGISTRY = Path(__file__).resolve().parents[1] / "golden" / "dk-areas.json"
+# Country lanes whose non-dry publishes MUST sample DEM elevation inline (gainFt,
+# profileFt, total_gain_ft, gain-aware difficulty). `--no-elevation` is refused
+# for them: a silent strip would put length-only difficulty back on live areas.
+# Every other state keeps the previous behavior (sampling on by default,
+# `--no-elevation` accepted).
+_ELEVATION_REQUIRED_STATES = frozenset({"Canada", "Denmark"})
 
 
 def _exact_publish_allowlist(registry: Path = _DK_REGISTRY) -> dict[str, tuple[str, int | None]]:
@@ -698,13 +704,21 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             ap.error(f"invalid Denmark area registry: {error}")
     if args.exact_boundary and not args.dry_run and not (
             # Non-dry exact publish: Mols (pinned) or a registry-listed Danish
-            # area, always one --only-area, Denmark, no elevation, no preview.
+            # area, always one --only-area, Denmark, no preview. Elevation is
+            # sampled inline (--no-elevation is refused), except the legacy
+            # pinned-Mols pilot (trailforge-publish.yml mols_simple), which
+            # keeps its reviewed --no-elevation invocation unchanged.
             args.only_area in exact_allowlist and args.state == "Denmark"
-            and args.no_elevation and not args.preview_json
-            and not args.preview_root):
+            and (not args.no_elevation or args.only_area == _MOLS_AREA_ID)
+            and not args.preview_json and not args.preview_root):
         ap.error("--exact-boundary requires --dry-run, --preview-json, and "
                  "--preview-root (non-dry is allowed only for one registry "
-                 "--only-area --state Denmark --no-elevation)")
+                 "--only-area --state Denmark, sampling elevation)")
+    if (not args.dry_run and args.no_elevation
+            and args.state in _ELEVATION_REQUIRED_STATES
+            and not (args.state == "Denmark" and args.only_area == _MOLS_AREA_ID)):
+        ap.error(f"--no-elevation is refused for a non-dry --state {args.state} "
+                 "publish: this lane must sample DEM elevation inline")
     if args.exact_boundary and not args.no_boundary_fetch:
         ap.error("--exact-boundary requires --no-boundary-fetch")
     preview_path = _preview_output_path(args, ap)
@@ -738,6 +752,9 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                   "— publishing WITHOUT elevation; every area written by this run "
                   "will lose gainFt and fall back to length-based difficulty",
                   file=sys.stderr)
+            if args.state in _ELEVATION_REQUIRED_STATES:
+                ap.error(f"--state {args.state} must sample elevation; the DEM "
+                         "sampler is unavailable, refusing to publish without it")
 
     index = json.load(open(args.index))
     az = {r[0]: {"name": r[1], "state": r[2], "center": (r[3], r[4]),
@@ -1132,9 +1149,18 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
             # swallowed inside process_area; a whole-area failure falls back to
             # the length-based difficulty conv.convert already set.
             try:
-                elevation.process_area(row, sampler)
+                sampled, _label_changes = elevation.process_area(row, sampler)
             except Exception as e:
                 print(f"  ! elevation sampling failed for {slug}: {e}", file=sys.stderr)
+                sampled = None
+            if (args.state in _ELEVATION_REQUIRED_STATES
+                    and sampled != len(row.get("trails", []))):
+                # Country lanes never publish a half-sampled area: a trail that
+                # kept a length-only label next to gain-aware siblings is a
+                # silent downgrade. Skip the area; the run reports it as failed.
+                failed.append((slug, [f"elevation sampled {sampled} of "
+                                      f"{len(row.get('trails', []))} trails"]))
+                continue
         if prior_parking is not None:
             row.pop("parking", None)
             row["parking"] = prior_parking   # pre-Denmark key order: parking after elevation keys

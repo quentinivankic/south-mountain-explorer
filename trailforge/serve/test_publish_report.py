@@ -378,16 +378,22 @@ class PublishReport(unittest.TestCase):
                 "--state", state, "--exact-boundary", f"{tmp}/exact.geojson",
                 *extra]
 
-    def test_non_dry_exact_boundary_is_allowed_only_for_mols_no_elevation(self):
-        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
-            ok = ["--no-boundary-fetch", "--no-elevation",
-                  "--only-area", _AREA_ID]
+    def test_non_dry_exact_boundary_requires_elevation_except_legacy_mols_pilot(self):
+        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()), \
+                patch.object(publish.elevation, "build_sampler",
+                             return_value=object()):
+            legacy = ["--no-boundary-fetch", "--no-elevation",
+                      "--only-area", _AREA_ID]
+            ok = ["--no-boundary-fetch", "--only-area", _AREA_ID]
             # Guard passes: the run proceeds and fails later on the missing index.
             with self.assertRaises(FileNotFoundError):
                 publish.main(self._guard_argv(tmp, *ok))
+            # The reviewed pinned-Mols pilot keeps its --no-elevation invocation.
+            with self.assertRaises(FileNotFoundError):
+                publish.main(self._guard_argv(tmp, *legacy))
             refused = {
-                "no --only-area": ["--no-boundary-fetch", "--no-elevation"],
-                "no --no-elevation": ["--no-boundary-fetch", "--only-area", _AREA_ID],
+                "no --only-area": ["--no-boundary-fetch"],
+                "no --only-area, no elevation": ["--no-boundary-fetch", "--no-elevation"],
                 "preview": ok + ["--preview-json", f"{tmp}/p.json",
                                  "--preview-root", tmp],
             }
@@ -397,7 +403,82 @@ class PublishReport(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 2)
             with self.assertRaises(SystemExit):
                 publish.main(self._guard_argv(tmp, *ok, state="Arizona"))
+            with self.assertRaises(SystemExit):
+                publish.main(self._guard_argv(tmp, *legacy, state="Arizona"))
 
+    def _lane_argv(self, tmp, state, *extra):
+        return ["--trails", f"{tmp}/t.geojson", "--hiking", f"{tmp}/h.pbf",
+                "--index", f"{tmp}/missing-index.json", "--out-dir", f"{tmp}/out",
+                "--state", state, "--no-boundary-fetch", *extra]
+    def test_country_lanes_refuse_no_elevation_and_missing_sampler(self):
+        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
+            with patch.object(publish.elevation, "build_sampler",
+                              return_value=object()):
+                for state in ("Canada", "Denmark"):
+                    with self.subTest(state=state, case="no-elevation refused"), \
+                            self.assertRaises(SystemExit) as raised:
+                        publish.main(self._lane_argv(tmp, state, "--no-elevation"))
+                    self.assertEqual(raised.exception.code, 2)
+                    # Sampling on: guards pass, fails later on the missing index.
+                    with self.subTest(state=state, case="sampling ok"), \
+                            self.assertRaises(FileNotFoundError):
+                        publish.main(self._lane_argv(tmp, state))
+                    # A dry run never samples, so --no-elevation stays allowed.
+                    with self.subTest(state=state, case="dry run"), \
+                            self.assertRaises(FileNotFoundError):
+                        publish.main(self._lane_argv(
+                            tmp, state, "--dry-run", "--no-elevation"))
+            with patch.object(publish.elevation, "build_sampler",
+                              return_value=None):
+                for state in ("Canada", "Denmark"):
+                    with self.subTest(state=state, case="sampler unavailable"), \
+                            self.assertRaises(SystemExit) as raised:
+                        publish.main(self._lane_argv(tmp, state))
+                    self.assertEqual(raised.exception.code, 2)
+    def test_other_states_keep_optional_elevation(self):
+        # Control: the lane rules are Canada/Denmark only.
+        with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
+            for sampler in (object(), None):
+                with patch.object(publish.elevation, "build_sampler",
+                                  return_value=sampler):
+                    for extra in ((), ("--no-elevation",)):
+                        with self.subTest(sampler=sampler, extra=extra), \
+                                self.assertRaises(FileNotFoundError):
+                            publish.main(self._lane_argv(tmp, "Arizona", *extra))
+    def _publish_with_sampled(self, state, sampled):
+        index = [[_AREA_ID, _AREA_NAME, state, 56.2, 10.6, None, None, _RELATION_ID]]
+        with TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            (work / "index.json").write_text(json.dumps(index))
+            (work / "t.geojson").write_text(json.dumps(_trails()))
+            out = work / "published"
+            out.mkdir()
+            with (
+                patch.object(publish.areamod, "merge_areas",
+                             return_value=_boundary()),
+                patch.object(publish.elevation, "build_sampler",
+                             return_value=object()),
+                patch.object(publish.elevation, "process_area",
+                             return_value=(sampled, {})),
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()),
+            ):
+                rc = publish.main([
+                    "--trails", str(work / "t.geojson"),
+                    "--hiking", str(work / "h.osm.pbf"),
+                    "--index", str(work / "index.json"),
+                    "--out-dir", str(out), "--state", state,
+                    "--no-boundary-fetch"])
+            return rc, (out / f"{_AREA_ID}.json").exists()
+    def test_country_lane_never_publishes_a_partially_sampled_area(self):
+        for state in ("Canada", "Denmark"):
+            with self.subTest(state=state):
+                self.assertEqual(self._publish_with_sampled(state, 1), (0, True))
+                # Same contract as a validation failure: the area is reported
+                # FAILED and no geom is written (the run-area scripts then stop
+                # on the missing file).
+                self.assertEqual(self._publish_with_sampled(state, 0), (0, False))
+        # Control: another state keeps the old per-trail best-effort behavior.
+        self.assertEqual(self._publish_with_sampled("Arizona", 0), (0, True))
     def test_dry_run_exact_boundary_still_requires_preview(self):
         with TemporaryDirectory() as tmp, redirect_stderr(io.StringIO()):
             with self.assertRaises(SystemExit) as raised:
@@ -419,7 +500,7 @@ class PublishReport(unittest.TestCase):
         # elevation.process_area adds. Seeded out-dir must not reorder keys.
         def fake_elevation(row, _sampler):
             row["total_gain_ft"] = 123
-            return 0, {}
+            return len(row["trails"]), {}
         parking = [{"id": "existing"}]
         with TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -482,7 +563,8 @@ class PublishReport(unittest.TestCase):
                     "--hiking", str(work / "h.osm.pbf"),
                     "--index", str(work / "index.json"),
                     "--out-dir", str(out), "--state", "Denmark",
-                    "--no-boundary-fetch", "--no-elevation"])
+                    "--no-boundary-fetch", "--no-elevation",
+                    "--only-area", _AREA_ID])
             self.assertEqual(rc, 0)
             return (json.loads((out / f"{_AREA_ID}.json").read_text()),
                     json.loads((work / "index.json").read_text()))

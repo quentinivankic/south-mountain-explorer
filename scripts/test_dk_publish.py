@@ -1501,17 +1501,22 @@ def _guard_argv(tmp, *extra, state="Denmark"):
             "--out-dir", f"{tmp}/out", "--state", state, "--exact-boundary", f"{tmp}/exact.geojson", *extra]
 
 
-def test_publish_areas_guard_accepts_registry_areas_only(tmp_path):
+def test_publish_areas_guard_accepts_registry_areas_only(tmp_path, monkeypatch):
     tmp = str(tmp_path)
+    monkeypatch.setattr(publish_areas.elevation, "build_sampler", lambda **_k: object())
     for aid in (MOLS, "nationalpark-thy-dk"):
-        ok = ["--no-boundary-fetch", "--no-elevation", "--only-area", aid]
+        ok = ["--no-boundary-fetch", "--only-area", aid]      # elevation sampled inline (the DK lane)
         with pytest.raises(FileNotFoundError):          # guards pass; fails later on the missing index
             publish_areas.main(_guard_argv(tmp, *ok))
-    for extra, state in ((["--no-boundary-fetch", "--no-elevation", "--only-area", "not-in-registry-dk"], "Denmark"),
-                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk"], "Denmark"),
-                         (["--no-boundary-fetch", "--no-elevation"], "Denmark"),
-                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk"], "Arizona"),
-                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk",
+    # the reviewed pinned-Mols pilot (trailforge-publish.yml mols_simple) keeps its --no-elevation call
+    with pytest.raises(FileNotFoundError):
+        publish_areas.main(_guard_argv(tmp, "--no-boundary-fetch", "--no-elevation", "--only-area", MOLS))
+    for extra, state in ((["--no-boundary-fetch", "--only-area", "not-in-registry-dk"], "Denmark"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", "nationalpark-thy-dk"], "Denmark"),
+                         (["--no-boundary-fetch"], "Denmark"),
+                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk"], "Arizona"),
+                         (["--no-boundary-fetch", "--no-elevation", "--only-area", MOLS], "Arizona"),
+                         (["--no-boundary-fetch", "--only-area", "nationalpark-thy-dk",
                            "--preview-json", f"{tmp}/p.json", "--preview-root", tmp], "Denmark")):
         with pytest.raises(SystemExit) as raised:
             publish_areas.main(_guard_argv(tmp, *extra, state=state))
@@ -1609,11 +1614,13 @@ def test_run_area_script_copies_the_mols_simple_exact_pipeline_flags():
                    "build_relation_slice.py", "export_relation_members.py", "--only-area \"$AREA_NAME\"",
                    "--require-exact-area", "--expected-area-relation-id \"$RELATION_ID\"",
                    "--relation-authority", "--prefilter-authority", "--aoi-relation-members",
-                   "--min-length-mi 0.1 --per-area-merge --region dk", "--no-boundary-fetch", "--no-elevation",
+                   "--min-length-mi 0.1 --per-area-merge --region dk", "--no-boundary-fetch",
                    "--exact-boundary \"data/aoi/$AREA_ID.exact-area.geojson\"", "--only-area \"$AREA_ID\"",
                    "--state Denmark"):
         assert needle in script, needle
     assert "--dry-run" not in script.split("serve/publish_areas.py", 1)[1]
+    # elevation is sampled inline: the lane must not pass --no-elevation (the engine refuses it)
+    assert "--no-elevation" not in "\n".join(l for l in script.splitlines() if not l.lstrip().startswith("#"))
     assert subprocess.run(["bash", "-n", str(ROOT / "scripts/dk-run-area.sh")]).returncode == 0
 
 

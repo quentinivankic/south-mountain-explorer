@@ -2639,7 +2639,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT. live-fix1 2026-11-02: Western Brook Pond (0.10 mi of footway; the 1.17 mi service-road approach is a drivable way), Lookout (boundary-clipped) and Lobster Cove Head (no named way) cannot be added from this extract.",
+      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT. live-fix1 2026-11-02: Western Brook Pond (0.10 mi of footway; the 1.17 mi service-road approach is a drivable way), Lookout (boundary-clipped) and Lobster Cove Head (no named way) cannot be added from this extract. audit9 2026-11-23: Old Mail Road (official #1, way 517347148) now adopted with a keep_trails waiver; the earlier 'known omission' is closed.",
       "exclude_trails": [
         {
           "id": "n:Lookout trail",
@@ -2677,6 +2677,11 @@
           "name": "Berry Hill Trail",
           "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
           "reason": "Parks Canada trail #7 Berry Hill Trail (1.5 km return, about 0.47 mi one way); dropped only by the fragment rule."
+        },
+        {
+          "name": "Old Mail Road",
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada trail #1 Old Mail Road; road-name vocabulary rule would drop it (audit 9 D5)."
         }
       ],
       "trail_name_fixes": [
@@ -2709,6 +2714,16 @@
           "name": "Steve's Trail",
           "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
           "reason": "Parks Canada trail #2 Steve's Trail (straight apostrophe, the style of the other Gros Morne names)"
+        }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Old Mail Road",
+          "way_ids": [
+            517347148
+          ],
+          "source": "https://parks.canada.ca/pn-np/nl/grosmorne/activ/experiences/randonnee-hiking",
+          "reason": "Parks Canada Gros Morne trail #1 Old Mail Road (about 1.2 km); the path is tagged with a road name in OSM (audit 9 D5)."
         }
       ]
     },
@@ -3016,8 +3031,8 @@
       "bbox": null,
       "center": null,
       "tier": 2,
-      "hold": "few-trails",
-      "notes": "NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi."
+      "hold": null,
+      "notes": "ICONIC-ONE-TRAIL: the Cape St. Mary's Ecological Reserve footpath (0.74 mi in OSM) is the 1 km path to Bird Rock, the gannet colony a local expert names first on the Avalon's Cape Shore; source https://www.gov.nl.ca/mca/r-csme/ (NL Municipal and Community Affairs, read 2026-11-23: 'Bird Rock is reached by a 1-km footpath'). NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi. audit9 2026-11-23: hold few-trails lifted for the one-trail rule; bbox/centre from the qualify proposal."
     },
     {
       "id": "salmonier-nature-park-ca-nl",

@@ -27,6 +27,7 @@ EXPECTED = {
     "laeso-klitplantage-dk": ["r12571926"],
     "varde-sondre-plantage-dk": ["r6153047", "r6153048"],
     "svinklov-klitplantage-dk": ["r10043412"],
+    "bulbjerg-dk": ["r12612397", "r12671441"],   # dk-ship: new area
 }
 
 
@@ -96,9 +97,11 @@ def test_live_registry_carries_exactly_the_reviewed_opt_ins():
 def test_the_opt_in_does_not_change_any_holds():
     doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
     by_id = {a["id"]: a for a in doc["areas"]}
-    # The opt-in unlocks the mechanism only; shipping is a separate decision.
-    assert by_id["endelave-dk"]["hold"] == "curated-do-not-ship"
-    assert by_id["laeso-klitplantage-dk"]["hold"] == "curated-do-not-ship"
+    # The opt-in unlocks the mechanism only; shipping was a separate decision (dk-ship, 2026-11-23, unheld
+    # Endelave and Læsø Klitplantage and created Bulbjerg).
+    assert by_id["endelave-dk"]["hold"] is None
+    assert by_id["laeso-klitplantage-dk"]["hold"] is None
+    assert by_id["bulbjerg-dk"]["hold"] is None
     assert by_id["varde-sondre-plantage-dk"]["hold"] is None
     assert by_id["svinklov-klitplantage-dk"]["hold"] is None
 

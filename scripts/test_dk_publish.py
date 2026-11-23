@@ -353,11 +353,16 @@ R14B1_SHIP = ["klokkerholm-dk", "esbjerg-energistier-dk", "arreskov-so-dk", "rud
 R14B1_WAY = ["arreskov-so-dk"]
 R14B1_CONTAINER = ["arreskov-so-dk"]   # container_by_id
 R14B1_CLUSTER = [i for i in R14B1_SHIP if i not in R14B1_CONTAINER]   # container_from_routes
+# dk-ship (M2/M3/M4 unlocks, 2026-11-23): three held areas unheld, three new areas
+DKSHIP_UNHELD = ["endelave-dk", "laeso-klitplantage-dk", "fano-dk"]
+DKSHIP_NEW = ["bulbjerg-dk", "moesgard-holme-bjerge-dk", "lisbjerg-skov-dk"]
+DKSHIP_SHIP = [*DKSHIP_UNHELD, *DKSHIP_NEW]
+DKSHIP_CLUSTER = ["bulbjerg-dk", "moesgard-holme-bjerge-dk"]   # container_from_routes
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
     areas = _reg()["areas"]
-    assert len(areas) == 254
+    assert len(areas) == 257
     ids = [a["id"] for a in areas]
     rels = [a["relation_id"] for a in areas if "relation_id" in a]
     ways = [a["way_id"] for a in areas if "way_id" in a]
@@ -374,7 +379,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP and a["id"] not in DKSHIP_SHIP)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -390,7 +395,9 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
                     # Langs sydkysten was withdrawn in BATCH-1
                     "oro-dk": {"r3435156": 200},
                     # reconcile 13 batch A: Grejsdalstien (one real 130 m OSM hole)
-                    "grejsdalen-dk": {"r11295724": 150}}
+                    "grejsdalen-dk": {"r11295724": 150},
+                    # dk-ship: Lønstrup Landskabsruten (one real 102-134 m OSM node gap after ENGINE-2 restore)
+                    "lonstrup-rubjerg-dk": {"r14453808": 200}}
     # ENGINE-1 (keep_motor_tracks): Varde Rød r6153047's 130 m "gap" was its dropped motor tracks; with the opt-in the
     # route has no gap, so its accept_gap was withdrawn (an unneeded entry fails the area closed).
     assert "accept_gap" not in by_id["varde-sondre-plantage-dk"]
@@ -426,7 +433,8 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
     # held after the replay: Læsø (one real route + an overlapping heart loop), Horslund Krat (Rød is 84 percent on Gul),
     # the Sydbornholm composite (two Paradisbakkerne walks unmapped), Rude Skov, Skjern, Fiskerup
     # (Pedersker and Rude Skov were held here; BATCH-3 ships them, see test_batch_3_*)
-    for i in (*BATCH_H_HELD_NEW, "skjern-enge-dk", "fiskerup-skov-dk"):
+    # (Læsø Klitplantage ships in dk-ship: ENGINE-1 restores the Gul rute, the Hjertesti rule keeps the heart walk)
+    for i in (*[x for x in BATCH_H_HELD_NEW if x not in DKSHIP_UNHELD], "skjern-enge-dk", "fiskerup-skov-dk"):
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None and "Batch H" in by_id[i]["notes"]
     assert by_id["horslund-krat-dk"]["way_id"] == 109508933 and by_id["laeso-klitplantage-dk"]["relation_id"] == 6708421
 def test_batch_i_boundary_and_container_opt_ins_and_the_slivso_hold():
@@ -447,7 +455,7 @@ def test_batch_i_boundary_and_container_opt_ins_and_the_slivso_hold():
     assert {i: len(by_id[i]["include_trails"]) for i in cont} == {
         "hald-so-dk": 6, "farrestierne-dk": 3, "soheden-plantage-dk": 2, "hanstholm-dk": 3, "hammeren-dk": 6,
             "skjern-birk-plantage-dk": 3, "hovens-skov-dk": 2, "hals-mose-dk": 3,
-                "stevns-klint-dk": 2, "lonstrup-rubjerg-dk": 3, "grejsdalen-dk": 3, "arreskov-so-dk": 2}
+                "stevns-klint-dk": 3, "lonstrup-rubjerg-dk": 4, "grejsdalen-dk": 3, "arreskov-so-dk": 2}
     assert {g["relation"]: g["max_gap_m"] for g in by_id["hald-so-dk"]["accept_gap"]} == {"r10876676": 300}   # Gletsjerruten r19703948 withdrawn by ENGINE-2 (restore_member_ways)
     assert by_id["hald-so-dk"]["trail_name_prefix"] == "Hald Sø"
     shipped = {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_I_SHIP}
@@ -510,7 +518,7 @@ def test_batch_l_route_cluster_ships_and_holds():
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None
     # the opt-in is used by exactly the batch L entries
     assert {i for i, a in by_id.items() if "container_from_routes" in a} == {
-        *BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER, *R13A_CLUSTER, *R14B1_CLUSTER}
+        *BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER, *R13A_CLUSTER, *R14B1_CLUSTER, *DKSHIP_CLUSTER}
     # est counts = the replay (trails, miles) on main f6f819949; centre inside the bbox
     assert {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_L_SHIP} == {
         "bangsbo-skov-dk": (3, 5.6),
@@ -579,9 +587,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 158, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 164, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 64, "superseded": 6}
+        "curated-do-not-ship": 61, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)
@@ -821,7 +829,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk", "fano-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
             *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K, *DK_V3_BATCH_L,
-            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER, *ISLAND_BATCH, *R13A_SHIP, *R14B1_SHIP)}
+            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER, *ISLAND_BATCH, *R13A_SHIP, *R14B1_SHIP, *DKSHIP_SHIP)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(
@@ -3040,7 +3048,7 @@ def test_run_area_script_passes_container_from_routes_only_when_set():
     assert "--dk-container-from-routes" in script
 def test_only_batch_l_and_batch_3_registry_entries_use_container_from_routes():
     assert {a["id"] for a in json.loads(REGISTRY.read_text(encoding="utf-8"))["areas"]
-            if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER, *R13A_CLUSTER, *R14B1_CLUSTER}
+            if "container_from_routes" in a} == {*BATCH_L_SHIP, *BATCH_L_HELD_NEW, *BATCH_3_CLUSTER_NEW, *SCALE2_CLUSTER, *SCALE3_CLUSTER, *R13A_CLUSTER, *R14B1_CLUSTER, *DKSHIP_CLUSTER}
 
 
 # ------------------------------------------------------------ BATCH-3 pins ----
@@ -3096,10 +3104,11 @@ def test_batch_3_umbrellas_are_superseded_merges_and_the_bornholm_bag_is_split()
     assert [t["id"] for t in r["include_trails"]] == ["r11831724"] and "accept_gap" not in r
     assert {t["id"] for t in by_id["hammeren-dk"]["include_trails"]} == {
         "r12700494", "r14573577", "r12700350", "r14573576", "r12492199", "r9690060"}
-    # held with the evidence instead of shipped (known omissions): Store Dyrehave, Fanø, Læsø
-    for aid in ("store-dyrehave-dk", "fano-dk", "laeso-klitplantage-dk"):
+    # held with the evidence instead of shipped (known omissions): Store Dyrehave (Fanø and Læsø ship in dk-ship)
+    for aid in ("store-dyrehave-dk",):
         assert by_id[aid]["hold"] == "curated-do-not-ship" and by_id[aid]["bbox"] is None, aid
     assert "Known omission" in by_id["store-dyrehave-dk"]["notes"] and "Known omission" in by_id["fano-dk"]["notes"]
+    assert all(by_id[a]["hold"] is None and by_id[a]["bbox"] and by_id[a]["center"] for a in ("fano-dk", "laeso-klitplantage-dk"))
 def test_committed_danish_geoms_share_no_route_between_areas():
     """Cross-area duplicate gate over everything committed under public/areas/geom (the live bundle)."""
     ids = []
@@ -3547,7 +3556,7 @@ def _route_info(**over):
     tags = {"type": "route", "route": "hiking", "name": TRAIL}
     tags.update(over.pop("tags", {}))
     return {"bbox": [10.0, 55.0, 10.05, 55.04], "tags": tags, "count": 1, **over}
-ISLAND_HELD = {"endelave-dk", "hindo-dk"}
+ISLAND_HELD = {"hindo-dk"}   # Endelave ships in dk-ship (ENGINE-1 keep_motor_tracks restores Kaninoen whole)
 ISLAND_BATCH = {            # island id -> (pinned OSM route relation, OSM route name); the batch is exactly these six
     "lyo-dk": (164625, "Ly\u00f8 rundtur"), "endelave-dk": (12787516, "Kaninoen"),
     "drejo-dk": (12769634, "Drej\u00f8 rundtur"), "barso-dk": (12812753, "Bars\u00f8 Rundtur"),
@@ -3560,8 +3569,7 @@ def test_real_registry_island_floor_opt_ins_are_exactly_the_reviewed_batch():
         e = reg[aid]
         assert e["island_floor"]["relation_id"] == rid and e["island_floor"]["trail_name"] == name
         assert e["rules"] == "dk-v3" and e["est_trails"] == 1 and e["est_mi"] >= 3.0
-        # shipped islands have a hold of None; Endelave (truncated by the member-safety rule) and
-        # Hind\u00f8 (2.6 mi inside the island) stay held with their evidence in the notes
+        # shipped islands have a hold of None; Hind\u00f8 (2.6 mi inside the island) stays held with its evidence in the notes
         assert (e["hold"] is None) == (aid not in ISLAND_HELD) and ("HOLD" in e["notes"]) == (aid in ISLAND_HELD)
         assert ("way_id" in e) != ("relation_id" in e)
         assert not {"container_from_routes", "container_by_id", "include_trails"} & set(e)

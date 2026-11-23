@@ -50,7 +50,7 @@ def test_registry_without_the_key_loads_as_before():
 def test_live_registry_names_exactly_the_two_reviewed_pælebjerg_loops():
     doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
     fano = next(a for a in doc["areas"] if a["id"] == "fano-dk")
-    assert fano["rules"] == "dk-v3" and fano["hold"] == "curated-do-not-ship"
+    assert fano["rules"] == "dk-v3" and fano["hold"] is None
     assert [(e["relation"], e["name"], e["listed_km"]) for e in fano["name_unnamed_loops"]] == [
         ("r4215022", "Pælebjerg Rød rute", [1, 2]), ("r4215023", "Pælebjerg Gul rute", [3, 5])]
     for e in fano["name_unnamed_loops"]:

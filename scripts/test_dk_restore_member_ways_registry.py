@@ -41,6 +41,11 @@ EXPECTED = {
     "tonder-dk": ["r7802913"],
     "tondermarsken-dk": ["r10015736"],
     "vester-vedsted-dk": ["r14654257"],
+    # dk-ship (2026-11-23): whole routes unlocked by ENGINE-2
+    "stevns-klint-dk": ["r2835037"],
+    "lonstrup-rubjerg-dk": ["r14453808"],
+    "moesgard-holme-bjerge-dk": ["r14169971"],
+    "lisbjerg-skov-dk": ["r19134838"],
 }
 # accept_gap entries the restore made unneeded (the gap was the dropped members;
 # an unneeded accept_gap fails the area closed), withdrawn in the same change.
@@ -97,7 +102,7 @@ def test_live_registry_carries_exactly_the_reviewed_opt_ins():
     found = {a["id"]: [e["relation"] for e in a["restore_member_ways"]]
              for a in doc["areas"] if "restore_member_ways" in a}
     assert found == EXPECTED
-    assert sum(len(v) for v in EXPECTED.values()) == 25
+    assert sum(len(v) for v in EXPECTED.values()) == 29
     for area in doc["areas"]:
         for entry in area.get("restore_member_ways", []):
             assert set(entry) == {"relation", "max_restored_m", "reason"}
@@ -120,6 +125,8 @@ def test_every_cap_is_a_reviewed_number_above_the_measured_need():
         "r19937141": 450, "r14371913": 200, "r14910479": 100,
         "r13743192": 650, "r13743990": 650, "r8428109": 100, "r19358585": 100,
         "r7802913": 100, "r10015736": 1050, "r14654257": 300,
+        # dk-ship: measured 445 / 154 / 1506 / 190 m
+        "r2835037": 600, "r14453808": 200, "r14169971": 1900, "r19134838": 250,
     }
 def test_the_opt_in_does_not_change_any_holds():
     # Every opted-in area is a live area (no hold); the opt-in changes how a

@@ -492,7 +492,7 @@
     },
     "grastenskovene-dk": {
       "trail_count": 5,
-      "total_mi": 15.9,
+      "total_mi": 16.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Roden Skov, rød rute"
@@ -794,7 +794,7 @@
     },
     "staurby-skov-dk": {
       "trail_count": 4,
-      "total_mi": 8.1,
+      "total_mi": 8.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -819,7 +819,7 @@
     },
     "fejo-dk": {
       "trail_count": 4,
-      "total_mi": 9.4,
+      "total_mi": 9.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Skaløruten"
@@ -1130,7 +1130,7 @@
     },
     "varde-sondre-plantage-dk": {
       "trail_count": 3,
-      "total_mi": 5.2,
+      "total_mi": 5.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Søndre plantage Rød vandrerute"
@@ -1198,7 +1198,7 @@
     },
     "samso-dk": {
       "trail_count": 4,
-      "total_mi": 13.2,
+      "total_mi": 13.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Samsø Grøn"
@@ -1234,7 +1234,7 @@
     },
     "svinklov-klitplantage-dk": {
       "trail_count": 6,
-      "total_mi": 14.2,
+      "total_mi": 14.3,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Svinkløv Hjertesti, Rød rute",
@@ -1272,7 +1272,7 @@
     },
     "hald-so-dk": {
       "trail_count": 6,
-      "total_mi": 22.0,
+      "total_mi": 22.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Hald Sø gul sti",
@@ -1299,7 +1299,7 @@
     },
     "sonderskov-slaaenso-dk": {
       "trail_count": 4,
-      "total_mi": 7.9,
+      "total_mi": 8.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Slåensøen Rundt",
@@ -1455,7 +1455,7 @@
     },
     "grenen-dk": {
       "trail_count": 4,
-      "total_mi": 12.7,
+      "total_mi": 12.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Grenensporet Rød rute",
@@ -1572,7 +1572,7 @@
     },
     "nysted-dk": {
       "trail_count": 2,
-      "total_mi": 7.4,
+      "total_mi": 7.5,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Aalholm Slot rundtur",
@@ -1629,7 +1629,7 @@
     },
     "sindal-dk": {
       "trail_count": 3,
-      "total_mi": 11.8,
+      "total_mi": 11.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Soldalstien",
@@ -2065,7 +2065,7 @@
     },
     "tondermarsken-dk": {
       "trail_count": 6,
-      "total_mi": 25.5,
+      "total_mi": 26.0,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Sort stisløjfe, Højer, Klæggravene, Vidå",
@@ -2083,7 +2083,7 @@
     },
     "vester-vedsted-dk": {
       "trail_count": 2,
-      "total_mi": 14.1,
+      "total_mi": 14.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Landskabsgang",
@@ -2119,7 +2119,7 @@
     },
     "hammeren-dk": {
       "trail_count": 6,
-      "total_mi": 17.6,
+      "total_mi": 17.8,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Hammerknuden Rundt",
@@ -2413,7 +2413,7 @@
     },
     "ornhoj-dk": {
       "trail_count": 3,
-      "total_mi": 28.7,
+      "total_mi": 30.5,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2503,7 +2503,7 @@
     },
     "almind-so-dk": {
       "trail_count": 2,
-      "total_mi": 9.7,
+      "total_mi": 9.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2635,10 +2635,12 @@
       ]
     },
     "stevns-klint-dk": {
-      "trail_count": 2,
-      "total_mi": 17.4,
+      "trail_count": 3,
+      "total_mi": 29.7,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Stevns Klintstien"
+      ],
       "forbidden_names": [
         "Bøgeskovvej",
         "Dyrehavevej",
@@ -2647,10 +2649,12 @@
       ]
     },
     "lonstrup-rubjerg-dk": {
-      "trail_count": 3,
-      "total_mi": 9.3,
+      "trail_count": 4,
+      "total_mi": 15.9,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Landskabsruten - Sort Kløversti Lønstrup"
+      ],
       "forbidden_names": [
         "Den danske pilgrimsrute- Nordjylland Vest",
         "Hærvejen"
@@ -2768,6 +2772,126 @@
         "Hærvejen"
       ]
     },
+    "bulbjerg-dk": {
+      "trail_count": 2,
+      "total_mi": 11.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Troldsting ruten / Bulbjerg",
+        "Kvalitetssti Bulbjerg"
+      ],
+      "forbidden_names": [
+        "Redningsvej",
+        "Redningsvejen",
+        "Skydebanevej",
+        "Tinghøjvej",
+        "Valbjergvej",
+        "Vestkyststien"
+      ]
+    },
+    "endelave-dk": {
+      "trail_count": 1,
+      "total_mi": 12.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kaninoen"
+      ],
+      "forbidden_names": [
+        "Lynger",
+        "Søndermølle"
+      ]
+    },
+    "fano-dk": {
+      "trail_count": 3,
+      "total_mi": 5.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Fanø Hjertesti",
+        "Pælebjerg Gul rute",
+        "Pælebjerg Rød rute"
+      ],
+      "forbidden_names": [
+        "Albuevej",
+        "Badesti 1",
+        "Badesti 10",
+        "Badesti 11",
+        "Badesti 12",
+        "Badesti 13",
+        "Badesti 14",
+        "Badesti 15",
+        "Badesti 16",
+        "Badesti 17",
+        "Badesti 18",
+        "Badesti 19",
+        "Badesti 2",
+        "Badesti 20",
+        "Badesti 3",
+        "Badesti 4",
+        "Badesti 5",
+        "Badesti 6",
+        "Badesti 8",
+        "Badesti 9",
+        "Bjerges Leje",
+        "Fanø Strand",
+        "Golfvejen",
+        "Halevejen",
+        "Hovedgaden",
+        "Hæsset",
+        "Klingebjergvej",
+        "Nørrebjergevej",
+        "Tøftløs",
+        "Østertoft"
+      ]
+    },
+    "laeso-klitplantage-dk": {
+      "trail_count": 2,
+      "total_mi": 4.1,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Læsø Klitplantage Gul rute",
+        "Foldgårdssøen Hjertesti"
+      ],
+      "forbidden_names": [
+        "Bertinsvej",
+        "Forbindelsesvejen",
+        "Holtemmenvej",
+        "Linievejen",
+        "Ravns Brandlinie",
+        "Stenbrovej",
+        "Storedalsvej",
+        "Vej 2",
+        "Vestre Himmerigvej",
+        "Vestre Skråvej"
+      ]
+    },
+    "lisbjerg-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 8.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Skovruten",
+        "Lydfortællinger om Lisbjerg"
+      ],
+      "forbidden_names": []
+    },
+    "moesgard-holme-bjerge-dk": {
+      "trail_count": 2,
+      "total_mi": 10.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Holme Bjerge - Moesgård",
+        "Oldtidsstien"
+      ],
+      "forbidden_names": [
+        "Beder Landevej",
+        "Hulvej",
+        "Regnbuen",
+        "Rød løberute",
+        "Sporet fra Mårslet til Moesgaard",
+        "Strandskovvej",
+        "Vilhelmsborg Allé"
+      ]
+    },
     "bylderup-dk": {
       "trail_count": 3,
       "total_mi": 20.6,
@@ -2866,30 +2990,9 @@
         "Jyske Ås Vandrerute"
       ]
     },
-    "dronninglund-storskov-dk": {
-      "trail_count": 2,
-      "total_mi": 15.8,
-      "total_mi_tolerance": 0.05,
-      "required_names": [],
-      "forbidden_names": [
-        "Bjergvej",
-        "Dronen",
-        "Jyske Ås Vandrerute",
-        "Kamelryggen",
-        "Knaghøjvejen",
-        "Kobberdalen",
-        "Lilleskovvej",
-        "Pindbakvej",
-        "Savværksvej",
-        "Skydebanevej",
-        "Smedemarens Dal",
-        "Stenhulsvej",
-        "Storskovvej"
-      ]
-    },
     "fiskerup-skov-dk": {
-      "trail_count": 4,
-      "total_mi": 14.7,
+      "trail_count": 2,
+      "total_mi": 6.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": []

@@ -772,11 +772,13 @@
       ]
     },
     "svanninge-bjerge-dk": {
-      "trail_count": 8,
-      "total_mi": 30.9,
+      "trail_count": 10,
+      "total_mi": 39.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Svanninge Rød rute"
+        "Svanninge Rød rute",
+        "Svanninge Bakker - Gul rute",
+        "Svanninge Bakker-ruten"
       ],
       "forbidden_names": [
         "Den danske Pilgrimsrute - Sydfyn",
@@ -897,8 +899,8 @@
       ]
     },
     "harte-skov-dk": {
-      "trail_count": 7,
-      "total_mi": 10.2,
+      "trail_count": 11,
+      "total_mi": 25.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Lilla rute i Harte Skov",
@@ -907,7 +909,11 @@
         "Rød rute i Klintenborg Plantage",
         "Brændsmade",
         "Gul rute i Klintenborg Plantage",
-        "Blå rute i Harte Skov"
+        "Blå rute i Harte Skov",
+        "Hartesløjfen",
+        "Around Hylkedalen",
+        "Påby enge",
+        "Birkemusruten"
       ],
       "forbidden_names": [
         "Gul rute - Harteskov",
@@ -2091,18 +2097,23 @@
       ]
     },
     "tonder-dk": {
-      "trail_count": 2,
-      "total_mi": 11.0,
+      "trail_count": 8,
+      "total_mi": 49.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Rød stisløjfe, Tønder, Nørresø",
-        "Tur på Papegøjestien"
+        "Tur på Papegøjestien",
+        "Tønderstier: Grå sti, Abild-Tvedstien",
+        "Tønderstier: Gul sti, Bremsbøl-Sædstien",
+        "Tønderstier: Sort sti, Møgeltønderstien",
+        "Tønderstier: Rød sti, Dyrhus-Ubjergstien",
+        "Tønderstier: Pink sti, Galgestrømstien",
+        "Tønderstier: Grøn sti, By-sti 2"
       ],
       "forbidden_names": [
         "Laurids Rudebecks Allé",
         "Marskstien",
         "Nord Süd Trail, Abschnitt Sylt - Flensburg",
-        "Tønderstier: Sort sti, Møgeltønderstien",
         "Vestergade"
       ]
     },
@@ -2356,10 +2367,15 @@
       ]
     },
     "horning-dk": {
-      "trail_count": 3,
-      "total_mi": 12.0,
+      "trail_count": 7,
+      "total_mi": 23.1,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Jexendalen - Kildedalen",
+        "Jexendalen - Pinds Mølle",
+        "Stenskovruten",
+        "Tåstruplandet Rundt"
+      ],
       "forbidden_names": [
         "Vandreruten Aarhus-Silkeborg"
       ]
@@ -2406,10 +2422,12 @@
       ]
     },
     "aarup-dk": {
-      "trail_count": 5,
-      "total_mi": 17.9,
+      "trail_count": 6,
+      "total_mi": 20.1,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Gul Rute - Brænde Ådal"
+      ],
       "forbidden_names": []
     },
     "arrild-ferieby-dk": {

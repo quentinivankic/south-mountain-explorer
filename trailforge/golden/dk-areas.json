@@ -2419,10 +2419,10 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 8,
-      "est_mi": 30.9,
+      "est_trails": 10,
+      "est_mi": 39.7,
       "trail_name_prefix": "Svanninge",
-      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (4.58 mi) was dropped by the 322 m source gap rule: two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name; no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap). Batch B (dk-v3 replay, 2026-10-31): UN-PARKED (second review of the wayback batch said: fix the bare names, then ship). With trail_name_prefix \"Svanninge\" the seven colour routes read Svanninge Gul Rute, Lyseblå, Pink, Grøn, Brun, Blå, Lilla (26.4 mi). Official: Naturstyrelsen guide Svanninge Bakker (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/svanninge-bakker/praktisk): more than 35 km of marked paths, the red and yellow route plus six themed routes (svanningebjerge.dk). Known omissions: Rød rute (4.58 mi) was dropped by the 322 m source-gap rule (two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name); the Naturstyrelsen Svanninge Bakker walks sit in a separate polygon and super-relations. Rating: mostly complete. Sibling knagelbjerg-skov-dk is the same three routes and stays held. Batch F: Rød rute now included via accept_gap (400 m cap, actual 322.1 m): two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name, shipped as two segments. 8 trails / 30.9 mi, the 7 existing trail ids unchanged.",
+      "notes": "Way-backed (way 983744481, Svanninge Bjerge; would be Funen's first area). Wayback curation (dk-v3): NEEDS-SOURCE-FIX, do not ship yet. The trail set is good: Bikubenfonden's Svanninge Bjerge (Danmarks Naturkanon) with its signed colour routes Brun, Grøn, Blå, Gul, Lilla in the polygon plus Lyseblå and Pink, which straddle the boundary and come in whole via include_trails (7 trails, 26.4 mi, qualify matches the local replay). Blocker: 6 of 7 names are bare colour names (Brun rute, Grøn rute, Blå rute, Gul Rute, Lilla rute, Pink rute; the qualify report says EXCLUDE-RECOMMENDED, generic share 0.857), the same reason knagelbjerg-skov-dk was held. Fix = rename in OSM (for example 'Svanninge Bjerge - Brun rute') or add the per-trail display prefix (code gap); then re-qualify and ship. Known omission: Rød rute (4.58 mi) was dropped by the 322 m source gap rule: two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name; no geometry is synthesized. Neighbour Svanninge Bakker (Naturstyrelsen) is a separate area; its Rød and Nørremark routes sit in super-relations dropped as thru-hike (code gap). Batch B (dk-v3 replay, 2026-10-31): UN-PARKED (second review of the wayback batch said: fix the bare names, then ship). With trail_name_prefix \"Svanninge\" the seven colour routes read Svanninge Gul Rute, Lyseblå, Pink, Grøn, Brun, Blå, Lilla (26.4 mi). Official: Naturstyrelsen guide Svanninge Bakker (https://naturstyrelsen.dk/find-et-naturomraade/naturguider/fyn/svanninge-bakker/praktisk): more than 35 km of marked paths, the red and yellow route plus six themed routes (svanningebjerge.dk). Known omissions: Rød rute (4.58 mi) was dropped by the 322 m source-gap rule (two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name); the Naturstyrelsen Svanninge Bakker walks sit in a separate polygon and super-relations. Rating: mostly complete. Sibling knagelbjerg-skov-dk is the same three routes and stays held. Batch F: Rød rute now included via accept_gap (400 m cap, actual 322.1 m): two same-name red lwn loops r8845680 (4.0 km) + r8902909 (3.4 km), disjoint, 322 m apart, merged by name, shipped as two segments. 8 trails / 30.9 mi, the 7 existing trail ids unchanged. Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D125: update mode adds r12499502, r12499503, r12499628, r12813339. Bless only from the Actions qualify run.",
       "include_trails": [
         {
           "id": "r8872389",
@@ -2433,6 +2433,16 @@
           "id": "r8872501",
           "name": "Pink rute",
           "reason": "lwn relation 3.08 mi with the same Svanninge Bjerge colour-route symbol family; about 49% sits inside the boundary, whole route"
+        },
+        {
+          "id": "r12499502",
+          "name": "Svanninge Bakker - Gul rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12813339",
+          "name": "Svanninge Bakker-ruten",
+          "reason": "signed named walk, whole route"
         }
       ],
       "accept_gap": [
@@ -2743,9 +2753,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 7,
-      "est_mi": 10.2,
-      "notes": "Batch C (dk-v3 replay, 2026-10-31): 4 Naturstyrelsen routes (Rød 1.45, Lilla rute i Harde Skov 2.65, Blå 0.63, Gul 0.37 mi). Held: the area has about 7 NS routes (Ferup Sø, Ferup-Holmsmindesti) that need include_trails and a wider bbox; 4 of ~7 is not completionist. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Harte Skov (second review renamed it from Harte Skov og Ferup Sø because no Ferup trail ships). 5 Naturstyrelsen routes / 6.4 mi: Rød rute i Harte Skov 1.45, Lilla rute i Harde Skov 2.65, Blå rute 0.63, Gul rute 0.37 and Brændsmade 1.26 (include r3251112, at Ferup Sø). Known omissions: Ferup - Holmsmindesti (r3251114) is a 1.3 km OSM stub, mostly Koldingvej road, and is dropped by the relation-gap gate (include fails closed, so it is not listed); Ekstra Gul rute Ferup (r3251113) is a 0.14 mi connector spur and is left out. Hjerteforeningen exercise loops and Kolding Kommune Kløversti routes are not Naturstyrelsen walks and are not part of this area. BATCH-1 2026-11-01: Gul rute - Harteskov (0.37 mi) removed as a fragment. 4 trails. Klintenborg Plantage is merged into this area in BATCH-3.",
+      "est_trails": 11,
+      "est_mi": 25.2,
+      "notes": "Batch C (dk-v3 replay, 2026-10-31): 4 Naturstyrelsen routes (Rød 1.45, Lilla rute i Harde Skov 2.65, Blå 0.63, Gul 0.37 mi). Held: the area has about 7 NS routes (Ferup Sø, Ferup-Holmsmindesti) that need include_trails and a wider bbox; 4 of ~7 is not completionist. Batch D (dk-v3 replay on the include-aware bbox code of PR 658, 2026-10-31): SHIP as Harte Skov (second review renamed it from Harte Skov og Ferup Sø because no Ferup trail ships). 5 Naturstyrelsen routes / 6.4 mi: Rød rute i Harte Skov 1.45, Lilla rute i Harde Skov 2.65, Blå rute 0.63, Gul rute 0.37 and Brændsmade 1.26 (include r3251112, at Ferup Sø). Known omissions: Ferup - Holmsmindesti (r3251114) is a 1.3 km OSM stub, mostly Koldingvej road, and is dropped by the relation-gap gate (include fails closed, so it is not listed); Ekstra Gul rute Ferup (r3251113) is a 0.14 mi connector spur and is left out. Hjerteforeningen exercise loops and Kolding Kommune Kløversti routes are not Naturstyrelsen walks and are not part of this area. BATCH-1 2026-11-01: Gul rute - Harteskov (0.37 mi) removed as a fragment. 4 trails. Klintenborg Plantage is merged into this area in BATCH-3. Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D347: update mode adds r6600218, r289341, r12357044, r1281499, r12598019, r11001025. Bless only from the Actions qualify run.",
       "exclude_trails": [
         {"id": "r3249161", "name": "Gul rute - Harteskov", "reason": "reviewed 2026-11-01 (BATCH-1 curation, OSM tags + length): 0.37 mi Naturstyrelsen loop, under the 0.6 mi fragment rule; no official page found that lists it as a standalone walk"}
       ],
@@ -2753,7 +2763,27 @@
         {"id": "r3251112", "name": "Brændsmade", "reason": "Naturstyrelsen lwn relation (yellow) at Ferup Sø, outside the Harte Skov polygon"},
         {"id": "r961913", "name": "blå rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961913 (2.03 mi), whole route, waymarked green:green:blue_pointer; blå rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"},
         {"id": "r961916", "name": "Rød rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961916 (1.44 mi), whole route, waymarked green:green:red_pointer; Rød rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"},
-        {"id": "r961915", "name": "Gul rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961915 (0.88 mi), whole route, waymarked green:green:yellow_pointer; Gul rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"}
+        {"id": "r961915", "name": "Gul rute i Klintenborg Plantage", "reason": "OSM lwn hiking relation r961915 (0.88 mi), whole route, waymarked green:green:yellow_pointer; Gul rute i Klintenborg Plantage, moved from klintenborg-plantage-dk"},
+        {
+          "id": "r289341",
+          "name": "Around Hylkedalen",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12357044",
+          "name": "Birkemusruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1281499",
+          "name": "Påby enge",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12598019",
+          "name": "Hartesløjfen",
+          "reason": "signed named walk, whole route"
+        }
       ],
       "trail_name_fixes": [
         {"osm_name": "Lilla rute i Harde Skov", "name": "Lilla rute i Harte Skov", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/harte-skov-og-ferup-soe/praktisk", "reason": "typo: the forest is Harte Skov (Naturstyrelsen guide Harte Skov og Ferup Sø); the sibling OSM routes already say Harte Skov"}
@@ -4745,20 +4775,50 @@
       "name": "Tønder Nørresø",
       "state": "Denmark",
       "relation_id": 7802913,
-      "bbox": [8.78, 54.85, 8.92, 54.99],
+      "bbox": [8.78, 54.85, 8.94, 55.0],
       "center": [54.917, 8.852],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "display_name": "Tønder",
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix. BATCH-4 (audit 2): KEEP Tur på Papegøjestien (r7802913, Tønder Kommune lwn). The audit's 2.0 mi jump is polyline order; widest source gap 26.5 m (bridged).",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix. BATCH-4 (audit 2): KEEP Tur på Papegøjestien (r7802913, Tønder Kommune lwn). The audit's 2.0 mi jump is polyline order; widest source gap 26.5 m (bridged). Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D674: update mode adds r8212991, r6132434, r6180589, r6299528, r8339523, r8220168. Bless only from the Actions qualify run.",
       "container_from_routes": {"reason": "Tønder has no usable polygon for the pair; container derived from the 2 included signed routes"},
       "include_trails": [
         {"id": "r7802913", "name": "Tur på Papegøjestien", "reason": "Tønder Kommune lwn hiking relation r7802913 (4.97 mi), whole route; Tønder Kommune Papegøjestien, was in the Nationalpark Vadehavet umbrella (37% inside the park)"},
-        {"id": "r12996962", "name": "Rød stisløjfe, Tønder, Nørresø", "reason": "Tøndermarsk Initiativet lwn hiking relation r12996962 (6.04 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe at Tønder Nørresø, 1 mi north of the Papegøjestien"}
+        {"id": "r12996962", "name": "Rød stisløjfe, Tønder, Nørresø", "reason": "Tøndermarsk Initiativet lwn hiking relation r12996962 (6.04 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe at Tønder Nørresø, 1 mi north of the Papegøjestien"},
+        {
+          "id": "r8212991",
+          "name": "Tønderstier: Gul sti, Bremsbøl-Sædstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6132434",
+          "name": "Tønderstier: Rød sti, Dyrhus-Ubjergstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6180589",
+          "name": "Tønderstier: Grøn sti, By-sti 2",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6299528",
+          "name": "Tønderstier: Sort sti, Møgeltønderstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8339523",
+          "name": "Tønderstier: Pink sti, Galgestrømstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8220168",
+          "name": "Tønderstier: Grå sti, Abild-Tvedstien",
+          "reason": "signed named walk, whole route"
+        }
       ],
-      "est_trails": 2,
-      "est_mi": 11.0,
+      "est_trails": 8,
+      "est_mi": 49.6,
       "restore_member_ways": [
         {
           "relation": "r7802913",
@@ -5114,14 +5174,14 @@
       "name": "Hørning",
       "state": "Denmark",
       "relation_id": 21053636,
-      "bbox": [9.93, 56.02, 10.11, 56.15],
+      "bbox": [9.93, 56.02, 10.11, 56.17],
       "center": [56.088, 10.02],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 12.0,
-      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-069 near Hørning): container_from_routes. Bless only from the Actions qualify run.",
+      "est_trails": 7,
+      "est_mi": 23.1,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-069 near Hørning): container_from_routes. Bless only from the Actions qualify run. Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D565: update mode adds r13096505, r298674, r19113756, r380635, r380634, r16771512. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Hørning; container derived from the 3 included signed routes"
       },
@@ -5139,6 +5199,26 @@
         {
           "id": "r12728331",
           "name": "Jeksen Bæk og Bjertrupskov rundtur",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13096505",
+          "name": "Jexendalen - Kildedalen",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r298674",
+          "name": "Jexendalen - Pinds Mølle",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r19113756",
+          "name": "Stenskovruten",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r16771512",
+          "name": "Tåstruplandet Rundt",
           "reason": "signed named walk, whole route"
         }
       ],
@@ -5308,14 +5388,14 @@
       "name": "Aarup",
       "state": "Denmark",
       "relation_id": 4031332,
-      "bbox": [9.98, 55.31, 10.12, 55.43],
+      "bbox": [9.93, 55.31, 10.12, 55.43],
       "center": [55.372, 10.051],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 5,
-      "est_mi": 17.9,
-      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-008 near Aarup): container_from_routes. Bless only from the Actions qualify run.",
+      "est_trails": 6,
+      "est_mi": 20.1,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-008 near Aarup): container_from_routes. Bless only from the Actions qualify run. Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D045: update mode adds r2446053. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Aarup; container derived from the 5 included signed routes"
       },
@@ -5343,6 +5423,11 @@
         {
           "id": "r4030932",
           "name": "Tokeskovstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2446053",
+          "name": "Gul Rute - Brænde Ådal",
           "reason": "signed named walk, whole route"
         }
       ],

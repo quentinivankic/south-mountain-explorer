@@ -5308,14 +5308,14 @@
       "name": "Aarup",
       "state": "Denmark",
       "relation_id": 4031332,
-      "bbox": [9.93, 55.31, 10.12, 55.43],
+      "bbox": [9.98, 55.31, 10.12, 55.43],
       "center": [55.372, 10.051],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 6,
-      "est_mi": 19.8,
-      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-008 near Aarup): container_from_routes. Bless only from the Actions qualify run. Reconcile 14 batch 2 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D045: update mode adds r2446053. Bless only from the Actions qualify run.",
+      "est_trails": 5,
+      "est_mi": 17.9,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-008 near Aarup): container_from_routes. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Aarup; container derived from the 5 included signed routes"
       },
@@ -5343,11 +5343,6 @@
         {
           "id": "r4030932",
           "name": "Tokeskovstien",
-          "reason": "signed named walk, whole route"
-        },
-        {
-          "id": "r2446053",
-          "name": "Gul Rute - Brænde Ådal",
           "reason": "signed named walk, whole route"
         }
       ],

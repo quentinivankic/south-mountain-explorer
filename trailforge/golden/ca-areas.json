@@ -13146,11 +13146,19 @@
       "state": "Canada",
       "way_id": 148006001,
       "name": "Fathom Five National Marine Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -81.83,
+        45.17,
+        -81.49,
+        45.38
+      ],
+      "center": [
+        45.304,
+        -81.619
+      ],
       "tier": 1,
       "hold": null,
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Fathom Five NMCA (w148006001): replay 2 trails / 1.8 mi, both on Flowerpot Island (Flowerpot Trail 1.16, Mountain Trail 0.65) against the 4.3 km Flowerpot Island network. Names are not the official Flowerpot Island Loop Trail, 67% coverage; Parks Canada trails page not reachable (404). Held. audit9 2026-11-23: UNHELD. Flowerpot Island is the Parks Canada signature walk of Fathom Five (https://parks.canada.ca/amnc-nmca/on/fathomfive/activ/flowerpot, read 2026-11-23): Flowerpot Trail and Mountain Trail are both signed island trails; 1.8 mi is 67% of the 4.3 km network (understated, not wrong). The Bruce Trail main line is not in this boundary. bbox/centre from the qualify proposal."
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Fathom Five NMCA (w148006001): replay 2 trails / 1.8 mi, both on Flowerpot Island (Flowerpot Trail 1.16, Mountain Trail 0.65) against the 4.3 km Flowerpot Island network. Names are not the official Flowerpot Island Loop Trail, 67% coverage; Parks Canada trails page not reachable (404). Held. audit9 2026-11-23: UNHELD. Flowerpot Island is the Parks Canada signature walk of Fathom Five (https://parks.canada.ca/amnc-nmca/on/fathomfive/activ/flowerpot, read 2026-11-23): Flowerpot Trail and Mountain Trail are both signed island trails; 1.8 mi is 67% of the 4.3 km network (understated, not wrong). The Bruce Trail main line is not in this boundary. bbox/centre from the qualify proposal. Pin moved from the computed 45.3,-81.7 (about 4 mi west of Flowerpot Island, in the water) to the kept-trail vertex nearest the trail-extent midpoint (45.304,-81.619)."
     },
     {
       "id": "west-bragg-creek-provincial-recreation-area-ca-ab",

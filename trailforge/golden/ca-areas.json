@@ -8421,7 +8421,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Glacier day-hike and short-hike pages (https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day): Abbott Ridge, Asulkan Valley, Avalanche Crest, Perley Rock, Sir Donald, Hermit, Lower Beaver Valley (Beaver Valley Trail), Loop Brook present; Rockgarden, Bear Creek Falls and Hemlock Grove Boardwalk added by waiver. Missing in OSM as named whole trails: Great Glacier, Marion Lake, Balu Pass (0.14 mi stub), Bostock Creek, Glacier Crest, Meeting of the Waters, 1885 Trail, Abandoned Rails.",
+      "notes": "BC curation 2026-11-02. Whole park. Compared with the Parks Canada Glacier day-hike and short-hike pages (https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day): Abbott Ridge, Asulkan Valley, Avalanche Crest, Perley Rock, Sir Donald, Hermit, Lower Beaver Valley (Beaver Valley Trail), Loop Brook present; Rockgarden, Bear Creek Falls and Hemlock Grove Boardwalk added by waiver. Missing in OSM as named whole trails: Great Glacier, Marion Lake, Balu Pass (0.14 mi stub), Bostock Creek, Glacier Crest, Meeting of the Waters, 1885 Trail, Abandoned Rails. audit9 2026-11-23: Beaver Valley Trail (7.79 mi, disconnected lower + unmaintained upper) replaced by Lower Beaver Valley Trail (way 907552965); Young's Peak Traverse excluded (disconnected unsigned pieces). Ids beaver-valley-trail and young-s-peak-traverse are retired; lower-beaver-valley-trail is new.",
       "exclude_trails": [
         {
           "id": "n:Perley Rock Trail / Sir Donald Trail",
@@ -8432,6 +8432,16 @@
           "id": "n:Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')",
           "name": "Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')",
           "reason": "Parks Canada: the Upper Beaver Valley Trail beyond Grizzly Creek is no longer maintained and not recommended"
+        },
+        {
+          "id": "n:Beaver Valley Trail",
+          "name": "Beaver Valley Trail",
+          "reason": "Audit 9 A02: the live trail stitches the maintained lower trail to unmaintained upper pieces (7.79 mi, large gaps). Parks Canada: beyond Grizzly Creek is unmaintained. Replaced by adopt_ways Lower Beaver Valley Trail (way 907552965)."
+        },
+        {
+          "id": "n:Young's Peak Traverse",
+          "name": "Young's Peak Traverse",
+          "reason": "Audit 9 A14: unsigned traverse stitched from disconnected pieces (4.25 mi); not on the Parks Canada Glacier hiking pages."
         }
       ],
       "keep_trails": [
@@ -8482,6 +8492,16 @@
           "relation": "r7490087",
           "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
           "reason": "Parks Canada Glacier day hike. OSM route=hiking relation r7490087; 6 of 7 member ways also carry piste:type=skitour, so only a 0.85 mi stub is live."
+        }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Lower Beaver Valley Trail",
+          "way_ids": [
+            907552965
+          ],
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Maintained lower Beaver Valley trail (Parks Canada Glacier day hikes); the upper trail beyond Grizzly Creek is unmaintained and stays out."
         }
       ]
     },

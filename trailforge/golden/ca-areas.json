@@ -2639,13 +2639,8 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT. live-fix1 2026-11-02: Western Brook Pond (0.10 mi of footway; the 1.17 mi service-road approach is a drivable way), Lookout (boundary-clipped) and Lobster Cove Head (no named way) cannot be added from this extract. audit9 2026-11-23: Old Mail Road (official #1, way 517347148) now adopted with a keep_trails waiver; the earlier 'known omission' is closed.",
+      "notes": "NL curation 2026-11-02. Whole park. Parks Canada lists 18 numbered trails; OSM has names for about 14 of them (Western Brook Pond, Berry Hill Pond, Southeast Brook Falls, Lomond River, Mattie Mitchell are unnamed or stubs). Old Mail Road (0.72 mi, official #1) is dropped by the assembler named-road rule, which a keep_trails waiver cannot reach (known omission). Dropped on purpose: Long Range Traverse, Northern Traverse, Rim Trail, Snug Harbor Trail, Snug Harbour to North Rim, Tablelands Off Trail Hike (unmarked wilderness routes, rwn; Long Range Traverse OSM length does not match the official 35 km), Snowmobile Trail, Trail Closed (access=no), IAT. live-fix1 2026-11-02: Western Brook Pond (0.10 mi of footway; the 1.17 mi service-road approach is a drivable way), Lookout (boundary-clipped) and Lobster Cove Head (no named way) cannot be added from this extract. audit9 2026-11-23: Old Mail Road (official #1, way 517347148) now adopted with a keep_trails waiver; the earlier 'known omission' is closed. audit9 2026-11-23: stale exclude 'Lookout trail' removed: on the 2026-11-22 extract the assembler clips it away at the boundary (27 -> 20) so the exclude matched no trail (SAFETY BLOCK in qualify 45219829898); it stays out (blessed forbidden_names).",
       "exclude_trails": [
-        {
-          "id": "n:Lookout trail",
-          "name": "Lookout trail",
-          "reason": "Park boundary clips it to 0.81 of its 2.2 mi in OSM (official Lookout Trail is a 5.8 km loop); a stub is not the whole route, listed as a known omission"
-        },
         {
           "id": "n:Snug Harbour to North Rim",
           "name": "Snug Harbour to North Rim",

@@ -13149,8 +13149,8 @@
       "bbox": null,
       "center": null,
       "tier": 1,
-      "hold": "few-trails",
-      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Fathom Five NMCA (w148006001): replay 2 trails / 1.8 mi, both on Flowerpot Island (Flowerpot Trail 1.16, Mountain Trail 0.65) against the 4.3 km Flowerpot Island network. Names are not the official Flowerpot Island Loop Trail, 67% coverage; Parks Canada trails page not reachable (404). Held."
+      "hold": null,
+      "notes": "Missing-destination batch 2026-11-02 (ca-missing). Fathom Five NMCA (w148006001): replay 2 trails / 1.8 mi, both on Flowerpot Island (Flowerpot Trail 1.16, Mountain Trail 0.65) against the 4.3 km Flowerpot Island network. Names are not the official Flowerpot Island Loop Trail, 67% coverage; Parks Canada trails page not reachable (404). Held. audit9 2026-11-23: UNHELD. Flowerpot Island is the Parks Canada signature walk of Fathom Five (https://parks.canada.ca/amnc-nmca/on/fathomfive/activ/flowerpot, read 2026-11-23): Flowerpot Trail and Mountain Trail are both signed island trails; 1.8 mi is 67% of the 4.3 km network (understated, not wrong). The Bruce Trail main line is not in this boundary. bbox/centre from the qualify proposal."
     },
     {
       "id": "west-bragg-creek-provincial-recreation-area-ca-ab",

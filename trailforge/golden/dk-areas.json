@@ -1243,14 +1243,14 @@
       "name": "Fanø",
       "state": "Denmark",
       "relation_id": 6125571,
-      "bbox": null,
-      "center": null,
+      "bbox": [8.28, 55.29, 8.53, 55.52],
+      "center": [55.45, 8.408],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 3,
       "est_mi": 5.8,
-      "notes": "Tier 2I island, Islands. Held: shipping needs the qualify run (bbox/center) and a blessed row. M4 NAMING (reviewed 2026-11-22, Naturstyrelsen Fanø guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/midt-og-vestjylland/fanoe/praktisk and /oplevelser): of the six unnamed lwn loops only the two Pælebjerg loops (r4215022 red, r4215023 yellow) are listed by an agency page with a matching place, colour and length, so they are named from their waymark (name_unnamed_loops, dk-v3). Kikkebjerg r4209046/47 (the yellow one is listed only as the Sundhedssporet running track) stay unnamed and are excluded (assembled with the road name Nørrebjergevej). Fuglekøjeturen r4215703 (red 3.61 km vs listed 2.5 km) and r4215704 (0.78 km stub vs listed 5.5 km) stay unnamed too: they have no label at all, so the app writer drops them and the registry cannot name them in exclude_trails. 19 Badesti bathing paths excluded as in Vadehavet. Fanø Hjertesti r7741221 (Hjerteforeningen lwn, 2.57 mi) is the one named relation. Expected 3 trails, 5.84 mi. Known omissions: Fuglekøjeturen red/yellow, the Kikkebjerg loops, Klitturen via Paradisdalen (red 1 km and yellow, listed by Naturstyrelsen, not mapped as a relation).",
+      "notes": "Tier 2I island, Islands. Held: shipping needs the qualify run (bbox/center) and a blessed row. M4 NAMING (reviewed 2026-11-22, Naturstyrelsen Fanø guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/midt-og-vestjylland/fanoe/praktisk and /oplevelser): of the six unnamed lwn loops only the two Pælebjerg loops (r4215022 red, r4215023 yellow) are listed by an agency page with a matching place, colour and length, so they are named from their waymark (name_unnamed_loops, dk-v3). Kikkebjerg r4209046/47 (the yellow one is listed only as the Sundhedssporet running track) stay unnamed and are excluded (assembled with the road name Nørrebjergevej). Fuglekøjeturen r4215703 (red 3.61 km vs listed 2.5 km) and r4215704 (0.78 km stub vs listed 5.5 km) stay unnamed too: they have no label at all, so the app writer drops them and the registry cannot name them in exclude_trails. 19 Badesti bathing paths excluded as in Vadehavet. Fanø Hjertesti r7741221 (Hjerteforeningen lwn, 2.57 mi) is the one named relation. Expected 3 trails, 5.84 mi. Known omissions: Fuglekøjeturen red/yellow, the Kikkebjerg loops, Klitturen via Paradisdalen (red 1 km and yellow, listed by Naturstyrelsen, not mapped as a relation). SHIP (dk-ship, 2026-11-23): M4 naming merged (#866); ships 3 trails (Fanø Hjertesti, Pælebjerg Gul rute, Pælebjerg Rød rute). bbox/center come from the qualify run; bless only from the Actions qualify run.",
       "exclude_trails": [
         {"id": "r6617467", "name": "Badesti 1", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
         {"id": "r6617478", "name": "Badesti 2", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
@@ -3140,14 +3140,14 @@
       "name": "Endelave",
       "state": "Denmark",
       "relation_id": 5326472,
-      "bbox": null,
-      "center": null,
+      "bbox": [10.18, 55.69, 10.38, 55.84],
+      "center": [55.76, 10.285],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 1,
       "est_mi": 12.3,
-      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Endelave (Kattegat). The official name is spelled Kaninoen (a pun on Caminoen), not Kaninøen. One signed named walk, Kaninoen (OSM route relation 12787516, 12.3 mi, Horsens Kommune). Would ship under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (relation_id 5326472, place=island). HOLD (local qualify 2026-11-21): the pipeline publishes Kaninoen at 9.7 of its 12.2 mi. Two member ways named Øvre (way 38245819 1.37 mi, way 38245821 1.16 mi; highway=track, motorcar=yes, no foot tag, the northern tip reserve) are excluded by the member-safety rule 'motor-access-without-positive-foot', so the northern tip, the part Naturstyrelsen and Kystlandet highlight, is missing and the circuit has a 2.5 mi hole. A truncated headline walk is not shipped (same rule as Læsø Klitplantage). Unlock: a reviewed per-area opt-in for signed-route members tagged motorcar=yes on grade4 tracks (shared-engine change, orchestrator decision), then re-qualify. The island also has three shorter colour Kanin routes (12, 8 and 3 km) that OSM does not map as relations; known omission.",
+      "notes": "Island floor batch (wf_05f903bd2016defa, decision 6, 2026-11-21): Endelave (Kattegat). The official name is spelled Kaninoen (a pun on Caminoen), not Kaninøen. One signed named walk, Kaninoen (OSM route relation 12787516, 12.3 mi, Horsens Kommune). Would ship under the island_floor opt-in (1 trail, whole route, >= 3 mi). Boundary is the island itself (relation_id 5326472, place=island). HOLD (local qualify 2026-11-21): the pipeline publishes Kaninoen at 9.7 of its 12.2 mi. Two member ways named Øvre (way 38245819 1.37 mi, way 38245821 1.16 mi; highway=track, motorcar=yes, no foot tag, the northern tip reserve) are excluded by the member-safety rule 'motor-access-without-positive-foot', so the northern tip, the part Naturstyrelsen and Kystlandet highlight, is missing and the circuit has a 2.5 mi hole. A truncated headline walk is not shipped (same rule as Læsø Klitplantage). Unlock: a reviewed per-area opt-in for signed-route members tagged motorcar=yes on grade4 tracks (shared-engine change, orchestrator decision), then re-qualify. The island also has three shorter colour Kanin routes (12, 8 and 3 km) that OSM does not map as relations; known omission. SHIP (dk-ship, 2026-11-23): ENGINE-1 keep_motor_tracks restores the two Øvre tracks, so Kaninoen publishes whole (island_floor: 1 trail, the full 12.2 mi signed circuit around the island). bbox/center come from the qualify run; bless only from the Actions qualify run. Known omission: the three shorter Kanin colour routes (12, 8, 3 km) are not mapped as relations in OSM.",
       "island_floor": {
         "reason": "Named island with a single signed named walk of at least 3 mi (Kaninoen, relation 12787516); decision 6",
         "relation_id": 12787516,
@@ -3485,14 +3485,14 @@
       "name": "Læsø Klitplantage",
       "state": "Denmark",
       "relation_id": 6708421,
-      "bbox": null,
-      "center": null,
+      "bbox": [10.88, 57.22, 11.13, 57.37],
+      "center": [57.308, 11.031],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 2.9,
-      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough.",
+      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough. SHIP (dk-ship, 2026-11-23): ENGINE-1 keep_motor_tracks restores Horneksvejen, so the Naturstyrelsen Gul rute publishes whole (3.07 mi vs the 4.9 km OSM relation). Foldgårdssøen Hjertesti is an explicit signed lwn heart walk (Hjerteforeningen) inside an otherwise qualifying area, so the Hjertesti rule keeps it even though it shares ground with the Gul rute. bbox/center come from the qualify run; bless only from the Actions qualify run.",
       "keep_motor_tracks": [
         {
           "relation": "r12571926",
@@ -6066,9 +6066,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 2,
-      "est_mi": 17.5,
-      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Stevns Klint (UNESCO chalk cliff): Stevns Klint Trampesti 13.7 mi and Gjorslevstien 3.8 mi. Container: relation 12520555 Gjorslev Bøgeskov (landuse=forest multipolygon) on the northern cliff; no polygon is named Stevns Klint and Højeruplund (way 400363392) is under the 0.005 deg boundary floor. Trails come whole via include_trails. Klintstien r2835037 needs member restoration and stays out. Bless only from the Actions qualify run.",
+      "est_trails": 3,
+      "est_mi": 29.7,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Stevns Klint (UNESCO chalk cliff): Stevns Klint Trampesti 13.7 mi and Gjorslevstien 3.8 mi. Container: relation 12520555 Gjorslev Bøgeskov (landuse=forest multipolygon) on the northern cliff; no polygon is named Stevns Klint and Højeruplund (way 400363392) is under the 0.005 deg boundary floor. Trails come whole via include_trails. Klintstien r2835037 needs member restoration and stays out. Bless only from the Actions qualify run. dk-ship 2026-11-23: Stevns Klintstien r2835037 now ships whole via ENGINE-2 restore_member_ways (6 ways, 445 m, cap 600). Expected 3 trails.",
       "include_trails": [
         {
           "id": "r2774223",
@@ -6079,11 +6079,23 @@
           "id": "r2835052",
           "name": "Gjorslevstien",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2835037",
+          "name": "Stevns Klintstien",
+          "reason": "signed named walk (Sjællandsleden/Stevns Kommune lwn, ref SK), whole route; ENGINE-2 restores 6 member ways (445 m)"
         }
       ],
       "container_by_id": {
         "reason": "Gjorslev Bøgeskov forest relation 12520555 on the northern Stevns Klint coast; no polygon is named Stevns Klint"
-      }
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r2835037",
+          "max_restored_m": 600,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2): Stevns Klintstien (Stevns Kommune lwn) loses 6 member ways (445 m) to the member-safety road gates; with them restored the route is one 12.29 mi piece"
+        }
+      ]
     },
     {
       "id": "lonstrup-rubjerg-dk",
@@ -6095,9 +6107,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 9.4,
-      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Lønstrup Turistforening Kløversti set (Blå 3.2, Rød 4.6, Grøn 1.6 mi): themed coastal walks, orchestrator exception to class ruling A (not kommune health loops). Container: way 94456107 Rubjerg Knude Klitplantage (landuse=forest). Landskabsruten r14453808 (102 m gap) stays out. Bless only from the Actions qualify run.",
+      "est_trails": 4,
+      "est_mi": 15.9,
+      "notes": "Reconcile 13 batch A (wf_0b9adf025baf764e, 2026-11-22), blind audit 13 finding. Lønstrup Turistforening Kløversti set (Blå 3.2, Rød 4.6, Grøn 1.6 mi): themed coastal walks, orchestrator exception to class ruling A (not kommune health loops). Container: way 94456107 Rubjerg Knude Klitplantage (landuse=forest). Landskabsruten r14453808 (102 m gap) stays out. Bless only from the Actions qualify run. dk-ship 2026-11-23: Landskabsruten r14453808 now ships whole (ENGINE-2 restore 3 ways, cap 200, accept_gap 200 for the real 102 m gap). Expected 4 trails.",
       "include_trails": [
         {
           "id": "r14453809",
@@ -6113,11 +6125,30 @@
           "id": "r14453810",
           "name": "Normanns vandretur - Grøn Kløversti Lønstrup",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14453808",
+          "name": "Landskabsruten - Sort Kløversti Lønstrup",
+          "reason": "signed named walk (Lønstrup Turistforening, the black Kløversti, 15 km), whole route; same themed Kløversti set as the three already shipped (class A exception); ENGINE-2 restores 3 ways (154 m) and the real 102 m node gap is an accepted gap"
         }
       ],
       "container_by_id": {
         "reason": "Rubjerg Knude Klitplantage forest way 94456107, the dune plantation around Rubjerg Knude and Lønstrup"
-      }
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r14453808",
+          "max_restored_m": 200,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2): Landskabsruten loses 3 member ways (154 m) to the member-safety road gates"
+        }
+      ],
+      "accept_gap": [
+        {
+          "relation": "r14453808",
+          "max_gap_m": 200,
+          "reason": "Reviewed: the black Landskabsruten has one real 102 m node gap in OSM after the member ways are restored; published as separate connected parts, nothing drawn across the gap"
+        }
+      ]
     },
     {
       "id": "hindsholm-dk",
@@ -6499,6 +6530,114 @@
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Øster Nykirke; container derived from the 2 included signed routes"
       }
+    },
+    {
+      "id": "bulbjerg-dk",
+      "name": "Bulbjerg",
+      "state": "Denmark",
+      "relation_id": 12612397,
+      "bbox": [8.98, 57.09, 9.11, 57.21],
+      "center": [57.145, 9.043],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 11.1,
+      "notes": "dk-ship 2026-11-23 (ENGINE-1 unlock). Bulbjerg, the bird cliff on the Jammerbugt coast (Jammerbugt Kommune), container: derived from the two whole routes (the only OSM polygon named Bulbjerg, forest way 195153691, is a different place near Ho Bugt, not the cliff). Two signed lwn walks: Troldsting ruten / Bulbjerg (Naturstyrelsen, r12612397, white-blue, 5.15 mi) and Kvalitetssti Bulbjerg (Dansk Vandrelaug kvalitetssti, r12671441, blue-white, 5.98 mi). Both lose member tracks tagged motorcar=yes without a foot tag under the base rule (the Kvalitetssti fails the area outright as an unresolved relation gap); keep_motor_tracks restores them. No other hiking relation on Bulbjerg. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable OSM polygon for the Bulbjerg bird cliff on the Jammerbugt coast (the forest way named Bulbjerg, way 195153691, lies near Ho Bugt, 180 km away); container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r12612397",
+          "name": "Troldsting ruten / Bulbjerg",
+          "reason": "Naturstyrelsen lwn walk, whole route"
+        },
+        {
+          "id": "r12671441",
+          "name": "Kvalitetssti Bulbjerg",
+          "reason": "Dansk Vandrelaug kvalitetssti (lwn), whole route"
+        }
+      ],
+      "keep_motor_tracks": [
+        {
+          "relation": "r12612397",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Troldsting ruten runs 5 member tracks tagged highway=track motorcar=yes with no foot tag (ways 99061304, 939425076, 186488762, 976878767, 939425079)"
+        },
+        {
+          "relation": "r12671441",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Kvalitetssti Bulbjerg runs 3 member tracks tagged highway=track motorcar=yes with no foot tag (ways 939425076, 939425079, 939425070)"
+        }
+      ]
+    },
+    {
+      "id": "moesgard-holme-bjerge-dk",
+      "name": "Moesgård og Holme Bjerge",
+      "state": "Denmark",
+      "relation_id": 14169971,
+      "bbox": [10.12, 56.02, 10.3, 56.15],
+      "center": [56.073, 10.216],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 10.5,
+      "notes": "dk-ship 2026-11-23 (ENGINE-2 unlock). Moesgård (Aarhus Kommune, south of Aarhus): Holme Bjerge - Moesgård (lwn foot route, 12 km, from the Holme Bjerge preserve to Moesgård Strand, information boards along it; r14169971) and Oldtidsstien (lwn, red-dot on white stones, 4 km loop through Moesgård forest to the beach and manor; wikipedia da:Oldtidsstien; r1267374). No OSM polygon carries Moesgård or Holme Bjerge, so the container is derived from the two whole routes. The first route follows asphalt roads for much of its length by its own description; ENGINE-2 restores 5 dropped member ways (1.5 km, 11.7 percent) so it publishes whole. Oldtidsstien shares ground with it near the manor. Bless only from the Actions qualify run.",
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Moesgård or Holme Bjerge; container derived from the 2 included signed routes"
+      },
+      "include_trails": [
+        {
+          "id": "r14169971",
+          "name": "Holme Bjerge - Moesgård",
+          "reason": "Aarhus Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r1267374",
+          "name": "Oldtidsstien",
+          "reason": "signed lwn loop (red dot on white stones), whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r14169971",
+          "max_restored_m": 1900,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2): Holme Bjerge - Moesgård loses 5 member ways (1,506 m, 11.7 percent) to the member-safety road gates; with them restored the route is one 7.98 mi piece"
+        }
+      ]
+    },
+    {
+      "id": "lisbjerg-skov-dk",
+      "name": "Lisbjerg Skov",
+      "state": "Denmark",
+      "relation_id": 6633219,
+      "bbox": [10.11, 56.15, 10.28, 56.29],
+      "center": [56.223, 10.191],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.9,
+      "notes": "dk-ship 2026-11-23 (ENGINE-2 unlock). Lisbjerg Skov (Aarhus Kommune, forest multipolygon r6633219). Skovruten (r19134838, source Aarhus Kommune, 6.86 mi) with Lydfortællinger om Lisbjerg (r19134839, signed lwn foot route with audio stories). ENGINE-2 restores 1 dropped member way (190 m) of Skovruten. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r19134838",
+          "name": "Skovruten",
+          "reason": "Aarhus Kommune lwn walk, whole route"
+        },
+        {
+          "id": "r19134839",
+          "name": "Lydfortællinger om Lisbjerg",
+          "reason": "lwn foot route (audio stories), whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r19134838",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2): Skovruten loses 1 member way (190 m) to the member-safety road gates; with it restored the route is whole"
+        }
+      ]
     }
   ]
 }

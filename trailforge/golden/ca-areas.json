@@ -3030,12 +3030,12 @@
         46.9
       ],
       "center": [
-        46.8,
-        -54.2
+        46.823,
+        -54.188
       ],
       "tier": 2,
       "hold": null,
-      "notes": "ICONIC-ONE-TRAIL: the Cape St. Mary's Ecological Reserve footpath (0.74 mi in OSM) is the 1 km path to Bird Rock, the gannet colony a local expert names first on the Avalon's Cape Shore; source https://www.gov.nl.ca/mca/r-csme/ (NL Municipal and Community Affairs, read 2026-11-23: 'Bird Rock is reached by a 1-km footpath'). NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi. audit9 2026-11-23: hold few-trails lifted for the one-trail rule; bbox/centre from the qualify proposal."
+      "notes": "ICONIC-ONE-TRAIL: the Cape St. Mary's Ecological Reserve footpath (0.74 mi in OSM) is the 1 km path to Bird Rock, the gannet colony a local expert names first on the Avalon's Cape Shore; source https://www.gov.nl.ca/mca/r-csme/ (NL Municipal and Community Affairs, read 2026-11-23: 'Bird Rock is reached by a 1-km footpath'). NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi. audit9 2026-11-23: hold few-trails lifted for the one-trail rule; bbox/centre from the qualify proposal. Pin moved from the computed 46.8,-54.2 (1.52 mi from the trail) to the kept-trail vertex nearest the trail-extent midpoint (46.823,-54.188)."
     },
     {
       "id": "salmonier-nature-park-ca-nl",

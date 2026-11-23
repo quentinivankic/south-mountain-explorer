@@ -1066,11 +1066,13 @@
       ]
     },
     "sogard-skov-dk": {
-      "trail_count": 3,
-      "total_mi": 6.2,
+      "trail_count": 5,
+      "total_mi": 9.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Hjertestien, Søgård Sø"
+        "Hjertestien, Søgård Sø",
+        "Kværs Hede",
+        "Bjergskov Overdrev"
       ],
       "forbidden_names": [
         "Balledamvej",
@@ -1643,8 +1645,8 @@
       "forbidden_names": []
     },
     "gribskov-dk": {
-      "trail_count": 6,
-      "total_mi": 24.5,
+      "trail_count": 7,
+      "total_mi": 29.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Søskoven og Esrum Møllegård og Kanal",
@@ -1652,7 +1654,8 @@
         "Pibergården",
         "Hvide- og Grønnekilder",
         "Røde Dam",
-        "Store Gribsø"
+        "Store Gribsø",
+        "Skovskolen"
       ],
       "forbidden_names": [
         "Agernkulevej",
@@ -2235,12 +2238,13 @@
       ]
     },
     "lille-vildmose-dk": {
-      "trail_count": 2,
-      "total_mi": 2.2,
+      "trail_count": 3,
+      "total_mi": 3.3,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Kællingbjerg Klint",
-        "Plankestien i Portlandsmosen"
+        "Plankestien i Portlandsmosen",
+        "Lille Vildmose Rødt"
       ],
       "forbidden_names": [
         "Birkesøvej",
@@ -2307,8 +2311,8 @@
       "forbidden_names": []
     },
     "bramslev-bakker-dk": {
-      "trail_count": 6,
-      "total_mi": 17.6,
+      "trail_count": 7,
+      "total_mi": 21.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Panoramaruten",
@@ -2316,11 +2320,12 @@
         "Hegedal Rød rute",
         "Bramslev Bakker Gul rute",
         "Frisdalruten",
-        "Ormeskoven"
+        "Ormeskoven",
+        "Hobro Østerskovturen"
       ],
       "forbidden_names": [
         "Bramslev Bakker",
-        "Hobro Østerskovturen"
+        "Kirkestien"
       ]
     },
     "louns-halvo-dk": {
@@ -2333,8 +2338,8 @@
       ]
     },
     "sottrup-skov-dk": {
-      "trail_count": 2,
-      "total_mi": 7.7,
+      "trail_count": 3,
+      "total_mi": 13.5,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2382,11 +2387,13 @@
       ]
     },
     "varming-hede-dk": {
-      "trail_count": 2,
-      "total_mi": 3.1,
+      "trail_count": 4,
+      "total_mi": 7.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
-      "forbidden_names": []
+      "forbidden_names": [
+        "Grænsestien"
+      ]
     },
     "ornhoj-dk": {
       "trail_count": 3,
@@ -2399,19 +2406,21 @@
       ]
     },
     "aarup-dk": {
-      "trail_count": 5,
-      "total_mi": 17.9,
+      "trail_count": 6,
+      "total_mi": 19.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": []
     },
     "arrild-ferieby-dk": {
-      "trail_count": 6,
-      "total_mi": 11.9,
+      "trail_count": 7,
+      "total_mi": 14.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
-        "Skikkildbjergvej"
+        "Skikkildbjergvej",
+        "Damvej",
+        "Rødeledsvej"
       ]
     },
     "skovsgaard-tasinge-dk": {
@@ -2442,8 +2451,8 @@
       "forbidden_names": []
     },
     "nordborg-mjels-so-dk": {
-      "trail_count": 5,
-      "total_mi": 19.2,
+      "trail_count": 6,
+      "total_mi": 22.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

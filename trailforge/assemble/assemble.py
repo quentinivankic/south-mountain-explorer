@@ -1059,6 +1059,18 @@ def main(argv=None) -> int:
                          "tag; every other member-safety gate still applies; "
                          "dk-v3 exact Denmark only, fail-closed when an entry "
                          "is stale")
+    ap.add_argument("--dk-restore-member-ways", dest="dk_restore_member_ways",
+                    help="JSON list of {relation, max_restored_m, reason} "
+                         "(registry restore_member_ways): the listed signed "
+                         "route relation gets back the member ways the "
+                         "member-safety road gates dropped (driveway and "
+                         "parking-aisle service ways, secondary crossings, "
+                         "sidewalks, unclassified ways with a motor-access "
+                         "tag) and its way members with role route, up to "
+                         "max_restored_m and a share of the route; motorway, "
+                         "trunk and primary roads are never restored; dk-v3 "
+                         "exact Denmark only, fail-closed when an entry is "
+                         "stale or over its cap")
     ap.add_argument("--ca-accept-gap", dest="ca_accept_gap",
                     help="JSON list of {relation, max_gap_m, reason} (Canada registry "
                          "accept_gap): the listed route relation gets back the member "
@@ -1183,6 +1195,21 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-keep-motor-tracks is invalid: {error}")
+    args.dk_restore = []
+    if args.dk_restore_member_ways:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-restore-member-ways requires --dk-rules dk-v3")
+        if (not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error("--dk-restore-member-ways is limited to exact Denmark "
+                     "assembly")
+        try:
+            import quality as quality_restore_args
+            args.dk_restore = quality_restore_args.validate_dk_restore_member_ways(
+                json.loads(Path(args.dk_restore_member_ways).read_text(
+                    encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-restore-member-ways is invalid: {error}")
     if args.ca_dedupe_ring_way and (
             model.member_safety.normalize(args.region) != "ca"
             or not args.require_exact_area or args.dk_rules != "legacy"
@@ -1432,13 +1459,22 @@ def main(argv=None) -> int:
                             ca_rule_report=ca_rule_report,
                             dk_keep_motor_tracks=(
                                 frozenset(int(e["relation"][1:])
-                                          for e in args.dk_motor) or None))
+                                          for e in args.dk_motor) or None),
+                            dk_restore_member_ways=(
+                                {int(e["relation"][1:]): e["max_restored_m"]
+                                 for e in args.dk_restore} or None))
     dk_motor_failures, dk_motor_evidence = [], None
     if args.dk_motor:
         import quality as quality_motor_run
         dk_motor_failures, dk_motor_evidence = \
             quality_motor_run.dk_keep_motor_tracks_evidence(
                 args.dk_motor, relation_member_audit)
+    dk_restore_failures, dk_restore_evidence = [], None
+    if args.dk_restore:
+        import quality as quality_restore_run
+        dk_restore_failures, dk_restore_evidence = \
+            quality_restore_run.dk_restore_member_ways_evidence(
+                args.dk_restore, relation_member_audit)
     features = [t.to_feature() for t in trails]
     curation_removed_features = [t.to_feature() for t in removed]
     terminal_absorption_targets = (
@@ -1599,6 +1635,13 @@ def main(argv=None) -> int:
         # that no member way needs, fails the area: it is only ever on purpose.
         terminal_absorption_failure = (
             "dk-keep-motor-tracks failures: " + "; ".join(dk_motor_failures))
+        print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+    if dk_restore_failures:
+        # A restore_member_ways entry that names a relation not assembled here,
+        # that is over its cap, or that no member way needs fails the area: it is
+        # only ever on purpose, and an over-cap route is never truncated.
+        terminal_absorption_failure = (
+            "dk-restore-member-ways failures: " + "; ".join(dk_restore_failures))
         print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if exact_denmark and terminal_absorption_unresolved:
         terminal_absorption_failure = (
@@ -1802,6 +1845,8 @@ def main(argv=None) -> int:
         **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
         **({"dk_keep_motor_tracks": dk_motor_evidence}
            if dk_motor_evidence is not None else {}),
+        **({"dk_restore_member_ways": dk_restore_evidence}
+           if dk_restore_evidence is not None else {}),
         **({"ca_ring_way_dedupe": {"relation": args.expected_area_relation_id,
                                    "dropped_ring_ways": ring_dropped}}
            if args.ca_dedupe_ring_way else {}),

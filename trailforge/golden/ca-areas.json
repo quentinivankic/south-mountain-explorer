@@ -4398,7 +4398,7 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded. live-fix1 2026-11-02: pin moved from [52.804, -117.634] (3.37 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored The Whistlers Summit Trail, Pyramid Mountain Trail (agency-listed or only link to a listed trail).",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Jasper day-hike pages (https://parks.canada.ca/pn-np/ab/jasper/activ/experience/sentiers-trails). Kept: backcountry trails (Skyline, Tonquin Valley, Fryatt, Brazeau, Maligne Pass, Jonas Pass, Poboktan, Snake Indian Falls, Overlander), day hikes (Cavell Meadows, Edith Cavell Pond, Opal Hills, Maligne Canyon, Sulphur Skyline, Pyramid, Whistlers, Wilcox Pass, Mary Schaeffer Loop, Valley of the Five Lakes) and named scrambles. Excluded: the numbered Jasper town MTB/fitness trail network (Trail N, Sidewinder, Swamp Rider...), informal climbing paths, boundary-clipped stubs, alt/duplicate pieces; Great Divide Trail dropped by the Canada filter as long-distance. Remediation (review #704): hiking trails Wabasso, Mina, Curator, Saturday Night, High Lakes, Minnow, Stutfield Ice Cave, Cinquifoil, Morrow reinstated and renamed; Edith Cavell Pond Trail composite excluded. live-fix1 2026-11-02: pin moved from [52.804, -117.634] (3.37 mi from the nearest trail) to a trail point next to the trail-extent midpoint. live-fix1 remediation (review #717): restored The Whistlers Summit Trail, Pyramid Mountain Trail (agency-listed or only link to a listed trail). audit9 2026-11-23: Pyramid Mountain Trail excluded again (two unsigned route pieces 3.2 mi apart, not an agency trail name); id pyramid-mountain-trail is retired.",
       "exclude_trails": [
         {
           "id": "n:12a Wapiti Campground",
@@ -4944,6 +4944,11 @@
           "id": "n:Wilcox Ridge Viewpoint Trail",
           "name": "Wilcox Ridge Viewpoint Trail",
           "reason": "Unsigned peak ascent without a signed trail, not an agency-listed hiking trail (Quentin bar 2026-11-02)"
+        },
+        {
+          "id": "n:Pyramid Mountain Trail",
+          "name": "Pyramid Mountain Trail",
+          "reason": "Two unsigned 'Pyramid Mountain Route' pieces 3.2 mi apart joined across the Pyramid Mountain Fire Road (audit 9 root cause A04); not an agency trail name (Parks Canada Pyramid page describes Trail 2 / Pyramid Bench). Replaces the live-fix1 restore."
         }
       ],
       "trail_name_fixes": [

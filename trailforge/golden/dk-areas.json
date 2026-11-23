@@ -93,7 +93,7 @@
         {"id": "n:Vester Bjergvej", "name": "Vester Bjergvej", "reason": "road-named stitch of 7 track and path pieces (vej); no route evidence"},
         {"id": "r18353890", "name": "Drivvejen alternativ Råhede", "reason": "'alternative' variant of the long drove road Drivvejen; no network tag, 3.08 mi live -> 7.98 mi whole, a leg rather than a stand-alone local route; restore if a local source names it a day walk"},
         {"id": "r4215022", "name": "Mågekolonievej", "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"},
-        {"id": "r4209046", "name": "Nørrebjergevej", "reason": "two unnamed marked loops published under a member-way road name; the name misleads; restore with a real route name"},
+        {"id": "r4209046", "name": "Nørrebjergevej", "reason": "Kikkebjerg red-dot loop (1.79 km), unnamed in OSM and labelled with a member road name; no agency page lists a red Kikkebjerg loop, so it stays unnamed and out of the app (naming it would be invention)"},
         {"id": "n:Vandskellet", "name": "Vandskellet", "reason": "0.39 mi single-way name stitch; not a stand-alone route"},
         {"id": "n:Kanalstien", "name": "Kanalstien", "reason": "0.43 mi two-part name stitch; not a stand-alone route"}
       ],
@@ -1245,12 +1245,39 @@
       "relation_id": 6125571,
       "bbox": null,
       "center": null,
-      "rules": "dk-v2",
+      "rules": "dk-v3",
       "tier": 2,
       "hold": "curated-do-not-ship",
-      "est_trails": 23,
-      "est_mi": 9.5,
-      "notes": "Tier 2I island, Islands. Held: nested in national park; island. bbox/center computed by the qualify run. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Fanø: the only named relation is Fanø Hjertesti (r7741221, 2.57 mi); the six waymarked loops r4215022/23, r4215703/04, r4209046/47 carry no name tag at all, so shipping them would mean inventing names. Known omission."
+      "est_trails": 3,
+      "est_mi": 5.8,
+      "notes": "Tier 2I island, Islands. Held: shipping needs the qualify run (bbox/center) and a blessed row. M4 NAMING (reviewed 2026-11-22, Naturstyrelsen Fanø guide https://naturstyrelsen.dk/find-et-naturomraade/naturguider/midt-og-vestjylland/fanoe/praktisk and /oplevelser): of the six unnamed lwn loops only the two Pælebjerg loops (r4215022 red, r4215023 yellow) are listed by an agency page with a matching place, colour and length, so they are named from their waymark (name_unnamed_loops, dk-v3). Kikkebjerg r4209046/47 (the yellow one is listed only as the Sundhedssporet running track) stay unnamed and are excluded (assembled with the road name Nørrebjergevej). Fuglekøjeturen r4215703 (red 3.61 km vs listed 2.5 km) and r4215704 (0.78 km stub vs listed 5.5 km) stay unnamed too: they have no label at all, so the app writer drops them and the registry cannot name them in exclude_trails. 19 Badesti bathing paths excluded as in Vadehavet. Fanø Hjertesti r7741221 (Hjerteforeningen lwn, 2.57 mi) is the one named relation. Expected 3 trails, 5.84 mi. Known omissions: Fuglekøjeturen red/yellow, the Kikkebjerg loops, Klitturen via Paradisdalen (red 1 km and yellow, listed by Naturstyrelsen, not mapped as a relation).",
+      "exclude_trails": [
+        {"id": "r6617467", "name": "Badesti 1", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617478", "name": "Badesti 2", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617481", "name": "Badesti 3", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617482", "name": "Badesti 4", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617483", "name": "Badesti 5", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617484", "name": "Badesti 6", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617486", "name": "Badesti 8", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617487", "name": "Badesti 9", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617468", "name": "Badesti 10", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617469", "name": "Badesti 11", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617470", "name": "Badesti 12", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617471", "name": "Badesti 13", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617473", "name": "Badesti 15", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617474", "name": "Badesti 16", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617475", "name": "Badesti 17", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617476", "name": "Badesti 18", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617477", "name": "Badesti 19", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617479", "name": "Badesti 20", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r6617480", "name": "Badesti 20", "reason": "bathing-access path ('badesti') to the shore, 0.1-0.4 mi; not a hiking route"},
+        {"id": "r4209046", "name": "Nørrebjergevej", "reason": "Kikkebjerg red-dot loop (1.79 km), unnamed in OSM and labelled with a member road name; no agency page lists a red Kikkebjerg loop, so it stays unnamed and out of the app (naming it would be invention)"},
+        {"id": "r4209047", "name": "Nørrebjergevej", "reason": "Kikkebjerg yellow-dot loop (2.30 km), unnamed in OSM and labelled with a member road name; Naturstyrelsen lists the Kikkebjerg yellow route only as the 1.7 km Sundhedssporet running track (Praktisk page), not a walk, and 2.30 km is outside that length, so it stays unnamed and out"}
+      ],
+      "name_unnamed_loops": [
+        {"relation": "r4215022", "name": "Pælebjerg Rød rute", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/midt-og-vestjylland/fanoe/praktisk", "listed_km": [1, 2], "reason": "Naturstyrelsen Fanø guide, Praktisk > Vandreruter: 'Pælebjergturen ... Rød rute er 1 km lang og gul rute er på 4 km', and 'kortere rundtur på 1-2 km afmærket med røde farver'; Oplevelser #6: 'Fra p-pladsen P4 fører gul og rød sti ... til Pælebjerg'. OSM r4215022 (red dot) runs from Mågekolonivej/P4 over Pælebjerg (55.3878, 8.4104), 1.78 km. Reviewed 2026-11-22."},
+        {"relation": "r4215023", "name": "Pælebjerg Gul rute", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/midt-og-vestjylland/fanoe/praktisk", "listed_km": [3, 5], "reason": "Naturstyrelsen Fanø guide, Praktisk > Vandreruter: 'Pælebjergturen ... gul rute er på 4 km' and 'rundture på 3-5 km afmærket med gule farver'; Oplevelser #6: 'følg gul sti på en i alt 4 km lang rundtur til Skovlegepladsen'. OSM r4215023 (yellow dot) shares the P4 and Pælebjerg ways with the red loop and continues to the Skovlegeplads, 3.48 km. Reviewed 2026-11-22."}
+      ]
     },
     {
       "id": "tornby-klitplantage-dk",

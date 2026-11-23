@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import dk_name_unnamed_loops  # noqa: E402
 import dk_trail_name_fix  # noqa: E402
 import r2_release_contract as contract  # noqa: E402
 import simple_mols_publish as smp  # noqa: E402
@@ -392,6 +393,13 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             try:
                 dk_trail_name_fix.validate_fixes(entry["trail_name_fixes"], f"{aid}: trail_name_fixes")
             except dk_trail_name_fix.FixError as error:
+                raise DkError(str(error)) from None
+        if "name_unnamed_loops" in entry:
+            if entry.get("rules") != "dk-v3":
+                raise DkError(f"{aid}: name_unnamed_loops requires rules dk-v3")
+            try:
+                dk_name_unnamed_loops.validate_entries(entry["name_unnamed_loops"], f"{aid}: name_unnamed_loops")
+            except dk_name_unnamed_loops.NamingError as error:
                 raise DkError(str(error)) from None
         est_mi = entry.get("est_mi")
         if est_mi is not None and (not _is_num(est_mi) or est_mi < 0):

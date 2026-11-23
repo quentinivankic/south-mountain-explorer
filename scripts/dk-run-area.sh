@@ -78,6 +78,11 @@ NAME_PREFIX="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail
 # id derivation). Absent = no jq output, the script is not called (byte-identical run).
 NAME_FIXES="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .trail_name_fixes // empty' \
   trailforge/golden/dk-areas.json)"
+# Optional names for unnamed signed loops listed by an agency page (registry name_unnamed_loops; dk-v3 only,
+# validated by dk_publish and dk_name_unnamed_loops.py): applied to the assembled trails after assemble, before
+# trail_name_fixes. Absent = no jq output, the script is not called (byte-identical run).
+NAME_LOOPS="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .name_unnamed_loops // empty' \
+  trailforge/golden/dk-areas.json)"
 A="$W/$AREA_ID"
 mkdir -p "$A/geom"
 EXCLUDE_ARGS=()
@@ -192,6 +197,12 @@ python3 assemble/assemble.py --in "data/aoi/$AREA_ID.osm.pbf" \
   ${EXCLUDE_ARGS[@]+"${EXCLUDE_ARGS[@]}"} \
   --report-json "$A/assembly.json"
 
+if [ -n "$NAME_LOOPS" ]; then
+  printf '%s\n' "$NAME_LOOPS" > "$A/dk-name-unnamed-loops.json"
+  python3 ../scripts/dk_name_unnamed_loops.py --trails "data/aoi/$AREA_ID.trails.geojson" \
+    --relations "$A/relation-members.aoi.json" --entries "$A/dk-name-unnamed-loops.json" \
+    --report "$A/name-unnamed-loops.json"
+fi
 if [ -n "$NAME_FIXES" ]; then
   printf '%s\n' "$NAME_FIXES" > "$A/dk-trail-name-fixes.json"
   python3 ../scripts/dk_trail_name_fix.py --trails "data/aoi/$AREA_ID.trails.geojson" \

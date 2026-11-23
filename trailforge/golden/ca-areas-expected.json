@@ -953,8 +953,8 @@
       ]
     },
     "jasper-national-park-ca-ab": {
-      "trail_count": 42,
-      "total_mi": 356.9,
+      "trail_count": 41,
+      "total_mi": 355.0,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

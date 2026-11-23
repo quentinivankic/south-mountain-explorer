@@ -13903,8 +13903,16 @@
       "state": "Canada",
       "relation_id": 12707151,
       "name": "Hidden Lake Territorial Park",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -113.8,
+        62.46,
+        -113.55,
+        62.62
+      ],
+      "center": [
+        62.5,
+        -113.7
+      ],
       "tier": 2,
       "hold": null,
       "notes": "ICONIC-ONE-TRAIL: Cameron Falls Trail (0.9 mi in OSM; the signed Hidden Lake Territorial Park trail, about 1.2 km each way) is the walk a Yellowknife local names first on the Ingraham Trail; source https://publications.gc.ca/collections/collection_2013/aadnc-aandc/R2-463-2007-eng.pdf (Government of Canada Ingraham Trail guide: large sign 'Hidden Lake Territorial Park, Cameron Falls Trail', about 1.2 km each way, read 2026-11-23). Territories batch 2026-11-02 (ca-terr). Replay ok but only 1 trail: Cameron Falls Trail 0.9 mi. Below the 2-trail bar for territories. Cameron River Crossing Territorial Park (r12875365) is 0.016 x 0.009 deg and fails the 0.01 size gate. Release when a second named trail is mapped inside the polygon. audit9 2026-11-23: hold few-trails lifted for the one-trail rule; bbox/centre from the qualify proposal."

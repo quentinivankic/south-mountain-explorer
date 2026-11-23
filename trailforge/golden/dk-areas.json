@@ -195,7 +195,7 @@
       "tier": 2,
       "hold": null,
       "est_trails": 7,
-      "est_mi": 29.3,
+      "est_mi": 29.4,
       "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Gribskov core: the six Naturstyrelsen walks of the guide Gribskov (NST: seks afmærkede vandreruter): Fønstrup Damme, Røde Dam, Store Gribsø, Pibergården, Hvide- og Grønnekilder, Søskoven og Esrum Møllegård og Kanal; 97-99% of each in the national park. The eleven forest-ride names of the polygon stay excluded as in the umbrella. Reconcile 14 batch 2 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D265: update mode adds r21913783. Bless only from the Actions qualify run.",
       "display_name": "Gribskov · Nationalpark Kongernes Nordsjælland",
       "exclude_trails": [

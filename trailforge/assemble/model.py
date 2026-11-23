@@ -43,6 +43,14 @@ VARIANT_ROLES = {"alternative", "excursion", "alternate"}
 # OSM direction roles on a way member. Never main-line by default; opted into
 # per area (registry accept_directional_roles, dk-v3) for route=hiking only.
 DIRECTIONAL_ROLES = {"forward", "backward"}
+# Registry restore_member_ways (dk-v3, per relation) also takes a way member
+# whose role is exactly "route" for a main-line member: some Danish route
+# relations mark their ordinary path pieces that way.
+RESTORE_ROUTE_ROLE = "route"
+# Registry restore_member_ways: restored road length is capped per relation by
+# the entry's max_restored_m and by this share of the relation's published
+# length (restored plus kept main-line ways).
+DK_RESTORE_MAX_SHARE = 0.25
 RETAINED_ROUTE_INGEST_CATEGORY = "retained-signed-route-member"
 
 # Legacy destination signatures remain the default outside exact-quality
@@ -451,13 +459,15 @@ def resolve_route_member_entries(
         rel_id: int, relations: dict, _seen: set[int] | None = None,
         _ancestor_spur_role: str | None = None,
         _root_relation_id: int | None = None,
-        accept_directional_roles: bool = False) -> list[dict]:
+        accept_directional_roles: bool = False,
+        accept_route_role: bool = False) -> list[dict]:
     """Resolve ordered route occurrences with path-local cycle protection.
 
     With ``accept_directional_roles`` a ``forward``/``backward`` way member of a
     ``route=hiking`` relation counts as a main-line member (``effective_role``
-    "main"; the raw ``role`` is kept). Off by default: every other role
-    resolves exactly as before."""
+    "main"; the raw ``role`` is kept). With ``accept_route_role`` (registry
+    restore_member_ways) a way member whose role is ``route`` counts the same
+    way. Both off by default: every other role resolves exactly as before."""
     stack = set(_seen or ())
     root_relation_id = rel_id if _root_relation_id is None else _root_relation_id
     if rel_id in stack or rel_id not in relations:
@@ -477,6 +487,10 @@ def resolve_route_member_entries(
                     and member_safety.normalize(direct_role)
                     in DIRECTIONAL_ROLES):
                 effective = "main"
+            if (accept_route_role and _ancestor_spur_role is None
+                    and member_safety.normalize(direct_role)
+                    == RESTORE_ROUTE_ROLE):
+                effective = "main"
             out.append({
                 "root_relation_id": root_relation_id,
                 "relation_id": rel_id,
@@ -493,7 +507,7 @@ def resolve_route_member_entries(
                 inherited = direct_role
             out.extend(resolve_route_member_entries(
                 ref, relations, stack, inherited, root_relation_id,
-                accept_directional_roles))
+                accept_directional_roles, accept_route_role))
     return out
 
 
@@ -604,17 +618,91 @@ def _scope_relation_statuses(relation_scope_evidence: dict | None,
     return out
 
 
+def _way_length_m(way_id: int, ways: dict, nodes: dict) -> float | None:
+    """Length of one way in metres, or ``None`` when a node is missing."""
+    refs = (ways.get(way_id) or {}).get("nodes") or []
+    coords = [nodes.get(ref) for ref in refs]
+    if len(coords) < 2 or any(coord is None for coord in coords):
+        return None
+    return line_mi([(c[0], c[1]) for c in coords]) * 1609.344
+
+
 def _build_relation_member_audit(
         rel_id: int, relations: dict, ways: dict,
         relation_scope_evidence: dict | None = None,
         accept_directional_roles: bool = False,
-        keep_motor_tracks: bool = False
+        keep_motor_tracks: bool = False,
+        restore_cap_m: float | None = None,
+        nodes: dict | None = None
         ) -> tuple[dict, list[int], list[int]]:
     """Build complete Denmark direct-member evidence for one accepted route.
 
     ``keep_motor_tracks`` is true only for a route relation the registry names
     in ``keep_motor_tracks``; it is passed to the main-line member decision.
+
+    ``restore_cap_m`` is set only for a route relation the registry names in
+    ``restore_member_ways`` (its ``max_restored_m``). The route is first
+    resolved with the restore opt-in on. When the restored road length stays
+    within the cap and within ``DK_RESTORE_MAX_SHARE`` of the published length,
+    that result stands; otherwise the route is resolved again exactly as without
+    the opt-in (nothing restored, nothing truncated) and the audit says why in
+    ``dk_restore_member_ways`` so the area fails closed.
     """
+    if restore_cap_m is None:
+        return _relation_member_audit_pass(
+            rel_id, relations, ways, relation_scope_evidence,
+            accept_directional_roles, keep_motor_tracks)
+    audit, main_ways, spur_ways = _relation_member_audit_pass(
+        rel_id, relations, ways, relation_scope_evidence,
+        accept_directional_roles, keep_motor_tracks, restore=True)
+    road_ids, role_ids = [], []
+    for record in audit["direct_way_members"]:
+        if record["status"] != "included":
+            continue
+        if record["decision"]["reason"] == member_safety.ROAD_RESTORE_OPT_IN_REASON:
+            road_ids.append(record["way_id"])
+        elif member_safety.normalize(record["role"]) == RESTORE_ROUTE_ROLE:
+            role_ids.append(record["way_id"])
+    road_ids = list(dict.fromkeys(road_ids))
+    role_ids = list(dict.fromkeys(role_ids))
+    lengths = {way_id: _way_length_m(way_id, ways, nodes or {})
+               for way_id in dict.fromkeys(main_ways)}
+    restored_m = sum(lengths[w] or 0.0 for w in road_ids)
+    route_m = sum(length or 0.0 for length in lengths.values())
+    share = restored_m / route_m if route_m > 0 else 0.0
+    status = "restored"
+    if any(lengths[w] is None for w in road_ids):
+        status = "unmeasurable"
+    elif restored_m > restore_cap_m + 1e-9:
+        status = "cap-exceeded"
+    elif share > DK_RESTORE_MAX_SHARE + 1e-12:
+        status = "share-exceeded"
+    evidence = {
+        "status": status,
+        "cap_m": restore_cap_m,
+        "max_share": DK_RESTORE_MAX_SHARE,
+        "restored_way_ids": road_ids,
+        "route_role_way_ids": role_ids,
+        "restored_m": round(restored_m, 1),
+        "route_m": round(route_m, 1),
+        "share": round(share, 4),
+    }
+    if status != "restored":
+        audit, main_ways, spur_ways = _relation_member_audit_pass(
+            rel_id, relations, ways, relation_scope_evidence,
+            accept_directional_roles, keep_motor_tracks)
+    audit["dk_restore_member_ways"] = evidence
+    return audit, main_ways, spur_ways
+
+
+def _relation_member_audit_pass(
+        rel_id: int, relations: dict, ways: dict,
+        relation_scope_evidence: dict | None = None,
+        accept_directional_roles: bool = False,
+        keep_motor_tracks: bool = False,
+        restore: bool = False
+        ) -> tuple[dict, list[int], list[int]]:
+    """One resolution of a route's direct members (see the caller)."""
     relation = relations[rel_id]
     hierarchy = route_relation_hierarchy(rel_id, relations)
     direct = {
@@ -632,7 +720,8 @@ def _build_relation_member_audit(
     records = []
     for entry in resolve_route_member_entries(
             rel_id, relations,
-            accept_directional_roles=accept_directional_roles):
+            accept_directional_roles=accept_directional_roles,
+            accept_route_role=restore):
         way_id = entry["way_id"]
         way = ways.get(way_id)
         effective_role = entry["effective_role"]
@@ -641,7 +730,8 @@ def _build_relation_member_audit(
                 False, False, "missing-source-way")
         elif effective_role in MAIN_ROLES:
             decision = member_safety.dk_relation_member_decision(
-                way.get("tags") or {}, keep_motor_track=keep_motor_tracks)
+                way.get("tags") or {}, keep_motor_track=keep_motor_tracks,
+                restore_roads=restore)
         elif effective_role in SPUR_ROLES:
             decision = member_safety.standalone_member_decision(
                 way.get("tags") or {})
@@ -1073,7 +1163,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
              ca_accept_gap: dict[int, dict] | None = None,
              ca_keep_superroute: list[dict] | None = None,
              ca_rule_report: dict | None = None,
-             dk_keep_motor_tracks: frozenset[int] | None = None
+             dk_keep_motor_tracks: frozenset[int] | None = None,
+             dk_restore_member_ways: dict[int, float] | None = None
              ) -> list[Trail]:
     if (ca_accept_gap or ca_keep_superroute) and (
             member_safety.normalize(region) != "ca" or exact_denmark):
@@ -1089,6 +1180,10 @@ def assemble(nodes: dict, ways: dict, relations: dict,
         raise ValueError(
             "dk_keep_motor_tracks is limited to exact Denmark assembly")
     keep_motor_relations = frozenset(dk_keep_motor_tracks or ())
+    if dk_restore_member_ways and not exact_denmark:
+        raise ValueError(
+            "dk_restore_member_ways is limited to exact Denmark assembly")
+    restore_caps = dict(dk_restore_member_ways or {})
     trails: list[Trail] = []
     claimed: set[int] = set()
     relation_output_way_ids: set[int] = set()
@@ -1188,7 +1283,8 @@ def assemble(nodes: dict, ways: dict, relations: dict,
             audit, main_ways, spur_ways = _build_relation_member_audit(
                 rid, relations, ways, relation_scope_evidence,
                 accept_directional_roles,
-                keep_motor_tracks=rid in keep_motor_relations)
+                keep_motor_tracks=rid in keep_motor_relations,
+                restore_cap_m=restore_caps.get(rid), nodes=nodes)
             if collect_relation_member_audit is not None:
                 collect_relation_member_audit.append(audit)
             direct_members = audit["direct_relation_way_ids"]
@@ -1275,7 +1371,10 @@ def assemble(nodes: dict, ways: dict, relations: dict,
                 way_id for way_id in dict.fromkeys(main_ways)
                 if member_safety.dk_relation_member_decision(
                     ways[way_id]["tags"],
-                    keep_motor_track=rid in keep_motor_relations).restored
+                    keep_motor_track=rid in keep_motor_relations,
+                    restore_roads=((audit or {}).get(
+                        "dk_restore_member_ways") or {}).get(
+                            "status") == "restored").restored
             ]
         else:
             t.direct_relation_ways = {

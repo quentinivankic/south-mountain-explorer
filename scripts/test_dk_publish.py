@@ -380,11 +380,14 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     by_id = {a["id"]: a for a in _reg()["areas"]}
     assert by_id["egholm-dk"]["accept_directional_roles"] is True and by_id["egholm-dk"]["hold"] is None
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in by_id if "accept_gap" in by_id[i]}
-    assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400}, "hammeren-dk": {"r14573576": 300},
+    # ENGINE-2 (restore_member_ways): the Cirkelstien (hammeren-dk), Gletsjerruten (hald-so-dk) and Samsø Grøn gaps were
+    # dropped service driveways; with the opt-in they have no gap, so their accept_gap entries were withdrawn.
+    assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400},
                     "vestre-stigtehave-dk": {"r12667890": 300},
-                    "hald-so-dk": {"r10876676": 300, "r19703948": 200},
-                    # batch H: Orø Tur 4, Samsø Grøn (under the 1000 m cap); Kegnæs Langs sydkysten was withdrawn in BATCH-1
-                    "oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250},
+                    "hald-so-dk": {"r10876676": 300},
+                    # batch H: Orø Tur 4 (under the 1000 m cap; ENGINE-2 does not opt it in, see the registry test); Kegnæs
+                    # Langs sydkysten was withdrawn in BATCH-1
+                    "oro-dk": {"r3435156": 200},
                     # reconcile 13 batch A: Grejsdalstien (one real 130 m OSM hole)
                     "grejsdalen-dk": {"r11295724": 150}}
     # ENGINE-1 (keep_motor_tracks): Varde Rød r6153047's 130 m "gap" was its dropped motor tracks; with the opt-in the
@@ -405,7 +408,7 @@ def test_batch_h_opt_ins_holds_and_the_unshipped_re_reviews():
                         "kegnaes-dk": None, "svinklov-klitplantage-dk": "Svinkløv"}
     # accept_gap stays at or under the 1000 m cap and just above the measured gaps (Orø 142, Samsø 216.4, Kegnæs 922.8)
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in BATCH_H_SHIP if "accept_gap" in by_id[i]}
-    assert gaps == {"oro-dk": {"r3435156": 200}, "samso-dk": {"r19937141": 250}}
+    assert gaps == {"oro-dk": {"r3435156": 200}}   # Samsø Grøn's accept_gap was withdrawn by ENGINE-2 (restore_member_ways)
     # BATCH-1: Langs sydkysten has a real 923 m hole; the accept_gap is withdrawn and the relation-gap gate drops it
     assert "accept_gap" not in by_id["kegnaes-dk"] and "exclude_trails" not in by_id["kegnaes-dk"]
     assert {i: [e["id"] for e in by_id[i]["exclude_trails"]] for i in ("oro-dk", "samso-dk")} == {
@@ -444,7 +447,7 @@ def test_batch_i_boundary_and_container_opt_ins_and_the_slivso_hold():
         "hald-so-dk": 6, "farrestierne-dk": 3, "soheden-plantage-dk": 2, "hanstholm-dk": 3, "hammeren-dk": 6,
             "skjern-birk-plantage-dk": 3, "hovens-skov-dk": 2, "hals-mose-dk": 3,
                 "stevns-klint-dk": 2, "lonstrup-rubjerg-dk": 3, "grejsdalen-dk": 3, "arreskov-so-dk": 2}
-    assert {g["relation"]: g["max_gap_m"] for g in by_id["hald-so-dk"]["accept_gap"]} == {"r10876676": 300, "r19703948": 200}
+    assert {g["relation"]: g["max_gap_m"] for g in by_id["hald-so-dk"]["accept_gap"]} == {"r10876676": 300}   # Gletsjerruten r19703948 withdrawn by ENGINE-2 (restore_member_ways)
     assert by_id["hald-so-dk"]["trail_name_prefix"] == "Hald Sø"
     shipped = {i: (by_id[i]["est_trails"], by_id[i]["est_mi"]) for i in BATCH_I_SHIP}
     assert shipped == {"klintenborg-plantage-dk": (3, 4.3), "sonderskov-slaaenso-dk": (4, 7.9), "hald-so-dk": (6, 22.0),

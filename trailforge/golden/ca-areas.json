@@ -3023,8 +3023,16 @@
       "state": "Canada",
       "relation_id": 2077520,
       "name": "Cape St. Mary's Ecological Reserve",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -54.32,
+        46.72,
+        -54.08,
+        46.9
+      ],
+      "center": [
+        46.8,
+        -54.2
+      ],
       "tier": 2,
       "hold": null,
       "notes": "ICONIC-ONE-TRAIL: the Cape St. Mary's Ecological Reserve footpath (0.74 mi in OSM) is the 1 km path to Bird Rock, the gannet colony a local expert names first on the Avalon's Cape Shore; source https://www.gov.nl.ca/mca/r-csme/ (NL Municipal and Community Affairs, read 2026-11-23: 'Bird Rock is reached by a 1-km footpath'). NL curation 2026-11-02. 1 trail: Cape St. Mary's Ecological Reserve Trail 0.74 mi. audit9 2026-11-23: hold few-trails lifted for the one-trail rule; bbox/centre from the qualify proposal."

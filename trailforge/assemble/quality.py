@@ -37,6 +37,16 @@ DK_ACCEPT_GAP_CAP_M = 1000.0
 DK_ACCEPT_GAP_KEYS = {"relation", "max_gap_m", "reason"}
 DK_ACCEPT_GAP_ID = re.compile(r"^r[1-9][0-9]*$")
 DK_KEEP_MOTOR_TRACKS_KEYS = {"relation", "reason"}
+# Per-relation opt-in (registry `restore_member_ways`, dk-v3 only): the listed
+# signed route gets back the member ways the member-safety road gates dropped
+# (driveway/parking-aisle service ways, secondary crossings, sidewalks,
+# unclassified ways with a motor-access tag) and its way members with role
+# `route`. The restored road length is capped per relation by the entry's
+# max_restored_m (hard-capped here; the registry cannot raise it) and by
+# model.DK_RESTORE_MAX_SHARE of the route's length. Motorway, trunk and primary
+# roads are never restored (member_safety.ROAD_RESTORE_REFUSED_HIGHWAYS).
+DK_RESTORE_CAP_M = 3000.0
+DK_RESTORE_MEMBER_WAYS_KEYS = {"relation", "max_restored_m", "reason"}
 
 # Signed-route road miles and shares are evidence for manual review, never an
 # arbitrary terminal threshold. Exact-area unsafe/missing/inconsistent members
@@ -266,6 +276,89 @@ def dk_keep_motor_tracks_evidence(
         evidence[relation] = {"reason": entry["reason"],
                               "restored_way_ids": restored}
         if not restored:
+            failures.append(
+                f"{relation}: no member way needs the opt-in (stale entry)")
+    return failures, evidence
+
+
+def validate_dk_restore_member_ways(entries: Any) -> list[dict[str, Any]]:
+    """Return a normalized copy of a registry ``restore_member_ways`` list or
+    raise ValueError. Entry: {"relation": "r<id>", "max_restored_m": number in
+    (0, DK_RESTORE_CAP_M], "reason": text}. The list is never empty and names
+    each relation once."""
+    import math
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("restore_member_ways must be a non-empty list")
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if (not isinstance(entry, dict)
+                or set(entry) != DK_RESTORE_MEMBER_WAYS_KEYS):
+            raise ValueError(
+                f"restore_member_ways entry must be an object with exactly "
+                f"{sorted(DK_RESTORE_MEMBER_WAYS_KEYS)}: {entry!r}")
+        relation = entry["relation"]
+        if not (isinstance(relation, str)
+                and DK_ACCEPT_GAP_ID.fullmatch(relation)):
+            raise ValueError(
+                f"restore_member_ways relation is invalid: {relation!r}")
+        cap = entry["max_restored_m"]
+        if (isinstance(cap, bool) or not isinstance(cap, (int, float))
+                or not math.isfinite(cap) or not 0 < cap <= DK_RESTORE_CAP_M):
+            raise ValueError(
+                f"restore_member_ways {relation}: max_restored_m must be a "
+                f"number above 0 and at most {DK_RESTORE_CAP_M:g}: {cap!r}")
+        if not isinstance(entry["reason"], str) or not entry["reason"].strip():
+            raise ValueError(
+                f"restore_member_ways {relation}: reason is required")
+        if relation in seen:
+            raise ValueError(
+                f"restore_member_ways repeats relation {relation!r}")
+        seen.add(relation)
+        out.append({"relation": relation, "max_restored_m": float(cap),
+                    "reason": entry["reason"].strip()})
+    return out
+
+
+def dk_restore_member_ways_evidence(
+        entries: list[dict[str, Any]], audits: list[dict[str, Any]]
+        ) -> tuple[list[str], dict[str, Any]]:
+    """Check each ``restore_member_ways`` entry against the member audits.
+    Returns ``(failures, evidence)``. An entry fails closed when its relation
+    was not assembled in this area, when the restore went over its cap or share
+    (the route then stays exactly as without the opt-in), when a restored way
+    could not be measured, or when nothing was restored (a stale entry: OSM
+    changed, or the entry was never needed)."""
+    by_relation = {audit.get("relation_id"): audit for audit in audits}
+    failures: list[str] = []
+    evidence: dict[str, Any] = {}
+    for entry in entries:
+        relation = entry["relation"]
+        audit = by_relation.get(int(relation[1:]))
+        if audit is None:
+            failures.append(
+                f"{relation}: relation was not assembled in this area "
+                f"(restore_member_ways)")
+            continue
+        record = audit.get("dk_restore_member_ways")
+        if not isinstance(record, dict):
+            failures.append(f"{relation}: no restore evidence (stale entry)")
+            continue
+        evidence[relation] = {"reason": entry["reason"], **record}
+        status = record.get("status")
+        if status == "cap-exceeded":
+            failures.append(
+                f"{relation}: restored road length {record.get('restored_m')} m "
+                f"is over max_restored_m {record.get('cap_m'):g} m")
+        elif status == "share-exceeded":
+            failures.append(
+                f"{relation}: restored road share {record.get('share')} is over "
+                f"{record.get('max_share')} of the route")
+        elif status == "unmeasurable":
+            failures.append(
+                f"{relation}: a restored way has missing nodes (cannot measure)")
+        elif not record.get("restored_way_ids") and not record.get(
+                "route_role_way_ids"):
             failures.append(
                 f"{relation}: no member way needs the opt-in (stale entry)")
     return failures, evidence

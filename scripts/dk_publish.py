@@ -178,7 +178,9 @@ def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
     """dk-v3-only opt-ins: accept_gap (per-relation wide-gap acceptance),
     accept_directional_roles (forward/backward hiking-relation members) and
     keep_motor_tracks (per-relation: keep signed-route tracks tagged motorcar=yes
-    or motor_vehicle=yes that carry no foot tag)."""
+    or motor_vehicle=yes that carry no foot tag) and restore_member_ways
+    (per-relation: restore the member ways the member-safety road gates dropped,
+    capped per relation; never motorway, trunk or primary)."""
     if "accept_gap" in entry:
         if entry.get("rules") != "dk-v3":
             raise DkError(f"{aid}: accept_gap requires rules dk-v3")
@@ -201,6 +203,15 @@ def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
             _dk_quality().validate_dk_keep_motor_tracks(entry["keep_motor_tracks"])
         except ValueError as error:
             raise DkError(f"{aid}: keep_motor_tracks is invalid: {error}") from None
+    if "restore_member_ways" in entry:
+        if entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: restore_member_ways requires rules dk-v3")
+        try:
+            _dk_quality().validate_dk_restore_member_ways(
+                entry["restore_member_ways"])
+        except ValueError as error:
+            raise DkError(
+                f"{aid}: restore_member_ways is invalid: {error}") from None
 def _dk_areas():
     """trailforge/assemble/areas.py (the one definition of the polygons a container_by_id
     entry may name), loaded by path like _dk_names. Its top-level imports are stdlib only."""

@@ -265,13 +265,132 @@ def _service_exclusion(tags: Mapping[str, Any]) -> tuple[str | None, tuple[str, 
     return None, tokens
 
 
-def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
+MOTOR_TRACK_OPT_IN_REASON = "restored-opt-in-motor-track"
+
+
+def motor_track_opt_in_eligible(tags: Mapping[str, Any]) -> bool:
+    """Return whether one way is the narrow shape the Denmark opt-in keeps.
+
+    The shape is a ``highway=track`` that OSM tags ``motorcar=yes`` or
+    ``motor_vehicle=yes`` and gives no foot tag at all: a signed hiking relation
+    runs over a forest or heath track that is open to cars as well. A matching
+    ``motorcycle=yes`` is allowed. ``designated`` (a road signed for motor
+    traffic) and every other highway stay excluded, and the caller still applies
+    every other member-safety gate (atv, ohv, snowmobile, 4wd_only included).
+    """
+    if normalize(tags.get("highway")) != "track":
+        return False
+    if normalize(tags.get("foot")):
+        return False
+    if normalize(tags.get("motorcycle")) not in {"", "yes"}:
+        return False
+    values = {normalize(tags.get(key)) for key in ("motor_vehicle", "motorcar")}
+    return "yes" in values and values <= {"yes", ""}
+
+
+ROAD_RESTORE_OPT_IN_REASON = "restored-opt-in-road"
+# Highways a signed route is never restored over, however the registry is set:
+# motorways, trunk roads and primary roads (and their links).
+ROAD_RESTORE_REFUSED_HIGHWAYS = frozenset({
+    "motorway", "motorway_link", "trunk", "trunk_link", "primary",
+    "primary_link",
+})
+# Service subtypes a signed route legitimately runs over (a farm or forest
+# driveway, a car-park aisle). Every other subtype stays dropped.
+ROAD_RESTORE_SERVICE_TOKENS = frozenset({"driveway", "parking_aisle"})
+# Secondary roads and the links of the two lower classes (a village crossing).
+ROAD_RESTORE_CROSSING_HIGHWAYS = frozenset({
+    "secondary", "secondary_link", "tertiary_link",
+})
+# Unclassified and living-street ways whose only problem is a motor-access tag.
+ROAD_RESTORE_MOTOR_ACCESS_HIGHWAYS = frozenset({"unclassified", "living_street"})
+
+
+def road_restore_eligible(tags: Mapping[str, Any], decision: MemberDecision
+                          ) -> bool:
+    """Return whether the reviewed per-relation opt-in may restore this member.
+
+    ``decision`` is what :func:`_dk_relation_member_decision` returned. Four
+    narrow shapes qualify, each only for the exact drop reason it produces:
+    a driveway or parking-aisle ``highway=service``; a ``secondary`` crossing
+    (or ``secondary_link``/``tertiary_link``); a ``footway=sidewalk``; an
+    ``unclassified``/``living_street`` way dropped for a motor-access tag. Every
+    hard prohibition is re-checked here whatever the drop reason was: explicit
+    foot or access prohibitions, indoor, ``trail=no``, non-hiking tags and
+    atv/ohv/snowmobile/4wd_only/motorcycle access. Motorways, trunk and primary
+    roads (and links) are refused outright.
+    """
+    if decision.eligible:
+        return False
+    highway = normalize(tags.get("highway"))
+    if highway in ROAD_RESTORE_REFUSED_HIGHWAYS:
+        return False
+    foot = normalize(tags.get("foot"))
+    if foot in {"no", "private"}:
+        return False
+    if (normalize(tags.get("access")) in {"no", "private"}
+            and foot not in POSITIVE_FOOT_VALUES):
+        return False
+    if normalize(tags.get("indoor")) == "yes":
+        return False
+    if normalize(tags.get("trail")) == "no":
+        return False
+    if nonhiking_reason(tags) is not None:
+        return False
+    if motorized_reason(tags, include_road_motor=False) is not None:
+        return False
+    reason = decision.reason
+    if highway == "service":
+        tokens = service_tokens(tags)
+        if not tokens or not all(
+                token in ROAD_RESTORE_SERVICE_TOKENS for token in tokens):
+            return False
+        return (reason.startswith("service-forbidden-")
+                or reason == "motor-access-without-positive-foot")
+    if highway in ROAD_RESTORE_CROSSING_HIGHWAYS:
+        return reason == "highway-not-trailish"
+    if highway == "footway":
+        return (reason == "footway-sidewalk"
+                and normalize(tags.get("footway")) == "sidewalk")
+    if highway in ROAD_RESTORE_MOTOR_ACCESS_HIGHWAYS:
+        return reason == "motor-access-without-positive-foot"
+    return False
+
+
+def dk_relation_member_decision(tags: Mapping[str, Any], *,
+                                keep_motor_track: bool = False,
+                                restore_roads: bool = False
+                                ) -> MemberDecision:
+    """Decide a Denmark main-line member, with the reviewed restore opt-in.
+
+    ``restore_roads`` is the per-relation opt-in (registry
+    ``restore_member_ways``): a member the default decision drops is restored
+    when :func:`road_restore_eligible` accepts it (reason
+    ``restored-opt-in-road``). Off by default, every caller's decision is the
+    unchanged :func:`_dk_relation_member_decision`.
+    """
+    decision = _dk_relation_member_decision(
+        tags, keep_motor_track=keep_motor_track)
+    if restore_roads and road_restore_eligible(tags, decision):
+        return MemberDecision(True, True, ROAD_RESTORE_OPT_IN_REASON,
+                              service_tokens=decision.service_tokens)
+    return decision
+
+
+def _dk_relation_member_decision(tags: Mapping[str, Any], *,
+                                 keep_motor_track: bool = False
+                                 ) -> MemberDecision:
     """Decide Denmark hiking-relation main-line eligibility with a reason.
 
     A signed hiking relation supplies walking purpose, but never overrides an
     explicit pedestrian prohibition or a known unsafe/malformed road subtype.
     This relation-only default must not be reused for standalone checklist
     admission.
+
+    ``keep_motor_track`` is the reviewed per-relation opt-in (registry
+    ``keep_motor_tracks``): it keeps a member that
+    :func:`motor_track_opt_in_eligible` accepts and changes nothing else. The
+    default keeps every caller's decision identical.
     """
     foot = normalize(tags.get("foot"))
     explicit_foot = foot in POSITIVE_FOOT_VALUES
@@ -290,7 +409,15 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
     nonhiking = nonhiking_reason(tags)
     if nonhiking is not None:
         return MemberDecision(False, False, nonhiking)
-    motor_reason = motorized_reason(tags, include_road_motor=False)
+    opt_in_motor_track = (keep_motor_track
+                          and motor_track_opt_in_eligible(tags))
+    motor_tags = tags
+    if opt_in_motor_track and normalize(tags.get("motorcycle")) == "yes":
+        # motorcar/motor_vehicle=yes already admits motorcycles, so a matching
+        # motorcycle=yes is the same permission, not an extra motorized signal.
+        motor_tags = {key: value for key, value in tags.items()
+                      if key != "motorcycle"}
+    motor_reason = motorized_reason(motor_tags, include_road_motor=False)
     if motor_reason is not None:
         return MemberDecision(False, False, motor_reason)
 
@@ -306,7 +433,8 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
     # ordinary service road must not bypass the same explicit-foot gate used by
     # unclassified and living-street members.
     if (explicit_motor_access and not explicit_foot
-            and highway not in motor_default_classes):
+            and highway not in motor_default_classes
+            and not opt_in_motor_track):
         return MemberDecision(False, False, "motor-access-without-positive-foot")
 
     if highway == "service":
@@ -335,6 +463,8 @@ def dk_relation_member_decision(tags: Mapping[str, Any]) -> MemberDecision:
             return MemberDecision(
                 False, False, f"road-like-track-{road_kind}",
                 road_like_track_kind=road_kind)
+        if opt_in_motor_track:
+            return MemberDecision(True, True, MOTOR_TRACK_OPT_IN_REASON)
 
     standalone = standalone_member_decision(tags)
     if standalone.eligible:

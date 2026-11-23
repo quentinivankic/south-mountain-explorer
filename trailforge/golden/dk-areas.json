@@ -210,6 +210,13 @@
         {"id": "n:Kulsviersporet", "name": "Kulsviersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
         {"id": "n:Skovløbersporet", "name": "Skovløbersporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
         {"id": "n:Farlige Rødder", "name": "Farlige Rødder", "reason": "mountain-bike style name ('dangerous roots'), bicycle=yes horse=no path with bad visibility"}
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r12559901",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Søskoven og Esrum Møllegård og Kanal: the OSM relation is connected; the member-safety gates drop 7 road member ways (1 secondary road, 6 driveways) and leave the published route in pieces. Restoring them is 197 m of 10346 m (1.9%); cap 250 m."
+        }
       ]
     },
     {
@@ -772,11 +779,11 @@
           "reason": "3.1 mi name-stitch along the Besser Rev spit; not a signed route"
         }
       ],
-      "accept_gap": [
+      "restore_member_ways": [
         {
           "relation": "r19937141",
-          "max_gap_m": 250,
-          "reason": "Nordby Bakker Grøn (lwn hiking relation, 8.5 km): the OSM relation has a 216.4 m gap between 3 pieces; the parts ship as separate segments, no geometry is synthesized"
+          "max_restored_m": 450,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Grøn: the OSM relation is connected; the member-safety gates drop 2 road member ways (2 driveways) and leave the published route in pieces. Restoring them is 358 m of 8621 m (4.2%); cap 450 m."
         }
       ]
     },
@@ -925,6 +932,13 @@
           "id": "r1853281",
           "name": "Roden Skov, rød rute",
           "reason": "lwn Naturstyrelsen roundtrip (osmc red dot), the 4.3 km red route of Roden Skov, part of the Gråstenskovene guide; only ~12% inside the polygon, so a whole-route include"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r1853406",
+          "max_restored_m": 150,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Gråstenstien: the OSM relation is connected; the member-safety gates drop 2 road member ways (1 parking aisle, 1 driveway) and leave the published route in pieces. Restoring them is 105 m of 8722 m (1.2%); cap 150 m."
         }
       ]
     },
@@ -1311,12 +1325,15 @@
       "hold": null,
       "est_trails": 3,
       "est_mi": 5.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out.",
-      "accept_gap": [
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out. ENGINE-1 (2026-11-22): keep_motor_tracks on Rød r6153047 and Gul r6153048 keeps the member tracks I. Vej and Brandlinjen (highway=track, motorcar=yes, no foot tag) that the member-safety rule dropped. The 130 m source gap of Rød r6153047 was those dropped tracks, so with the opt-in the route has no gap (widest gap 0 m) and its accept_gap was withdrawn: the area now fails closed if it is put back.",
+      "keep_motor_tracks": [
         {
           "relation": "r6153047",
-          "max_gap_m": 200,
-          "reason": "Søndre plantage Rød vandrerute: the OSM relation has a 130 m gap between 3 pieces (a signed walking loop; no geometry is synthesized, the three parts ship as separate segments)"
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Søndre plantage Rød vandrerute: member tracks I. Vej (ways 411755586, 411757985, 398664780) and Brandlinjen (way 411755598) are highway=track motorcar=yes motor_vehicle=yes with no foot tag; they join the loop's pieces"
+        },
+        {
+          "relation": "r6153048",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Søndre plantage Gul vandrerute: member tracks way 411752663 and Brandlinjen (ways 411755598, 411755590) are highway=track motorcar=yes motor_vehicle=yes with no foot tag; they join the loop's pieces"
         }
       ]
     },
@@ -1419,6 +1436,13 @@
           "id": "r12946622",
           "name": "Skaløruten",
           "reason": "lwn hiking relation operated by Fejø, listed on fejoe.dk among the island's trampestier; Skalø lies just off Fejø and is part of the Fejø community; dropped by the polygon clip as <25% inside, so a whole-route include"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r12946644",
+          "max_restored_m": 450,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Vesterby Havn-ruten: the OSM relation is connected; the member-safety gates drop 4 road member ways (4 driveways) and leave the published route in pieces. Restoring them is 334 m of 4342 m (7.7%); cap 450 m."
         }
       ]
     },
@@ -1523,6 +1547,13 @@
           "name": "Lille Hareskov gul rute",
           "reason": "lwn Skov- og Naturstyrelsen relation 3.65 mi, the ~6 km gul rute named by the Naturstyrelsen Hareskovene guide; lies mostly in the neighbouring Lille Hareskov polygon"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r8428109",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Lille Hareskov gul rute: the OSM relation is connected; the member-safety gates drop 1 road member ways (1 parking aisle) and leave the published route in pieces. Restoring them is 30 m of 5901 m (0.5%); ."
+        }
       ]
     },
     {
@@ -1568,6 +1599,13 @@
           "id": "r14910479",
           "name": "Hummelsø ved Voldbygårde",
           "reason": "signed lwn walk round Hummelsø by Voldbygård in Sønderskov; runs mostly just outside the forest polygon, whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r14910479",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Hummelsø ved Voldbygårde: the OSM relation is connected; the member-safety gates drop 1 road member ways (1 driveway) and leave the published route in pieces. Restoring them is 50 m of 2135 m (2.3%); ."
         }
       ]
     },
@@ -1693,7 +1731,20 @@
           "reason": "lwn Naturstyrelsen relation 1.8 km on the Søbakke heath that links Kollerup and Svinkløv plantations (guide section Hederne/Jættestuer på Søbakke); outside the forest polygon, whole route"
         }
       ],
-      "trail_name_prefix": "Svinkløv"
+      "trail_name_prefix": "Svinkløv",
+      "keep_motor_tracks": [
+        {
+          "relation": "r10043412",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Svinkløv Hjertesti, Rød rute: member tracks Sømærkevej (ways 301623296, 1029682631) are highway=track motorcar=yes motorcycle=yes with no foot tag (the matching motorcycle=yes is the same permission); they join the loop's pieces"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r19358585",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Faldet Rundt: the OSM relation is connected; the member-safety gates drop 1 road member ways (1 parking aisle) and leave the published route in pieces. Restoring them is 75 m of 3472 m (2.2%); ."
+        }
+      ]
     },
     {
       "id": "kompedal-plantage-dk",
@@ -1754,6 +1805,13 @@
         {"id": "r19543445", "name": "Dyrehaven - blå rute", "reason": "Naturstyrelsen lwn hiking relation r19543445 (1.34 mi), whole route, waymarked blue::blue_dot; Dyrehaven blå rute, Haderslev Dyrehave, moved from sandkule-skov-dk"},
         {"id": "r2069076", "name": "Brunsbyttel og Christiansdal - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2069076 (2.4 mi), whole route, waymarked red::red_dot; Brunsbyttel og Christiansdal rød rute, moved from sandkule-skov-dk"},
         {"id": "r2069077", "name": "Sandkule Skov - rød rute", "reason": "Naturstyrelsen lwn hiking relation r2069077 (1.69 mi), whole route, waymarked red::red_dot; Sandkule Skov rød rute, moved from sandkule-skov-dk"}
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r2069076",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Brunsbyttel og Christiansdal - rød rute: the OSM relation is connected; the member-safety gates drop 2 road member ways (2 driveways) and leave the published route in pieces. Restoring them is 80 m of 3860 m (2.1%); ."
+        }
       ]
     },
     {
@@ -2261,7 +2319,19 @@
       "est_trails": 4,
       "est_mi": 8.1,
       "trail_name_prefix": "Staurby",
-      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi. BATCH-1 2026-11-01: KEEP Rød Rute (0.58 mi). The four relations carry the Middelfart Kommune forest page as website and that page presents the four walks together; the municipal page itself could not be fetched this session (TLS error), so this rests on the relation tags. BATCH-4 (audit 2): KEEP Staurby Rød Rute (0.58 mi): hiking relation r13743172 with waymark green:green:red_triangle and url staurbyskov.middelfart.dk 'Find rundt i skoven' (page unreachable, TLS error). Weakest of the four short trails; kept as a signed route of the same set as the Blå/Lilla/Grå routes."
+      "notes": "Middelfart Kommune forest, Funen. Prefix curation (dk-v3 + trail_name_prefix): SHIP. The four signed walks of the forest (Rød, Blå, Lilla Rute and the Grå Kulturrute; all four relations list staurbyskov.middelfart.dk 'Find rundt i skoven'): 4 trails / 8.1 mi. Colour names get the prefix 'Staurby' (Staurby Rød Rute, Staurby Blå Rute, Staurby Lilla Rute); Grå Kulturrute stays as is. Removed by rule: Lillebæltsstien and the Pilgrimsrute (long-distance, source gaps), the Staurby MTB track (Vandværksbakken) and 4 forest roads. Weakest bit: Rød Rute is only 0.58 mi. BATCH-1 2026-11-01: KEEP Rød Rute (0.58 mi). The four relations carry the Middelfart Kommune forest page as website and that page presents the four walks together; the municipal page itself could not be fetched this session (TLS error), so this rests on the relation tags. BATCH-4 (audit 2): KEEP Staurby Rød Rute (0.58 mi): hiking relation r13743172 with waymark green:green:red_triangle and url staurbyskov.middelfart.dk 'Find rundt i skoven' (page unreachable, TLS error). Weakest of the four short trails; kept as a signed route of the same set as the Blå/Lilla/Grå routes.",
+      "restore_member_ways": [
+        {
+          "relation": "r13743192",
+          "max_restored_m": 650,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Blå Rute: the OSM relation is connected; the member-safety gates drop 4 road member ways (2 parking aisles, 2 driveways) and leave the published route in pieces. Restoring them is 486 m of 4145 m (11.7%); cap 650 m."
+        },
+        {
+          "relation": "r13743990",
+          "max_restored_m": 650,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Lilla Rute: the OSM relation is connected; the member-safety gates drop 3 road member ways (3 driveways) and leave the published route in pieces. Restoring them is 508 m of 6061 m (8.4%); cap 650 m."
+        }
+      ]
     },
     {
       "id": "sogard-skov-dk",
@@ -2662,7 +2732,14 @@
         {"osm_name": "Lilla rute i Harde Skov", "name": "Lilla rute i Harte Skov", "source": "https://naturstyrelsen.dk/find-et-naturomraade/naturguider/trekantsomraadet/harte-skov-og-ferup-soe/praktisk", "reason": "typo: the forest is Harte Skov (Naturstyrelsen guide Harte Skov og Ferup Sø); the sibling OSM routes already say Harte Skov"}
       ],
       "display_name": "Harte Skov og Klintenborg Plantage",
-      "allow_rename": {"from": "Harte Skov", "reason": "reviewed 2026-11-01 (BATCH-3): merge with the Klintenborg Plantage area (Kolding Kommune forest next to Harte Skov, same Trekantområdet walks). The area now carries both forest names (id harte-skov-dk stays)"}
+      "allow_rename": {"from": "Harte Skov", "reason": "reviewed 2026-11-01 (BATCH-3): merge with the Klintenborg Plantage area (Kolding Kommune forest next to Harte Skov, same Trekantområdet walks). The area now carries both forest names (id harte-skov-dk stays)"},
+      "restore_member_ways": [
+        {
+          "relation": "r961913",
+          "max_restored_m": 200,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): blå rute i Klintenborg Plantage: the OSM relation is connected; the member-safety gates drop 3 road member ways (1 driveway, 2 parking aisles) and leave the published route in pieces. Restoring them is 129 m of 3267 m (4.0%); cap 200 m."
+        }
+      ]
     },
     {
       "id": "kelstrup-plantage-dk",
@@ -2991,7 +3068,13 @@
         "reason": "Named island with a single signed named walk of at least 3 mi (Kaninoen, relation 12787516); decision 6",
         "relation_id": 12787516,
         "trail_name": "Kaninoen"
-      }
+      },
+      "keep_motor_tracks": [
+        {
+          "relation": "r12787516",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Kaninoen (Horsens Kommune, lwn) runs 2 member tracks, Øvre (way 38245819, way 38245821), tagged highway=track motorcar=yes with no foot tag; the 2.5 mi northern tip is part of the signed walk"
+        }
+      ]
     },
     {
       "id": "drejo-dk",
@@ -3206,11 +3289,18 @@
           "relation": "r10876676",
           "max_gap_m": 300,
           "reason": "Rød (Hald Sø): the OSM relation has pieces up to 202 m apart (a signed lwn loop; no geometry is synthesized, the parts ship as separate segments)"
-        },
+        }
+      ],
+      "restore_member_ways": [
         {
           "relation": "r19703948",
-          "max_gap_m": 200,
-          "reason": "Gletsjerruten (Hærvejen perle): the OSM relation has pieces up to 183 m apart (a signed lwn loop with its own waymark; no geometry is synthesized, the parts ship as separate segments)"
+          "max_restored_m": 1000,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Gletsjerruten: the OSM relation is connected; the member-safety gates drop 5 road member ways (4 driveways, 1 parking aisle) and leave the published route in pieces. Restoring them is 779 m of 7294 m (10.7%); cap 1000 m."
+        },
+        {
+          "relation": "r10868051",
+          "max_restored_m": 150,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Gul: the OSM relation is connected; the member-safety gates drop 2 road member ways (2 parking aisles, 5 ways with role 'route') and leave the published route in pieces. Restoring them is 84 m of 5504 m (1.5%); cap 150 m."
         }
       ]
     },
@@ -3318,7 +3408,13 @@
       "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 2.9,
-      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough."
+      "notes": "Batch H (dk-v3 replay on main 99c788eda, 2026-10-31): HOLD. Relation-backed forest multipolygon r6708421 (first Læsø area). Replay: 2 trails, 2.9 mi: Læsø Klitplantage Gul rute 1.88 mi (Naturstyrelsen lwn r12571926; 4.9 km relation, but 1.9 km of it is the motor-vehicle forest track Horneksvejen, which the member-safety rule drops, so only 3.0 km of the walk is published) and Foldgårdssøen Hjertesti 1.01 mi (Hjerteforeningen lwn r14248087). The Hjertesti runs 62 percent on the Gul rute, so the area is one real route and one overlapping loop (live 2-trail areas overlap at most 27 percent). OSM has no other hiking relation on Læsø. Unlock: OSM relations for further Naturstyrelsen walks on Læsø, or a ruling that a truncated 3 km route plus an overlapping heart loop is enough.",
+      "keep_motor_tracks": [
+        {
+          "relation": "r12571926",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Læsø Klitplantage Gul rute (Naturstyrelsen, lwn) runs 3 member tracks tagged highway=track motor_vehicle=yes with no foot tag (Horneksvejen ways 146454762 and 1050032940, way 1050032941); 1.9 km of the 4.9 km walk"
+        }
+      ]
     },
     {
       "id": "horslund-krat-dk",
@@ -3718,6 +3814,18 @@
           "name": "Grenensporet Blå rute",
           "reason": "Frederikshavn Kommune lwn walk, blue hiker waymarks, whole route"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r12554769",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Grenensporet Blå rute: the OSM relation is connected; the member-safety gates drop 6 road member ways (1 driveway, 5 parking aisles) and leave the published route in pieces. Restoring them is 191 m of 6560 m (2.9%); cap 250 m."
+        },
+        {
+          "relation": "r12554700",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Grenensporet Rød rute: the OSM relation is connected; the member-safety gates drop 5 road member ways (1 driveway, 4 parking aisles) and leave the published route in pieces. Restoring them is 187 m of 9616 m (1.9%); cap 250 m."
+        }
       ]
     },
     {
@@ -4032,6 +4140,13 @@
       ],
       "trail_name_fixes": [
         {"osm_name": "En kultur- og natursti rundt om Nysted", "name": "Nysted rundt", "source": "https://www.visitdenmark.com/denmark/plan-your-trip/hiking-route-around-nysted-7-km-gdk1122915", "reason": "reviewed 2026-11-01 (BATCH-2), audit item 7: the OSM name is a sentence; VisitDenmark lists this 7 km culture and nature path as 'Around Nysted'"}
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r14775897",
+          "max_restored_m": 300,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): En kultur- og natursti rundt om Nysted: the OSM relation is connected; the member-safety gates drop 1 road member ways (1 driveway) and leave the published route in pieces. Restoring them is 208 m of 6899 m (3.0%); cap 300 m."
+        }
       ]
     },
     {
@@ -4326,6 +4441,13 @@
       ],
       "trail_name_fixes": [
         {"osm_name": "Skovstien", "name": "Sindal Skovstien", "source": "https://naturhjoerring.dk/wp-content/uploads/2015/01/vandrestier_i_sindal_2009.pdf", "reason": "reviewed 2026-11-01 (BATCH-2), audit item 7: bare 'Skovstien' is ambiguous (a second Skovstien, relation 12375280, is a different lwn route elsewhere); this relation 14374323 carries the Naturhjørring brochure 'Vandrestier i Sindal' as its website"}
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r14371913",
+          "max_restored_m": 200,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Soldalstien: the OSM relation is connected; the member-safety gates drop 3 road member ways (2 driveways, 1 parking aisle) and leave the published route in pieces. Restoring them is 134 m of 9422 m (1.4%); cap 200 m."
+        }
       ]
     },
     {
@@ -4582,7 +4704,14 @@
         {"id": "r9962614", "name": "Grøn stisløjfe, Rudbøl Sø, Lyst", "reason": "Tøndermarsk Initiativet lwn hiking relation r9962614 (1.44 mi), whole route, waymarked white:white::>:green; Tøndermarsk Initiativet stisløjfe (Grøn, Rudbøl Sø)"}
       ],
       "est_trails": 6,
-      "est_mi": 25.5
+      "est_mi": 25.5,
+      "restore_member_ways": [
+        {
+          "relation": "r10015736",
+          "max_restored_m": 1050,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Sort stisløjfe, Højer, Klæggravene, Vidå: the OSM relation is connected; the member-safety gates drop 3 road member ways (3 driveways) and leave the published route in pieces. Restoring them is 827 m of 11792 m (7.0%); cap 1050 m."
+        }
+      ]
     },
     {
       "id": "tonder-dk",
@@ -4602,7 +4731,14 @@
         {"id": "r12996962", "name": "Rød stisløjfe, Tønder, Nørresø", "reason": "Tøndermarsk Initiativet lwn hiking relation r12996962 (6.04 mi), whole route, waymarked white:white::>:red; Tøndermarsk Initiativet stisløjfe at Tønder Nørresø, 1 mi north of the Papegøjestien"}
       ],
       "est_trails": 2,
-      "est_mi": 11.0
+      "est_mi": 11.0,
+      "restore_member_ways": [
+        {
+          "relation": "r7802913",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Tur på Papegøjestien: the OSM relation is connected; the member-safety gates drop 1 road member ways (1 driveway) and leave the published route in pieces. Restoring them is 26 m of 8002 m (0.3%); ."
+        }
+      ]
     },
     {
       "id": "vester-vedsted-dk",
@@ -4622,7 +4758,14 @@
         {"id": "r14654257", "name": "Landskabsgang", "reason": "OSM lwn hiking relation r14654257 (7.66 mi), whole route, waymarked blue:white:yellow_pointer; Landskabsgang 12.5 km waymarked walk (landskabsgang.dk)"}
       ],
       "est_trails": 2,
-      "est_mi": 14.1
+      "est_mi": 14.1,
+      "restore_member_ways": [
+        {
+          "relation": "r14654257",
+          "max_restored_m": 300,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Landskabsgang: the OSM relation is connected; the member-safety gates drop 2 road member ways (2 driveways) and leave the published route in pieces. Restoring them is 217 m of 12331 m (1.8%); cap 300 m."
+        }
+      ]
     },
     {
       "id": "hammeren-dk",
@@ -4644,12 +4787,16 @@
         {"id": "r12492199", "name": "Jons Kapel rundtur", "reason": "OSM lwn hiking relation r12492199 (1.74 mi), whole route, waymarked blue:white:blue_hiker; Jons Kapel rundtur on Slotslyngen"},
         {"id": "r9690060", "name": "Ringebakkerne", "reason": "OSM lwn hiking relation r9690060 (3.51 mi), whole route; Ringebakkerne, 0.7 mi from Jons Kapel"}
       ],
-      "accept_gap": [
-        {"relation": "r14573576", "max_gap_m": 300, "reason": "Cirkelstien: the OSM relation has a 265.1 m gap between 2 pieces (two member ways stay excluded as service driveways); the two parts ship as separate segments, no geometry is synthesized"}
-      ],
       "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Nordbornholm bag (ro-plantage-dk). The six walks of the Hammeren / Hammershus / Jons Kapel tip of Bornholm in one area.",
       "est_trails": 6,
-      "est_mi": 17.6
+      "est_mi": 17.6,
+      "restore_member_ways": [
+        {
+          "relation": "r14573576",
+          "max_restored_m": 400,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Cirkelstien: the OSM relation is connected; the member-safety gates drop 2 road member ways (2 driveways) and leave the published route in pieces. Restoring them is 284 m of 2761 m (10.3%); cap 400 m."
+        }
+      ]
     },
     {
       "id": "engelsholm-skov-dk",
@@ -4957,6 +5104,13 @@
           "name": "Jeksen Bæk og Bjertrupskov rundtur",
           "reason": "signed named walk, whole route"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r21040378",
+          "max_restored_m": 700,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Hørningstien: the OSM relation is connected; the member-safety gates drop 8 road member ways (1 driveway, 7 secondary roads) and leave the published route in pieces. Restoring them is 552 m of 10168 m (5.4%); cap 700 m."
+        }
       ]
     },
     {
@@ -5093,6 +5247,13 @@
           "name": "Lyngruten 5",
           "reason": "signed named walk, whole route"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r12884946",
+          "max_restored_m": 3000,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Troldtoft-ruten: the OSM relation is connected; the member-safety gates drop 4 road member ways (3 driveways, 1 unclassified road with motor access tag) and leave the published route in pieces. Restoring them is 2878 m of 27183 m (10.6%); cap 3000 m."
+        }
       ]
     },
     {
@@ -5136,6 +5297,13 @@
           "id": "r4030932",
           "name": "Tokeskovstien",
           "reason": "signed named walk, whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r4031300",
+          "max_restored_m": 500,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Brende Å: the OSM relation is connected; the member-safety gates drop 9 road member ways (2 parking aisles, 7 secondary roads) and leave the published route in pieces. Restoring them is 361 m of 5455 m (6.6%); cap 500 m."
         }
       ]
     },
@@ -5506,6 +5674,13 @@
           "name": "Silkeruten",
           "reason": "signed named walk, whole route"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r12563795",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, Quentin 2026-11-22): Silkeruten: the OSM relation is connected; the member-safety gates drop 7 road member ways (2 parking aisles, 5 sidewalks) and leave the published route in pieces. Restoring them is 185 m of 11808 m (1.6%); cap 250 m."
+        }
       ]
     },
     {
@@ -5844,6 +6019,317 @@
           "reason": "Grejsdalstien (Vejle Kommune): one real OSM hole of 130 m in 9.6 mi (0.8%); the parts ship as separate segments, no geometry is synthesized"
         }
       ]
+    },
+    {
+      "id": "klokkerholm-dk",
+      "name": "Klokkerholm",
+      "state": "Denmark",
+      "relation_id": 16116195,
+      "bbox": [10.1, 57.16, 10.22, 57.27],
+      "center": [57.214, 10.161],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D096. Klokkerholm (Brønderslev): Klokkerholm Møllesø 1.4 mi and Planetstien 1.5 mi, both named for the village. Klokkerholm Hjertesti (class A) and Gravhøjsporet (relation gap) stay out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r16116195",
+          "name": "Klokkerholm Møllesø",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14285945",
+          "name": "Planetstien i Klokkerholm",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Klokkerholm; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "esbjerg-energistier-dk",
+      "name": "Esbjerg Energistier",
+      "state": "Denmark",
+      "relation_id": 13090291,
+      "bbox": [8.34, 55.43, 8.52, 55.58],
+      "center": [55.506, 8.429],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 12.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D109. Esbjerg Kommune Energistier, signed colour loops (lwn) around Esbjerg. Lysstien Hjertesti (class A), Sædding Blå (road-heavy relation) and Guldager Rød (2 pieces) stay out. Hjerting - Blå Energisti r13091381 stays out: with it the route cluster is 0.124 deg wide, over the 0.12 cap. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13090291",
+          "name": "Vognsbøl - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090314",
+          "name": "Strandskoven - Blå Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090262",
+          "name": "Nørreskoven - Rød Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090193",
+          "name": "Kjersing - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091227",
+          "name": "Sønderris - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091352",
+          "name": "Guldager - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Esbjerg Energistier; container derived from the included signed routes"
+      }
+    },
+    {
+      "id": "arreskov-so-dk",
+      "name": "Arreskov Sø",
+      "state": "Denmark",
+      "way_id": 98989796,
+      "bbox": [10.22, 55.09, 10.38, 55.22],
+      "center": [55.153, 10.301],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.7,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D122 D123. Arreskov Sø (Faaborg-Midtfyn): Sollerup 3.5 mi and Arreskov Sø stien 2.3 mi. Container is the Trækfuglereservat nature reserve way 98989796 on the lake. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14471074",
+          "name": "Sollerup",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14533456",
+          "name": "Arreskov Sø stien",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Trækfuglereservat nature reserve way 98989796 on Arreskov Sø; the lake relation 2632111 and the vildtreservat are mostly water"
+      }
+    },
+    {
+      "id": "rudolph-tegner-esrum-dk",
+      "name": "Rudolph Tegner og Esrum",
+      "state": "Denmark",
+      "relation_id": 1559647,
+      "bbox": [12.33, 56.0, 12.47, 56.15],
+      "center": [56.074, 12.4],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.5,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D187. North Zealand near Esrum Sø and the Rudolph Tegner Museum (Gribskov): Havreholm-Esrum 1.5 mi and Rusland/Rudolph Tegner 4.0 mi (lwn). Esrum Å Stien r17404588 has a 229 m gap and stays out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1559647",
+          "name": "Havreholm-Esrum",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12335516",
+          "name": "Rusland/Rudolph Tegner",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Esrum and Rudolph Tegner walks; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "vojens-dk",
+      "name": "Vojens",
+      "state": "Denmark",
+      "relation_id": 7110045,
+      "bbox": [9.22, 55.2, 9.34, 55.31],
+      "center": [55.251, 9.279],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.0,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D210. Vojens (Haderslev): Blå 1.8 mi and Rød 2.3 mi walks at the Fritidscenter. Vojens Hjertesti (class A) and the 0.9 mi Gul walk stay out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r7110045",
+          "name": "Blå vandresti ved Vojens Fritidscenter",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r7110046",
+          "name": "Rød vandresti ved Vojens Fritidscenter",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Vojens walks; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "gulstav-klint-dk",
+      "name": "Gulstav Klint",
+      "state": "Denmark",
+      "relation_id": 1794560,
+      "bbox": [10.63, 54.67, 10.74, 54.79],
+      "center": [54.73, 10.685],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D368 D369. Gulstav Klint and Dovns Klint, Langeland west coast: Lille hestetur 1.4 mi and Store hestetur 2.2 mi (lwn). Rows D368 and D369 share these routes. Vandrerute r1794621 (0.7 mi) stays out as a short spur. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1794560",
+          "name": "Lille hestetur",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r11727058",
+          "name": "Store hestetur",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "trail_name_prefix": "Gulstav Klint",
+      "container_from_routes": {
+        "reason": "No accepted polygon for Gulstav Klint (the cliff way is open and 0.003 deg wide); container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "lykkesholm-slot-dk",
+      "name": "Lykkesholm Slot",
+      "state": "Denmark",
+      "relation_id": 14483524,
+      "bbox": [10.56, 55.19, 10.69, 55.3],
+      "center": [55.242, 10.629],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D459. Lykkesholm Slot near Nyborg: Lykkesholm Slot 2.2 mi and Vandmøllerne 1.7 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14483524",
+          "name": "Lykkesholm Slot",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14483525",
+          "name": "Vandmøllerne",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Lykkesholm; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "legind-bjerge-dk",
+      "name": "Legind Bjerge",
+      "state": "Denmark",
+      "relation_id": 9986693,
+      "bbox": [8.78, 56.71, 8.95, 56.82],
+      "center": [56.762, 8.863],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D577. Legind Bjerge (Skive, Salling): Legind Bjerge Gul 1.5 mi and Halkhoved 2.9 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r9986693",
+          "name": "Legind Bjerge Gul",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r20597836",
+          "name": "Halkhoved",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Legind Bjerge; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "markmandsstien-dk",
+      "name": "Markmandsstien",
+      "state": "Denmark",
+      "relation_id": 1997353,
+      "bbox": [8.65, 55.07, 8.83, 55.22],
+      "center": [55.142, 8.739],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.7,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D672. Tønder Kommune: Æ' Markmandssti 4.1 mi and Den Svorne Vej 3.8 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1997353",
+          "name": "Æ' Markmandssti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2006909",
+          "name": "Den Svorne Vej",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Markmandssti; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "oster-nykirke-dk",
+      "name": "Øster Nykirke",
+      "state": "Denmark",
+      "relation_id": 18637514,
+      "bbox": [9.31, 55.83, 9.44, 55.97],
+      "center": [55.9, 9.374],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D717. Øster Nykirke and Tinnet Krat (Vejle Kommune): 1.6 mi and 2.3 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r18637514",
+          "name": "Øster Nykirke",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6393566",
+          "name": "Tinnet Krat",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Øster Nykirke; container derived from the 2 included signed routes"
+      }
     }
   ]
 }

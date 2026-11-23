@@ -365,6 +365,61 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   roles exactly as before. The independent Mols-only `final` validator
   (`validate_publish_pilot.py`) recomputes roles without this opt-in and is not
   used by the Denmark pipeline.
+- **Keep motor tracks** (registry `keep_motor_tracks`, `--dk-keep-motor-tracks`,
+  dk-v3 exact Denmark only): `[{"relation": "r<id>", "reason": "..."}]`. A signed
+  hiking route often runs over a forest or heath `highway=track` that OSM also
+  tags `motorcar=yes` or `motor_vehicle=yes` and gives no foot tag. The default
+  member-safety rule drops such a member (`motor-access-without-positive-foot`),
+  so the route has a hole and the relation-gap gate withdraws it or it publishes
+  short. For each listed route relation, a main-role member is kept when it is a
+  `highway=track` with no foot tag (a blank value counts as none) and its motor
+  tags are `yes` only (`designated`, `no` or a contradictory pair stay out; a
+  `motorcycle=yes` beside it is the same permission and is allowed, while
+  `motorcycle=designated` or `no` keeps the member out), and it still passes every
+  other member-safety gate (access, foot=no/private, road-like lanes or name,
+  atv/ohv/snowmobile/4wd_only, non-hiking tags). It is
+  reported as `restored-opt-in-motor-track` (restored), so the quality report lists
+  it with the other restored members, and the assembly report carries
+  `dk_keep_motor_tracks` (per relation, the way ids kept). The opt-in is scoped
+  to the named root relation: another route that shares the same way keeps
+  dropping it. FAIL CLOSED: an entry whose relation was not assembled in the
+  area, or that no member way needs (OSM now gives the track a foot tag, or the
+  tags changed), fails the area (assemble exits 2). Tracks that already carry a
+  foot tag (including `motor_vehicle=forestry` with `foot=yes`) need no opt-in.
+  Off by default: every other area decides members exactly as before. The
+  Mols-only `final` validator (`validate_publish_pilot.py`) recomputes members
+  without this opt-in and is not used by the Denmark pipeline.
+- **Restore member ways** (registry `restore_member_ways`,
+  `--dk-restore-member-ways`, dk-v3 exact Denmark only):
+  `[{"relation": "r<id>", "max_restored_m": <1..3000>, "reason": "..."}]`. A
+  signed route often runs over a short driveway, a car-park aisle, a village
+  crossing or a pavement that the default member-safety rule drops, so the route
+  publishes in pieces. For each listed route relation, a main-role member the
+  default drops is restored (reported as `restored-opt-in-road`, restored) when
+  it is exactly one of: a `highway=service` whose service subtypes are all
+  `driveway` or `parking_aisle`; a `secondary`, `secondary_link` or
+  `tertiary_link` way; a `footway=sidewalk`; an `unclassified` or `living_street`
+  way dropped only for a motor-access tag. Every hard prohibition is checked
+  again whatever the drop reason was: foot=no/private, access=no/private without
+  a positive foot tag, indoor, `trail=no`, non-hiking tags (mtb flow, piste,
+  "no hiking", bike-only names) and atv/ohv/snowmobile/4wd_only/motorcycle
+  access. Motorways, trunk and primary roads (and their links) are never
+  restored. The same entry also takes a way member whose role is exactly `route`
+  as a main-line member (some Danish relations mark ordinary path pieces that
+  way); the way still passes every member-safety gate. Scope is the named root
+  relation. CAPS, per relation: the restored road length may not exceed the
+  entry's `max_restored_m` (hard limit 3000 m in the registry validator) and may
+  not exceed `model.DK_RESTORE_MAX_SHARE` (25 %) of the route's length. Over
+  either cap, nothing is restored and nothing is truncated (the route resolves
+  exactly as without the opt-in) and the area fails closed. FAIL CLOSED also: an
+  entry whose relation was not assembled, a restored way with missing nodes, or
+  an entry no member way needs (stale) fails the area (assemble exits 2). The
+  assembly report carries `dk_restore_member_ways` (per relation: status, cap,
+  restored way ids, route-role way ids, restored metres, route metres, share),
+  and the member audit keeps each decision. An `accept_gap` entry that the
+  restore makes unneeded must be withdrawn (the unneeded entry fails closed).
+  Off by default: every other area decides members exactly as before. It
+  composes with `keep_motor_tracks` (motor tracks) and never overlaps it.
 - **Boundary by id** (registry `boundary_by_id: true`, `--dk-boundary-by-id`,
   dk-v3 exact Denmark only): `--require-exact-area` normally needs exactly one
   boundary with the area name. When OSM holds several (a relation and a way

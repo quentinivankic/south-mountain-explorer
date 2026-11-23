@@ -49,6 +49,16 @@ ACCEPT_GAP_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .a
   trailforge/golden/dk-areas.json)"
 DIRECTIONAL_ROLES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .accept_directional_roles // empty' \
   trailforge/golden/dk-areas.json)"
+# Optional per-relation keep of signed-route member tracks tagged motorcar=yes or motor_vehicle=yes with no
+# foot tag (registry keep_motor_tracks; dk-v3 only, validated by dk_publish and assemble). Absent = [] = no
+# flag (byte-identical run).
+KEEP_MOTOR_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .keep_motor_tracks // []' \
+  trailforge/golden/dk-areas.json)"
+# Optional per-relation restore of the member ways the member-safety road gates dropped (registry
+# restore_member_ways [{relation, max_restored_m, reason}]; dk-v3 only, validated by dk_publish and assemble;
+# never motorway/trunk/primary). Absent = [] = no flag (byte-identical run).
+RESTORE_WAYS_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .restore_member_ways // []' \
+  trailforge/golden/dk-areas.json)"
 # Optional boundary-by-id opt-ins (registry boundary_by_id / container_by_id; dk-v3 only, validated by
 # dk_publish and assemble): pick the polygon by the registry's relation/way id instead of by name alone.
 BOUNDARY_BY_ID="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .boundary_by_id // empty' \
@@ -82,6 +92,14 @@ fi
 if [ "$ACCEPT_GAP_JSON" != "[]" ]; then
   printf '%s\n' "$ACCEPT_GAP_JSON" > "$A/dk-accept-gap.json"
   EXCLUDE_ARGS+=(--dk-accept-gap "$A/dk-accept-gap.json")
+fi
+if [ "$KEEP_MOTOR_JSON" != "[]" ]; then
+  printf '%s\n' "$KEEP_MOTOR_JSON" > "$A/dk-keep-motor-tracks.json"
+  EXCLUDE_ARGS+=(--dk-keep-motor-tracks "$A/dk-keep-motor-tracks.json")
+fi
+if [ "$RESTORE_WAYS_JSON" != "[]" ]; then
+  printf '%s\n' "$RESTORE_WAYS_JSON" > "$A/dk-restore-member-ways.json"
+  EXCLUDE_ARGS+=(--dk-restore-member-ways "$A/dk-restore-member-ways.json")
 fi
 if [ "$DIRECTIONAL_ROLES" = "true" ]; then
   EXCLUDE_ARGS+=(--dk-accept-directional-roles)

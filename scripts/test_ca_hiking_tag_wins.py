@@ -93,8 +93,8 @@ def test_live_registry_loads_and_intended_areas_are_opted_in():
         "banff-national-park-ca-ab": ["Healy Pass Trail"],
         "e-c-manning-provincial-park-ca-bc": ["Frosty Mountain"],
     }
-    # Garibaldi stays held (Black Tusk and Panorama Ridge are still stubs); every other opted-in area is live.
-    assert [a["id"] for a in reg["areas"] if "hiking_tag_wins" in a and a.get("hold")] == ["garibaldi-provincial-park-ca-bc"]
+    # Garibaldi was unheld in the mech2 CA ship (Garibaldi Lake and Elfin Lakes now ship whole); every opted-in area is live.
+    assert [a["id"] for a in reg["areas"] if "hiking_tag_wins" in a and a.get("hold")] == []
     assert all(a["id"].endswith(("-ca-bc", "-ca-ab")) for a in reg["areas"] if "hiking_tag_wins" in a)
     flagged = {(a["id"], e["name"]): len(e["way_ids"]) for a in reg["areas"] for e in a.get("hiking_tag_wins", [])
                if "named_sac_evidence" in e}

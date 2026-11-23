@@ -5865,6 +5865,317 @@
           "reason": "Grejsdalstien (Vejle Kommune): one real OSM hole of 130 m in 9.6 mi (0.8%); the parts ship as separate segments, no geometry is synthesized"
         }
       ]
+    },
+    {
+      "id": "klokkerholm-dk",
+      "name": "Klokkerholm",
+      "state": "Denmark",
+      "relation_id": 16116195,
+      "bbox": [10.1, 57.16, 10.22, 57.27],
+      "center": [57.214, 10.161],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 2.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D096. Klokkerholm (Brønderslev): Klokkerholm Møllesø 1.4 mi and Planetstien 1.5 mi, both named for the village. Klokkerholm Hjertesti (class A) and Gravhøjsporet (relation gap) stay out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r16116195",
+          "name": "Klokkerholm Møllesø",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14285945",
+          "name": "Planetstien i Klokkerholm",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Klokkerholm; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "esbjerg-energistier-dk",
+      "name": "Esbjerg Energistier",
+      "state": "Denmark",
+      "relation_id": 13090291,
+      "bbox": [8.34, 55.43, 8.52, 55.58],
+      "center": [55.506, 8.429],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 6,
+      "est_mi": 12.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D109. Esbjerg Kommune Energistier, signed colour loops (lwn) around Esbjerg. Lysstien Hjertesti (class A), Sædding Blå (road-heavy relation) and Guldager Rød (2 pieces) stay out. Hjerting - Blå Energisti r13091381 stays out: with it the route cluster is 0.124 deg wide, over the 0.12 cap. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13090291",
+          "name": "Vognsbøl - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090314",
+          "name": "Strandskoven - Blå Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090262",
+          "name": "Nørreskoven - Rød Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13090193",
+          "name": "Kjersing - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091227",
+          "name": "Sønderris - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091352",
+          "name": "Guldager - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Esbjerg Energistier; container derived from the included signed routes"
+      }
+    },
+    {
+      "id": "arreskov-so-dk",
+      "name": "Arreskov Sø",
+      "state": "Denmark",
+      "way_id": 98989796,
+      "bbox": [10.22, 55.09, 10.38, 55.22],
+      "center": [55.153, 10.301],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.7,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D122 D123. Arreskov Sø (Faaborg-Midtfyn): Sollerup 3.5 mi and Arreskov Sø stien 2.3 mi. Container is the Trækfuglereservat nature reserve way 98989796 on the lake. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14471074",
+          "name": "Sollerup",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14533456",
+          "name": "Arreskov Sø stien",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Trækfuglereservat nature reserve way 98989796 on Arreskov Sø; the lake relation 2632111 and the vildtreservat are mostly water"
+      }
+    },
+    {
+      "id": "rudolph-tegner-esrum-dk",
+      "name": "Rudolph Tegner og Esrum",
+      "state": "Denmark",
+      "relation_id": 1559647,
+      "bbox": [12.33, 56.0, 12.47, 56.15],
+      "center": [56.074, 12.4],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.5,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D187. North Zealand near Esrum Sø and the Rudolph Tegner Museum (Gribskov): Havreholm-Esrum 1.5 mi and Rusland/Rudolph Tegner 4.0 mi (lwn). Esrum Å Stien r17404588 has a 229 m gap and stays out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1559647",
+          "name": "Havreholm-Esrum",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12335516",
+          "name": "Rusland/Rudolph Tegner",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Esrum and Rudolph Tegner walks; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "vojens-dk",
+      "name": "Vojens",
+      "state": "Denmark",
+      "relation_id": 7110045,
+      "bbox": [9.22, 55.2, 9.34, 55.31],
+      "center": [55.251, 9.279],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.0,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D210. Vojens (Haderslev): Blå 1.8 mi and Rød 2.3 mi walks at the Fritidscenter. Vojens Hjertesti (class A) and the 0.9 mi Gul walk stay out. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r7110045",
+          "name": "Blå vandresti ved Vojens Fritidscenter",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r7110046",
+          "name": "Rød vandresti ved Vojens Fritidscenter",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Vojens walks; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "gulstav-klint-dk",
+      "name": "Gulstav Klint",
+      "state": "Denmark",
+      "relation_id": 1794560,
+      "bbox": [10.63, 54.67, 10.74, 54.79],
+      "center": [54.73, 10.685],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D368 D369. Gulstav Klint and Dovns Klint, Langeland west coast: Lille hestetur 1.4 mi and Store hestetur 2.2 mi (lwn). Rows D368 and D369 share these routes. Vandrerute r1794621 (0.7 mi) stays out as a short spur. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1794560",
+          "name": "Lille hestetur",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r11727058",
+          "name": "Store hestetur",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "trail_name_prefix": "Gulstav Klint",
+      "container_from_routes": {
+        "reason": "No accepted polygon for Gulstav Klint (the cliff way is open and 0.003 deg wide); container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "lykkesholm-slot-dk",
+      "name": "Lykkesholm Slot",
+      "state": "Denmark",
+      "relation_id": 14483524,
+      "bbox": [10.56, 55.19, 10.69, 55.3],
+      "center": [55.242, 10.629],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D459. Lykkesholm Slot near Nyborg: Lykkesholm Slot 2.2 mi and Vandmøllerne 1.7 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14483524",
+          "name": "Lykkesholm Slot",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14483525",
+          "name": "Vandmøllerne",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Lykkesholm; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "legind-bjerge-dk",
+      "name": "Legind Bjerge",
+      "state": "Denmark",
+      "relation_id": 9986693,
+      "bbox": [8.78, 56.71, 8.95, 56.82],
+      "center": [56.762, 8.863],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.6,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D577. Legind Bjerge (Skive, Salling): Legind Bjerge Gul 1.5 mi and Halkhoved 2.9 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r9986693",
+          "name": "Legind Bjerge Gul",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r20597836",
+          "name": "Halkhoved",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Legind Bjerge; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "markmandsstien-dk",
+      "name": "Markmandsstien",
+      "state": "Denmark",
+      "relation_id": 1997353,
+      "bbox": [8.65, 55.07, 8.83, 55.22],
+      "center": [55.142, 8.739],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.7,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D672. Tønder Kommune: Æ' Markmandssti 4.1 mi and Den Svorne Vej 3.8 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r1997353",
+          "name": "Æ' Markmandssti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2006909",
+          "name": "Den Svorne Vej",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Markmandssti; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "oster-nykirke-dk",
+      "name": "Øster Nykirke",
+      "state": "Denmark",
+      "relation_id": 18637514,
+      "bbox": [9.31, 55.83, 9.44, 55.97],
+      "center": [55.9, 9.374],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.9,
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D717. Øster Nykirke and Tinnet Krat (Vejle Kommune): 1.6 mi and 2.3 mi (lwn). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r18637514",
+          "name": "Øster Nykirke",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6393566",
+          "name": "Tinnet Krat",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Øster Nykirke; container derived from the 2 included signed routes"
+      }
     }
   ]
 }

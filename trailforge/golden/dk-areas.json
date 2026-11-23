@@ -1663,14 +1663,34 @@
       "name": "Allerup Bakker",
       "state": "Denmark",
       "relation_id": 9090427,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [10.14, 57.17, 10.3, 57.32],
+      "center": [57.249, 10.216],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 8,
-      "est_mi": 7.6,
-      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): stays held. Only Blå rute (1.02 mi) survives; Allerup Bakker lwn 10.1 km, Jyske Ås and Pilgrimsrute are dropped (relation gaps, long-distance), the Flauenskjold walks are not lwn. One trail is not an area."
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 9.7,
+      "trail_name_prefix": "Allerup Bakker",
+      "notes": "Tier 2 forest, Jutland. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): stays held. Only Blå rute (1.02 mi) survives; Allerup Bakker lwn 10.1 km, Jyske Ås and Pilgrimsrute are dropped (relation gaps, long-distance), the Flauenskjold walks are not lwn. One trail is not an area. Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D097. unheld: ENGINE-2 restores 4 road members of the Allerup Bakker lwn loop (6.3 mi); Rød rute Grevsmosen og Slettingen (red hiker marks, 2.4 mi) is whole. Jyske Ås and Hærvejen stay out as regional routes. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r19428584",
+          "name": "Allerup Bakker",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r16116665",
+          "name": "Rød rute Grevsmosen og Slettingen",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r19428584",
+          "max_restored_m": 1850,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
     },
     {
       "id": "norreskoven-pa-als-dk",
@@ -2103,14 +2123,26 @@
       "name": "Fiskerup Skov",
       "state": "Denmark",
       "relation_id": 10335869,
-      "bbox": null,
-      "center": null,
-      "rules": "dk-v2",
+      "bbox": [10.31, 55.04, 10.48, 55.21],
+      "center": [55.118, 10.388],
+      "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 3,
+      "hold": null,
+      "est_trails": 2,
       "est_mi": 6.2,
-      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: Brændegård 2.7 mi, Nørresø Rundt 3.0 mi and Gundestrup (only 0.46 of an 8.2 km route inside). Local kommune routes, no official page that names them; not verified as a destination. Stays held. Batch H (2026-10-31): HOLD after a dk-v3 replay: 2 trails, Brændegård 3.00 mi and Nørresø Rundt 3.23 (both about 90 percent inside, local-council yellow-green pointer routes, no operator, no official page). Gundestrup (8.3 km) is mostly outside and the same set has siblings in other forests (Bøgebjergskoven 3.3 mi, Sanatorieskoven 2.7, Sollerup, Arreskov Sø stien) that no Fiskerup card would hold. Not a verifiable destination and incomplete as a set. Unlock: a destination page naming Fiskerup Skov routes, or a ruling to scope a Bøgebjerg area from the whole set."
+      "notes": "Tier 2 forest, Funen. bbox/center computed by the qualify run. Hold (curation): reviewed by a local-expert pass and not shipped (thin, road-like, generic-named or truncated trail list); see curation report. Batch B (dk-v3 replay, 2026-10-31): Re-looked on dk-v3: Brændegård 2.7 mi, Nørresø Rundt 3.0 mi and Gundestrup (only 0.46 of an 8.2 km route inside). Local kommune routes, no official page that names them; not verified as a destination. Stays held. Batch H (2026-10-31): HOLD after a dk-v3 replay: 2 trails, Brændegård 3.00 mi and Nørresø Rundt 3.23 (both about 90 percent inside, local-council yellow-green pointer routes, no operator, no official page). Gundestrup (8.3 km) is mostly outside and the same set has siblings in other forests (Bøgebjergskoven 3.3 mi, Sanatorieskoven 2.7, Sollerup, Arreskov Sø stien) that no Fiskerup card would hold. Not a verifiable destination and incomplete as a set. Unlock: a destination page naming Fiskerup Skov routes, or a ruling to scope a Bøgebjerg area from the whole set. Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D126. unheld: Brændegård 3.0 mi and Nørresø Rundt 3.2 mi (yellow-green pointer lwn) only. Gundestrup and Bøgebjergskoven were dropped after blind review (lying outside the Fiskerup Skov boundary; sibling forests). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12704200",
+          "name": "Brændegård",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13753508",
+          "name": "Nørresø Rundt",
+          "reason": "signed named walk, whole route"
+        }
+      ]
     },
     {
       "id": "danstrup-hegn-dk",
@@ -5734,14 +5766,14 @@
       "name": "Thise",
       "state": "Denmark",
       "relation_id": 20629683,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.04, 56.65, 9.22, 56.79],
+      "center": [56.722, 9.133],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
-      "est_mi": 14.3,
-      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-127): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: both routes removed as unresolved-relation-gap, 0 trails.",
+      "est_mi": 14.2,
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-127): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: both routes removed as unresolved-relation-gap, 0 trails. Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D578. unheld: both routes failed the base rule on service members (366 m and 683 m holes); ENGINE-2 restores them. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Thise; container derived from the 2 included signed routes"
       },
@@ -5756,6 +5788,18 @@
           "name": "Thise Stien - Lang rute",
           "reason": "signed named walk, whole route"
         }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r20629683",
+          "max_restored_m": 1000,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r20633672",
+          "max_restored_m": 3000,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
       ]
     },
     {
@@ -5763,14 +5807,14 @@
       "name": "Vellev og Ulstrup",
       "state": "Denmark",
       "relation_id": 14604615,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.76, 56.29, 9.91, 56.44],
+      "center": [56.363, 9.835],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 9.4,
-      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-143): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: run rc=2, 0 trails.",
+      "notes": "Scale batch 3 (wf_554aec60e2e8401d, census cluster-143): container_from_routes. Bless only from the Actions qualify run. Local replay failed closed: run rc=2, 0 trails. Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D149. unheld: run rc=2 on the base rule (549 m and 116 m holes); ENGINE-2 restores the service and road members of Jordemoderstien. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Vellev og Ulstrup; container derived from the 2 included signed routes"
       },
@@ -5784,6 +5828,13 @@
           "id": "r13845215",
           "name": "Naturstien Ulstrup-Vellev",
           "reason": "signed named walk, whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r14604615",
+          "max_restored_m": 500,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
         }
       ]
     },
@@ -5886,14 +5937,14 @@
       "name": "Hørtoft",
       "state": "Denmark",
       "relation_id": 1872028,
-      "bbox": [9.54, 54.95, 9.68, 55.09],
+      "bbox": [9.52, 54.94, 9.72, 55.09],
       "center": [55.021, 9.608],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 4,
-      "est_mi": 11.6,
-      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-030 near Hørtoft): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run.",
+      "est_trails": 6,
+      "est_mi": 18.8,
+      "notes": "Scale batch 6 (wf_554aec60e2e8401d, census cluster-030 near Hørtoft): container_from_routes. Local replay b9 ok (no cross-area duplicates). Bless only from the Actions qualify run. Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D004. update mode adds Sundevedstien (Sønderborg Kommune lwn, 3.6 mi) and Varnæs Hoved stien (lwn, 3.7 mi), both whole via ENGINE-2 restore_member_ways. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Hørtoft; container derived from the 4 included signed routes"
       },
@@ -5917,6 +5968,28 @@
           "id": "r1871480",
           "name": "Naldtangstien",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r5310827",
+          "name": "Sundevedstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1870190",
+          "name": "Varnæs Hoved stien",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "restore_member_ways": [
+        {
+          "relation": "r5310827",
+          "max_restored_m": 250,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r1870190",
+          "max_restored_m": 550,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
         }
       ]
     },
@@ -6636,6 +6709,343 @@
           "relation": "r19134838",
           "max_restored_m": 250,
           "reason": "Reviewed per-relation opt-in (ENGINE-2): Skovruten loses 1 member way (190 m) to the member-safety road gates; with it restored the route is whole"
+        }
+      ]
+    },
+    {
+      "id": "bylderup-dk",
+      "name": "Bylderup",
+      "state": "Denmark",
+      "relation_id": 13795186,
+      "bbox": [9.02, 54.88, 9.21, 55.01],
+      "center": [54.948, 9.114],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 20.6,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D006. Bylderup-Bov (Aabenraa): three lwn walks by Borgerforeningen, 3.2, 5.8 and 11.6 mi. Ad gamle veje og stier r13798606 stays out (more than 60 percent of it is road members). ENGINE-2 restores the short crossings and driveways. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13795186",
+          "name": "På tur i Bylderup og Bylderup-Bov",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13795425",
+          "name": "På tur i Bylderup og Lendemark",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13798712",
+          "name": "På historisk rundtur omkring Bylderup m.m.",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bylderup; container derived from the 3 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r13795186",
+          "max_restored_m": 1000,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r13795425",
+          "max_restored_m": 150,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r13798712",
+          "max_restored_m": 950,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "niels-ebbesens-eg-dk",
+      "name": "Mosestien og Niels Ebbesens Eg",
+      "state": "Denmark",
+      "relation_id": 8294447,
+      "bbox": [9.96, 56.16, 10.11, 56.28],
+      "center": [56.223, 10.035],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.7,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D037. Hinnerup (Favrskov): Mosestien 1.8 mi and Niels Ebbesens Eg 3.0 mi (Favrskov Kommune lwn, folder by Hinnerup Arkiv). ENGINE-2 restores the short crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r8294447",
+          "name": "Mosestien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12844887",
+          "name": "Niels Ebbesens Eg",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Mosestien or Niels Ebbesens Eg; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r8294447",
+          "max_restored_m": 850,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "ribe-energistier-dk",
+      "name": "Ribe Energistier",
+      "state": "Denmark",
+      "relation_id": 13091509,
+      "bbox": [8.7, 55.27, 8.85, 55.38],
+      "center": [55.328, 8.778],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 5.4,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D112. Ribe (Esbjerg Kommune): Grøn Energisti 1.7 mi and Blå Energisti 3.7 mi, signed lwn loops like the Esbjerg Energistier. Ribe Vildtreservat polygon is 2.1 km and carries no route of its own, so the container derives from the routes. ENGINE-2 restores the short crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13091509",
+          "name": "Ribe - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091532",
+          "name": "Ribe - Blå Energisti",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "Ribe Vildtreservat (way 1202248271) is a small protected area that holds neither route; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r13091509",
+          "max_restored_m": 450,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "gredstedbro-energistier-dk",
+      "name": "Gredstedbro Energistier",
+      "state": "Denmark",
+      "relation_id": 13091421,
+      "bbox": [8.68, 55.35, 8.8, 55.46],
+      "center": [55.402, 8.741],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.5,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D113. Gredstedbro (Esbjerg Kommune): Rød Energisti 1.3 mi and Grøn Energisti 2.2 mi (lwn). Kongeåstien Alternativ 1 r13268047 (0.3 mi) stays out as a short spur. ENGINE-2 restores the short crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13091421",
+          "name": "Gredstedbro - Rød Energisti",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r13091487",
+          "name": "Gredstedbro - Grøn Energisti",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Gredstedbro; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r13091421",
+          "max_restored_m": 150,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "godstrup-dk",
+      "name": "Gødstrup",
+      "state": "Denmark",
+      "relation_id": 12330622,
+      "bbox": [8.85, 56.1, 9.01, 56.23],
+      "center": [56.168, 8.927],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.3,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D249. Gødstrup (Herning): Gødstrup Sø Rundt 2.2 mi and Løvbakkerne 2.2 mi (Herning Kommune lwn). Den røde løber (0.5 mi) and the Hjertesti stay out. ENGINE-2 restores the short crossings on the lake loop. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12330622",
+          "name": "Gødstrup Sø Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12525081",
+          "name": "Løvbakkerne",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Gødstrup Sø; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "bording-dk",
+      "name": "Bording",
+      "state": "Denmark",
+      "relation_id": 14215884,
+      "bbox": [9.2, 56.09, 9.34, 56.22],
+      "center": [56.151, 9.271],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.4,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D301. Bording (Ikast-Brande): Ydre Sti Bording 7.6 mi (lwn) and Planetstien Bording 1.8 mi (waymarked, folder by Bording Kirkeby). Bording Hjertesti (class A) and Natursti Bording Å (unsigned) stay out. ENGINE-2 restores the short crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14215884",
+          "name": "Ydre Sti Bording",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14197278",
+          "name": "Planetstien Bording",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Bording; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r14215884",
+          "max_restored_m": 1450,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "sandmosen-dk",
+      "name": "Sandmosen",
+      "state": "Denmark",
+      "relation_id": 2981385,
+      "bbox": [9.56, 57.12, 9.69, 57.24],
+      "center": [57.18, 9.623],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 4.7,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D315. Sandmosen (Jammerbugt): Sandmosen Sti 1 3.9 mi and Sti 3 2.1 mi (lwn). Sti 2 r2981386 stays out: restoring its dropped members is 25.25 percent of the route, over the 25 percent cap. ENGINE-2 restores driveways and crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r2981385",
+          "name": "Sandmosen Sti 1",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2981387",
+          "name": "Sandmosen Sti 3",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Sandmosen; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r2981385",
+          "max_restored_m": 400,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r2981387",
+          "max_restored_m": 900,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "halsnaes-sundhedskorridor-dk",
+      "name": "Halsnæs Sundhedskorridor",
+      "state": "Denmark",
+      "relation_id": 13648858,
+      "bbox": [11.8, 55.91, 11.95, 56.04],
+      "center": [55.973, 11.875],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 8.0,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D230. Ullerup Skov and Halsnæs (Halsnæs Kommune; several OSM polygons are named Ullerup Skov, so the area is named for the corridor): Sundhedsspor Ullerup Skov 1.3 mi (red-green triangle, Naturstyrelsen source) and Halsnæs Sundhedskorridor 6.7 mi (lwn). Ullerup Skov Hjertesti (class A) stays out. ENGINE-2 restores the short crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r13648858",
+          "name": "Sundhedsspor Ullerup Skov",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8051527",
+          "name": "Halsnæs Sundhedskorridor",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Ullerup Skov; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r8051527",
+          "max_restored_m": 200,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e1): the route loses short member ways (driveways, parking aisles, village crossings, sidewalks) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "ebeltoft-dk",
+      "name": "Ebeltoft",
+      "state": "Denmark",
+      "relation_id": 19113818,
+      "bbox": [10.59, 56.13, 10.73, 56.25],
+      "center": [56.192, 10.661],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 3.4,
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D621. Ebeltoft (Syddjurs): Den gamle købstad 1.3 mi and Langs Kysten 2.1 mi (lwn), a town and coast pair. Ebeltoft Vig Vildtreservat (way 1068302747) is a bird reserve in the bay with no walk of its own, so the container derives from the routes. ENGINE-2 restores the short crossings; the Langs Kysten gap uses the reviewed accept_gap range. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r19113818",
+          "name": "Den gamle købstad",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r19113817",
+          "name": "Langs Kysten",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "Ebeltoft Vig Vildtreservat is a bay reserve holding neither walk; container derived from the 2 included signed routes"
+      },
+      "accept_gap": [
+        {
+          "relation": "r19113817",
+          "max_gap_m": 200,
+          "reason": "Langs Kysten (lwn hiking relation): the OSM relation has a 166 m gap between 3 pieces; the parts ship as separate segments, no geometry is synthesized"
         }
       ]
     }

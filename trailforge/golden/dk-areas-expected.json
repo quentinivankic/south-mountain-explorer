@@ -2540,13 +2540,12 @@
       ]
     },
   "hortoft-dk": {
-      "trail_count": 4,
-      "total_mi": 11.5,
+      "trail_count": 6,
+      "total_mi": 18.8,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
-        "Skovsøvej",
-        "Varnæs Hoved stien"
+        "Skovsøvej"
       ]
     },
   "kong-gummerup-dk": {
@@ -2891,6 +2890,132 @@
         "Sporet fra Mårslet til Moesgaard",
         "Strandskovvej",
         "Vilhelmsborg Allé"
+      ]
+    },
+    "bylderup-dk": {
+      "trail_count": 3,
+      "total_mi": 20.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Æ Frøsti"
+      ]
+    },
+    "niels-ebbesens-eg-dk": {
+      "trail_count": 2,
+      "total_mi": 4.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Hanghedevej"
+      ]
+    },
+    "ribe-energistier-dk": {
+      "trail_count": 2,
+      "total_mi": 5.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Obbekjærstien",
+        "Stubs Allé"
+      ]
+    },
+    "gredstedbro-energistier-dk": {
+      "trail_count": 2,
+      "total_mi": 3.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Blomstergangen",
+        "Kongeåstien"
+      ]
+    },
+    "godstrup-dk": {
+      "trail_count": 2,
+      "total_mi": 4.3,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Gødstrup Sø Stien"
+      ]
+    },
+    "bording-dk": {
+      "trail_count": 2,
+      "total_mi": 9.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Bordingvej"
+      ]
+    },
+    "sandmosen-dk": {
+      "trail_count": 2,
+      "total_mi": 4.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Sandmosen Sti 2"
+      ]
+    },
+    "halsnaes-sundhedskorridor-dk": {
+      "trail_count": 2,
+      "total_mi": 8.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Fjordstien Vandresti"
+      ]
+    },
+    "ebeltoft-dk": {
+      "trail_count": 2,
+      "total_mi": 3.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Adelgade",
+        "Djurslandstien",
+        "Mols Bjerge-stien Ebeltoftetapen",
+        "Mols Bjerge-stien Gåsehage-etapen",
+        "Skolestien"
+      ]
+    },
+    "allerup-bakker-dk": {
+      "trail_count": 3,
+      "total_mi": 9.7,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Den danske Pilgrimsrute- Nordjylland Øst",
+        "Hærvejen",
+        "Jyske Ås Vandrerute"
+      ]
+    },
+    "fiskerup-skov-dk": {
+      "trail_count": 2,
+      "total_mi": 6.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "thise-dk": {
+      "trail_count": 2,
+      "total_mi": 14.2,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Gåsemosevej",
+        "Skovevej",
+        "Sundsørevej"
+      ]
+    },
+    "vellev-dk": {
+      "trail_count": 2,
+      "total_mi": 9.4,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": [
+        "Etape 16 - Gudenåstien",
+        "Trækstien Pramdragerstien"
       ]
     }
   }

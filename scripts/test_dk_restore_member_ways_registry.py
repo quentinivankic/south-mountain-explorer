@@ -46,6 +46,18 @@ EXPECTED = {
     "lonstrup-rubjerg-dk": ["r14453808"],
     "moesgard-holme-bjerge-dk": ["r14169971"],
     "lisbjerg-skov-dk": ["r19134838"],
+    # reconcile 14 round-2 batch e1 (2026-11-23)
+    "allerup-bakker-dk": ["r19428584"],
+    "bording-dk": ["r14215884"],
+    "bylderup-dk": ["r13795186", "r13795425", "r13798712"],
+    "gredstedbro-energistier-dk": ["r13091421"],
+    "halsnaes-sundhedskorridor-dk": ["r8051527"],
+    "hortoft-dk": ["r5310827", "r1870190"],
+    "niels-ebbesens-eg-dk": ["r8294447"],
+    "ribe-energistier-dk": ["r13091509"],
+    "sandmosen-dk": ["r2981385", "r2981387"],
+    "thise-dk": ["r20629683", "r20633672"],
+    "vellev-dk": ["r14604615"],
 }
 # accept_gap entries the restore made unneeded (the gap was the dropped members;
 # an unneeded accept_gap fails the area closed), withdrawn in the same change.
@@ -102,7 +114,7 @@ def test_live_registry_carries_exactly_the_reviewed_opt_ins():
     found = {a["id"]: [e["relation"] for e in a["restore_member_ways"]]
              for a in doc["areas"] if "restore_member_ways" in a}
     assert found == EXPECTED
-    assert sum(len(v) for v in EXPECTED.values()) == 29
+    assert sum(len(v) for v in EXPECTED.values()) == 45
     for area in doc["areas"]:
         for entry in area.get("restore_member_ways", []):
             assert set(entry) == {"relation", "max_restored_m", "reason"}
@@ -127,6 +139,11 @@ def test_every_cap_is_a_reviewed_number_above_the_measured_need():
         "r7802913": 100, "r10015736": 1050, "r14654257": 300,
         # dk-ship: measured 445 / 154 / 1506 / 190 m
         "r2835037": 600, "r14453808": 200, "r14169971": 1900, "r19134838": 250,
+        # reconcile 14 round-2 batch e1
+        "r19428584": 1850, "r14215884": 1450, "r13795186": 1000, "r13795425": 150, "r13798712": 950,
+        "r13091421": 150, "r8051527": 200, "r5310827": 250, "r1870190": 550, "r8294447": 850,
+        "r13091509": 450, "r2981385": 400, "r2981387": 900, "r20629683": 1000, "r20633672": 3000,
+        "r14604615": 500,
     }
 def test_the_opt_in_does_not_change_any_holds():
     # Every opted-in area is a live area (no hold); the opt-in changes how a

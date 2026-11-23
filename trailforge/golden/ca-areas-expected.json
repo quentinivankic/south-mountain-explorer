@@ -550,8 +550,8 @@
       ]
     },
     "waterton-lakes-national-park-ca-ab": {
-      "trail_count": 26,
-      "total_mi": 93.7,
+      "trail_count": 25,
+      "total_mi": 92.8,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Lost Lake Route",
@@ -559,6 +559,7 @@
       ],
       "forbidden_names": [
         "Akamina Lake Trail",
+        "Akamina Pass Trail",
         "Anderson Peak Route",
         "Bear's Backside",
         "Bertha Peak Main Trail",

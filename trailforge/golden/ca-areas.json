@@ -5082,8 +5082,13 @@
       ],
       "tier": 1,
       "hold": null,
-      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here. live-fix1 2026-11-02: added Crypt Lake (whole 6.2 mi in Waterton; its 0.33 mi clipped stub in the US area waterton-lakes-national-park-mt is not touched and should be retired by the US owner) and Snowshoe; Carthew-Alderson, Lakeshore, Blakiston Valley and Boundary Creek have no named way in OSM; Akamina Pass is boundary-clipped (0.9 of 1.6 mi inside). Peak and route items dropped. Reconcile 2026-11-22 (audit 7 row 2.3): Akamina Pass Trail now ships. Parks Canada lists Akamina Pass as 3 km return from the Cameron Lake trailhead; the pass is the AB/BC border and park boundary, so the 0.95 mi inside Waterton is the whole agency hike. The 0.6 mi beyond the pass is BC (Akamina-Kishinena, whose exclude stays).",
+      "notes": "AB curation 2026-11-02. Whole park. Compared with the Parks Canada Waterton trail table (https://parks.canada.ca/pn-np/ab/waterton/activ/experiences/randonee-hiking): Bear's Hump, Bertha Lake, Crypt Lake, Crandell Lake, Blakiston Falls, Carthew/Alderson legs, Lineham Creek, Rowe Lakes, Twin Lakes, Wishbone, Tamarack, Vimy Peak, Avion Ridge, Linnet Lake and Townsite Loop are present. Red Rock Canyon (0.7 km loop) kept by waiver. Snowshoe (winter only), horse bypasses and clipped stubs excluded. Akamina Lake, Lower Rowe Lake and Cameron Lakeshore not shipped (stub/unmapped). Crypt Lake Trail is left to the live US Waterton areas (duplicate gate); known omission here. live-fix1 2026-11-02: added Crypt Lake (whole 6.2 mi in Waterton; its 0.33 mi clipped stub in the US area waterton-lakes-national-park-mt is not touched and should be retired by the US owner) and Snowshoe; Carthew-Alderson, Lakeshore, Blakiston Valley and Boundary Creek have no named way in OSM; Akamina Pass is boundary-clipped (0.9 of 1.6 mi inside). Peak and route items dropped.",
       "exclude_trails": [
+        {
+          "id": "n:Akamina Pass Trail",
+          "name": "Akamina Pass Trail",
+          "reason": "Boundary-clipped: 0.9 of 1.6 mi lie inside the polygon; not a whole route"
+        },
         {
           "id": "n:Bertha Peak Main Trail",
           "name": "Bertha Peak Main Trail",

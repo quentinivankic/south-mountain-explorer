@@ -2280,8 +2280,8 @@
       ]
     },
     "riding-mountain-national-park-ca-mb": {
-      "trail_count": 33,
-      "total_mi": 185.2,
+      "trail_count": 34,
+      "total_mi": 185.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2295,7 +2295,6 @@
         "Elk Creek Campsite",
         "Hilton",
         "Multi-Use",
-        "Ominnik Marsh Trail",
         "Reeves Ravine (c)",
         "South Lake Trail Winter Route"
       ]

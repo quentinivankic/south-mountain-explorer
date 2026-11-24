@@ -1129,18 +1129,18 @@
       ]
     },
     "varde-sondre-plantage-dk": {
-      "trail_count": 3,
-      "total_mi": 5.7,
+      "trail_count": 4,
+      "total_mi": 10.7,
       "total_mi_tolerance": 0.05,
       "required_names": [
+        "Søndre Plantage - Løberute",
         "Søndre plantage Rød vandrerute"
       ],
       "forbidden_names": [
         "Debellvej",
         "Farver Nicolaysensvej",
         "Kongevej",
-        "Sneppevej",
-        "Søndre Plantage - Løberute"
+        "Sneppevej"
       ]
     },
     "vestre-stigtehave-dk": {
@@ -3141,6 +3141,52 @@
         "Nyvej",
         "Pølsekilde",
         "Vestersøvej"
+      ]
+    },
+    "vestskoven-dk": {
+      "trail_count": 4,
+      "total_mi": 13.8,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Kringelstien",
+        "Vestskoven Blå løberute",
+        "Vestskoven Grøn løberute",
+        "Vestskoven Rød løberute"
+      ],
+      "forbidden_names": [
+        "Blåbjergvej",
+        "Bousagervej",
+        "Den danske Pilgrimsrute - Nordsjælland",
+        "Dyssekildevej",
+        "Egeskoven",
+        "Ejby Udlodsvej",
+        "Gartnervangen",
+        "Gåsehøj",
+        "Hedeengvej",
+        "Hejremosevej",
+        "Herstedhøjevej",
+        "Langkærvej",
+        "Lindevej",
+        "Lundshedevej",
+        "Margretevej",
+        "Orchidevej",
+        "Oxbjergvej",
+        "Petersborggårdvej",
+        "Ridestien",
+        "Risby Mosevej",
+        "Rovej",
+        "Skelvej",
+        "Slaggevej",
+        "Slettestien",
+        "Snebærstien",
+        "Stuekærvej",
+        "Tinghøjvej",
+        "Tjørnager",
+        "Tjørnevej",
+        "Tværvej",
+        "Vikingevej",
+        "Ydergårdsvej",
+        "Åbakken"
       ]
     }
   }

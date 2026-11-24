@@ -636,7 +636,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert set(table) == ({MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                            *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                            *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
-                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP) | set(ISLAND_SHIP) | set(R13A_SHIP) | set(R14B1_SHIP) | set(DKSHIP_SHIP) | set(R14E1_SHIP) | set(R14E2_SHIP) | set(CLASSA_A_SHIP)
+                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP) | set(ISLAND_SHIP) | set(R13A_SHIP) | set(R14B1_SHIP) | set(DKSHIP_SHIP) | set(R14E1_SHIP) | set(R14E2_SHIP) | set(CLASSA_A_SHIP) | set(CLASSA_C_UNHELD)
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
@@ -659,7 +659,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "draved-skov-dk": (2, 3.9), "barsbol-skov-dk": (3, 5.9), "lindet-skov-dk": (2, 5.1),
         "osterskoven-dk": (4, 9.7), "kompedal-plantage-dk": (2, 6.6),
         "palsgard-skov-dk": (3, 7.5),
-        "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (3, 5.7), "vestre-stigtehave-dk": (3, 5.1),
+        "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (4, 10.7), "vestre-stigtehave-dk": (3, 5.1),
         "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.4), "kegnaes-dk": (2, 8.6),
         "svinklov-klitplantage-dk": (6, 14.3),
         "sonderskov-slaaenso-dk": (4, 8.0), "hald-so-dk": (6, 22.7),
@@ -690,7 +690,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         # reconcile 14 round-2 batch e2 (local qualify on denmark-261121; the Actions qualify run re-confirms)
         "rorbaek-so-dk": (2, 9.9), "lerkenfeld-adal-dk": (2, 7.5), "monsted-kalkgruber-dk": (2, 8.3), "toftlundstier-dk": (3, 12.0),
         # class-A ruling batch A (Actions qualify 45406534475)
-        "marielundskoven-dk": (2, 6.9), "jaegerspris-nordskov-dk": (2, 11.5), "rise-skov-dk": (3, 6.6)}
+        "marielundskoven-dk": (2, 6.9), "jaegerspris-nordskov-dk": (2, 11.5), "rise-skov-dk": (3, 6.6),
+        # class-A batch C (Actions qualify 45468442162)
+        "vestskoven-dk": (4, 13.8)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):

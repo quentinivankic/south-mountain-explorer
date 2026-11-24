@@ -1358,8 +1358,8 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 5.2,
+      "est_trails": 4,
+      "est_mi": 10.7,
       "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out. ENGINE-1 (2026-11-22): keep_motor_tracks on Rød r6153047 and Gul r6153048 keeps the member tracks I. Vej and Brandlinjen (highway=track, motorcar=yes, no foot tag) that the member-safety rule dropped. The 130 m source gap of Rød r6153047 was those dropped tracks, so with the opt-in the route has no gap (widest gap 0 m) and its accept_gap was withdrawn: the area now fails closed if it is put back. Class-A ruling batch C (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Update mode adds Søndre Plantage - Løberute r5989929 (5.0 mi, route=foot; 98% in Varde Søndre Plantage, 98% path/track; 40% shared ground with the Blå and Gul vandrerute) under the class-A ruling. Bless only from the Actions qualify run.",
       "keep_motor_tracks": [
         {
@@ -2564,13 +2564,13 @@
       "name": "Vestskoven",
       "state": "Denmark",
       "way_id": 927880756,
-      "bbox": null,
-      "center": null,
+      "bbox": [12.25, 55.63, 12.48, 55.76],
+      "center": [55.694, 12.343],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 4,
-      "est_mi": 0.0,
+      "est_mi": 13.8,
       "notes": "Class-A ruling batch C (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Audit 14 row D185. Vestskoven (way 927880756, boundary=forest, Naturstyrelsen, wikidata Q12009562, 'Danmarks største nye skov'). Earlier curation held it because the Løberuter i Albertslund were running trails; the ruling admits signed løberuter inside a named forest on at least 70% path/track: Grøn r2174378 (6.2 mi, 93%), Blå r2174418 (3.4 mi, 93%), Rød r2174419 (1.7 mi, 79%), each 100% in Vestskoven. Kringelstien (r2192956, a named hiking route relation, 2.5 mi) ships with them under the normal dk-v3 polygon rule. Sort vinterrute (93% cycleway) and the Kongsholmparken løberuter stay out; five rootless forest-track name stitches are excluded. Bless only from the Actions qualify run.",
       "include_trails": [
         {

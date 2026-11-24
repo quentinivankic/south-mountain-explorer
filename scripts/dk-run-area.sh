@@ -54,6 +54,11 @@ DIRECTIONAL_ROLES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | 
 # flag (byte-identical run).
 KEEP_MOTOR_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .keep_motor_tracks // []' \
   trailforge/golden/dk-areas.json)"
+# Optional per-relation exemption from the name-based dk-non-hiking rule (registry allow_classA_name
+# [{relation, reason}]; dk-v3 only, validated by dk_publish and assemble). Absent = [] = no flag
+# (byte-identical run).
+CLASSA_NAME_JSON="$(jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .allow_classA_name // []' \
+  trailforge/golden/dk-areas.json)"
 # Optional per-relation restore of the member ways the member-safety road gates dropped (registry
 # restore_member_ways [{relation, max_restored_m, reason}]; dk-v3 only, validated by dk_publish and assemble;
 # never motorway/trunk/primary). Absent = [] = no flag (byte-identical run).
@@ -101,6 +106,10 @@ fi
 if [ "$KEEP_MOTOR_JSON" != "[]" ]; then
   printf '%s\n' "$KEEP_MOTOR_JSON" > "$A/dk-keep-motor-tracks.json"
   EXCLUDE_ARGS+=(--dk-keep-motor-tracks "$A/dk-keep-motor-tracks.json")
+fi
+if [ "$CLASSA_NAME_JSON" != "[]" ]; then
+  printf '%s\n' "$CLASSA_NAME_JSON" > "$A/dk-allow-classa-name.json"
+  EXCLUDE_ARGS+=(--dk-allow-classa-name "$A/dk-allow-classa-name.json")
 fi
 if [ "$RESTORE_WAYS_JSON" != "[]" ]; then
   printf '%s\n' "$RESTORE_WAYS_JSON" > "$A/dk-restore-member-ways.json"

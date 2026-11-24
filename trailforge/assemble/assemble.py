@@ -1051,6 +1051,12 @@ def main(argv=None) -> int:
                          "hard-capped at 1000) is published as its connected "
                          "parts, never bridged; dk-v3 only, fail-closed when "
                          "an entry is stale, unneeded or over its limit")
+    ap.add_argument("--dk-allow-classa-name", dest="dk_allow_classa_name",
+                    help="JSON list of {relation, reason} (registry "
+                         "allow_classA_name): the listed signed route relation "
+                         "is exempt from the name-based dk-non-hiking rule "
+                         "only (class-A ruling); dk-v3 exact Denmark only, "
+                         "fail-closed when an entry is stale or unneeded")
     ap.add_argument("--dk-keep-motor-tracks", dest="dk_keep_motor_tracks",
                     help="JSON list of {relation, reason} (registry "
                          "keep_motor_tracks): the listed signed route relation "
@@ -1180,6 +1186,21 @@ def main(argv=None) -> int:
                     encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"--dk-accept-gap is invalid: {error}")
+    args.dk_classa = []
+    if args.dk_allow_classa_name:
+        if args.dk_rules != "dk-v3":
+            ap.error("--dk-allow-classa-name requires --dk-rules dk-v3")
+        if (not args.require_exact_area
+                or model.member_safety.normalize(args.region) != "dk"):
+            ap.error("--dk-allow-classa-name is limited to exact Denmark "
+                     "assembly")
+        try:
+            import quality as quality_classa_args
+            args.dk_classa = quality_classa_args.validate_dk_allow_classa_name(
+                json.loads(Path(args.dk_allow_classa_name).read_text(
+                    encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            ap.error(f"--dk-allow-classa-name is invalid: {error}")
     args.dk_motor = []
     if args.dk_keep_motor_tracks:
         if args.dk_rules != "dk-v3":
@@ -1561,7 +1582,8 @@ def main(argv=None) -> int:
                     dk_include=args.dk_include,
                     dk_accept_gap=args.dk_gap,
                     dk_include_only=bool(args.dk_container_by_id
-                                         or args.dk_container_from_routes))
+                                         or args.dk_container_from_routes),
+                    dk_allow_classa_name=args.dk_classa)
                 for removed_feature in clip_removed:
                     (removed_feature.get("properties") or {}).setdefault(
                         _TERMINAL_REMOVAL_STAGE, "exact-area-clip")

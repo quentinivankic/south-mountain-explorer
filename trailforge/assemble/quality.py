@@ -37,6 +37,7 @@ DK_ACCEPT_GAP_CAP_M = 1000.0
 DK_ACCEPT_GAP_KEYS = {"relation", "max_gap_m", "reason"}
 DK_ACCEPT_GAP_ID = re.compile(r"^r[1-9][0-9]*$")
 DK_KEEP_MOTOR_TRACKS_KEYS = {"relation", "reason"}
+DK_ALLOW_CLASSA_NAME_KEYS = {"relation", "reason"}
 # Per-relation opt-in (registry `restore_member_ways`, dk-v3 only): the listed
 # signed route gets back the member ways the member-safety road gates dropped
 # (driveway/parking-aisle service ways, secondary crossings, sidewalks,
@@ -248,6 +249,34 @@ def validate_dk_keep_motor_tracks(entries: Any) -> list[dict[str, str]]:
     return out
 
 
+def validate_dk_allow_classa_name(entries: Any) -> list[dict[str, str]]:
+    """Return a normalized copy of a registry ``allow_classA_name`` list or raise
+    ValueError. Entry: {"relation": "r<id>", "reason": text}. The list is never
+    empty and names each relation once. Each listed relation is exempt from the
+    name-based ``dk-non-hiking`` rule only (class-A ruling, Quentin 2026-11-24:
+    signed running routes inside a named forest on at least 70 percent paths)."""
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("allow_classA_name must be a non-empty list")
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if (not isinstance(entry, dict)
+                or set(entry) != DK_ALLOW_CLASSA_NAME_KEYS):
+            raise ValueError(
+                f"allow_classA_name entry must be an object with exactly "
+                f"{sorted(DK_ALLOW_CLASSA_NAME_KEYS)}: {entry!r}")
+        relation = entry["relation"]
+        if not (isinstance(relation, str)
+                and DK_ACCEPT_GAP_ID.fullmatch(relation)):
+            raise ValueError(
+                f"allow_classA_name relation is invalid: {relation!r}")
+        if not isinstance(entry["reason"], str) or not entry["reason"].strip():
+            raise ValueError(f"allow_classA_name {relation}: reason is required")
+        if relation in seen:
+            raise ValueError(f"allow_classA_name repeats relation {relation!r}")
+        seen.add(relation)
+        out.append({"relation": relation, "reason": entry["reason"].strip()})
+    return out
 def dk_keep_motor_tracks_evidence(
         entries: list[dict[str, str]], audits: list[dict[str, Any]]
         ) -> tuple[list[str], dict[str, Any]]:
@@ -1629,7 +1658,8 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                        dk_exclude: list[dict] | None = None,
                        dk_include: list[dict] | None = None,
                        dk_accept_gap: list[dict] | None = None,
-                       dk_include_only: bool = False
+                       dk_include_only: bool = False,
+                       dk_allow_classa_name: list[dict] | None = None
                        ) -> tuple[list, list, dict]:
     """Disposition exact-area candidates and return (kept, removed, evidence).
 
@@ -1649,6 +1679,12 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
     dk_accept_gap = validate_dk_accept_gap(dk_accept_gap or [])
     if dk_accept_gap and dk_rules != "dk-v3":
         raise ValueError("accept_gap requires the dk-v3 rule set")
+    dk_allow_classa_name = (validate_dk_allow_classa_name(dk_allow_classa_name)
+                            if dk_allow_classa_name else [])
+    if dk_allow_classa_name and dk_rules != "dk-v3":
+        raise ValueError("allow_classA_name requires the dk-v3 rule set")
+    classa_allowed = {int(item["relation"][1:]) for item in dk_allow_classa_name}
+    classa_used: set[int] = set()
     normalized_region = (region or "").strip().lower()
     if normalized_region != "dk":
         for feature in features:
@@ -1998,6 +2034,14 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                 rule = dk_non_hiking_verdict(
                     properties.get("name"), properties.get("source"),
                     rendered, ways)
+                if rule == "non-hiking-name" and classa_allowed:
+                    # Registry allow_classA_name: only the listed relation ids skip
+                    # the NAME rule (løberute, ...); every other rule still applies.
+                    hit = classa_allowed & {
+                        int(r) for r in properties.get("relation_ids") or []}
+                    if hit:
+                        classa_used |= hit
+                        rule = None
                 category = "dk-non-hiking" if rule else None
             if category is None and rootless:
                 rule = dk_mtb_verdict(
@@ -2043,6 +2087,10 @@ def curate_exact_area(features: list[dict[str, Any]], *, ways: dict[int, dict],
                     dk_removed_evidence.append({
                         "name": properties.get("name"), "category": category,
                         "rule": rule, "miles": properties.get("length_mi")})
+    for relation_id in sorted(classa_allowed - classa_used):
+        curated_exclude_failures.append(
+            f"allow_classA_name r{relation_id}: no assembled route of that "
+            "relation was saved from the name rule (stale or unneeded entry)")
     # Curated exclusions run last, on what the automatic rules kept (for legacy
     # rules: on everything legacy kept; only reachable via the registry's
     # legacy_exclude_trails opt-in). Every

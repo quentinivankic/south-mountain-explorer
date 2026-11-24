@@ -204,6 +204,19 @@ def _check_gap_and_roles(aid: str, entry: dict[str, Any]) -> None:
             _dk_quality().validate_dk_keep_motor_tracks(entry["keep_motor_tracks"])
         except ValueError as error:
             raise DkError(f"{aid}: keep_motor_tracks is invalid: {error}") from None
+    if "allow_classA_name" in entry:
+        if entry.get("rules") != "dk-v3":
+            raise DkError(f"{aid}: allow_classA_name requires rules dk-v3")
+        try:
+            items = _dk_quality().validate_dk_allow_classa_name(
+                entry["allow_classA_name"])
+        except ValueError as error:
+            raise DkError(f"{aid}: allow_classA_name is invalid: {error}") from None
+        included = {str(i.get("id")) for i in entry.get("include_trails") or []}
+        for item in items:
+            if item["relation"] not in included:
+                raise DkError(f"{aid}: allow_classA_name {item['relation']} must also "
+                              "be listed in include_trails")
     if "restore_member_ways" in entry:
         if entry.get("rules") != "dk-v3":
             raise DkError(f"{aid}: restore_member_ways requires rules dk-v3")

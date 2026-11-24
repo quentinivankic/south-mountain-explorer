@@ -453,7 +453,7 @@
       "hold": null,
       "est_trails": 2,
       "est_mi": 11.2,
-      "notes": "Scale batch 4 (wf_554aec60e2e8401d, blind audit 7): Asserbo Golfklub Hjertesti (r15764225) dropped, a golf-club heart loop is not a local-expert pick. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Tisvilde Hegn Gul rute (whole route, 10.5 mi) plus the two Asserbo/Arrenakke walks on the same Halsnæs coast.",
+      "notes": "Scale batch 4 (wf_554aec60e2e8401d, blind audit 7): Asserbo Golfklub Hjertesti (r15764225) dropped, a golf-club heart loop is not a local-expert pick. BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Tisvilde Hegn Gul rute (whole route, 10.5 mi) plus the two Asserbo/Arrenakke walks on the same Halsnæs coast. Class-A ruling batch B (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md, update mode adds r12585237 Sundhedsspor Melby Overdrev (1.18 mi, audit 14 row D231); the area bbox extends west. Bless only from the Actions qualify run.",
       "display_name": "Tisvilde Hegn og Asserbo · Nationalpark Kongernes Nordsjælland",
       "exclude_trails": [
         {"id": "n:Troldeskovsporet", "name": "Troldeskovsporet", "reason": "gravel forest track (tracktype grade2/3, bicycle allowed), named like a forest ride; not a walking trail"},
@@ -461,7 +461,8 @@
         {"id": "n:Triangelsporet", "name": "Triangelsporet", "reason": "rootless single-way name stitch, <1 mi, forest-ride or duplicate of a larger kept route"}
       ],
       "include_trails": [
-        {"id": "r12589905", "name": "Arrenakke Bakker", "reason": "Halsnæs Kommune lwn hiking relation r12589905 (2.55 mi), whole route, waymarked blue:white:blue_hiker; Halsnæs Kommune walk at Arrenakke Bakker, 2 km from Asserbo"}
+        {"id": "r12589905", "name": "Arrenakke Bakker", "reason": "Halsnæs Kommune lwn hiking relation r12589905 (2.55 mi), whole route, waymarked blue:white:blue_hiker; Halsnæs Kommune walk at Arrenakke Bakker, 2 km from Asserbo"},
+        {"id": "r12585237", "name": "Sundhedsspor Melby Overdrev", "reason": "signed health walk (lwn) at Melby Overdrev in Asserbo Plantage, 100% inside the union of the forest and heath, 99% path/track, 0% overlap with live trails; class-A ruling 2026-11-24 (audit 14 row D231)"}
       ]
     },
     {
@@ -4708,12 +4709,13 @@
       "tier": 2,
       "hold": null,
       "display_name": "Frederiksværk og Arresø · Nationalpark Kongernes Nordsjælland",
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Three Halsnæs walks around Frederiksværk and Arresødal. Gul and Grøn historisk vandring (the short variants of the Rød heritage walk, 100% and 98% inside it, 0 and 62 m of own ground) dropped 2026-11-22 (blind audits 11 and 12, nested routes) under the same rule as Jydelejet and Aarø grøn.",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): split of the Kongernes Nordsjælland umbrella. Three Halsnæs walks around Frederiksværk and Arresødal. Gul and Grøn historisk vandring (the short variants of the Rød heritage walk, 100% and 98% inside it, 0 and 62 m of own ground) dropped 2026-11-22 (blind audits 11 and 12, nested routes) under the same rule as Jydelejet and Aarø grøn. Class-A ruling batch B (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md, update mode adds r13649311 Sundhedsspor Arresødal Skov (0.85 mi). Bless only from the Actions qualify run.",
       "container_from_routes": {"reason": "No usable named OSM polygon for Frederiksværk/Arresødal; container derived from the 3 included signed Halsnæs walks"},
       "include_trails": [
         {"id": "r17350410", "name": "Rød historisk vandring", "reason": "OSM lwn hiking relation r17350410 (5.59 mi), whole route, waymarked red:red:green_dot; Rød historisk vandring 'Kongemagt og Vandets Kraft' (Frederiksværk/Arresødal)"},
         {"id": "r13649318", "name": "Hjertesti ved Magleblik", "reason": "OSM lwn hiking relation r13649318 (2.67 mi), whole route, waymarked red:white:red_triangle_turned; Hjerteforeningen heart path at Magleblik, Frederiksværk (Halsnæs Kommune)"},
-        {"id": "r13592991", "name": "Bakkestien", "reason": "OSM lwn hiking relation r13592991 (1.16 mi), whole route; Bakkestien, Halsnæs Kommune walk in Frederiksværk"}
+        {"id": "r13592991", "name": "Bakkestien", "reason": "OSM lwn hiking relation r13592991 (1.16 mi), whole route; Bakkestien, Halsnæs Kommune walk in Frederiksværk"},
+        {"id": "r13649311", "name": "Sundhedsspor Arresødal Skov", "reason": "signed health walk (lwn) in the named forest Arresødal Skov, 100% inside, 100% path, 23% shared ground with Rød historisk vandring; class-A ruling 2026-11-24"}
       ],
       "trail_name_fixes": [
         {"osm_name": "Rød historisk vandring", "name": "Frederiksværk Rød historisk vandring", "source": "https://www.visitnordsjaelland.dk/nordsjaelland/det-sker/kongemagt-og-vandets-kraft-historisk-vandring-paa-arrenaes-gdk1141992", "reason": "reviewed 2026-11-01 (BATCH-3): the three coloured historic walks share the heritage-walk title 'Kongemagt og Vandets Kraft' (alt_name tag) and carry no place in their OSM name; the prefix says where they are"}
@@ -4840,7 +4842,7 @@
       "tier": 2,
       "hold": null,
       "display_name": "Tønder",
-      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix. BATCH-4 (audit 2): KEEP Tur på Papegøjestien (r7802913, Tønder Kommune lwn). The audit's 2.0 mi jump is polyline order; widest source gap 26.5 m (bridged). Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D674: update mode adds r8212991, r6132434, r6180589, r6299528, r8339523, r8220168. Bless only from the Actions qualify run.",
+      "notes": "BATCH-3 (reviewed 2026-11-01 (BATCH-3)): Papegøjestien left the Nationalpark Vadehavet umbrella; it is a Tønder town loop and does not fit the Tøndermarsken cluster (0.21 deg wide). Paired with the Tøndermarsk Initiativet loop at Tønder Nørresø. Under 25% of the area's miles lie inside the national park, so the display name carries no park suffix. BATCH-4 (audit 2): KEEP Tur på Papegøjestien (r7802913, Tønder Kommune lwn). The audit's 2.0 mi jump is polyline order; widest source gap 26.5 m (bridged). Reconcile 14 batch 3 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D674: update mode adds r8212991, r6132434, r6180589, r6299528, r8339523, r8220168. Bless only from the Actions qualify run. Class-A ruling batch B (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md, update mode adds r2828533 Sundhedssporet i Soldaterskoven (1.5 mi, Naturstyrelsen). Bless only from the Actions qualify run.",
       "container_from_routes": {"reason": "Tønder has no usable polygon for the pair; container derived from the 2 included signed routes"},
       "include_trails": [
         {"id": "r7802913", "name": "Tur på Papegøjestien", "reason": "Tønder Kommune lwn hiking relation r7802913 (4.97 mi), whole route; Tønder Kommune Papegøjestien, was in the Nationalpark Vadehavet umbrella (37% inside the park)"},
@@ -4874,6 +4876,11 @@
           "id": "r8220168",
           "name": "Tønderstier: Grå sti, Abild-Tvedstien",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2828533",
+          "name": "Sundhedssporet i Soldaterskoven",
+          "reason": "Naturstyrelsen signed health walk (lwn) in the named forest Soldaterskoven, 100% inside, 97% path/track, 25% shared ground with Tønderstier Grå sti; class-A ruling 2026-11-24"
         }
       ],
       "est_trails": 8,
@@ -6334,7 +6341,7 @@
       "hold": null,
       "est_trails": 6,
       "est_mi": 12.6,
-      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D109. Esbjerg Kommune Energistier, signed colour loops (lwn) around Esbjerg. Lysstien Hjertesti (class A), Sædding Blå (road-heavy relation) and Guldager Rød (2 pieces) stay out. Hjerting - Blå Energisti r13091381 stays out: with it the route cluster is 0.124 deg wide, over the 0.12 cap. Bless only from the Actions qualify run.",
+      "notes": "Reconcile 14 batch 1 (wf_957abe6026df33cc, 2026-11-22), reconcile-audit-14 rows D109. Esbjerg Kommune Energistier, signed colour loops (lwn) around Esbjerg. Lysstien Hjertesti (class A), Sædding Blå (road-heavy relation) and Guldager Rød (2 pieces) stay out. Hjerting - Blå Energisti r13091381 stays out: with it the route cluster is 0.124 deg wide, over the 0.12 cap. Bless only from the Actions qualify run. Class-A ruling batch B (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md, update mode adds r2648608 Lysstien Hjertesti (1.24 mi, Hjerteforeningen); earlier note that Lysstien stays out is superseded by the ruling. Bless only from the Actions qualify run.",
       "include_trails": [
         {
           "id": "r13090291",
@@ -6365,6 +6372,11 @@
           "id": "r13091352",
           "name": "Guldager - Grøn Energisti",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r2648608",
+          "name": "Lysstien Hjertesti",
+          "reason": "Hjerteforeningen signed heart walk (lwn) in the named forest Strandskov, 100% inside, 94% path/track, 41% shared ground with Strandskoven - Blå Energisti; class-A ruling 2026-11-24"
         }
       ],
       "container_from_routes": {
@@ -6883,7 +6895,7 @@
       "hold": null,
       "est_trails": 2,
       "est_mi": 4.3,
-      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D249. Gødstrup (Herning): Gødstrup Sø Rundt 2.2 mi and Løvbakkerne 2.2 mi (Herning Kommune lwn). Den røde løber (0.5 mi) and the Hjertesti stay out. ENGINE-2 restores the short crossings on the lake loop. Bless only from the Actions qualify run.",
+      "notes": "Reconcile 14 round-2 batch e1 (wf_957abe6026df33cc, 2026-11-23), reconcile-audit-14 rows D249. Gødstrup (Herning): Gødstrup Sø Rundt 2.2 mi and Løvbakkerne 2.2 mi (Herning Kommune lwn). Den røde løber (0.5 mi) and the Hjertesti stay out. ENGINE-2 restores the short crossings on the lake loop. Bless only from the Actions qualify run. Class-A ruling batch B (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md, update mode adds r14204961 Astronomistien - Løvbakkerne Hjertesti (1.36 mi); the OSM name has a typo (Asrronomistien), fixed through trail_name_fixes, osm_name unchanged so the id does not move. Bless only from the Actions qualify run.",
       "include_trails": [
         {
           "id": "r12330622",
@@ -6894,11 +6906,19 @@
           "id": "r12525081",
           "name": "Løvbakkerne",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r14204961",
+          "name": "Asrronomistien - Løvbakkerne Hjertesti",
+          "reason": "Hjerteforeningen signed heart walk (lwn) in the named forest Løvbakkerne, 98% inside, 71% path/track/footway, 0% overlap with live trails; class-A ruling 2026-11-24"
         }
       ],
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Gødstrup Sø; container derived from the 2 included signed routes"
-      }
+      },
+      "trail_name_fixes": [
+        {"osm_name": "Asrronomistien - Løvbakkerne Hjertesti", "name": "Astronomistien - Løvbakkerne Hjertesti", "source": "https://www.alltrails.com/pt-br/trilha/denmark/central-denmark/astronomistien-i-lovbakke-skov", "reason": "typo: the OSM relation r14204961 reads Asrronomistien; the walk is the Astronomistien (planet path) in Løvbakke Skov, Herning. osm_name keeps the OSM name, so the trail id does not move"}
+      ]
     },
     {
       "id": "bording-dk",

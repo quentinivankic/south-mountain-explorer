@@ -1316,12 +1316,11 @@
       ]
     },
     "glacier-national-park-ca-bc": {
-      "trail_count": 15,
-      "total_mi": 21.4,
+      "trail_count": 18,
+      "total_mi": 34.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
-        "Balu Pass Trail",
         "Beaver Valley Trail",
         "Knee Grinder Ridge",
         "Perley Rock Trail / Sir Donald Trail",

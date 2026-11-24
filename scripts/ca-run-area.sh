@@ -110,8 +110,15 @@ if [ -n "$ADOPT_COUNT" ]; then
     echo "SAFETY BLOCK: adopt_ways must be a non-empty list on a relation-backed area" >&2
     exit 2
   fi
+  # An entry with `relax` may name a service/unclassified way the hiking prefilter dropped: pass the raw province
+  # PBF then (only the relax-listed ids missing from the area extract are read from it). Else the argv is unchanged.
+  ADOPT_RAW_ARGS=()
+  if [ "$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | [.adopt_ways[] | has("relax")] | any' "$ROOT_REGISTRY")" = "true" ]; then
+    ADOPT_RAW_ARGS=(--raw-pbf "data/raw/canada-${AREA_ID##*-}.osm.pbf")
+  fi
   python3 ../scripts/ca_adopt_ways.py --registry "$ROOT/trailforge/golden/ca-areas.json" --area-id "$AREA_ID" \
-    --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-adopt.json"
+    --pbf "data/aoi/$AREA_ID.osm.pbf" --trails "data/aoi/$AREA_ID.trails.geojson" --report "$A/ca-adopt.json" \
+    ${ADOPT_RAW_ARGS[@]+"${ADOPT_RAW_ARGS[@]}"}
 fi
 # Optional hiking_tag_wins (registry; relation-backed only): keep hiking ways the ingest filter drops for a
 # skitour/nordic piste tag, appended to the assembled trails before the filter. Absent = this step does not run.

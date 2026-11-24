@@ -1128,8 +1128,8 @@
       ]
     },
     "bow-valley-wildland-provincial-park-ca-ab": {
-      "trail_count": 10,
-      "total_mi": 35.1,
+      "trail_count": 11,
+      "total_mi": 37.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -4457,8 +4457,8 @@
       ]
     },
     "parc-national-de-la-gaspesie-ca-qc": {
-      "trail_count": 9,
-      "total_mi": 36.0,
+      "trail_count": 10,
+      "total_mi": 38.6,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

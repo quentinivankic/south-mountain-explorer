@@ -13,6 +13,17 @@ Checks, all fail closed (exit 2 "SAFETY BLOCK"; the trails file is untouched on 
   (shared nodes, remaining gaps <= max_gap_m, default 30); at least 90% of the length lies inside the
   area boundary (`<id>.exact-area.geojson` beside `<id>.trails.geojson`, written by assemble --require-exact-area); no way
   is already a member of an assembled trail; the name is not already an assembled trail.
+Per-entry opt-in `relax` (N6, Canada only: this script runs only from the Canada runner) {agency_page, highway_ways,
+access_no_ways}: for NAMED way ids of that entry only, highway=service|unclassified|track is accepted (highway_ways) and
+access=no is accepted when the way also has foot=yes (access_no_ways). Gates: agency_page is an https URL; every listed id
+is one of the entry's way_ids and needs the relaxation it asks for; a motor access tag (motor_vehicle, motorcar, vehicle,
+...) on a relaxed way refuses the entry unless its value is exactly "no" (a prohibition is evidence the way is not
+drivable; yes, permissive, destination, customers, any other value and every :conditional/:forward/:backward form refuse);
+every way of the entry lies 100% inside the boundary. An entry without `relax` is checked exactly as before.
+The area extract only holds ways the hiking prefilter keeps (path, footway, track, ... and members of hiking
+relations), so a relaxed service/unclassified way may be absent from it. With --raw-pbf (the runner passes the raw
+province PBF only for an area that has a `relax`), exactly the ids listed in relax.highway_ways / access_no_ways that are
+missing from the area extract are read from the raw province PBF; every other id must still be in the area extract.
 """
 from __future__ import annotations
 import argparse
@@ -26,11 +37,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_trail_filter  # noqa: E402
 
 ADOPT_KEYS = {"name", "way_ids", "source", "reason"}
-OPTIONAL_KEYS = {"max_gap_m", "allow_piste"}
+OPTIONAL_KEYS = {"max_gap_m", "allow_piste", "relax"}
+RELAX_KEYS = {"agency_page", "highway_ways", "access_no_ways"}
+RELAX_HIGHWAY = frozenset({"service", "unclassified", "track"})
+MOTOR_KEYS = frozenset({"motor_vehicle", "motorcar", "motorcycle", "vehicle", "hgv", "bus", "psv", "goods", "taxi",
+                        "moped", "mofa", "atv", "snowmobile", "4wd_only"})
 MAX_WAYS = 60
 DEFAULT_GAP_M = 30.0
 MAX_GAP_M = 100.0
 MIN_INSIDE = 0.90
+RELAX_MIN_INSIDE = 1 - 1e-6   # "100% inside" with float slack for the boundary intersection
 ALLOWED_HIGHWAY = {"path", "footway", "steps", "pedestrian"}
 M_PER_MI = 1609.344
 
@@ -76,7 +92,27 @@ def validate_adopt_ways(items: object, where: str = "adopt_ways") -> list[dict]:
         piste = item.get("allow_piste", [])
         if not isinstance(piste, list) or not all(i in ids for i in piste):
             raise AdoptError(f"{label}: allow_piste must list way ids that are in way_ids")
+        if "relax" in item:
+            _validate_relax(item["relax"], ids, label)
     return items
+def relaxed_ids(entries: list[dict]) -> set[int]:
+    """Way ids the entries' `relax` names (the only ids that may be read from the raw province PBF)."""
+    return {i for e in entries for k in ("highway_ways", "access_no_ways") for i in (e.get("relax") or {}).get(k, [])}
+def _validate_relax(relax: object, ids: list[int], label: str) -> None:
+    if not isinstance(relax, dict) or not {"agency_page"} <= set(relax) or set(relax) - RELAX_KEYS:
+        raise AdoptError(f"{label}: relax needs agency_page and may add highway_ways, access_no_ways")
+    page = relax["agency_page"]
+    if not isinstance(page, str) or not page.startswith("https://") or any(c.isspace() for c in page) \
+            or "openstreetmap.org" in page:
+        raise AdoptError(f"{label}: relax.agency_page must be an https URL of the agency page (not OSM)")
+    listed: set[int] = set()
+    for key in ("highway_ways", "access_no_ways"):
+        lst = relax.get(key, [])
+        if not isinstance(lst, list) or len(set(lst)) != len(lst) or not all(_posint(i) and i in ids for i in lst):
+            raise AdoptError(f"{label}: relax.{key} must list unique way ids that are in way_ids")
+        listed |= set(lst)
+    if not listed:
+        raise AdoptError(f"{label}: relax must list at least one way id")
 
 
 def _haversine_m(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -90,14 +126,37 @@ def _line_m(coords: list[tuple[float, float]]) -> float:
     return sum(_haversine_m(coords[i], coords[i + 1]) for i in range(len(coords) - 1))
 
 
+def motor_tags(tags: dict[str, str]) -> list[str]:
+    """Motor access tags that do not prohibit motors: a base key with any value but "no", or any
+    :conditional/:forward/:backward form. A plain `motor_vehicle=no` is a prohibition and is not listed."""
+    return sorted(k for k, v in tags.items()
+                  if k.split(":", 1)[0] in MOTOR_KEYS and (":" in k or v != "no"))
+def _relax_problems(wid: int, tags: dict[str, str], relax: dict) -> list[str]:
+    """Extra checks for a way the entry's `relax` names; [] when nothing is relaxed for it."""
+    out = []
+    hw = wid in relax.get("highway_ways", [])
+    an = wid in relax.get("access_no_ways", [])
+    if hw and tags.get("highway") not in RELAX_HIGHWAY:
+        out.append(f"way {wid}: relax.highway_ways but highway={tags.get('highway')!r} is not one of {sorted(RELAX_HIGHWAY)}")
+    if an and (tags.get("access") != "no" or tags.get("foot") != "yes"):
+        out.append(f"way {wid}: relax.access_no_ways needs access=no with foot=yes "
+                   f"(access={tags.get('access')!r}, foot={tags.get('foot')!r})")
+    if (hw or an) and motor_tags(tags):
+        out.append(f"way {wid}: motor access tag {motor_tags(tags)} that does not prohibit motors, on a relaxed way")
+    return out
 def _way_problems(wid: int, way: dict, allow_piste: list[int],
-                  allowed_highway: frozenset[str] | set[str] = ALLOWED_HIGHWAY) -> list[str]:
+                  allowed_highway: frozenset[str] | set[str] = ALLOWED_HIGHWAY,
+                  relax: dict | None = None) -> list[str]:
     tags = way["tags"]
     out = []
-    if tags.get("highway") not in allowed_highway:
+    relax = relax or {}
+    hw_ok = wid in relax.get("highway_ways", []) and tags.get("highway") in RELAX_HIGHWAY
+    an_ok = wid in relax.get("access_no_ways", []) and tags.get("access") == "no" and tags.get("foot") == "yes"
+    if tags.get("highway") not in allowed_highway and not hw_ok:
         out.append(f"way {wid}: highway={tags.get('highway')!r} is not one of {sorted(allowed_highway)}")
-    if tags.get("access") in ("private", "no"):
+    if tags.get("access") in ("private", "no") and not an_ok:
         out.append(f"way {wid}: access={tags['access']}")
+    out += _relax_problems(wid, tags, relax)
     if tags.get("foot") == "no":
         out.append(f"way {wid}: foot=no")
     if "mtb:scale" in tags:
@@ -160,7 +219,8 @@ def build_features(entries: list[dict], ways: dict[int, dict], features: list[di
         missing = [i for i in ids if i not in ways]
         if missing:
             raise AdoptError(f"{label}: ways missing from the extract: {missing[:8]}")
-        problems = [p for i in ids for p in _way_problems(i, ways[i], entry.get("allow_piste", []), allowed_highway)]
+        problems = [p for i in ids for p in _way_problems(i, ways[i], entry.get("allow_piste", []), allowed_highway,
+                                                      entry.get("relax"))]
         if problems:
             raise AdoptError(f"{label}: " + "; ".join(problems[:6]))
         if ca_trail_filter.fold(entry["name"]) in existing:
@@ -179,6 +239,14 @@ def build_features(entries: list[dict], ways: dict[int, dict], features: list[di
             from shapely.geometry import LineString
             inside_m = sum(_line_m(list(seg.coords)) for c in lines
                            for seg in _lines_of(LineString(c).intersection(boundary)))
+        if "relax" in entry and boundary is not None:
+            from shapely.geometry import LineString
+            outside = [i for i in ids if _line_m(ways[i]["coords"]) - sum(
+                _line_m(list(seg.coords)) for seg in _lines_of(LineString(ways[i]["coords"]).intersection(boundary)))
+                > (1 - RELAX_MIN_INSIDE) * _line_m(ways[i]["coords"])]
+            if outside:
+                raise AdoptError(f"{label}: relax needs every way 100% inside the boundary; partly outside: "
+                                 f"{outside[:8]}")
         if boundary is None or inside_m < MIN_INSIDE * total_m:
             raise AdoptError(f"{label}: {inside_m / M_PER_MI:.2f} of {total_m / M_PER_MI:.2f} mi inside the "
                              f"boundary (needs {MIN_INSIDE:.0%}, and an exact-area boundary file)")
@@ -196,7 +264,8 @@ def build_features(entries: list[dict], ways: dict[int, dict], features: list[di
         taken |= set(ids)
         evidence.append({"name": entry["name"], "way_ids": ids, "length_mi": length_mi,
                          "inside_mi": round(inside_m / M_PER_MI, 3), "pieces_by_shared_nodes": pieces,
-                         "widest_gap_m": round(widest, 1), "source": entry["source"], "reason": entry["reason"]})
+                         "widest_gap_m": round(widest, 1), "source": entry["source"], "reason": entry["reason"],
+                         **({"relax": entry["relax"]} if "relax" in entry else {})})
     return new, evidence
 
 
@@ -246,6 +315,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--pbf", required=True)
     ap.add_argument("--trails", required=True)
     ap.add_argument("--report", required=True)
+    ap.add_argument("--raw-pbf", default=None, help="raw province PBF; only relax-listed ids missing from --pbf are read")
     args = ap.parse_args(argv)
     try:
         registry = json.loads(Path(args.registry).read_text(encoding="utf-8"))
@@ -257,6 +327,13 @@ def main(argv: list[str] | None = None) -> int:
         doc = json.loads(trails_path.read_text(encoding="utf-8"))
         features = doc["features"]
         ways = read_ways(args.pbf, {i for e in entries for i in e["way_ids"]})
+        from_raw: list[int] = []
+        if args.raw_pbf:
+            need = relaxed_ids(entries) - set(ways)
+            if need:
+                found = read_ways(args.raw_pbf, need)
+                ways.update(found)
+                from_raw = sorted(found)
         new, evidence = build_features(entries, ways, features, load_boundary(trails_path), entry["name"],
                                     frozenset(i["id"].split(":", 1)[1] for i in entry.get("exclude_trails") or []
                                               if str(i.get("id", "")).startswith(("n:", "n*:"))))
@@ -265,7 +342,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     doc["features"] = features + new
     trails_path.write_text(json.dumps(doc), encoding="utf-8")
-    Path(args.report).write_text(json.dumps({"area": args.area_id, "adopted": evidence}, indent=2) + "\n",
+    Path(args.report).write_text(json.dumps({"area": args.area_id, "adopted": evidence,
+                                                                **({"ways_read_from_raw_pbf": from_raw} if from_raw else {})},
+                                                    indent=2) + "\n",
                                  encoding="utf-8")
     print(f"adopt_ways: {len(new)} trail(s) appended to {trails_path.name}")
     return 0

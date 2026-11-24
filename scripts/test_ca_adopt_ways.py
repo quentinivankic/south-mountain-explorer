@@ -159,7 +159,8 @@ OSM = """<?xml version='1.0' encoding='UTF-8'?>
 """
 
 
-def _cli(tmp_path, adopt, with_boundary=True):
+def _cli(tmp_path, adopt, with_boundary=True, raw_xml=None):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     pbf = tmp_path / "a.osm"
     pbf.write_text(OSM)
     registry = tmp_path / "reg.json"
@@ -174,8 +175,13 @@ def _cli(tmp_path, adopt, with_boundary=True):
             {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {},
                                                          "geometry": shapely_geometry.mapping(BOX)}]}))
     report = tmp_path / "r.json"
+    extra = []
+    if raw_xml is not None:
+        raw = tmp_path / "raw.osm"
+        raw.write_text(raw_xml)
+        extra = ["--raw-pbf", str(raw)]
     run = subprocess.run([sys.executable, str(Path(aw.__file__)), "--registry", str(registry), "--area-id", "t-ca-ab",
-                          "--pbf", str(pbf), "--trails", str(trails), "--report", str(report)],
+                          "--pbf", str(pbf), "--trails", str(trails), "--report", str(report)] + extra,
                          capture_output=True, text=True)
     return run, trails, report
 
@@ -220,3 +226,230 @@ def test_ways_of_a_registry_excluded_trail_may_be_adopted():
     assert [f["properties"]["name"] for f in new] == ["Test Loop"]
     with pytest.raises(aw.AdoptError, match="already in an assembled trail"):
         build(features=[owner], excluded=frozenset({"Some Other Trail"}))
+# ------------------------------------------------------------------ N6 relax (per-entry opt-in, Canada only)
+AGENCY = "https://parks.canada.ca/pn-np/nl/grosmorne/activ/randonnee-hiking"
+def relax(**over):
+    base = {"agency_page": AGENCY, "highway_ways": [1]}
+    base.update(over)
+    return base
+def ways_with(tags1=None, tags2=None, coords1=None):
+    w1 = {**WAYS[1], "tags": {**WAYS[1]["tags"], **(tags1 or {})}}
+    if coords1:
+        w1["coords"] = coords1
+    return {1: w1, 2: {**WAYS[2], "tags": {**WAYS[2]["tags"], **(tags2 or {})}}}
+@pytest.mark.parametrize("bad", [
+    "x", {}, {"highway_ways": [1]}, relax(extra=1), relax(agency_page="http://x.y/p"), relax(agency_page=" https://x.y"),
+    relax(agency_page="https://www.openstreetmap.org/way/1"), relax(agency_page=7),
+    {"agency_page": AGENCY}, relax(highway_ways=[]), relax(highway_ways=[9]), relax(highway_ways=[1, 1]),
+    relax(highway_ways=[True]), relax(highway_ways="1"), relax(access_no_ways=[9]),
+])
+def test_relax_validator_rejects(bad):
+    with pytest.raises(aw.AdoptError):
+        aw.validate_adopt_ways([entry(relax=bad)])
+def test_relax_validator_accepts_and_registry_wired():
+    ok = [entry(relax=relax(access_no_ways=[2]))]
+    assert aw.validate_adopt_ways(ok) is ok
+    ca_publish._check_adopt_ways("x-ca-nl", {"adopt_ways": ok})
+    with pytest.raises(ca_publish.CaError):
+        ca_publish._check_adopt_ways("x-ca-nl", {"adopt_ways": [entry(relax=relax(agency_page="http://x"))]})
+@pytest.mark.parametrize("hw", ["service", "unclassified", "track"])
+def test_relax_admits_listed_named_way_classes(hw):
+    new, evidence = build(entries=[entry(relax=relax())], ways=ways_with({"highway": hw, "foot": "yes"}))
+    assert len(new) == 1 and evidence[0]["relax"]["highway_ways"] == [1]
+    with pytest.raises(aw.AdoptError, match="highway"):      # control: same ways, no relax = refused as before
+        build(ways=ways_with({"highway": hw, "foot": "yes"}))
+def test_relax_is_per_way_id_not_per_entry():
+    ways = ways_with({"highway": "service"}, {"highway": "service"})
+    with pytest.raises(aw.AdoptError, match="way 2: highway='service'"):
+        build(entries=[entry(relax=relax())], ways=ways)
+    new, _ = build(entries=[entry(relax=relax(highway_ways=[1, 2]))], ways=ways)
+    assert len(new) == 1
+@pytest.mark.parametrize("hw", ["residential", "tertiary", "primary", "living_street", "motorway", "cycleway", None])
+def test_relax_never_admits_other_classes(hw):
+    tags = {"highway": hw} if hw else {}
+    ways = ways_with(tags)
+    if hw is None:
+        del ways[1]["tags"]["highway"]
+    with pytest.raises(aw.AdoptError, match="relax.highway_ways but highway|not one of"):
+        build(entries=[entry(relax=relax())], ways=ways)
+def test_relax_listing_a_way_that_needs_nothing_is_refused():
+    with pytest.raises(aw.AdoptError, match="relax.highway_ways but highway='path'"):
+        build(entries=[entry(relax=relax())])
+    with pytest.raises(aw.AdoptError, match="relax.access_no_ways needs access=no"):
+        build(entries=[entry(relax=relax(highway_ways=[1], access_no_ways=[2]))],
+              ways=ways_with({"highway": "service"}))
+@pytest.mark.parametrize("tags", [
+    {"motor_vehicle": "yes"}, {"motor_vehicle": "permissive"}, {"motor_vehicle": "destination"},
+    {"motor_vehicle": "customers"}, {"motor_vehicle": "agricultural"}, {"motor_vehicle": ""}, {"motorcar": "yes"},
+    {"motorcycle": "designated"}, {"vehicle": "destination"}, {"hgv": "yes"}, {"bus": "yes"}, {"psv": "yes"},
+    {"goods": "delivery"}, {"atv": "yes"}, {"snowmobile": "yes"}, {"4wd_only": "yes"}, {"taxi": "yes"},
+    {"motor_vehicle:conditional": "no @ (Nov-Apr)"}, {"vehicle:forward": "no"}, {"motorcar:backward": "no"},
+    {"motor_vehicle": "no", "hgv": "yes"},
+])
+def test_relax_refuses_a_motor_access_tag_that_does_not_prohibit(tags):
+    with pytest.raises(aw.AdoptError, match="motor access tag"):
+        build(entries=[entry(relax=relax())], ways=ways_with({"highway": "service", "foot": "yes", **tags}))
+    with pytest.raises(aw.AdoptError, match="motor access tag"):      # also on an access=no way
+        build(entries=[entry(relax={"agency_page": AGENCY, "access_no_ways": [1]})],
+              ways=ways_with({"access": "no", "foot": "yes", **tags}))
+def test_relax_accepts_motor_prohibitions_and_real_ha_ling_tags():
+    ha_ling = {"access": "no", "bicycle": "no", "emergency": "no", "foot": "yes", "goods": "no", "hgv": "no",
+               "highway": "path", "horse": "no", "motor_vehicle": "no", "psv": "no", "sac_scale": "mountain_hiking",
+               "taxi": "no"}
+    new, _ = build(entries=[entry(relax={"agency_page": AGENCY, "access_no_ways": [1]})], ways=ways_with(ha_ling))
+    assert len(new) == 1
+    assert aw.motor_tags({"motor_vehicle": "no", "vehicle": "no"}) == []
+def test_relax_refuses_the_real_western_brook_pond_service_road():
+    wbp = {"highway": "service", "foot": "yes", "horse": "unknown", "motor_vehicle": "permissive", "ref": "RIM"}
+    with pytest.raises(aw.AdoptError, match=r"motor access tag \['motor_vehicle'\]"):
+        build(entries=[entry(relax=relax())], ways=ways_with(wbp))
+def test_relax_allows_access_customers_and_foot_tags_on_a_service_way():
+    for extra in ({"access": "customers"}, {"access": "yes"}, {"foot": "yes", "ref": "RIM"}, {"access": "permissive"}):
+        new, _ = build(entries=[entry(relax=relax())], ways=ways_with({"highway": "service", **extra}))
+        assert len(new) == 1
+def test_relax_access_no_needs_foot_yes_and_a_listing():
+    rel = {"agency_page": AGENCY, "access_no_ways": [1]}
+    new, _ = build(entries=[entry(relax=rel)], ways=ways_with({"access": "no", "foot": "yes"}))
+    assert len(new) == 1
+    for tags in ({"access": "no"}, {"access": "no", "foot": "designated"}, {"access": "no", "foot": "permissive"},
+                 {"access": "no", "foot": "no"}, {"access": "private", "foot": "yes"}):
+        with pytest.raises(aw.AdoptError):
+            build(entries=[entry(relax=rel)], ways=ways_with(tags))
+    with pytest.raises(aw.AdoptError, match="access=no"):      # unlisted way keeps the old refusal
+        build(entries=[entry(relax=rel)], ways=ways_with({}, {"access": "no", "foot": "yes"}))
+    with pytest.raises(aw.AdoptError, match="access=no"):      # control: no relax at all
+        build(ways=ways_with({"access": "no", "foot": "yes"}))
+def test_relax_highway_listing_does_not_waive_access_no():
+    with pytest.raises(aw.AdoptError, match="access=no"):
+        build(entries=[entry(relax=relax())], ways=ways_with({"highway": "service", "access": "no", "foot": "yes"}))
+def test_relax_keeps_every_other_way_check():
+    for tags, why in (({"foot": "no"}, "foot=no"), ({"mtb:scale": "2"}, "mtb:scale"), ({"piste:type": "nordic"}, "piste"),
+                      ({"access": "private"}, "access")):
+        with pytest.raises(aw.AdoptError, match=why):
+            build(entries=[entry(relax=relax())], ways=ways_with({"highway": "service", **tags}))
+def test_relax_needs_every_way_100_percent_inside():
+    ways = ways_with({"highway": "service"})
+    edge = shapely_geometry.box(-116.0, 51.0, -115.9, 51.0599)   # way 2 pokes out by ~10 m (2% of the entry)
+    new, _ = build(ways=ways_with({}), boundary=edge)               # control: no relax, 90% rule only
+    assert len(new) == 1
+    with pytest.raises(aw.AdoptError, match="100% inside"):
+        build(entries=[entry(relax=relax())], ways=ways, boundary=edge)
+    new, _ = build(entries=[entry(relax=relax())], ways=ways)
+    assert len(new) == 1
+def test_entries_without_relax_are_byte_identical_to_before():
+    new, evidence = build()
+    assert "relax" not in evidence[0]
+    assert set(new[0]["properties"]) == {"name", "kind", "area", "source", "length_mi", "member_ways", "destinations",
+                                         "welds", "network", "operator", "sac_scale", "trail_visibility",
+                                         "removed_reason", "removed_category", "ckey", "adopt_source"}
+    assert aw._way_problems(1, WAYS[1], []) == []
+    assert aw._way_problems(1, {**WAYS[1], "tags": {"highway": "service", "motor_vehicle": "no"}}, []) == [
+        "way 1: highway='service' is not one of ['footway', 'path', 'pedestrian', 'steps']"]
+def test_default_allowed_highway_unchanged():
+    assert aw.ALLOWED_HIGHWAY == {"path", "footway", "steps", "pedestrian"}
+def test_canada_only_only_the_canada_runner_and_registry_loader_use_it():
+    root = Path(__file__).resolve().parents[1]
+    for rel in ("trailforge/assemble", "trailforge/extract", "trailforge/serve", ".github/workflows"):
+        for path in (root / rel).rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".sh", ".yml", ".yaml"}:
+                assert "ca_adopt_ways" not in path.read_text(encoding="utf-8", errors="ignore"), path
+    users = {p.name for p in (root / "scripts").glob("*") if p.is_file() and p.suffix in {".py", ".sh"}
+             and "ca_adopt_ways" in p.read_text(encoding="utf-8", errors="ignore")}
+    assert not [u for u in users if u.startswith(("dk_", "us_", "test_dk", "test_us"))]
+# One mutation per gate: break the gate, and the case the gate refuses must now pass, so the tests above
+# are what stands between a drivable road and the published list.
+SERVICE = ways_with({"highway": "service", "foot": "yes"})
+def test_mutation_highway_gate(monkeypatch):
+    monkeypatch.setattr(aw, "RELAX_HIGHWAY", frozenset({"service", "unclassified", "track", "residential"}))
+    new, _ = build(entries=[entry(relax=relax())], ways=ways_with({"highway": "residential"}))
+    assert len(new) == 1                                        # mutated gate lets a residential road through
+    monkeypatch.undo()
+    with pytest.raises(aw.AdoptError):
+        build(entries=[entry(relax=relax())], ways=ways_with({"highway": "residential"}))
+def test_mutation_motor_gate(monkeypatch):
+    ways = ways_with({"highway": "service", "motor_vehicle": "yes"})
+    monkeypatch.setattr(aw, "motor_tags", lambda tags: [])
+    assert len(build(entries=[entry(relax=relax())], ways=ways)[0]) == 1
+    monkeypatch.undo()
+    with pytest.raises(aw.AdoptError, match="motor access tag"):
+        build(entries=[entry(relax=relax())], ways=ways)
+def test_mutation_motor_key_list(monkeypatch):
+    monkeypatch.setattr(aw, "MOTOR_KEYS", frozenset())
+    assert len(build(entries=[entry(relax=relax())], ways=ways_with({"highway": "service", "vehicle": "yes"}))[0]) == 1
+def test_mutation_motor_prohibition_value(monkeypatch):
+    ways = ways_with({"highway": "service", "motor_vehicle": "no"})
+    assert len(build(entries=[entry(relax=relax())], ways=ways)[0]) == 1
+    monkeypatch.setattr(aw, "motor_tags", lambda tags: sorted(k for k in tags if k.split(":", 1)[0] in aw.MOTOR_KEYS))
+    with pytest.raises(aw.AdoptError, match="motor access tag"):    # a stricter gate would refuse the real Ha Ling tags
+        build(entries=[entry(relax=relax())], ways=ways)
+def test_mutation_inside_gate(monkeypatch):
+    edge = shapely_geometry.box(-116.0, 51.0, -115.9, 51.0599)
+    monkeypatch.setattr(aw, "RELAX_MIN_INSIDE", 0.9)
+    assert len(build(entries=[entry(relax=relax())], ways=SERVICE, boundary=edge)[0]) == 1
+    monkeypatch.undo()
+    with pytest.raises(aw.AdoptError, match="100% inside"):
+        build(entries=[entry(relax=relax())], ways=SERVICE, boundary=edge)
+def test_mutation_access_no_needs_foot_yes(monkeypatch):
+    rel = {"agency_page": AGENCY, "access_no_ways": [1]}
+    ways = ways_with({"access": "no"})                          # no foot tag
+    with pytest.raises(aw.AdoptError):
+        build(entries=[entry(relax=rel)], ways=ways)
+    ways[1]["tags"]["foot"] = "yes"
+    assert len(build(entries=[entry(relax=rel)], ways=ways)[0]) == 1
+    monkeypatch.setattr(aw, "_relax_problems", lambda wid, tags, relax: [])
+    orig = aw._way_problems
+    monkeypatch.setattr(aw, "_way_problems", lambda wid, way, ap, ah=aw.ALLOWED_HIGHWAY, relax=None:
+                        [p for p in orig(wid, way, ap, ah, relax)])
+    ways[1]["tags"].pop("foot")
+    with pytest.raises(aw.AdoptError, match="access=no"):       # the base access check still refuses without foot=yes
+        build(entries=[entry(relax=rel)], ways=ways)
+def test_mutation_agency_page_gate(monkeypatch):
+    bad = [entry(relax=relax(agency_page="http://x.y/p"))]
+    with pytest.raises(aw.AdoptError):
+        aw.validate_adopt_ways(bad)
+    monkeypatch.setattr(aw, "_validate_relax", lambda *a, **k: None)
+    assert aw.validate_adopt_ways(bad) is bad
+def test_mutation_per_id_listing(monkeypatch):
+    ways = ways_with({"highway": "service"}, {"highway": "service"})
+    with pytest.raises(aw.AdoptError):
+        build(entries=[entry(relax=relax())], ways=ways)
+    orig = aw._way_problems
+    monkeypatch.setattr(aw, "_way_problems", lambda wid, way, ap, ah=aw.ALLOWED_HIGHWAY, relax=None:
+                        orig(wid, way, ap, ah, {"highway_ways": [1, 2], "access_no_ways": []}))
+    assert len(build(entries=[entry(relax=relax())], ways=ways)[0]) == 1
+def test_cli_relax_end_to_end(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "OSM", OSM.replace(
+        '<nd ref="2"/><tag k="highway" v="path"/></way>\n  <way id="2"',
+        '<nd ref="2"/><tag k="highway" v="service"/><tag k="foot" v="yes"/></way>\n  <way id="2"'))
+    run, trails, report = _cli(tmp_path / "a", [entry(relax=relax())])
+    assert run.returncode == 0, run.stderr
+    assert json.loads(report.read_text())["adopted"][0]["relax"]["agency_page"] == AGENCY
+    run2, _, _ = _cli(tmp_path / "b", [entry()])                 # same extract, no opt-in: refused
+    assert run2.returncode == 2 and "SAFETY BLOCK" in run2.stderr and "highway" in run2.stderr
+# The area extract lacks service ways (the hiking prefilter drops them); --raw-pbf supplies only relax-listed ids.
+AREA_ONLY_WAY2 = OSM.replace('  <way id="1" version="1"><nd ref="1"/><nd ref="2"/><tag k="highway" v="path"/></way>\n', "")
+RAW_WITH_WAY1 = OSM.replace('<nd ref="2"/><tag k="highway" v="path"/></way>\n  <way id="2"',
+                            '<nd ref="2"/><tag k="highway" v="service"/><tag k="foot" v="yes"/></way>\n  <way id="2"')
+def test_cli_raw_pbf_supplies_only_relax_listed_ids(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "OSM", AREA_ONLY_WAY2)
+    run, trails, report = _cli(tmp_path / "a", [entry(relax=relax())], raw_xml=RAW_WITH_WAY1)
+    assert run.returncode == 0, run.stderr
+    doc = json.loads(report.read_text())
+    assert doc["ways_read_from_raw_pbf"] == [1] and doc["adopted"][0]["way_ids"] == [1, 2]
+    run, _, _ = _cli(tmp_path / "b", [entry(relax=relax())])                      # no --raw-pbf: way 1 is missing
+    assert run.returncode == 2 and "missing from the extract" in run.stderr
+    run, _, _ = _cli(tmp_path / "c", [entry()], raw_xml=RAW_WITH_WAY1)            # no relax: raw is never consulted
+    assert run.returncode == 2 and "missing from the extract" in run.stderr
+    # way 2 (not relax-listed) missing from the area extract is NOT taken from the raw file
+    monkeypatch.setitem(globals(), "OSM", AREA_ONLY_WAY2.replace('  <way id="2" version="1"><nd ref="2"/><nd ref="3"/><tag k="highway" v="path"/></way>\n', ""))
+    run, _, _ = _cli(tmp_path / "d", [entry(relax=relax())], raw_xml=RAW_WITH_WAY1)
+    assert run.returncode == 2 and "missing from the extract: [2]" in run.stderr
+def test_relaxed_ids():
+    assert aw.relaxed_ids([entry(relax=relax(highway_ways=[1], access_no_ways=[2]))]) == {1, 2}
+    assert aw.relaxed_ids([entry()]) == set()
+def test_run_area_passes_raw_pbf_only_for_relax_entries():
+    script = (Path(__file__).resolve().parent / "ca-run-area.sh").read_text()
+    step = script.index("ca_adopt_ways.py")
+    block = script[script.rindex("ADOPT_RAW_ARGS=()", 0, step):script.index("fi\n", step)]
+    assert 'has("relax")' in script[:step] and "--raw-pbf" in block
+    assert "${ADOPT_RAW_ARGS[@]+" in script[step:step + 400]      # empty array safe under bash 3.2 + set -u

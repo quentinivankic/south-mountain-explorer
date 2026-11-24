@@ -6410,6 +6410,18 @@
           "source": "https://www.openstreetmap.org/way/24851688",
           "reason": "Abbreviation expanded; same trail"
         }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Ha Ling Trail",
+          "way_ids": [119212026, 1242537466, 1242537467, 1242537468, 1242537469, 1242537470, 1242537471],
+          "source": "https://albertaparks.ca/parks/kananaskis/bow-valley-wpp/information-facilities/trails",
+          "reason": "Alberta Parks lists Ha Ling (3.5 km to the saddle, 3.9 km to the summit) among Bow Valley Wildland PP trails. The signed trail is mapped as seven ways, all access=no with foot=yes (Calgary Area Trail Mapping Project), so the assembler drops it. The 34 m trailhead footway 119212025 (bicycle=yes, motor_vehicle=private) is left out.",
+          "relax": {
+            "agency_page": "https://albertaparks.ca/parks/kananaskis/bow-valley-wpp/information-facilities/trails",
+            "access_no_ways": [119212026, 1242537466, 1242537467, 1242537468, 1242537469, 1242537470, 1242537471]
+          }
+        }
       ]
     },
     {
@@ -11014,6 +11026,19 @@
           "id": "n:detour",
           "name": "detour",
           "reason": "Generic one-word name for a detour of another route, not a standalone trail"
+        },
+        {
+          "id": "n:La Grande traversée - Sentier International des Appalaches SIA-IAT",
+          "name": "La Grande traversée - Sentier International des Appalaches SIA-IAT",
+          "reason": "Long-distance SIA-IAT (Grande Traversée) main line, excluded by rule. The summit path way 226096311 it shares is adopted as Mont Jacques-Cartier"
+        }
+      ],
+      "adopt_ways": [
+        {
+          "name": "Mont Jacques-Cartier",
+          "way_ids": [226096311],
+          "source": "https://baliseqc.ca/3S/explorer/gaspesie/parc-national-de-la-gaspesie-LR0119",
+          "reason": "Sépaq park trail Mont Jacques-Cartier (Rando Québec lists it among the park's 18 trails; Sépaq pages return 403 to automation). OSM names the summit path only for the SIA-IAT, so the path is adopted under its own name. Only the 4.2 km path is adopted: the two unnamed gravel service ways below it (3.9 km, lanes=2, access=customers) are the drivable approach road."
         }
       ]
     },

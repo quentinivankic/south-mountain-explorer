@@ -27,6 +27,14 @@ hiking sac_scale (hiking, mountain_hiking, demanding_mountain_hiking) and the ex
 entry that carries no piste:type tag. Under the same flag, and only for a way with foot=yes|designated and such
 a sac_scale, access=no (foot overrides it) and an easy mtb:scale 0|1 (a hiking road that bikes also use) no
 longer trip the adopt_ways way checks; mtb:scale >= 2, access=private and every other check stay in force.
+Per-trail opt-in `agency_evidence: {url, season, hiking_use}` (way_ids form only, no hiking relation and no
+foot/sac tag exists; Poland Lake, Sentier de la Grande Baie, Balu Pass, Glacier Crest, Sentier des Lacs) accepts a
+piste-tagged way of THAT entry whose only missing evidence is a hiking tag, because the park agency page `url` (an
+allow-listed Canadian agency domain, https) names the trail as a hiking trail. `season` must be summer or
+summer-and-winter (a winter-only listing is refused), `hiking_use` quotes in the entry's own words what the agency says.
+It lifts only the relation/foot evidence gate. Every other check stays: skitour/nordic only, the adopt_ways way checks,
+the track gate, and four winter-infrastructure refusals (foot=no, seasonal=winter, winter_road=yes, ice_road=yes or a
+ski-only way: ski=designated|yes without foot, a groomed piste:grooming (anything but backcountry) without foot=yes|designated).
 Chaining, 90% inside the area boundary, no way already in another assembled trail and no name clash
 are the adopt_ways checks, reused unchanged.
 Nothing here touches shared engine code; no OSM edit is made. Absent key = this step never runs.
@@ -38,11 +46,20 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ca_adopt_ways  # noqa: E402
 import ca_trail_filter  # noqa: E402
 HTW_KEYS = {"name", "source", "reason"}
-OPTIONAL_KEYS = {"way_ids", "relation", "max_gap_m", "named_sac_evidence"}
+OPTIONAL_KEYS = {"way_ids", "relation", "max_gap_m", "named_sac_evidence", "agency_evidence"}
+AGENCY_KEYS = {"url", "season", "hiking_use"}
+AGENCY_SEASONS = {"summer", "summer-and-winter"}
+# Canadian park-agency hosts (domain or any subdomain). A page on any other host is not agency evidence.
+AGENCY_DOMAINS = ("bcparks.ca", "gov.bc.ca", "parks.canada.ca", "pc.gc.ca", "canada.ca", "sepaq.com",
+                  "ontarioparks.com", "ontario.ca", "albertaparks.ca", "alberta.ca", "nbparks.ca", "gnb.ca",
+                  "novascotia.ca", "parks.novascotia.ca", "gov.nl.ca", "saskparks.com", "tourismsaskatchewan.com",
+                  "manitobaparks.com", "gov.mb.ca", "yukon.ca", "nwtparks.ca", "princeedwardisland.ca")
+HIKING_WORDS = re.compile(r"\b(hik\w*|walk\w*|summer)\b", re.I)
 SAC_HIKING = {"hiking", "mountain_hiking", "demanding_mountain_hiking"}
 EASY_MTB = {"0", "1"}
 PISTE_OK = {"skitour", "nordic"}
@@ -73,6 +90,13 @@ def validate_hiking_tag_wins(items: object, where: str = "hiking_tag_wins") -> l
             base["max_gap_m"] = item["max_gap_m"]
         if "named_sac_evidence" in item and (item["named_sac_evidence"] is not True or "way_ids" not in item):
             raise HikingTagWinsError(f"{label}: named_sac_evidence must be true and goes with way_ids only")
+        if "agency_evidence" in item:
+            if "way_ids" not in item or "named_sac_evidence" in item:
+                raise HikingTagWinsError(f"{label}: agency_evidence goes with way_ids only, not with relation or "
+                                         "named_sac_evidence")
+            agency_problems = agency_evidence_problems(item["agency_evidence"], item["source"])
+            if agency_problems:
+                raise HikingTagWinsError(f"{label}: agency_evidence " + "; ".join(agency_problems))
         try:
             ca_adopt_ways.validate_adopt_ways([base], where)
         except ca_adopt_ways.AdoptError as error:
@@ -92,6 +116,39 @@ def validate_hiking_tag_wins(items: object, where: str = "hiking_tag_wins") -> l
             raise HikingTagWinsError(f"{where} repeats {item['name']!r}")
         names.add(key)
     return items
+def agency_evidence_problems(ev: object, source: object = None) -> list[str]:
+    """Why an agency_evidence value is not acceptable (empty = fine): https URL on an agency host, a summer season
+    and a hiking_use text that says hiking, walking or summer. A winter-only listing never passes."""
+    if not isinstance(ev, dict) or set(ev) != AGENCY_KEYS:
+        return [f"must be exactly {sorted(AGENCY_KEYS)}"]
+    out = []
+    url, season, use = ev["url"], ev["season"], ev["hiking_use"]
+    host = urlsplit(url).hostname if isinstance(url, str) else None
+    if (not isinstance(url, str) or not url.startswith("https://") or not host or url != url.strip()
+            or not any(host == d or host.endswith("." + d) for d in AGENCY_DOMAINS)):
+        out.append("url must be an https page on a Canadian park-agency host")
+    if source is not None and url != source:
+        out.append("url must equal the entry's source")
+    if not isinstance(season, str) or season not in AGENCY_SEASONS:
+        out.append(f"season must be one of {sorted(AGENCY_SEASONS)} (winter-only is refused)")
+    if not isinstance(use, str) or len(use.strip()) < 20 or not HIKING_WORDS.search(use):
+        out.append("hiking_use must quote the agency's hiking/walking/summer wording (20+ characters)")
+    return out
+def winter_problems(wid: int, tags: dict[str, str]) -> list[str]:
+    """Tags that mark a way as winter-only or ski-only infrastructure; agency_evidence never overrides them."""
+    out = []
+    if tags.get("foot") == "no":
+        out.append(f"way {wid}: foot=no")
+    if tags.get("seasonal") == "winter":
+        out.append(f"way {wid}: seasonal=winter")
+    if tags.get("winter_road") == "yes" or tags.get("ice_road") == "yes":
+        out.append(f"way {wid}: winter_road/ice_road")
+    walk = tags.get("foot") in ("yes", "designated")
+    if tags.get("ski") in ("yes", "designated") and not walk:
+        out.append(f"way {wid}: ski={tags['ski']} with no foot=yes|designated (ski-only)")
+    if tags.get("piste:grooming") not in (None, "backcountry") and not walk:
+        out.append(f"way {wid}: piste:grooming={tags['piste:grooming']} with no foot=yes|designated (groomed ski track)")
+    return out
 def piste_problems(wid: int, tags: dict[str, str]) -> list[str]:
     """Why a way's piste:type is not a skitour/nordic tag that hiking may override (empty = fine)."""
     raw = tags.get("piste:type")
@@ -212,6 +269,8 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
         anchors = {ways[i]["tags"]["name"] for i in ids
                    if "piste:type" not in ways[i]["tags"] and ways[i]["tags"].get("name")}
         sac_ways: list[int] = []
+        agency_ways: list[int] = []
+        agency = entry.get("agency_evidence") if not relation_mode else None    # validator: way_ids form only
         named_evidence = {ways[i]["tags"]["name"] for i in ids
                           if "piste:type" in ways[i]["tags"] and ways[i]["tags"].get("name")
                           and (hiking.get(i) or ways[i]["tags"].get("foot") == "designated")}
@@ -225,6 +284,12 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
                 if evidence and flagged and sac_named_evidence(tags, anchors):
                     evidence = []
                     sac_ways.append(i)
+                if agency:
+                    winter = winter_problems(i, tags)
+                    if evidence and not winter:
+                        evidence = []
+                        agency_ways.append(i)
+                    evidence = evidence + winter
                 problems += piste_problems(i, tags) + evidence
             elif not relation_mode:
                 problems += piste_problems(i, tags)
@@ -246,8 +311,11 @@ def build(entries: list[dict], relations: dict[int, dict], ways: dict[int, dict]
             adopt["max_gap_m"] = entry["max_gap_m"]
         adopt_entries.append(adopt)
         replaced += partial
-        extra.append({"left_with_other_trails": skipped, "named_sac_evidence_ways": sorted(sac_ways),
-                      "tolerated_access_or_mtb_ways": sorted(overrides)})
+        more = {"left_with_other_trails": skipped, "named_sac_evidence_ways": sorted(sac_ways),
+                "tolerated_access_or_mtb_ways": sorted(overrides)}
+        if agency:                  # report keys exist only for an opted-in entry (other areas' reports unchanged)
+            more.update({"agency_evidence_ways": sorted(agency_ways), "agency_evidence": agency})
+        extra.append(more)
     # A partial copy the whole route replaces, or a trail the registry's exclude_trails removes next, is not a clash.
     live = [f for f in features if (f.get("properties") or {}).get("name") not in excluded
             and not any(f is r for r in replaced)]

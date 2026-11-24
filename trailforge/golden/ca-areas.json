@@ -8504,6 +8504,61 @@
           "relation": "r7490087",
           "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
           "reason": "Parks Canada Glacier day hike. OSM route=hiking relation r7490087; 6 of 7 member ways also carry piste:type=skitour, so only a 0.85 mi stub is live."
+        },
+        {
+          "name": "Balu Pass Trail",
+          "way_ids": [
+            328169111,
+            542316859,
+            1308085467
+          ],
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike Balu Pass (12.8 km return). OSM: 2 ways tagged piste:type=skitour with piste:grooming=backcountry (3.7 mi) and no foot/sac_scale or hiking relation, plus a 0.14 mi untagged stub that is replaced.",
+          "agency_evidence": {
+            "url": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+            "season": "summer",
+            "hiking_use": "Parks Canada Glacier day hikes page lists Balu Pass: 12.8 km return, 780 m elevation change, natural trail with rock stairs, trailhead Rogers Pass Discovery Centre; wild flowers in August"
+          }
+        },
+        {
+          "name": "Glacier Crest Trail",
+          "way_ids": [
+            542315661
+          ],
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike Glacier Crest (13.4 km return). OSM: one way, highway=path, piste:type=skitour with piste:grooming=backcountry (2.4 mi), no foot/sac_scale or relation.",
+          "agency_evidence": {
+            "url": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+            "season": "summer",
+            "hiking_use": "Parks Canada Glacier day hikes page lists Glacier Crest: 13.4 km return, 960 m elevation change, natural trail with rocky sections, climbs a rock ridge between the Illecillewaet and Asulkan valleys"
+          }
+        },
+        {
+          "name": "Bostock Creek Trail",
+          "way_ids": [
+            456932563
+          ],
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike Bostock Creek (15.6 km return). OSM: one way, highway=footway, piste:type=skitour with piste:grooming=backcountry, no foot/sac_scale or relation.",
+          "agency_evidence": {
+            "url": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+            "season": "summer",
+            "hiking_use": "Parks Canada Glacier day hikes page lists Bostock Creek: 15.6 km return, 740 m elevation change, natural trail, hike from the interior rainforest into the subalpine forest"
+          }
+        },
+        {
+          "name": "Hermit Trail",
+          "way_ids": [
+            120432258,
+            1308085525
+          ],
+          "source": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+          "reason": "Parks Canada Glacier day hike Hermit Trail (6.4 km return). OSM: one way tagged piste:type=skitour (backcountry) with no foot/sac_scale or relation, joined to the untagged way 1308085525 that the live trail is built from.",
+          "agency_evidence": {
+            "url": "https://parks.canada.ca/pn-np/bc/glacier/activ/randonee-hiking/journee-day",
+            "season": "summer",
+            "hiking_use": "Parks Canada Glacier day hikes page lists Hermit Trail: 6.4 km return, 820 m elevation change, natural trail with rock stairs, very steep, switchbacks to an alpine meadow"
+          }
         }
       ],
       "adopt_ways": [

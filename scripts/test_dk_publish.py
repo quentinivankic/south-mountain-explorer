@@ -373,6 +373,8 @@ R14E2_CLUSTER = list(R14E2_NEW)   # container_from_routes
 CLASSA_A_NEW = ["marielundskoven-dk", "jaegerspris-nordskov-dk", "rise-skov-dk"]
 CLASSA_A_SHIP = list(CLASSA_A_NEW)
 CLASSA_A_CLUSTER = list(CLASSA_A_NEW)   # container_from_routes
+# Class-A batch C (2026-11-24): Vestskoven unheld (way polygon, allow_classA_name)
+CLASSA_C_UNHELD = ["vestskoven-dk"]
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
@@ -394,7 +396,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP and a["id"] not in R14E1_SHIP and a["id"] not in R14E2_SHIP and a["id"] not in CLASSA_A_SHIP and a["id"] not in DKSHIP_SHIP)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP and a["id"] not in R14E1_SHIP and a["id"] not in R14E2_SHIP and a["id"] not in CLASSA_A_SHIP and a["id"] not in CLASSA_C_UNHELD and a["id"] not in DKSHIP_SHIP)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -609,9 +611,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 184, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 185, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 57, "superseded": 6}
+        "curated-do-not-ship": 56, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)

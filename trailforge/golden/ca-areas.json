@@ -1956,12 +1956,19 @@
       ],
       "tier": 3,
       "hold": null,
-      "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3. live-fix1 2026-11-02: display name Western Common (halifax.ca/media/84230). Trail 'Nichols Falls' not renamed: that it is the Nichols Lake Trail is unconfirmed.",
+      "notes": "Qualify 2026-11-02 (run q3): 2 trails, 3.1 mi, pre/post clip 62>3. live-fix1 2026-11-02: display name Western Common (halifax.ca/media/84230). Trail 'Nichols Falls' not renamed: that it is the Nichols Lake Trail is unconfirmed. audit9 2026-11-23: Big Indian Lake Pipeline Trail excluded (ATV pipeline, not an HRM hiking trail); id big-indian-lake-pipeline-trail is retired. One-trail area (Nichols Falls) kept as the HRM Western Common trail.",
       "display_name": "Western Common",
       "allow_rename": {
         "from": "Western Commons",
         "reason": "Halifax Regional Municipality documents the park as the Western Common (Western Common Wilderness Common Master Plan, Nichols Lake Trail updates); 'Commons' is the AllTrails wording"
-      }
+      },
+      "exclude_trails": [
+        {
+          "id": "n:Big Indian Lake Pipeline Trail",
+          "name": "Big Indian Lake Pipeline Trail",
+          "reason": "Audit 9 F4: ATV/mountain-bike pipeline right-of-way (halifaxtrails.ca); no agency lists it as a hiking trail; the HRM Western Common updates cover only the Nichols Lake Trail."
+        }
+      ]
     },
     {
       "id": "crystal-crescent-beach-provincial-park-ca-ns",

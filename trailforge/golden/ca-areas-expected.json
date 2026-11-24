@@ -299,11 +299,12 @@
       ]
     },
     "western-commons-ca-ns": {
-      "trail_count": 2,
-      "total_mi": 3.1,
+      "trail_count": 1,
+      "total_mi": 1.0,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
+        "Big Indian Lake Pipeline Trail",
         "McDonald Run"
       ]
     },

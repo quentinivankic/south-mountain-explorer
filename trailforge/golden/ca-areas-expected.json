@@ -1316,15 +1316,17 @@
       ]
     },
     "glacier-national-park-ca-bc": {
-      "trail_count": 16,
-      "total_mi": 30.4,
+      "trail_count": 15,
+      "total_mi": 21.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
         "Balu Pass Trail",
+        "Beaver Valley Trail",
         "Knee Grinder Ridge",
         "Perley Rock Trail / Sir Donald Trail",
-        "Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')"
+        "Upper Beaver Valley Trail (not maintained, 'Wildlife Priority Zone')",
+        "Young's Peak Traverse"
       ]
     },
     "golden-ears-provincial-park-ca-bc": {

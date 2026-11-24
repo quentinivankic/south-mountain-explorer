@@ -1717,12 +1717,13 @@
       ]
     },
     "tisvilde-hegn-dk": {
-      "trail_count": 2,
-      "total_mi": 11.2,
+      "trail_count": 3,
+      "total_mi": 12.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Tisvilde Hegn - Gul rute",
-        "Arrenakke Bakker"
+        "Arrenakke Bakker",
+        "Sundhedsspor Melby Overdrev"
       ],
       "forbidden_names": [
         "Asserbolinie",
@@ -1765,13 +1766,14 @@
       ]
     },
     "frederiksvaerk-dk": {
-      "trail_count": 3,
-      "total_mi": 9.3,
+      "trail_count": 4,
+      "total_mi": 10.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Frederiksværk Rød historisk vandring",
         "Hjertesti ved Magleblik",
-        "Bakkestien"
+        "Bakkestien",
+        "Sundhedsspor Arresødal Skov"
       ],
       "forbidden_names": [
         "Frederiksværk Gul historisk vandring",
@@ -1779,7 +1781,8 @@
         "Fjordstien Vandresti",
         "Halsninoen",
         "Hillerød - Frederiksværk",
-        "Smalle Åsti"
+        "Smalle Åsti",
+        "Nørregade"
       ]
     },
     "gurre-dk": {
@@ -2097,8 +2100,8 @@
       ]
     },
     "tonder-dk": {
-      "trail_count": 8,
-      "total_mi": 49.6,
+      "trail_count": 9,
+      "total_mi": 51.1,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Rød stisløjfe, Tønder, Nørresø",
@@ -2108,13 +2111,17 @@
         "Tønderstier: Sort sti, Møgeltønderstien",
         "Tønderstier: Rød sti, Dyrhus-Ubjergstien",
         "Tønderstier: Pink sti, Galgestrømstien",
-        "Tønderstier: Grøn sti, By-sti 2"
+        "Tønderstier: Grøn sti, By-sti 2",
+        "Sundhedssporet i Soldaterskoven"
       ],
       "forbidden_names": [
         "Laurids Rudebecks Allé",
         "Marskstien",
         "Nord Süd Trail, Abschnitt Sylt - Flensburg",
-        "Vestergade"
+        "Vestergade",
+        "Infanterivej",
+        "Kampvognsvej",
+        "Vestre Skovvej"
       ]
     },
     "hammeren-dk": {
@@ -2688,10 +2695,12 @@
       ]
     },
     "esbjerg-energistier-dk": {
-      "trail_count": 6,
-      "total_mi": 12.6,
+      "trail_count": 7,
+      "total_mi": 13.8,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Lysstien Hjertesti"
+      ],
       "forbidden_names": [
         "Fovrfeldstien",
         "Gjesing Vandværksti",
@@ -2931,10 +2940,12 @@
       ]
     },
     "godstrup-dk": {
-      "trail_count": 2,
-      "total_mi": 4.3,
+      "trail_count": 3,
+      "total_mi": 5.6,
       "total_mi_tolerance": 0.05,
-      "required_names": [],
+      "required_names": [
+        "Astronomistien - Løvbakkerne Hjertesti"
+      ],
       "forbidden_names": [
         "Gødstrup Sø Stien"
       ]

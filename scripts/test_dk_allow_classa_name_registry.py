@@ -14,7 +14,10 @@ REGISTRY = ROOT / "trailforge/golden/dk-areas.json"
 RUN_AREA = ROOT / "scripts/dk-run-area.sh"
 GOOD = {"relation": "r2174378", "reason": "reviewed: class-A signed løberute"}
 # Reviewed opt-ins: area id -> relation ids (class-A ruling, set per shipped batch).
-EXPECTED = {}
+EXPECTED = {
+    "vestskoven-dk": ["r2174378", "r2174418", "r2174419"],
+    "varde-sondre-plantage-dk": ["r5989929"],
+}
 def _registry_with(tmp_path, mutate, name="r.json"):
     doc = json.loads(REGISTRY.read_text(encoding="utf-8"))
     mutate(doc)

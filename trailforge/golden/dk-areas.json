@@ -1358,9 +1358,9 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 3,
-      "est_mi": 5.2,
-      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out. ENGINE-1 (2026-11-22): keep_motor_tracks on Rød r6153047 and Gul r6153048 keeps the member tracks I. Vej and Brandlinjen (highway=track, motorcar=yes, no foot tag) that the member-safety rule dropped. The 130 m source gap of Rød r6153047 was those dropped tracks, so with the opt-in the route has no gap (widest gap 0 m) and its accept_gap was withdrawn: the area now fails closed if it is put back.",
+      "est_trails": 4,
+      "est_mi": 10.7,
+      "notes": "Tier 2 state_forest_like, Jutland. bbox/center computed by the qualify run. Batch A curation (dk-v3): do not ship: Blå + Gul only; Rød vandrerute lost to relation gap (incomplete set); municipal not Naturstyrelsen. Batch B (dk-v3 replay, 2026-10-31): NEEDS-SOURCE-FIX (code): dk-v3 yields Blå (2.2 mi) and Gul (1.5 mi); Rød vandrerute (1.48 mi) is dropped for a 130 m gap in the OSM relation. Søndre Plantage - Løberute is a running route and stays out. Two of three walks: not shippable. Batch F (dk-v3 + accept_gap from PR 662, 2026-10-31): SHIP. The earlier 'municipal not Naturstyrelsen' reason is not a quality criterion (live areas include municipal and foundation routes); the blocker was the relation gap. 3 signed Vandrerute routes: Blå 2.22, Rød 1.48 (accept_gap r6153047, 130 m), Gul 1.47 = 5.2 mi. The Løberute (206 m gap, running route) and the MTB lines stay out. ENGINE-1 (2026-11-22): keep_motor_tracks on Rød r6153047 and Gul r6153048 keeps the member tracks I. Vej and Brandlinjen (highway=track, motorcar=yes, no foot tag) that the member-safety rule dropped. The 130 m source gap of Rød r6153047 was those dropped tracks, so with the opt-in the route has no gap (widest gap 0 m) and its accept_gap was withdrawn: the area now fails closed if it is put back. Class-A ruling batch C (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Update mode adds Søndre Plantage - Løberute r5989929 (5.0 mi, route=foot; 98% in Varde Søndre Plantage, 98% path/track; 40% shared ground with the Blå and Gul vandrerute) under the class-A ruling. Bless only from the Actions qualify run.",
       "keep_motor_tracks": [
         {
           "relation": "r6153047",
@@ -1369,7 +1369,17 @@
         {
           "relation": "r6153048",
           "reason": "Reviewed per-relation opt-in (ENGINE-1, Quentin 2026-11-22): Søndre plantage Gul vandrerute: member tracks way 411752663 and Brandlinjen (ways 411755598, 411755590) are highway=track motorcar=yes motor_vehicle=yes with no foot tag; they join the loop's pieces"
+        },
+        {
+          "relation": "r5989929",
+          "reason": "Reviewed per-relation opt-in (ENGINE-1, class-A batch C 2026-11-24): Søndre Plantage - Løberute shares the Brandlinjen and I. Vej member tracks (highway=track, motorcar=yes, no foot tag) with the Rød and Gul vandrerute; they join the loop's pieces"
         }
+      ],
+      "include_trails": [
+        {"id": "r5989929", "name": "Søndre Plantage - Løberute", "reason": "signed løberute (route=foot), 98% in Varde Søndre Plantage, 98% path/track; class-A ruling 2026-11-24"}
+      ],
+      "allow_classA_name": [
+        {"relation": "r5989929", "reason": "Reviewed per-relation opt-in (allow_classA_name, class-A ruling Quentin 2026-11-24): signed løberute inside a named forest on at least 70% path/track; exempt from the dk-non-hiking NAME rule only"}
       ]
     },
     {
@@ -2554,14 +2564,92 @@
       "name": "Vestskoven",
       "state": "Denmark",
       "way_id": 927880756,
-      "bbox": null,
-      "center": null,
+      "bbox": [12.25, 55.63, 12.48, 55.76],
+      "center": [55.694, 12.343],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
-      "est_trails": 29,
-      "est_mi": 24.3,
-      "notes": "Way-backed (way 927880756, Vestskoven). Wayback curation (dk-v3): do not ship. One signed route (Kringelstien 2.5 mi) plus five name-stitched gravel/bicycle forest tracks (Gåsehøj, Slettestien, Egeskoven, Gartnervangen, Åbakken). The Løberuter i Albertslund routes are running trails and the 20 more lwn routes are outside the polygon. A one-route area is not a destination."
+      "hold": null,
+      "est_trails": 4,
+      "est_mi": 13.8,
+      "notes": "Class-A ruling batch C (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Audit 14 row D185. Vestskoven (way 927880756, boundary=forest, Naturstyrelsen, wikidata Q12009562, 'Danmarks største nye skov'). Earlier curation held it because the Løberuter i Albertslund were running trails; the ruling admits signed løberuter inside a named forest on at least 70% path/track: Grøn r2174378 (6.2 mi, 93%), Blå r2174418 (3.4 mi, 93%), Rød r2174419 (1.7 mi, 79%), each 100% in Vestskoven. Kringelstien (r2192956, a named hiking route relation, 2.5 mi) ships with them under the normal dk-v3 polygon rule. Sort vinterrute (93% cycleway) and the Kongsholmparken løberuter stay out; five rootless forest-track name stitches are excluded. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r2174378",
+          "name": "Løberuter i Albertslund - Grøn rute i Vestskoven",
+          "reason": "signed løberute (Albertslund Kommune), 100% in Vestskoven, 93% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r2174418",
+          "name": "Løberuter i Albertslund - Blå rute i Vestskoven 4,5 km",
+          "reason": "signed løberute (Albertslund Kommune), 100% in Vestskoven, 93% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r2174419",
+          "name": "Løberuter i Albertslund - Rød rute i Vestskoven 2,6 km",
+          "reason": "signed løberute (Albertslund Kommune), 100% in Vestskoven, 79% path/track; class-A ruling 2026-11-24"
+        }
+      ],
+      "exclude_trails": [
+        {
+          "id": "n:Gåsehøj",
+          "name": "Gåsehøj",
+          "reason": "rootless name stitch of forest tracks (highway=track), 0.75 mi, no route relation; not a signed walk (Wayback curation)"
+        },
+        {
+          "id": "n:Slettestien",
+          "name": "Slettestien",
+          "reason": "rootless name stitch of forest tracks (highway=track), 0.61 mi, no route relation; not a signed walk (Wayback curation)"
+        },
+        {
+          "id": "n:Egeskoven",
+          "name": "Egeskoven",
+          "reason": "rootless name stitch of forest tracks (highway=track), 0.58 mi, no route relation; not a signed walk (Wayback curation)"
+        },
+        {
+          "id": "n:Gartnervangen",
+          "name": "Gartnervangen",
+          "reason": "rootless name stitch of forest tracks (highway=track), 0.44 mi, no route relation; not a signed walk (Wayback curation)"
+        },
+        {
+          "id": "n:Åbakken",
+          "name": "Åbakken",
+          "reason": "rootless name stitch of forest tracks (highway=track), 0.36 mi, no route relation; not a signed walk (Wayback curation)"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Løberuter i Albertslund - Grøn rute i Vestskoven",
+          "name": "Vestskoven Grøn løberute",
+          "source": "https://www.openstreetmap.org/relation/2174378",
+          "reason": "reviewed 2026-11-24 (class-A batch C): the OSM name is the Albertslund Kommune series title plus a distance; the walk is the grøn løberute in Vestskoven. osm_name keeps the OSM name, so the trail id does not move"
+        },
+        {
+          "osm_name": "Løberuter i Albertslund - Blå rute i Vestskoven 4,5 km",
+          "name": "Vestskoven Blå løberute",
+          "source": "https://www.openstreetmap.org/relation/2174418",
+          "reason": "reviewed 2026-11-24 (class-A batch C): the OSM name is the Albertslund Kommune series title plus a distance; the walk is the blå løberute in Vestskoven. osm_name keeps the OSM name, so the trail id does not move"
+        },
+        {
+          "osm_name": "Løberuter i Albertslund - Rød rute i Vestskoven 2,6 km",
+          "name": "Vestskoven Rød løberute",
+          "source": "https://www.openstreetmap.org/relation/2174419",
+          "reason": "reviewed 2026-11-24 (class-A batch C): the OSM name is the Albertslund Kommune series title plus a distance; the walk is the rød løberute in Vestskoven. osm_name keeps the OSM name, so the trail id does not move"
+        }
+      ],
+      "allow_classA_name": [
+        {
+          "relation": "r2174378",
+          "reason": "Reviewed per-relation opt-in (allow_classA_name, class-A ruling Quentin 2026-11-24): signed løberute inside a named forest on at least 70% path/track; exempt from the dk-non-hiking NAME rule only"
+        },
+        {
+          "relation": "r2174418",
+          "reason": "Reviewed per-relation opt-in (allow_classA_name, class-A ruling Quentin 2026-11-24): signed løberute inside a named forest on at least 70% path/track; exempt from the dk-non-hiking NAME rule only"
+        },
+        {
+          "relation": "r2174419",
+          "reason": "Reviewed per-relation opt-in (allow_classA_name, class-A ruling Quentin 2026-11-24): signed løberute inside a named forest on at least 70% path/track; exempt from the dk-non-hiking NAME rule only"
+        }
+      ]
     },
     {
       "id": "egholm-dk",

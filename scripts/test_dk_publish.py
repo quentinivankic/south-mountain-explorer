@@ -686,7 +686,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         # reconcile 14 round-2 batch e1 (local qualify on denmark-261121; the Actions qualify run re-confirms; Hørtoft is 6 / 18.8 with update mode)
         "bylderup-dk": (3, 20.6), "niels-ebbesens-eg-dk": (2, 4.7), "ribe-energistier-dk": (2, 5.4), "gredstedbro-energistier-dk": (2, 3.5), "godstrup-dk": (2, 4.3), "bording-dk": (2, 9.4), "sandmosen-dk": (2, 4.7), "halsnaes-sundhedskorridor-dk": (2, 8.0), "ebeltoft-dk": (2, 3.4), "allerup-bakker-dk": (3, 9.7), "fiskerup-skov-dk": (2, 6.2), "thise-dk": (2, 14.2), "vellev-dk": (2, 9.4),
         # reconcile 14 round-2 batch e2 (local qualify on denmark-261121; the Actions qualify run re-confirms)
-        "rorbaek-so-dk": (2, 9.9), "lerkenfeld-adal-dk": (2, 7.5), "monsted-kalkgruber-dk": (2, 8.3), "toftlundstier-dk": (3, 12.0)}
+        "rorbaek-so-dk": (2, 9.9), "lerkenfeld-adal-dk": (2, 7.5), "monsted-kalkgruber-dk": (2, 8.3), "toftlundstier-dk": (3, 12.0),
+        # class-A ruling batch A (Actions qualify 45406534475)
+        "marielundskoven-dk": (2, 6.9), "jaegerspris-nordskov-dk": (2, 11.5), "rise-skov-dk": (3, 6.6)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):

@@ -58,6 +58,11 @@ EXPECTED = {
     "sandmosen-dk": ["r2981385", "r2981387"],
     "thise-dk": ["r20629683", "r20633672"],
     "vellev-dk": ["r14604615"],
+    # reconcile 14 round-2 batch e2 (2026-11-24)
+    "lerkenfeld-adal-dk": ["r9750241"],
+    "monsted-kalkgruber-dk": ["r14122881", "r19229227"],
+    "rorbaek-so-dk": ["r12164917", "r6393509"],
+    "toftlundstier-dk": ["r10361706", "r8352118"],
 }
 # accept_gap entries the restore made unneeded (the gap was the dropped members;
 # an unneeded accept_gap fails the area closed), withdrawn in the same change.
@@ -114,7 +119,7 @@ def test_live_registry_carries_exactly_the_reviewed_opt_ins():
     found = {a["id"]: [e["relation"] for e in a["restore_member_ways"]]
              for a in doc["areas"] if "restore_member_ways" in a}
     assert found == EXPECTED
-    assert sum(len(v) for v in EXPECTED.values()) == 45
+    assert sum(len(v) for v in EXPECTED.values()) == 52
     for area in doc["areas"]:
         for entry in area.get("restore_member_ways", []):
             assert set(entry) == {"relation", "max_restored_m", "reason"}
@@ -144,6 +149,9 @@ def test_every_cap_is_a_reviewed_number_above_the_measured_need():
         "r13091421": 150, "r8051527": 200, "r5310827": 250, "r1870190": 550, "r8294447": 850,
         "r13091509": 450, "r2981385": 400, "r2981387": 900, "r20629683": 1000, "r20633672": 3000,
         "r14604615": 500,
+        # reconcile 14 round-2 batch e2: measured 91 / 323 / 1034 / 938 / 390 / 52 / 258 m
+        "r12164917": 150, "r6393509": 450, "r9750241": 1300, "r14122881": 1200, "r19229227": 500,
+        "r10361706": 100, "r8352118": 350,
     }
 def test_the_opt_in_does_not_change_any_holds():
     # Every opted-in area is a live area (no hold); the opt-in changes how a

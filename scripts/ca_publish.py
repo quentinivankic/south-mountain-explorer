@@ -311,6 +311,14 @@ def _check_canada_boundary_opt_ins(aid: str, entry: dict[str, Any]) -> None:
                 or not isinstance(waiver["reason"], str) or not waiver["reason"].strip()):
             raise CaError(f"{aid}: span_waiver needs exactly max_deg ({REL_SPAN_MAX} < max_deg <= "
                           f"{SPAN_WAIVER_MAX_DEG}) and a reason")
+    if "small_polygon_waiver" in entry:
+        small = entry["small_polygon_waiver"]
+        if (not isinstance(small, dict) or set(small) != SMALL_POLYGON_WAIVER_KEYS
+                or not _is_num(small["min_deg"])
+                or not SMALL_POLYGON_MIN_DEG_FLOOR <= small["min_deg"] < REL_SPAN_MIN
+                or not isinstance(small["reason"], str) or not small["reason"].strip()):
+            raise CaError(f"{aid}: small_polygon_waiver needs exactly min_deg ({SMALL_POLYGON_MIN_DEG_FLOOR} <= "
+                          f"min_deg < {REL_SPAN_MIN}) and a reason")
     for key in ("keep_park_boundary", "dedupe_ring_way"):
         if key not in entry:
             continue
@@ -712,14 +720,20 @@ REL_SPAN_MIN, REL_SPAN_MAX = 0.01, 3.0     # degrees, per axis (Canadian parks c
 # (Kluane NP is 3.992 deg wide). The lower limit and the inside-Canada check are never waived.
 SPAN_WAIVER_MAX_DEG = 5.0
 SPAN_WAIVER_KEYS = {"max_deg", "reason"}
-def _size_problems(box: list[float] | None, span_max: float = REL_SPAN_MAX) -> list[str]:
+# Per-area small-polygon waiver (registry `small_polygon_waiver`): lowers ONLY the lower span limit for
+# that one area (Lighthouse Park is 0.016 x 0.009 deg). The upper limit, the inside-Canada check and
+# every other gate are never waived; absent = the 0.01 deg floor applies unchanged.
+SMALL_POLYGON_MIN_DEG_FLOOR = 0.001
+SMALL_POLYGON_WAIVER_KEYS = {"min_deg", "reason"}
+def _size_problems(box: list[float] | None, span_max: float = REL_SPAN_MAX,
+                   span_min: float = REL_SPAN_MIN) -> list[str]:
     problems: list[str] = []
     if box is None:
         return problems
     w, h = box[2] - box[0], box[3] - box[1]
-    if not (REL_SPAN_MIN <= w <= span_max and REL_SPAN_MIN <= h <= span_max):
+    if not (span_min <= w <= span_max and span_min <= h <= span_max):
         problems.append(f"boundary size {w:.3f} x {h:.3f} degrees is implausible "
-                        f"(each side must be {REL_SPAN_MIN}..{span_max})")
+                        f"(each side must be {span_min}..{span_max})")
     if not (CA_LON[0] <= box[0] and box[2] <= CA_LON[1] and CA_LAT[0] <= box[1] and box[3] <= CA_LAT[1]):
         problems.append(f"boundary bbox {box} is outside Canada")
     return problems
@@ -728,6 +742,9 @@ def _size_problems(box: list[float] | None, span_max: float = REL_SPAN_MAX) -> l
 def _span_max(entry: dict[str, Any]) -> float:
     waiver = entry.get("span_waiver")
     return waiver["max_deg"] if isinstance(waiver, dict) else REL_SPAN_MAX
+def _span_min(entry: dict[str, Any]) -> float:
+    waiver = entry.get("small_polygon_waiver")
+    return waiver["min_deg"] if isinstance(waiver, dict) else REL_SPAN_MIN
 def _names(tags: dict[str, str]) -> set[str]:
     return {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
 
@@ -751,7 +768,7 @@ def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> lis
                         "tag (keep_park_boundary needs both)")
     if "park_boundary" in entry and tags.get("leisure") != "park":
         problems.append(f"relation {entry['relation_id']} is not leisure=park (park_boundary needs it)")
-    return problems + _size_problems(info.get("bbox"), _span_max(entry))
+    return problems + _size_problems(info.get("bbox"), _span_max(entry), _span_min(entry))
 
 
 def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
@@ -769,7 +786,7 @@ def way_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str
         problems.append(f"way {entry['way_id']} name {sorted(names)} does not match registry name {entry['name']!r}")
     if "park_boundary" in entry and info["tags"].get("leisure") != "park":
         problems.append(f"way {entry['way_id']} is not leisure=park (park_boundary needs it)")
-    return problems + _size_problems(info.get("bbox"), _span_max(entry))
+    return problems + _size_problems(info.get("bbox"), _span_max(entry), _span_min(entry))
 
 
 def union_bbox(boxes: list[list[float]]) -> list[float]:

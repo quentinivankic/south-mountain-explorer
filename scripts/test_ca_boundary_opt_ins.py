@@ -46,6 +46,69 @@ def test_span_waiver_registry_validation_rejects_bad_values(tmp_path, bad):
     with pytest.raises(ca.CaError, match="span_waiver"):
         ca.load_registry(_registry(tmp_path, [_entry(0, span_waiver=bad)]))
     assert ca.load_registry(_registry(tmp_path, [_entry(0, span_waiver=WAIVER)]))
+# ---------------------------------------------------- small_polygon_waiver --
+SMALL = {"min_deg": 0.005, "reason": "small signed-trail site"}
+SMALL_BOX = (-123.27, 49.32, -123.254, 49.329)            # 0.016 x 0.009 deg (Lighthouse Park-like)
+def test_small_polygon_waiver_lowers_only_the_lower_limit_for_that_area(tmp_path):
+    plain = _entry(0, bbox=None, center=None)
+    waived = _entry(0, bbox=None, center=None, small_polygon_waiver=SMALL)
+    rec = _check(plain, _info(tmp_path, plain, box=SMALL_BOX, name="Area 0"))
+    assert rec["status"] == "failed" and "implausible" in rec["problems"][0]      # control: unwaived
+    rec = _check(waived, _info(tmp_path, waived, box=SMALL_BOX, name="Area 0"))
+    assert rec["status"] == "ok" and rec["problems"] == []
+    # below the waiver, above the upper limit and outside Canada are still refused
+    tiny = (-123.27, 49.32, -123.266, 49.3201)                                     # 0.004 wide < 0.005
+    assert "implausible" in _check(waived, _info(tmp_path, waived, box=tiny, name="Area 0"))["problems"][0]
+    assert "implausible" in _check(waived, _info(tmp_path, waived, box=WIDE, name="Area 0"))["problems"][0]
+    abroad = (10.0, 56.0, 10.016, 56.009)
+    assert any("outside Canada" in p for p in _check(
+        waived, _info(tmp_path, waived, box=abroad, name="Area 0"))["problems"])
+def test_small_polygon_waiver_default_floor_and_way_backed_path_unchanged():
+    assert ca.REL_SPAN_MIN == 0.01 and ca.SMALL_POLYGON_MIN_DEG_FLOOR == 0.001
+    small = [-123.27, 49.32, -123.254, 49.329]
+    assert ca._size_problems(small) != [] and ca._size_problems(small, span_min=0.005) == []
+    assert ca._size_problems([-63.0, 45.0, -62.995, 45.2]) != []
+    assert ca._size_problems([-63.0, 45.0, -62.995, 45.2], span_min=0.005) == []
+    assert ca._span_min({}) == 0.01 and ca._span_min({"small_polygon_waiver": SMALL}) == 0.005
+    way = {"tags": {"name": "Area 0"}, "count": 1, "closed": True, "bbox": [-63.0, 45.0, -62.995, 45.2]}
+    entry = _entry(0, small_polygon_waiver=SMALL)
+    entry["way_id"] = 10
+    assert ca.way_problems(entry, way) == []
+    del entry["small_polygon_waiver"]
+    assert any("implausible" in p for p in ca.way_problems(entry, way))
+def test_small_polygon_waiver_keeps_span_waiver_independent():
+    both = _entry(0, span_waiver=WAIVER, small_polygon_waiver=SMALL)
+    assert ca._span_max(both) == 4.5 and ca._span_min(both) == 0.005
+    assert ca._span_min(_entry(0, span_waiver=WAIVER)) == 0.01
+    assert ca._span_max(_entry(0, small_polygon_waiver=SMALL)) == 3.0
+@pytest.mark.parametrize("bad", [
+    {"min_deg": 0.01, "reason": "x"}, {"min_deg": 0.0005, "reason": "x"}, {"min_deg": True, "reason": "x"},
+    {"min_deg": "0.005", "reason": "x"}, {"min_deg": 0.005, "reason": " "}, {"min_deg": 0.005},
+    {"min_deg": 0.005, "reason": "x", "extra": 1}, 0.005, [],
+])
+def test_small_polygon_waiver_registry_validation_rejects_bad_values(tmp_path, bad):
+    with pytest.raises(ca.CaError, match="small_polygon_waiver"):
+        ca.load_registry(_registry(tmp_path, [_entry(0, small_polygon_waiver=bad)]))
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, small_polygon_waiver=SMALL)]))
+def test_small_polygon_waiver_mutation_gates(tmp_path, monkeypatch):
+    """Mutation checks: each gate must fail when it is removed."""
+    waived = _entry(0, bbox=None, center=None, small_polygon_waiver=SMALL)
+    tiny = (-123.27, 49.32, -123.266, 49.3201)
+    info = _info(tmp_path, waived, box=tiny, name="Area 0")
+    assert _check(waived, info)["status"] == "failed"                      # lower bound holds
+    monkeypatch.setattr(ca, "_span_min", lambda entry: 0.0)                  # mutate: no lower bound
+    assert _check(waived, info)["status"] == "ok"                          # the test above would catch this
+    monkeypatch.undo()
+    monkeypatch.setattr(ca, "SMALL_POLYGON_MIN_DEG_FLOOR", 0.0)              # mutate: floor of the waiver
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, small_polygon_waiver={"min_deg": 0.0005, "reason": "x"})]))
+    monkeypatch.undo()
+    with pytest.raises(ca.CaError):
+        ca.load_registry(_registry(tmp_path, [_entry(0, small_polygon_waiver={"min_deg": 0.0005, "reason": "x"})]))
+    monkeypatch.setattr(ca, "_span_min", lambda entry: 0.005)                # mutate: unconditional waiver
+    plain = _entry(0, bbox=None, center=None)
+    assert _check(plain, _info(tmp_path, plain, box=SMALL_BOX, name="Area 0"))["status"] == "ok"
+    monkeypatch.undo()
+    assert _check(plain, _info(tmp_path, plain, box=SMALL_BOX, name="Area 0"))["status"] == "failed"
 # ------------------------------------------------------- keep_park_boundary --
 def _park_info(tags):
     return {"tags": {"type": "multipolygon", "name": "Area 0", **tags}, "count": 1,
@@ -139,8 +202,10 @@ def test_dedupe_ring_way_registry_validation(tmp_path):
 def test_committed_registry_opts_in_exactly_the_three_target_areas():
     reg = ca.load_registry()
     flagged = {k: sorted(a["id"] for a in reg["areas"] if k in a)
-               for k in ("span_waiver", "keep_park_boundary", "dedupe_ring_way")}
+               for k in ("span_waiver", "keep_park_boundary", "dedupe_ring_way", "small_polygon_waiver")}
     assert flagged == {
+        "small_polygon_waiver": ["lighthouse-park-ca-bc", "niagara-glen-nature-reserve-ca-on",
+                                 "spencer-gorge-conservation-area-ca-on"],
         "span_waiver": ["kluane-national-park-and-reserve-ca-yt"],
         "keep_park_boundary": ["east-sooke-regional-park-ca-bc"],
         "dedupe_ring_way": ["cypress-hills-interprovincial-park-ca-sk"]}

@@ -476,7 +476,8 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   raw `boundary_match_count` and adds `ca_ring_way_dedupe`.
 - **Other Canada per-area opt-ins** (registry, `ca_publish.py`/workflow, not the assembler):
   `span_waiver {max_deg, reason}` raises only the upper boundary span limit (3.0 deg, waiver
-  `3.0 < max_deg <= 5.0`) for that one area; `keep_park_boundary: true` re-adds a `leisure=park`
+  `3.0 < max_deg <= 5.0`) for that one area; `small_polygon_waiver {min_deg, reason}` lowers only
+  the lower boundary span limit (0.01 deg, waiver `0.001 <= min_deg < 0.01`) for that one area; `keep_park_boundary: true` re-adds a `leisure=park`
   relation the prefilter drops (it must carry an `operator` tag, checked by `prepare-areas`;
   municipal parks stay out by tier).
 - **Container by id** (registry `container_by_id: {"reason": "..."}`,

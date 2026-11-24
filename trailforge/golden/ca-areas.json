@@ -12808,6 +12808,10 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
+      "small_polygon_waiver": {
+        "min_deg": 0.005,
+        "reason": "Lighthouse Park (West Vancouver, 0.016 x 0.009 deg): Metro-area signed trail network (Arbutus, Valley of the Giants, Juniper Point, Starboat Cove); only the lower span limit is waived"
+      },
       "notes": "Missing-destination batch 2026-11-02 (ca-missing). Lighthouse Park (r8314570): polygon under the 0.01 deg size gate (prepare-areas). ca-new3 2026-11-02: Re-replay: fails the size gate (boundary 0.016 x 0.009); hold stands. Phase B P2-2 BC curation 2026-11-12 (chat/ca-b-bc; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Fix-6 icon re-check: prepare-areas still refuses the boundary (0.016 x 0.009 deg; each side must be 0.01..3.0, no downward waiver), although OSM maps the West Vancouver trails (Arbutus, Valley of the Giants, Juniper Point, Starboat Cove, ...). Follow-up 4 (small-polygon size floor)."
     },
     {
@@ -13556,6 +13560,10 @@
       "center": null,
       "tier": 2,
       "hold": "needs-rescope",
+      "small_polygon_waiver": {
+        "min_deg": 0.005,
+        "reason": "Niagara Glen Nature Reserve (0.011 x 0.009 deg): Niagara Parks signed gorge paths (Whirlpool, River Path, Terrace, Eddy, Cliffside, Woodland); only the lower span limit is waived"
+      },
       "notes": "ca-new3 2026-11-02: Replay: prepare-areas fails the size gate (boundary 0.011 x 0.009 deg, each side must be at least 0.01). The named walks exist (Whirlpool Trail, River Path, Terrace Path, Eddy Path, Cliffside Path, Woodland Path, 0.1 to 0.96 mi each) but sit under the 0.01 deg floor. Code need: size-gate override for small sites. Phase B P2-1 ON curation 2026-11-12 (chat/ca-b-on; T1 draft from scripts/ca_discover.py on main 71500f08a; tier 3). HOLD (needs-rescope). Fix-6 icon re-check: prepare-areas still refuses the boundary (0.011 x 0.009 deg; each side must be 0.01..3.0, no downward waiver). The Glen paths are footways under the engine's 0.6 mi floor. Follow-up 4 (small-polygon size floor)."
     },
     {
@@ -13640,6 +13648,10 @@
       "center": null,
       "tier": 3,
       "hold": "needs-rescope",
+      "small_polygon_waiver": {
+        "min_deg": 0.005,
+        "reason": "Spencer Gorge / Webster Falls (0.022 x 0.010 deg): Hamilton Conservation Authority falls trails; only the lower span limit is waived"
+      },
       "notes": "ca-new3 2026-11-02: Replay: fails the 0.01 deg size gate (boundary 0.022 x 0.010). Hamilton Conservation Authority tier (Webster Falls, Tew Falls) is deferred by MANDATE."
     },
     {

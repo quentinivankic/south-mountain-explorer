@@ -4536,6 +4536,13 @@
         "Wedgemont Glacier Approach",
         "Wedgemount Lake Trail"
       ]
+    },
+    "hidden-lake-territorial-park-ca-nt": {
+      "trail_count": 1,
+      "total_mi": 0.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
     }
   }
 }

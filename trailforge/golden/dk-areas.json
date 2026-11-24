@@ -7048,6 +7048,177 @@
           "reason": "Langs Kysten (lwn hiking relation): the OSM relation has a 166 m gap between 3 pieces; the parts ship as separate segments, no geometry is synthesized"
         }
       ]
+    },
+    {
+      "id": "rorbaek-so-dk",
+      "name": "Rørbæk Sø",
+      "state": "Denmark",
+      "relation_id": 12164917,
+      "bbox": [9.29, 55.87, 9.45, 55.99],
+      "center": [55.931, 9.37],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 9.9,
+      "notes": "Reconcile 14 round-2 batch e2 (wf_957abe6026df33cc, 2026-11-24), reconcile-audit-14 rows D719. Rørbæk Sø (Viborg/Randers area, Silkeborg-Skanderborg side): Rørbæk Sø Rundt 7.0 mi and Ballesbækgård 2.9 mi (lwn). Kælderbanke, Fårebanke og Rørbæk Skov (0.2 mi) stays out. ENGINE-2 restores the short service and road crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12164917",
+          "name": "Rørbæk Sø Rundt",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r6393509",
+          "name": "Ballesbækgård",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon holds both walks (lake Rørbæk Sø is relation 3805620 but the second walk starts at Ballesbækgård); container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r12164917",
+          "max_restored_m": 150,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r6393509",
+          "max_restored_m": 450,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ],
+      "accept_gap": [
+        {
+          "relation": "r6393509",
+          "max_gap_m": 150,
+          "reason": "Ballesbækgård (lwn hiking relation): the OSM relation has a short gap (about 122 m) between its pieces; the parts ship as separate segments, no geometry is synthesized"
+        }
+      ]
+    },
+    {
+      "id": "lerkenfeld-adal-dk",
+      "name": "Lerkenfeld Ådal",
+      "state": "Denmark",
+      "relation_id": 9750241,
+      "bbox": [9.26, 56.63, 9.41, 56.77],
+      "center": [56.699, 9.332],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 7.5,
+      "notes": "Reconcile 14 round-2 batch e2 (wf_957abe6026df33cc, 2026-11-24), reconcile-audit-14 rows D738. Lerkenfeld Å valley (Vesthimmerland): Lerkenfeld Ådalsstien 6.4 mi and Spor i Landskabet - Louns Halvøen Rundt 1.1 mi (lwn), 3 km apart. ENGINE-2 restores the short service and road crossings of the valley path. Separate from the live Louns Halvø area. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r9750241",
+          "name": "Lerkenfeld Ådalsstien",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r11159584",
+          "name": "Spor i Landskabet - Louns Halvøen Rundt",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Lerkenfeld Ådal; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r9750241",
+          "max_restored_m": 1300,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "monsted-kalkgruber-dk",
+      "name": "Mønsted Kalkgruber",
+      "state": "Denmark",
+      "relation_id": 14122881,
+      "bbox": [9.09, 56.35, 9.24, 56.51],
+      "center": [56.43, 9.163],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 8.3,
+      "notes": "Reconcile 14 round-2 batch e2 (wf_957abe6026df33cc, 2026-11-24), reconcile-audit-14 rows D746. Mønsted (Viborg): Mønsted Sløjfen 3.9 mi and Kalk Kaminoen green alternative 4.4 mi (lwn), the walks around the Mønsted limestone mines. ENGINE-2 restores the short service and road crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r14122881",
+          "name": "Mønsted Sløjfen",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r19229227",
+          "name": "Kalk Kaminoen - Grøn alternativ rute",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for Mønsted; container derived from the 2 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r14122881",
+          "max_restored_m": 1200,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r19229227",
+          "max_restored_m": 500,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
+    },
+    {
+      "id": "toftlundstier-dk",
+      "name": "Toftlundstier",
+      "state": "Denmark",
+      "relation_id": 10361706,
+      "bbox": [8.98, 55.12, 9.14, 55.26],
+      "center": [55.191, 9.06],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 12.0,
+      "notes": "Reconcile 14 round-2 batch e2 (wf_957abe6026df33cc, 2026-11-24), reconcile-audit-14 rows D675. Toftlund (Tønder): three signed Toftlundstier lwn walks from the town, Lebeck-rute 5.4 mi, Byrute 1.4 mi and Allerup-Stenderup-rute 5.2 mi. Separate from the live Toftlund Skov forest area (Naturstyrelsen gul and rød rute). ENGINE-2 restores the short service and road crossings. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r10361706",
+          "name": "Toftlundstier - Lebeck-rute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r10346463",
+          "name": "Toftlundstier - Byrute",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r8352118",
+          "name": "Toftlundstier - Allerup-Stenderup-rute",
+          "reason": "signed named walk, whole route"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No usable named OSM polygon for the Toftlundstier town walks; container derived from the 3 included signed routes"
+      },
+      "restore_member_ways": [
+        {
+          "relation": "r10361706",
+          "max_restored_m": 100,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        },
+        {
+          "relation": "r8352118",
+          "max_restored_m": 350,
+          "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
+        }
+      ]
     }
   ]
 }

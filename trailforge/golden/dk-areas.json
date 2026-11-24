@@ -7275,13 +7275,13 @@
       "state": "Denmark",
       "relation_id": 12632387,
       "bbox": [11.89, 55.81, 12.07, 55.97],
-      "center": [55.886, 11.98],
+      "center": [55.905, 11.941],
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
       "est_trails": 2,
       "est_mi": 11.5,
-      "notes": "Class-A ruling batch A (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Jægerspris estate, Frederikssund (audit 14 row D181): Kulhuse Nordskoven r12632387 (lwn, 9.0 mi round trip) and Jægerspris Hjertesti r12632175 (Hjerteforeningen, 2.6 mi; 84% in Slotshegnet forest, 95% path/track; class-A ruling Quentin 2026-11-24). The two forests are 3.4 km apart on the same estate. Container derived from the two routes because the Nordskoven polygon alone does not hold the heart walk. Bless only from the Actions qualify run.",
+      "notes": "Class-A ruling batch A (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Jægerspris estate, Frederikssund (audit 14 row D181): Kulhuse Nordskoven r12632387 (lwn, 9.0 mi round trip) and Jægerspris Hjertesti r12632175 (Hjerteforeningen, 2.6 mi; 84% in Slotshegnet forest, 95% path/track; class-A ruling Quentin 2026-11-24). The two forests are 3.4 km apart on the same estate. Container derived from the two routes because the Nordskoven polygon alone does not hold the heart walk. Bless only from the Actions qualify run. Pin moved (class-A batch B, independent review F1, 2026-11-24) from [55.886, 11.98] (between the two forests) to the Kulhuse Nordskoven trailhead [55.905, 11.941], the start of the main walk.",
       "include_trails": [
         {
           "id": "r12632387",

@@ -88,7 +88,8 @@ def test_live_registry_loads_and_intended_areas_are_opted_in():
     got = {a["id"]: [e["name"] for e in a["hiking_tag_wins"]] for a in reg["areas"] if "hiking_tag_wins" in a}
     assert got == {
         "garibaldi-provincial-park-ca-bc": ["Garibaldi Lake Trail", "Elfin Lakes Trail"],
-        "glacier-national-park-ca-bc": ["Great Glacier Trail", "Meeting of the Waters Trail", "Avalanche Crest Trail"],
+        "glacier-national-park-ca-bc": ["Great Glacier Trail", "Meeting of the Waters Trail", "Avalanche Crest Trail",
+                                          "Balu Pass Trail", "Glacier Crest Trail", "Bostock Creek Trail", "Hermit Trail"],
         "jasper-national-park-ca-ab": ["Bald Hills Trail"],
         "banff-national-park-ca-ab": ["Healy Pass Trail"],
         "e-c-manning-provincial-park-ca-bc": ["Frosty Mountain"],
@@ -581,3 +582,200 @@ def test_no_us_or_denmark_registry_reads_the_key():
         for path in ROOT.rglob(name):
             if ".git" not in path.parts:
                 assert "hiking_tag_wins" not in path.read_text(encoding="utf-8")
+# ------------------------------------------------ gate 10: agency_evidence (N4: Balu Pass, Glacier Crest, Bostock Creek, Hermit) --
+AGENCY = {"url": SRC, "season": "summer",
+          "hiking_use": "Parks Canada day hikes page lists Balu Pass: 12.8 km return, natural trail, wild flowers in August"}
+def agency_entry(**over):
+    return way_entry(**{"agency_evidence": dict(AGENCY), **over})
+def agency_chain(**tags):
+    """Skitour ways with piste:grooming=backcountry and nothing else (the live Balu Pass / Glacier Crest shape)."""
+    return chain(**{"piste:grooming": "backcountry", **tags})
+def agency_build(ways=None, entries=None, features=None, **kw):
+    return build(entries or [agency_entry()], ways=ways if ways is not None else agency_chain(), relations={},
+                 features=features if features is not None else [trail()], **kw)
+def agency_refused(match, ways=None, entries=None, features=None):
+    with pytest.raises(htw.HikingTagWinsError, match=match):
+        agency_build(ways=ways, entries=entries, features=features)
+def test_agency_evidence_keeps_skitour_ways_with_no_hiking_tag():
+    new, evidence, replaced = agency_build()
+    assert [f["properties"]["name"] for f in new] == ["Great Glacier Trail"] and not replaced
+    assert new[0]["properties"]["source"] == "hiking-tag-wins" and new[0]["properties"]["member_ways"] == [1, 2, 3]
+    assert evidence[0]["agency_evidence_ways"] == [1, 2, 3] and evidence[0]["agency_evidence"] == AGENCY
+    assert evidence[0]["hiking_relations"] == [] and evidence[0]["named_sac_evidence_ways"] == []
+def test_mutation_without_agency_evidence_the_same_ways_are_refused():
+    refused("not in a route=hiking relation", entries=[way_entry()], ways=agency_chain(), relations={})
+def test_agency_evidence_only_counts_for_ways_that_lack_other_evidence():
+    ways = agency_chain()
+    ways[2]["tags"]["foot"] = "designated"
+    ev = agency_build(ways=ways)[1][0]
+    assert ev["agency_evidence_ways"] == [1, 3]
+def test_agency_evidence_replaces_a_listed_partial_copy():
+    ways = agency_chain()
+    del ways[1]["tags"]["piste:type"]
+    stub = trail("Great Glacier Trail", member_ways=(1,))
+    new, evidence, replaced = agency_build(ways=ways, features=[trail(), stub])
+    assert new[0]["properties"]["member_ways"] == [1, 2, 3] and replaced == [stub]
+    assert evidence[0]["agency_evidence_ways"] == [2, 3]
+def test_non_opted_entries_keep_the_report_shape():
+    for item in (entry(), way_entry(), sac_entry()):
+        ways = sac_chain() if item.get("named_sac_evidence") else chain(foot="designated")
+        ev = build([item], ways=ways, relations=HIKING if "relation" in item else {},
+                   features=[trail(), sac_stub()] if item.get("named_sac_evidence") else [trail()])[1][0]
+        assert "agency_evidence" not in ev and "agency_evidence_ways" not in ev
+# one mutation per winter / ski-only way tag the agency evidence must not override
+@pytest.mark.parametrize("tags", [
+    {"foot": "no"}, {"seasonal": "winter"}, {"winter_road": "yes"}, {"ice_road": "yes"},
+    {"ski": "yes"}, {"ski": "designated"},
+    {"piste:grooming": "classic"}, {"piste:grooming": "skating"}, {"piste:grooming": "classic+skating"},
+    {"piste:grooming": "scooter"}, {"piste:grooming": "mogul"},
+])
+def test_mutation_winter_only_ways_stay_out_despite_agency_evidence(tags):
+    ways = agency_chain(**tags)
+    agency_refused("way", ways=ways)
+@pytest.mark.parametrize("tags", [{"ski": "yes", "foot": "yes"}, {"piste:grooming": "classic", "foot": "designated"},
+                                  {"piste:grooming": "backcountry"}, {}])
+def test_winter_gate_controls_walkable_or_ungroomed_ways_pass(tags):
+    ways = agency_chain(**tags)
+    if not tags:
+        for w in ways.values():
+            w["tags"].pop("piste:grooming")
+    assert names(agency_build(ways=ways)) == ["Great Glacier Trail"]
+def test_mutation_winter_way_names_the_way_in_the_refusal():
+    ways = agency_chain()
+    ways[2]["tags"]["seasonal"] = "winter"
+    with pytest.raises(htw.HikingTagWinsError, match=r"way 2: seasonal=winter"):
+        agency_build(ways=ways)
+@pytest.mark.parametrize("piste", ["downhill", "alpine", "sled", "skitour;downhill", "hike", ""])
+def test_mutation_agency_evidence_keeps_the_piste_value_gate(piste):
+    ways = agency_chain()
+    ways[2]["tags"]["piste:type"] = piste
+    agency_refused("piste:type", ways=ways)
+def test_mutation_agency_evidence_does_not_make_a_plain_way_a_piste_way():
+    ways = agency_chain()
+    del ways[2]["tags"]["piste:type"]
+    agency_refused("no piste:type", ways=ways)
+@pytest.mark.parametrize("tags,why", [
+    ({"highway": "cycleway"}, "highway='cycleway'"), ({"highway": "service"}, "highway='service'"),
+    ({"highway": "unclassified"}, "highway='unclassified'"), ({"access": "private"}, "access=private"),
+    ({"access": "no"}, "access"), ({"mtb:scale": "1"}, "mtb:scale"), ({"mtb:scale": "3"}, "mtb:scale"),
+])
+def test_mutation_agency_evidence_keeps_the_unwalkable_way_checks(tags, why):
+    ways = agency_chain()
+    ways[3]["tags"].update(tags)
+    agency_refused(why, ways=ways)
+def test_mutation_agency_evidence_keeps_the_track_gate():
+    ways = agency_chain()
+    ways[3]["tags"].update(highway="track")
+    agency_refused("highway=track needs foot", ways=ways)
+    ways[3]["tags"]["foot"] = "yes"
+    assert names(agency_build(ways=ways)) == ["Great Glacier Trail"]
+    for key in ("motor_vehicle", "motorcar", "vehicle"):
+        bad = agency_chain()
+        bad[3]["tags"].update(highway="track", foot="yes", **{key: "yes"})
+        agency_refused("highway=track with", ways=bad)
+def test_agency_evidence_keeps_chaining_boundary_and_name_checks():
+    ways = agency_chain()
+    ways[3]["nodes"] = [30, 31]
+    ways[3]["coords"] = [(-115.95, 51.09), (-115.95, 51.095)]
+    agency_refused("do not chain", ways=ways)
+    out = agency_chain()
+    for w in out.values():
+        w["coords"] = [(c[0] + 5, c[1]) for c in w["coords"]]
+    agency_refused("boundary", ways=out)
+    agency_refused("already has this name", features=[trail("Great Glacier Trail", member_ways=(99,))])
+def test_agency_evidence_of_one_entry_does_not_lend_evidence_to_another():
+    ways = {**agency_chain(), **{i + 10: {**w, "tags": dict(w["tags"], name="Other Hike")} for i, w in agency_chain().items()}}
+    second = way_entry(name="Other Hike", way_ids=[11, 12, 13])
+    with pytest.raises(htw.HikingTagWinsError, match="Other Hike.*not in a route=hiking relation"):
+        build([agency_entry(), second], ways=ways, relations={}, features=[trail()])
+    third = agency_entry(name="Other Hike", way_ids=[11, 12, 13])
+    assert names(build([agency_entry(), third], ways=ways, relations={}, features=[trail()])) == ["Great Glacier Trail", "Other Hike"]
+def test_agency_evidence_does_not_touch_input_ways():
+    ways = agency_chain(**{"foot": "yes"})
+    before = copy.deepcopy(ways)
+    agency_build(ways=ways)
+    assert ways == before
+# validator: every shape of the opt-in value has one mutation
+def test_validator_accepts_agency_evidence_way_form():
+    assert htw.validate_hiking_tag_wins([agency_entry()])
+    assert htw.validate_hiking_tag_wins([agency_entry(agency_evidence={**AGENCY, "season": "summer-and-winter"})])
+@pytest.mark.parametrize("url", [
+    "http://parks.canada.ca/pn-np/bc/glacier",                       # not https
+    "https://example.com/glacier", "https://evilparks.canada.ca.example.com/x", "https://notbcparks.ca/x",
+    "https://bcparks.ca.evil.com/x", "https://alltrails.com/trail/glacier", "https://www.google.com/search?q=balu",
+    "ftp://parks.canada.ca/x", "parks.canada.ca/x", "https://", "", None, 5, ["https://parks.canada.ca/x"],
+])
+def test_validator_mutation_url_must_be_https_on_an_agency_host(url):
+    with pytest.raises(htw.HikingTagWinsError, match="agency_evidence"):
+        htw.validate_hiking_tag_wins([agency_entry(agency_evidence={**AGENCY, "url": url})])
+@pytest.mark.parametrize("url", ["https://parks.canada.ca/pn-np/bc/glacier", "https://bcparks.ca/ec-manning-park/",
+                                 "https://www.sepaq.com/pq/mbr/", "https://www.ontarioparks.com/park/algonquin",
+                                 "https://www.albertaparks.ca/parks/kananaskis/"])
+def test_validator_agency_hosts_pass_when_url_equals_source(url):
+    item = agency_entry(source=url, agency_evidence={**AGENCY, "url": url})
+    assert htw.validate_hiking_tag_wins([item])
+def test_validator_mutation_url_must_equal_the_entry_source():
+    other = "https://parks.canada.ca/pn-np/ab/banff"
+    with pytest.raises(htw.HikingTagWinsError, match="equal the entry's source"):
+        htw.validate_hiking_tag_wins([agency_entry(agency_evidence={**AGENCY, "url": other})])
+@pytest.mark.parametrize("season", ["winter", "winter-only", "Summer", "", None, "year-round", "snow", ["summer"]])
+def test_validator_mutation_season_must_be_summer_or_both(season):
+    with pytest.raises(htw.HikingTagWinsError, match="season"):
+        htw.validate_hiking_tag_wins([agency_entry(agency_evidence={**AGENCY, "season": season})])
+@pytest.mark.parametrize("use", ["", "short", "x" * 19, None, 7, "Groomed cross-country ski trail with trackset, winter only access",
+                                 "                    "])
+def test_validator_mutation_hiking_use_must_quote_hiking_wording(use):
+    with pytest.raises(htw.HikingTagWinsError, match="hiking_use"):
+        htw.validate_hiking_tag_wins([agency_entry(agency_evidence={**AGENCY, "hiking_use": use})])
+@pytest.mark.parametrize("bad", [
+    None, "x", [], {}, {"url": SRC}, {"url": SRC, "season": "summer"}, {**AGENCY, "extra": 1},
+    {k: v for k, v in AGENCY.items() if k != "season"},
+])
+def test_validator_mutation_agency_evidence_shape(bad):
+    with pytest.raises(htw.HikingTagWinsError, match="agency_evidence"):
+        htw.validate_hiking_tag_wins([agency_entry(agency_evidence=bad)])
+def test_validator_mutation_agency_evidence_is_way_ids_only():
+    with pytest.raises(htw.HikingTagWinsError, match="way_ids only"):
+        htw.validate_hiking_tag_wins([entry(agency_evidence=dict(AGENCY))])
+def test_validator_mutation_agency_evidence_excludes_named_sac_evidence():
+    with pytest.raises(htw.HikingTagWinsError, match="way_ids only"):
+        htw.validate_hiking_tag_wins([agency_entry(named_sac_evidence=True)])
+def test_validator_agency_evidence_still_needs_the_normal_entry_keys():
+    for key in ("source", "reason", "name"):
+        item = agency_entry()
+        del item[key]
+        with pytest.raises(htw.HikingTagWinsError):
+            htw.validate_hiking_tag_wins([item])
+def test_registry_loader_accepts_and_rejects_agency_evidence(tmp_path):
+    assert ca.load_registry(_registry(tmp_path, [_entry(0, hiking_tag_wins=[agency_entry()])]))
+    bad = agency_entry(agency_evidence={**AGENCY, "season": "winter"})
+    with pytest.raises(ca.CaError, match="season"):
+        ca.load_registry(_registry(tmp_path, [_entry(0, hiking_tag_wins=[bad])]))
+    with pytest.raises(ca.CaError, match="agency_evidence"):
+        ca.load_registry(_registry(tmp_path, [_entry(0, hiking_tag_wins=[entry(agency_evidence=dict(AGENCY))])]))
+def test_agency_evidence_opt_in_is_confined_to_the_glacier_entries():
+    reg = json.loads((ROOT / "trailforge/golden/ca-areas.json").read_text())
+    users = [(a["id"], e["name"]) for a in reg["areas"] for e in a.get("hiking_tag_wins", []) if "agency_evidence" in e]
+    assert users == [("glacier-national-park-ca-bc", "Balu Pass Trail"), ("glacier-national-park-ca-bc", "Glacier Crest Trail"),
+                     ("glacier-national-park-ca-bc", "Bostock Creek Trail"), ("glacier-national-park-ca-bc", "Hermit Trail")]
+    for a in reg["areas"]:
+        for e in a.get("hiking_tag_wins", []):
+            if "agency_evidence" in e:
+                assert e["agency_evidence"]["url"] == e["source"] and e["agency_evidence"]["season"] == "summer"
+                assert "relation" not in e and "named_sac_evidence" not in e
+    assert "agency_evidence" not in SCRIPT                          # the shell step only passes the registry through
+def test_cli_agency_evidence_on_a_real_extract(tmp_path):
+    tags = {"highway": "path", "name": "Great Glacier Trail", "piste:type": "skitour", "piste:grooming": "backcountry"}
+    osm = _osm(_way_xml(1, [1, 2], tags) + _way_xml(2, [2, 3], tags))
+    run, trails, report = _cli(tmp_path, [agency_entry(way_ids=[1, 2])], osm=osm)
+    assert run.returncode == 0, run.stderr
+    assert _names(trails) == ["Other Trail", "Great Glacier Trail"]
+    kept = json.loads(report.read_text())["kept"][0]
+    assert kept["agency_evidence_ways"] == [1, 2] and kept["agency_evidence"]["url"] == SRC
+    (tmp_path / "noag").mkdir()
+    run, trails, report = _cli(tmp_path / "noag", [way_entry(way_ids=[1, 2])], osm=osm)
+    assert run.returncode == 2 and "SAFETY BLOCK" in run.stderr and _names(trails) == ["Other Trail"] and not report.exists()
+    (tmp_path / "winter").mkdir()
+    groomed = _osm(_way_xml(1, [1, 2], {**tags, "piste:grooming": "classic"}) + _way_xml(2, [2, 3], {**tags, "piste:grooming": "classic"}))
+    run, trails, report = _cli(tmp_path / "winter", [agency_entry(way_ids=[1, 2])], osm=groomed)
+    assert run.returncode == 2 and "piste:grooming=classic" in run.stderr and _names(trails) == ["Other Trail"] and not report.exists()

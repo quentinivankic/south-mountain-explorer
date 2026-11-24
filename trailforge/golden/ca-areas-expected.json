@@ -445,8 +445,8 @@
       "forbidden_names": []
     },
     "gros-morne-national-park-ca-nl": {
-      "trail_count": 11,
-      "total_mi": 28.6,
+      "trail_count": 12,
+      "total_mi": 29.3,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Green Gardens Trail",
@@ -456,7 +456,7 @@
       "forbidden_names": [
         "International Appalachian Trail (Newfoundland)",
         "Long Range Traverse Trail",
-        "Lookout trail",
+        "Lookout Trail",
         "Northern Traverse Trail",
         "Rim Trail",
         "Sentier International des Appalaches - International Appalachian Trail",
@@ -4541,6 +4541,13 @@
     "hidden-lake-territorial-park-ca-nt": {
       "trail_count": 1,
       "total_mi": 0.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [],
+      "forbidden_names": []
+    },
+    "cape-st-marys-ecological-reserve-ca-nl": {
+      "trail_count": 1,
+      "total_mi": 0.7,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": []

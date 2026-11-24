@@ -205,7 +205,7 @@ def test_committed_registry_opts_in_exactly_the_three_target_areas():
                for k in ("span_waiver", "keep_park_boundary", "dedupe_ring_way", "small_polygon_waiver")}
     assert flagged == {
         "small_polygon_waiver": ["lighthouse-park-ca-bc", "niagara-glen-nature-reserve-ca-on",
-                                 "spencer-gorge-conservation-area-ca-on"],
+                                 "spencer-gorge-conservation-area-ca-on", "wittys-lagoon-regional-park-ca-bc"],
         "span_waiver": ["kluane-national-park-and-reserve-ca-yt"],
         "keep_park_boundary": ["east-sooke-regional-park-ca-bc"],
         "dedupe_ring_way": ["cypress-hills-interprovincial-park-ca-sk"]}

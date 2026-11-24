@@ -3059,6 +3059,78 @@
       "forbidden_names": [
         "Kærlighedsstien"
       ]
+    },
+    "marielundskoven-dk": {
+      "trail_count": 2,
+      "total_mi": 6.9,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Marielundsskoven Hjertesti"
+      ],
+      "forbidden_names": [
+        "Alternative routes to \"hovedruten\"",
+        "Emerholtsvej",
+        "Turiststien"
+      ]
+    },
+    "jaegerspris-nordskov-dk": {
+      "trail_count": 2,
+      "total_mi": 11.5,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Jægerspris Hjertesti"
+      ],
+      "forbidden_names": [
+        "Dorte Frandsensvej",
+        "Dyrnæsvej",
+        "Fasangårds Allé",
+        "Fjordstien Vandresti",
+        "Fremvadsvej",
+        "Gasagervej",
+        "Grønnelyngsvej",
+        "Grønnespor",
+        "Horsemosevej",
+        "Højmose Kongevej",
+        "Jagtkongevej",
+        "Kostaldsvej",
+        "Langelinie",
+        "Louiseholmsvej",
+        "Rødstensvej",
+        "Sandvedsvang",
+        "Skelvej",
+        "Skidenkongevej",
+        "Skovfogedvej",
+        "Storeeskemosevej",
+        "Strandvej",
+        "Thilkesvej",
+        "Trekastvej",
+        "Tværvej",
+        "Vildbondevej",
+        "Øllemosevej"
+      ]
+    },
+    "rise-skov-dk": {
+      "trail_count": 3,
+      "total_mi": 6.6,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Rise Skov Hjertesti 1, rød",
+        "Rise Skov Hjertesti 2, blå",
+        "Rise Skov Hjertesti 3, gul"
+      ],
+      "forbidden_names": [
+        "Akacievej",
+        "Elgårdsvej",
+        "Engvej",
+        "Eskebjerg",
+        "Eskebjergvej",
+        "Hjortholtvej",
+        "Jørgensbjergvej",
+        "Kirkestien",
+        "Nyvej",
+        "Pølsekilde",
+        "Vestersøvej"
+      ]
     }
   }
 }

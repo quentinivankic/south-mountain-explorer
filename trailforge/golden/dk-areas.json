@@ -7239,6 +7239,98 @@
           "reason": "Reviewed per-relation opt-in (ENGINE-2, reconcile 14 round-2 batch e2): the route loses short member ways (driveways, service lanes, village crossings) to the member-safety road gates; with them restored the route publishes whole"
         }
       ]
+    },
+    {
+      "id": "marielundskoven-dk",
+      "name": "Marielundskoven",
+      "state": "Denmark",
+      "relation_id": 290001,
+      "bbox": [9.41, 55.45, 9.54, 55.57],
+      "center": [55.51, 9.478],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 6.9,
+      "notes": "Class-A ruling batch A (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Marielundskoven by Kolding (audit 14 row D349). Hoved ruten - Marielundskoven r290001 (lwn, 4.6 mi, one connected piece) and the Hjerteforeningen Marielundsskoven Hjertesti r1521525 (2.4 mi; 100% in Kolding Skov, 92% path/track, a signed heart walk inside a qualifying forest area, class-A ruling Quentin 2026-11-24). The alternative-routes relation r368350 (unsigned, 290 m gap) and the Kolding Kløversti loops stay out. The Kolding Skov polygon is 0.6 km2 and does not hold all of Hoved ruten, so the container is derived from the two routes. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r290001",
+          "name": "Hoved ruten - Marielundskoven",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r1521525",
+          "name": "Marielundsskoven Hjertesti",
+          "reason": "Hjerteforeningen signed heart walk (lwn), 100% in the named forest Kolding Skov, 92% path/track; class-A ruling 2026-11-24"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "Kolding Skov (0.6 km2) does not hold all of Hoved ruten; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "jaegerspris-nordskov-dk",
+      "name": "Jægerspris Nordskov og Slotshegn",
+      "state": "Denmark",
+      "relation_id": 12632387,
+      "bbox": [11.89, 55.81, 12.07, 55.97],
+      "center": [55.886, 11.98],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 2,
+      "est_mi": 11.5,
+      "notes": "Class-A ruling batch A (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Jægerspris estate, Frederikssund (audit 14 row D181): Kulhuse Nordskoven r12632387 (lwn, 9.0 mi round trip) and Jægerspris Hjertesti r12632175 (Hjerteforeningen, 2.6 mi; 84% in Slotshegnet forest, 95% path/track; class-A ruling Quentin 2026-11-24). The two forests are 3.4 km apart on the same estate. Container derived from the two routes because the Nordskoven polygon alone does not hold the heart walk. Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r12632387",
+          "name": "Kulhuse Nordskoven",
+          "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r12632175",
+          "name": "Jægerspris Hjertesti",
+          "reason": "Hjerteforeningen signed heart walk (lwn), 84% in Slotshegnet forest, 95% path/track; class-A ruling 2026-11-24"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "No single named polygon holds the Nordskoven walk and the Slotshegn heart walk; container derived from the 2 included signed routes"
+      }
+    },
+    {
+      "id": "rise-skov-dk",
+      "name": "Rise Skov",
+      "state": "Denmark",
+      "relation_id": 5332094,
+      "bbox": [9.31, 55.0, 9.43, 55.11],
+      "center": [55.054, 9.37],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 6.6,
+      "notes": "Class-A ruling batch A (wf_a11dcfff0d7617fc, 2026-11-24), final/classA-ruling-dispositions.md. Rise Skov near Rødekro (found by the class-A scan, no audit-14 row): the three Hjerteforeningen Hjertesti loops, rød r5332094 (1.3 mi), blå r5332095 (2.3 mi), gul r5332096 (3.1 mi); 94-96% inside one forest (OSM relation 5221599, unnamed), 77-90% path/track. Place name from the signed route names; outside sources AllTrails (Rise Forest, three heart trails) and opdagdanmark.dk (Hjertestier i Rise Skov, Aabenraa). Nested loops (rød 90% inside blå and gul). Class-A ruling Quentin 2026-11-24. The two Naturstyrelsen motionsruter in the neighbouring forest r5221601 stay out (forest name unconfirmed). Bless only from the Actions qualify run.",
+      "include_trails": [
+        {
+          "id": "r5332094",
+          "name": "Rise Skov Hjertesti 1, rød",
+          "reason": "Hjerteforeningen signed heart walk (lwn), 94% in the Rise Skov forest, 77% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r5332095",
+          "name": "Rise Skov Hjertesti 2, blå",
+          "reason": "Hjerteforeningen signed heart walk (lwn), 95% in the Rise Skov forest, 87% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r5332096",
+          "name": "Rise Skov Hjertesti 3, gul",
+          "reason": "Hjerteforeningen signed heart walk (lwn), 96% in the Rise Skov forest, 90% path/track; class-A ruling 2026-11-24"
+        }
+      ],
+      "container_from_routes": {
+        "reason": "The Rise Skov forest (relation 5221599) is unnamed in OSM; container derived from the 3 included signed routes"
+      }
     }
   ]
 }

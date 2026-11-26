@@ -4036,14 +4036,14 @@
       "name": "Hindsgavl",
       "state": "Denmark",
       "relation_id": 19349071,
-      "bbox": [9.63, 55.44, 9.77, 55.57],
-      "center": [55.506, 9.7],
+      "bbox": null,
+      "center": null,
       "rules": "dk-v3",
       "tier": 2,
-      "hold": null,
+      "hold": "curated-do-not-ship",
       "est_trails": 2,
       "est_mi": 9.8,
-      "notes": "Audit 17 batch C (2026-11-26), final/audit17-vet.md Q4 #3, reconcile-14 SHIP. Hold lifted by the replay its unlock asked for: on the current extract (denmark-20261124) both whole routes resolve with no gap drop and no Lillebæltstien overlap (Lillebæltsstien, 15.9 mi, Keramikruten and the Pilgrimsrute are dropped as unresolved-relation-gap or out of the container; no cross-area duplicates). No restore_member_ways or accept_gap needed, so none is added. Hindsgavl peninsula near Middelfart: Hindsgavl-ruten 5.93 mi (blue hiker) and Hindsgavl-halvøen 3.88 mi (red hiker), both named for the place, 49 percent shared ground; no polygon carries the name, so container_from_routes. The Middelfart town routes stay out. Bless only from the Actions qualify run.",
+      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Hindsgavl HOLD (batch L route-cluster): Actions qualify 41267523010 on the current Geofabrik extract failed closed: both routes were removed as unresolved-relation-gap after the AOI gained new ways and they collided with Lillebæltstien in the overlap step (local replay on the older extract shipped 2 trails / 9.8 mi). Unlock: replay on the current extract and review the Lillebæltstien overlap; no accept_gap without that. Hindsgavl peninsula near Middelfart: Hindsgavl-ruten 5.93 mi and Hindsgavl-halvøen 3.88 mi, both named for the place; no polygon carries the name. 49 percent shared ground. The Middelfart town routes (Keramikruten, Marsvinruten, Klimaruten, Kløversti) are not Hindsgavl and stay out; Lillebæltsstien is long-distance.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Hindsgavl; container derived from the 2 included signed routes"
       },

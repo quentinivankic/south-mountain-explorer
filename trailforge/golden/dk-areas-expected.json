@@ -3248,21 +3248,6 @@
         "Hærvejen",
         "Ollerupvej"
       ]
-    },
-    "hindsgavl-dk": {
-      "trail_count": 2,
-      "total_mi": 9.8,
-      "total_mi_tolerance": 0.05,
-      "required_names": [
-        "Hindsgavl-halvøen",
-        "Hindsgavl-ruten"
-      ],
-      "forbidden_names": [
-        "Den danske Pilgrimsrute Øst- og Vestfyn",
-        "Keramikruten",
-        "Lillebæltsstien",
-        "Lillebæltstien"
-      ]
     }
   }
 }

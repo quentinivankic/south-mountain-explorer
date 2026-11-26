@@ -379,8 +379,8 @@ CLASSA_A_CLUSTER = list(CLASSA_A_NEW)   # container_from_routes
 CLASSA_C_UNHELD = ["vestskoven-dk"]
 # audit 16 batch B (2026-11-26): Riis Skov, a new container_by_id area (named forest, signed walks and løberuter)
 AUDIT16_B_NEW = ["riis-skov-dk"]
-# audit 17 batch C (2026-11-26): three held areas unheld (Gyttegårds Plantage / Grene Sande, Fårup Sø, Hindsgavl); Mariager pair added to the live mosely-mariager-dk
-AUDIT17_C_UNHELD = ["grene-sande-dk", "faarup-so-dk", "hindsgavl-dk"]
+# audit 17 batch C (2026-11-26): two held areas unheld (Gyttegårds Plantage / Grene Sande, Fårup Sø; Hindsgavl stays held, Actions qualify 45867003563 failed closed); Mariager pair added to the live mosely-mariager-dk
+AUDIT17_C_UNHELD = ["grene-sande-dk", "faarup-so-dk"]
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
@@ -551,7 +551,7 @@ def test_batch_l_route_cluster_ships_and_holds():
         assert "Batch L" in a["notes"] or (i in AUDIT17_C_UNHELD and "Audit 17 batch C" in a["notes"])
     assert all(by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] for i in BATCH_L_SHIP)
     for i in BATCH_L_HELD_NEW:
-        if i in AUDIT17_C_UNHELD:   # Hindsgavl and Fårup Sø unheld in audit 17 batch C
+        if i in AUDIT17_C_UNHELD:   # Fårup Sø unheld in audit 17 batch C
             assert by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"]
             continue
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None
@@ -626,9 +626,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 189, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 188, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 53, "superseded": 6}
+        "curated-do-not-ship": 54, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)
@@ -711,7 +711,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         # audit 16 batch B (local replay on denmark-20261124; the Actions qualify run re-confirms)
         "riis-skov-dk": (3, 7.4),
         # audit 17 batch C (local replay on denmark-20261124; the Actions qualify run re-confirms)
-        "grene-sande-dk": (2, 8.1), "faarup-so-dk": (3, 7.8), "hindsgavl-dk": (2, 9.8)}
+        "grene-sande-dk": (2, 8.1), "faarup-so-dk": (3, 7.8)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):

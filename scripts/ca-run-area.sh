@@ -166,12 +166,27 @@ python3 ../scripts/ca_trail_filter.py --registry "$ROOT/trailforge/golden/ca-are
 # Publish with the OSM name in the one-row index: the generic publisher finds the boundary by that name.
 python3 ../scripts/ca_publish.py index-for-publish --index "$A/index.json" --area-json "$A/area.json" \
   --out "$A/publish-index.json"
+# Optional remnant_drop (registry; relation or way-backed): drop the stray pieces of the named trails at publish
+# (publish_areas.py --ca-remnant-drop; printed per-trail report, also written to $A/ca-remnant-drop-report.json).
+# Absent = no flag, so every other area publishes exactly as before.
+CA_PUBLISH_FLAGS=()
+REMNANT_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("remnant_drop") then (.remnant_drop | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$REMNANT_COUNT" ]; then
+  if [ "$REMNANT_COUNT" = "0" ]; then
+    echo "SAFETY BLOCK: remnant_drop must be a non-empty list" >&2
+    exit 2
+  fi
+  jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .remnant_drop' "$ROOT_REGISTRY" > "$A/ca-remnant_drop.json"
+  CA_PUBLISH_FLAGS+=(--ca-remnant-drop "$A/ca-remnant_drop.json" --ca-remnant-drop-report "$A/ca-remnant-drop-report.json")
+fi
 python3 serve/publish_areas.py \
   --trails "data/aoi/$AREA_ID.trails.geojson" \
   --hiking "data/aoi/$AREA_ID.osm.pbf" \
   --state Canada --index "$A/publish-index.json" \
   --out-dir "$A/geom" \
-  --no-boundary-fetch
+  --no-boundary-fetch \
+  ${CA_PUBLISH_FLAGS[@]+"${CA_PUBLISH_FLAGS[@]}"}
 # publish_areas writes no geom for an area with no trail inside it ("no trails touch this area").
 test -f "$A/geom/$AREA_ID.json" || { echo "SAFETY BLOCK: $AREA_ID has no publishable trails after the Canada filter" >&2; exit 3; }
 # --registry applies the area's optional trail_id_pins opt-in (keep a live trail id); absent = no change.

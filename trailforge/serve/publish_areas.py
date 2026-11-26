@@ -698,7 +698,25 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     ap.add_argument("--dem-cache-dir", default=os.path.join(os.path.dirname(__file__),
                     "..", "data", "dem-cache"), help="disk cache for DEM tiles")
     ap.add_argument("--dem-zoom", type=int, default=elevation.DEM_ZOOM)
+    ap.add_argument("--ca-remnant-drop", dest="ca_remnant_drop",
+                    help="JSON list of {name, source, reason[, max_mi]} (Canada registry remnant_drop): drop "
+                         "the stray pieces (<= max_mi, default 0.1 mi, and more than 5 m from the main "
+                         "piece) of each named trail. --state Canada only; every entry must match")
+    ap.add_argument("--ca-remnant-drop-report", dest="ca_remnant_drop_report",
+                    help="write the per-trail remnant-drop report here (needs --ca-remnant-drop)")
     args = ap.parse_args(argv)
+    args.ca_remnant = []
+    if args.ca_remnant_drop_report and not args.ca_remnant_drop:
+        ap.error("--ca-remnant-drop-report needs --ca-remnant-drop")
+    if args.ca_remnant_drop:
+        if args.state != _CA_STATE or args.exact_boundary:
+            ap.error("--ca-remnant-drop is for --state Canada only (never --exact-boundary)")
+        import ca_rules as ca_rules_remnant
+        try:
+            args.ca_remnant = ca_rules_remnant.validate_remnant_drop(json.loads(
+                Path(args.ca_remnant_drop).read_text(encoding="utf-8")), "--ca-remnant-drop")
+        except (OSError, ValueError) as error:
+            ap.error(f"--ca-remnant-drop is invalid: {error}")
     if args.exact_boundary and args.dry_run and (
             not args.preview_json or not args.preview_root):
         ap.error("--exact-boundary requires --dry-run, --preview-json, and --preview-root")
@@ -1106,6 +1124,23 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                 m["slugs"].append(slug)
         if not clipped:
             skipped.append((slug, "no trails touch this area")); continue
+        if args.ca_remnant:
+            # Canada registry remnant_drop: only the named trails lose their stray pieces; any entry that
+            # cannot be applied fails the area (printed report either way).
+            clipped, remnant_rows, remnant_failures = ca_rules_remnant.drop_stray_remnants(
+                clipped, args.ca_remnant)
+            for item in remnant_rows:
+                print(f"  {slug}: remnant-drop {item['name']}: {item['length_mi_before']} -> "
+                      f"{item['length_mi_after']} mi (main piece {item['main_mi']} mi); dropped "
+                      + ", ".join(f"{d['mi']} mi at {d['distance_m']} m" for d in item["dropped"]))
+            for message in remnant_failures:
+                print(f"  {slug}: {message}", file=sys.stderr)
+            if args.ca_remnant_drop_report:
+                Path(args.ca_remnant_drop_report).write_text(
+                    json.dumps({"area": slug, "dropped": remnant_rows, "failures": remnant_failures},
+                               indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            if remnant_failures:
+                failed.append((slug, remnant_failures)); continue
         postclip_record = _postclip_evidence(
             assembly_sha256, union, clipped)
         # The way id of the polygon this area was actually clipped to, when the

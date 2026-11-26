@@ -662,3 +662,71 @@ def drop_stray_remnants(features: list[dict[str, Any]], entries: list[dict[str, 
                        "dropped": [{"mi": round(item["mi"], 3), "distance_m": round(item["distance_m"], 1)}
                                    for item in verdict["stray"]]})
     return out, report, failures
+# --- container_from_routes (registry `container_from_routes`, per area; Canada only) -----------------------------
+# Canada port of the Denmark route-cluster container (areas.ca_route_container). The area is a ROUTE, not a polygon:
+# its container is derived from the member ways of ONE anchor route relation (the registry relation_id) whose OSM
+# name is listed in `way_names`. The same list restricts what the area publishes: after the clip only trails with a
+# listed name stay (every other trail the container happens to touch, the anchor's own long-distance row included,
+# is removed with category ca-container-not-listed), and every listed name must yield exactly one trail.
+CONTAINER_KEYS = frozenset({"anchor_name", "way_names", "max_span_deg", "source", "reason"})
+CONTAINER_NAME_CAP = 40               # more names than this cannot be reviewed line by line
+CONTAINER_MAX_SPAN_DEG = 1.0          # hard cap per axis (mirrors areas.CA_ROUTE_CONTAINER_MAX_SPAN_DEG)
+def _container_text(value: Any, label: str, key: str, limit: int = 600) -> str:
+    if (not isinstance(value, str) or not value.strip() or value != value.strip()
+            or value != unicodedata.normalize("NFC", value) or len(value) > limit):
+        raise ValueError(f"{label} {key} must be trimmed non-empty NFC text (at most {limit} characters): {value!r}")
+    return value
+def validate_container_from_routes(entry: Any, label: str = "container_from_routes") -> dict[str, Any]:
+    """The validated entry {anchor_name, way_names, max_span_deg, source, reason}; any other shape raises ValueError."""
+    if not isinstance(entry, dict) or set(entry) != CONTAINER_KEYS:
+        raise ValueError(f"{label} must be an object with exactly {sorted(CONTAINER_KEYS)}")
+    _container_text(entry["anchor_name"], label, "anchor_name", 120)
+    _container_text(entry["reason"], label, "reason")
+    source = _container_text(entry["source"], label, "source")
+    if not re.fullmatch(r"https://[A-Za-z0-9.-]+(/\S*)?", source):
+        raise ValueError(f"{label} source must be an https URL: {source!r}")
+    span = entry["max_span_deg"]
+    if (not isinstance(span, (int, float)) or isinstance(span, bool)
+            or not 0 < span <= CONTAINER_MAX_SPAN_DEG):
+        raise ValueError(f"{label} max_span_deg must be a number in (0, {CONTAINER_MAX_SPAN_DEG}]: {span!r}")
+    names = entry["way_names"]
+    if not isinstance(names, list) or not 2 <= len(names) <= CONTAINER_NAME_CAP:
+        raise ValueError(f"{label} way_names must be a list of 2..{CONTAINER_NAME_CAP} names")
+    for name in names:
+        _container_text(name, label, "way_names item", 120)
+    if len(set(names)) != len(names):
+        raise ValueError(f"{label} way_names repeats a name")
+    if entry["anchor_name"] in names:
+        raise ValueError(f"{label} way_names lists the anchor route's own name {entry['anchor_name']!r}")
+    return entry
+def restrict_to_container_names(features: list[dict[str, Any]], way_names: list[str], area_name: str | None,
+                                member_way_ids: Iterable[int]
+                                ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """(kept features, removed features, failures). Keeps a clipped trail only when its assembled name is listed AND
+    at least one of its OSM ways is a member of the anchor route (`member_way_ids`, the ways the container was
+    derived from): a same-named way outside the route that happens to lie in the container is not the route.
+    Every other trail is removed with a plain reason. Each listed name must be on exactly one trail, else a
+    failure (stale entry, or a name the engine split or merged) and the caller must fail the area."""
+    wanted = {unicodedata.normalize("NFC", n) for n in way_names}
+    members = {int(w) for w in member_way_ids}
+    kept: list[dict[str, Any]] = []
+    removed: list[dict[str, Any]] = []
+    counts: dict[str, int] = {n: 0 for n in wanted}
+    for feature in features:
+        props = dict(feature.get("properties") or {})
+        name = unicodedata.normalize("NFC", props.get("name") or "")
+        ways = {int(w) for w in props.get("member_ways") or []}
+        if name in wanted and props.get("kind") != "poi" and ways & members:
+            counts[name] += 1
+            kept.append(feature)
+            continue
+        reason = ("Not one of the container_from_routes way_names listed for this area." if name not in wanted
+                  else "Carries a listed name but none of its ways is a member of the anchor route.")
+        props.update({
+            "removed_category": "ca-container-not-listed", "removed_reason": reason,
+            "drop_evidence": {"kind": "ca-container-not-listed", "area": area_name}})
+        removed.append({**feature, "properties": props})
+    failures = [f"container_from_routes {name!r}: {count} trails have this name "
+                f"({'stale entry or the trail was filtered' if not count else 'ambiguous'})"
+                for name, count in sorted(counts.items()) if count != 1]
+    return kept, removed, failures

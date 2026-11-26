@@ -40,11 +40,15 @@ def test_run_area_script_is_the_generic_path_with_no_denmark_machinery():
     assert code.count("--region") == 2 and "--region ca --boundary-by-id" in code
     assert "BOUNDARY_ARGS+=(--region ca)" in code and 'if [ "${#CA_RULE_FLAGS[@]}" -gt 0 ] && [ -z "$BOUNDARY_BY_ID" ]' in code
     assert "if [ -n \"$BOUNDARY_BY_ID\" ]" in code and "boundary_by_id" in code
-    # Two `--ca-` literals reach assemble (the per-key loop and dedupe_ring_way); the other two are the registry-gated
-    # remnant_drop flags for publish_areas.py (never assemble.py), on the one CA_PUBLISH_FLAGS line.
+    # Three `--ca-` literals reach assemble (the per-key loop, dedupe_ring_way and the registry container_from_routes
+    # flag); the other three are the registry-gated publish_areas.py flags (never assemble.py): the two remnant_drop
+    # flags on one CA_PUBLISH_FLAGS line and --ca-route-container on its own gated CA_PUBLISH_FLAGS line.
     publish_flags = [line for line in code.splitlines() if line.strip().startswith("CA_PUBLISH_FLAGS+=")]
-    assert len(publish_flags) == 1 and publish_flags[0].count("--ca-") == 2 and "--ca-remnant-drop " in publish_flags[0]
-    assert code.count("--ca-") == 4 and 'CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}"' in code
+    assert len(publish_flags) == 2
+    assert any(line.count("--ca-") == 2 and "--ca-remnant-drop " in line for line in publish_flags)
+    assert any(line.count("--ca-") == 1 and "--ca-route-container " in line for line in publish_flags)
+    assert code.count("--ca-") == 6 and 'CA_RULE_FLAGS+=("--ca-${RULE_KEY//_/-}"' in code
+    assert "CA_RULE_FLAGS+=(--ca-container-from-routes " in code and 'if [ -n "$CONTAINER_NAMES" ]' in code
     # registry dedupe_ring_way: its own gated branch (relation-backed, no boundary_by_id), one flag
     assert 'CA_RULE_FLAGS+=("--ca-dedupe-ring-way")' in code and 'if [ -n "$DEDUPE_RING_WAY" ]' in code
     assert "for RULE_KEY in accept_gap keep_superroute" in code and "if [ -n \"$RULE_COUNT\" ]" in code

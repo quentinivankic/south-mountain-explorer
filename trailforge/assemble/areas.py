@@ -141,6 +141,46 @@ def _route_cluster_linework(relations: dict, ways: dict, nodes: dict,
     return out, None
 
 
+def _route_cluster_polygon(lines: list, box: list) -> tuple[Any, str | None]:
+    """Shared by the Denmark and Canada route containers: the fixed-buffer polygon of
+    the route linework [(route id, way id, [(lon, lat)...])] (projection, buffer, 6-decimal
+    rounding, validity repair and the covers check are the sealed route-cluster-v1 steps)."""
+    import math
+    from shapely.geometry import LineString
+    from shapely.ops import transform, unary_union
+    lon0, lat0 = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    kx = _M_PER_DEG * math.cos(math.radians(lat0))
+
+    def forward(xs, ys):
+        return ([(x - lon0) * kx for x in xs], [(y - lat0) * _M_PER_DEG for y in ys])
+
+    def inverse(xs, ys):
+        return ([round(lon0 + x / kx, 6) for x in xs],
+                [round(lat0 + y / _M_PER_DEG, 6) for y in ys])
+
+    union = unary_union([transform(forward, LineString(cs)) for _r, _w, cs in lines
+                         if len(cs) >= 2])
+    poly = transform(inverse, union.buffer(ROUTE_CLUSTER_BUFFER_M, 8))
+    if not poly.is_valid:
+        # Rounding to 6 decimals can pinch a narrow neck into a self-intersection
+        # (seen on a real cluster); buffer(0) is the deterministic repair. The result
+        # must then still hold every route (checked below), so it can never shrink
+        # onto the routes it was derived from.
+        poly = poly.buffer(0)
+    if poly.is_empty or not poly.is_valid or poly.geom_type not in ("Polygon", "MultiPolygon"):
+        return None, "route-cluster container is not a valid polygon"
+    route_lines = unary_union([LineString(cs) for _r, _w, cs in lines if len(cs) >= 2])
+    if not poly.covers(route_lines):
+        return None, "route-cluster container does not cover every included route"
+    return poly, None
+def _route_cluster_linework_sha(lines: list) -> str:
+    """Input pin (independent of GEOS): sha256 of the exact route linework a container came from."""
+    import hashlib
+    import json
+    linework = sorted([rid, way_id, [[round(x, 7), round(y, 7)] for x, y in cs]]
+                      for rid, way_id, cs in lines)
+    return hashlib.sha256(json.dumps(
+        linework, separators=(",", ":")).encode("utf-8")).hexdigest()
 def route_cluster_container(relations: dict, ways: dict, nodes: dict,
                             include_ids: list[int], anchor_id: int,
                             name: str) -> tuple[dict | None, str | None]:
@@ -187,40 +227,98 @@ def route_cluster_container(relations: dict, ways: dict, nodes: dict,
     if not (ROUTE_CLUSTER_DK_LON[0] <= box[0] and box[2] <= ROUTE_CLUSTER_DK_LON[1]
             and ROUTE_CLUSTER_DK_LAT[0] <= box[1] and box[3] <= ROUTE_CLUSTER_DK_LAT[1]):
         return None, f"route-cluster bbox {box} is outside Denmark"
-    lon0, lat0 = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-    kx = _M_PER_DEG * math.cos(math.radians(lat0))
-
-    def forward(xs, ys):
-        return ([(x - lon0) * kx for x in xs], [(y - lat0) * _M_PER_DEG for y in ys])
-
-    def inverse(xs, ys):
-        return ([round(lon0 + x / kx, 6) for x in xs],
-                [round(lat0 + y / _M_PER_DEG, 6) for y in ys])
-
-    union = unary_union([transform(forward, LineString(cs)) for _r, _w, cs in lines
-                         if len(cs) >= 2])
-    poly = transform(inverse, union.buffer(ROUTE_CLUSTER_BUFFER_M, 8))
-    if not poly.is_valid:
-        # Rounding to 6 decimals can pinch a narrow neck into a self-intersection
-        # (seen on a real cluster); buffer(0) is the deterministic repair. The result
-        # must then still hold every route (checked below), so it can never shrink
-        # onto the routes it was derived from.
-        poly = poly.buffer(0)
-    if poly.is_empty or not poly.is_valid or poly.geom_type not in ("Polygon", "MultiPolygon"):
-        return None, "route-cluster container is not a valid polygon"
-    route_lines = unary_union([LineString(cs) for _r, _w, cs in lines if len(cs) >= 2])
-    if not poly.covers(route_lines):
-        return None, "route-cluster container does not cover every included route"
-    # Input pin (independent of GEOS): the exact route linework the container came from.
-    linework = sorted([rid, way_id, [[round(x, 7), round(y, 7)] for x, y in cs]]
-                      for rid, way_id, cs in lines)
-    linework_sha = hashlib.sha256(json.dumps(
-        linework, separators=(",", ":")).encode("utf-8")).hexdigest()
+    poly, failure = _route_cluster_polygon(lines, box)
+    if failure:
+        return None, failure
+    linework_sha = _route_cluster_linework_sha(lines)
     evidence = {
         "evidence_type": "route-cluster", "version": ROUTE_CLUSTER_VERSION,
         "route_relation_ids": ids, "anchor_relation_id": anchor_id,
         "buffer_m": ROUTE_CLUSTER_BUFFER_M, "route_way_count": len({w for _r, w, _c in lines}),
         "route_linework_sha256": linework_sha,
+        "linework_bbox": [round(v, 6) for v in box]}
+    return {"name": name, "osm_type": "relation", "osm_id": anchor_id,
+            "tags": {}, "geom": poly, "route_cluster": evidence}, None
+# Canada registry `container_from_routes` (region ca only, per area, relation-backed): a port of the Denmark
+# route-cluster container for an area that is a ROUTE and not a polygon (the East Coast Trail's named "... Path"
+# day hikes). The container is the same fixed derivation (_route_cluster_polygon, ROUTE_CLUSTER_BUFFER_M) but of
+# the direct member WAYS of ONE anchor route relation whose OSM name is in the entry's way_names list; it never
+# takes the relation as a whole, so the long-distance main line cannot enter by name or by network.
+CA_ROUTE_CONTAINER_VERSION = "ca-route-container-v1"
+CA_ROUTE_CONTAINER_MIN_NAMES = 2
+CA_ROUTE_CONTAINER_MAX_SPAN_DEG = 1.0               # hard cap per axis; an entry names its own (lower) cap
+CA_ROUTE_CONTAINER_LON, CA_ROUTE_CONTAINER_LAT = (-141.1, -52.0), (41.0, 84.0)
+CA_ROUTE_CONTAINER_LONG_DISTANCE_NETWORKS = frozenset({"iwn", "nwn", "rwn"})
+def ca_route_container(relations: dict, ways: dict, nodes: dict, anchor_id: int,
+                       way_names: list[str], name: str,
+                       max_span_deg: float) -> tuple[dict | None, str | None]:
+    """Canada opt-in (registry container_from_routes): derive the container of a route-defined area from the
+    member ways named in ``way_names`` of the anchor route relation. Fail closed (None, reason) on: fewer than
+    CA_ROUTE_CONTAINER_MIN_NAMES distinct names, an anchor that is missing, not a hiking/foot route or on a
+    regional/national/international network, a listed name that no member way of the anchor carries, a member
+    way with incomplete geometry, a span over the entry's cap (itself capped at CA_ROUTE_CONTAINER_MAX_SPAN_DEG)
+    or a bbox outside Canada, or an invalid polygon. Returns an exact-area dict labelled with the registry name
+    (osm_type/osm_id = the anchor relation, evidence in ``route_cluster``)."""
+    import unicodedata
+    if not (isinstance(max_span_deg, (int, float)) and not isinstance(max_span_deg, bool)
+            and 0 < max_span_deg <= CA_ROUTE_CONTAINER_MAX_SPAN_DEG):
+        return None, (f"route container max_span_deg must be in (0, {CA_ROUTE_CONTAINER_MAX_SPAN_DEG}], "
+                      f"got {max_span_deg!r}")
+    names = [unicodedata.normalize("NFC", n) for n in way_names]
+    if len(set(names)) != len(names) or len(names) < CA_ROUTE_CONTAINER_MIN_NAMES:
+        return None, (f"route container needs at least {CA_ROUTE_CONTAINER_MIN_NAMES} distinct way_names "
+                      "(no repeats)")
+    relation = relations.get(anchor_id)
+    if relation is None:
+        return None, f"anchor route relation {anchor_id} is not in the extract"
+    kind = (relation["tags"].get("route") or "").strip().lower()
+    if kind not in ROUTE_CLUSTER_ROUTE_KINDS:
+        return None, f"anchor relation {anchor_id} is route={kind!r}, not a hiking/foot route"
+    network = (relation["tags"].get("network") or "").strip().lower()
+    if network in CA_ROUTE_CONTAINER_LONG_DISTANCE_NETWORKS:
+        return None, f"anchor relation {anchor_id} is on the long-distance network {network!r}"
+    if unicodedata.normalize("NFC", relation["tags"].get("name") or "") in names:
+        return None, (f"way_names lists the anchor route's own name {relation['tags'].get('name')!r}: "
+                      "that is the whole (long-distance) route, never a named path of it")
+    member_ways = [ref for kind_, ref, _role in relation["members"] if kind_ == "w"]
+    by_name: dict[str, list[int]] = {n: [] for n in names}
+    for way_id in dict.fromkeys(member_ways):
+        way = ways.get(way_id)
+        if way is None:
+            continue
+        have = way["tags"].get("name")
+        if have is not None and unicodedata.normalize("NFC", have) in by_name:
+            by_name[unicodedata.normalize("NFC", have)].append(way_id)
+    missing = [n for n in names if not by_name[n]]
+    if missing:
+        return None, (f"no member way of relation {anchor_id} is named {missing[0]!r} "
+                      f"({len(missing)} listed name(s) unmatched)")
+    lines: list[tuple[int, int, list]] = []
+    for n in names:
+        for way_id in sorted(by_name[n]):
+            way = ways[way_id]
+            if any(node not in nodes for node in way["nodes"]):
+                return None, f"member way {way_id} of route relation {anchor_id} has missing nodes"
+            lines.append((anchor_id, way_id, [nodes[node] for node in way["nodes"]]))
+    lons = [c[0] for _r, _w, cs in lines for c in cs]
+    lats = [c[1] for _r, _w, cs in lines for c in cs]
+    box = [min(lons), min(lats), max(lons), max(lats)]
+    if box[2] - box[0] > max_span_deg or box[3] - box[1] > max_span_deg:
+        return None, (f"route container is {box[2] - box[0]:.3f} x {box[3] - box[1]:.3f} degrees, "
+                      f"over the {max_span_deg} cap per axis")
+    if not (CA_ROUTE_CONTAINER_LON[0] <= box[0] and box[2] <= CA_ROUTE_CONTAINER_LON[1]
+            and CA_ROUTE_CONTAINER_LAT[0] <= box[1] and box[3] <= CA_ROUTE_CONTAINER_LAT[1]):
+        return None, f"route container bbox {box} is outside Canada"
+    poly, failure = _route_cluster_polygon(lines, box)
+    if failure:
+        return None, failure
+    evidence = {
+        "evidence_type": "route-cluster", "version": CA_ROUTE_CONTAINER_VERSION, "region": "ca",
+        "anchor_relation_id": anchor_id, "way_names": sorted(names),
+        "buffer_m": ROUTE_CLUSTER_BUFFER_M, "max_span_deg": max_span_deg,
+        "route_way_ids": sorted({w for _r, w, _c in lines}),
+        "route_way_count": len({w for _r, w, _c in lines}),
+        "route_linework_sha256": _route_cluster_linework_sha(lines),
         "linework_bbox": [round(v, 6) for v in box]}
     return {"name": name, "osm_type": "relation", "osm_id": anchor_id,
             "tags": {}, "geom": poly, "route_cluster": evidence}, None

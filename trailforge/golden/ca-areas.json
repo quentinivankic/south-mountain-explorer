@@ -2905,6 +2905,87 @@
       "notes": "NL curation 2026-11-02. OSM polygon 0.013 x 0.009 deg fails prepare-areas size gate; Cape Spear Path (2.34 mi) lies mostly outside it and the other paths are East Coast Trail legs or unnamed. ca-new3 2026-11-02: Re-replay: fails the size gate (0.013 x 0.009); hold stands. N5 ship review 2026-11-24: HOLD kept, not opted in. With a waiver the only kept line is the East Coast Trail main relation (1.1 mi inside), a long-distance main; Cape Spear Path (2.34 mi, 0.43 inside) is an East Coast Trail day path that belongs to the N8 East Coast Trail route container as a whole route (one trail, one area)."
     },
     {
+      "id": "east-coast-trail-ca-nl",
+      "province": "nl",
+      "state": "Canada",
+      "relation_id": 2199386,
+      "name": "East Coast Trail",
+      "bbox": null,
+      "center": null,
+      "tier": 2,
+      "hold": "needs-rescope",
+      "notes": "N8 route container (round 3, 2026-11). East Coast Trail Association relation r2199386 (route=hiking, network none, 553 ways, operator East Coast Trail Association). The area is the ROUTE: its container is derived from the member ways of the listed named paths (container_from_routes), never from the relation as a whole, so the 195.8 mi long-distance main line and the community walks (road names) stay out. Only the listed paths publish, one trail per path. Not listed on purpose: Biscan Cove Path (OSM names it 'Biscane Cove Trail', a misspelt id would be permanent), Cobbler's Path (Signal Hill NHS ground, live area), La Manche Village Path (live in La Manche as La Manche Village Trail, one trail one area), North Head / Ladies' Lookout / Burma Road (Signal Hill, Parks Canada), roads. Held until the ship step runs the Actions qualify on the full NL extract. The ECTA path list page (eastcoasttrail.com/choose-a-path/) returns 403 to automation, so path names were taken from the OSM relation member names and cross-read against ECTA listing URLs and a path list; the ship review re-reads each name.",
+      "container_from_routes": {
+        "anchor_name": "East Coast Trail",
+        "way_names": [
+          "Cape Broyle Head Path",
+          "Spout Path",
+          "East Coast Trail - White Horse Path",
+          "East Coast Trail - Spurwink Island Path",
+          "Stiles Cove Path",
+          "Bear Cove Point Path",
+          "East Coast Trail - Motion Path",
+          "East Coast Trail - Piccos Ridge Path",
+          "Flamber Head Path",
+          "Deadmans Bay Path",
+          "Island Meadow Path",
+          "Sugarloaf Path",
+          "East Coast Trail - Mickeleens Path",
+          "Beaches Path",
+          "Father Troy Path",
+          "Brigus Head Path",
+          "Cape Spear Path",
+          "Sounding Hills Path",
+          "Tinkers Point Path",
+          "Blackhead Path",
+          "Caplin Bay Path",
+          "East Coast Trail - Mudder Wet Path",
+          "Silver Mine Head Path"
+        ],
+        "max_span_deg": 1.0,
+        "source": "https://eastcoasttrail.com/choose-a-path/",
+        "reason": "East Coast Trail Association lists each path as its own numbered hike (Sugarloaf Path 09, Tinkers Point Path 16, Cape Broyle Head Path 20, ...); OSM maps them as named member ways of the one ECT route relation, which has no park polygon"
+      },
+      "trail_name_fixes": [
+        {
+          "osm_name": "East Coast Trail - White Horse Path",
+          "name": "White Horse Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        },
+        {
+          "osm_name": "East Coast Trail - Spurwink Island Path",
+          "name": "Spurwink Island Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        },
+        {
+          "osm_name": "East Coast Trail - Motion Path",
+          "name": "Motion Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        },
+        {
+          "osm_name": "East Coast Trail - Piccos Ridge Path",
+          "name": "Piccos Ridge Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        },
+        {
+          "osm_name": "East Coast Trail - Mickeleens Path",
+          "name": "Mickeleens Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        },
+        {
+          "osm_name": "East Coast Trail - Mudder Wet Path",
+          "name": "Mudder Wet Path",
+          "source": "https://eastcoasttrail.com/choose-a-path/",
+          "reason": "East Coast Trail Association path name (OSM prefixes it with the trail name)"
+        }
+      ]
+    },
+    {
       "id": "butter-pot-provincial-park-ca-nl",
       "province": "nl",
       "state": "Canada",

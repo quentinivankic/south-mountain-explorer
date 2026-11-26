@@ -294,6 +294,32 @@ def _check_remnant_drop(aid: str, entry: dict[str, Any]) -> None:
         _ca_rules().validate_remnant_drop(entry["remnant_drop"], f"{aid}: remnant_drop")
     except ValueError as error:
         raise CaError(str(error)) from None
+# Registry `container_from_routes` is mutually exclusive with every other per-area engine opt-in and boundary
+# opt-in: a route-defined area has no polygon for them to act on, and one mechanism per area keeps each proof small.
+CONTAINER_EXCLUSIVE = ("boundary_by_id", "dedupe_ring_way", "keep_park_boundary", "park_boundary", "span_waiver",
+                       "small_polygon_waiver", "whole_route", "adopt_ways", "hiking_tag_wins", "way_name_overrides",
+                       "leg_merges", "accept_gap", "keep_superroute", "remnant_drop", "center_cluster")
+def _check_container_from_routes(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: the area is a ROUTE (relation_id = the anchor route relation), its container derived from the listed
+    member ways (trailforge/assemble/areas.py ca_route_container). Long-distance rules stay in force: no listed
+    name and not the anchor's own name may be a long-distance, winter, motorised, bike or portage name by the
+    Canada trail vocabulary (the Bruce Trail main line and the Trans Canada Trail can never be listed)."""
+    if "container_from_routes" not in entry:
+        return
+    if "way_id" in entry:
+        raise CaError(f"{aid}: container_from_routes needs a relation-backed entry (relation_id = the anchor route)")
+    clash = [key for key in CONTAINER_EXCLUSIVE if key in entry]
+    if clash:
+        raise CaError(f"{aid}: container_from_routes excludes {clash}")
+    try:
+        item = _ca_rules().validate_container_from_routes(entry["container_from_routes"], f"{aid}: container_from_routes")
+    except ValueError as error:
+        raise CaError(str(error)) from None
+    for name in [item["anchor_name"], *item["way_names"]]:
+        verdict = ca_trail_filter.vocabulary_category(name, "")
+        if verdict is not None:
+            raise CaError(f"{aid}: container_from_routes name {name!r} is not publishable here "
+                          f"({verdict[0]}: {verdict[1]})")
 def _check_whole_route_rivals(areas: list[dict[str, Any]]) -> None:
     """Every whole_route rival must be another registry area with that exact boundary object ("r<id>" or
     "w<id>") and name (a rival is a live area that also holds part of the route)."""
@@ -325,6 +351,14 @@ def _ca_rules():
     finally:
         if added:
             sys.path.remove(str(folder))
+def _areas_module():
+    """trailforge/assemble/areas.py (the one route-container derivation), loaded by path; it only imports
+    typing at module level (shapely is imported inside the functions)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("areas_route_container", ROOT / "trailforge" / "assemble" / "areas.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 def _check_engine_rules(aid: str, entry: dict[str, Any]) -> None:
     """Opt-in engine rules (region ca): per-relation accept_gap and keep_superroute. Both need a
     relation-backed entry and a non-empty valid list; assemble.py validates them again."""
@@ -487,6 +521,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_leg_merges(aid, entry)
         _check_whole_route(aid, entry)
         _check_remnant_drop(aid, entry)
+        _check_container_from_routes(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
@@ -746,6 +781,44 @@ def way_boundary_info(pbf: Path, way_ids: list[int]) -> dict[int, dict[str, Any]
     _Collector().apply_file(str(pbf), locations=True)
     return {way: {**found.get(way, {"bbox": None, "tags": None, "closed": False}),
                   "count": seen_count.get(way, 0)} for way in way_ids}
+def route_container_info(pbf: Path, entry: dict[str, Any]) -> dict[str, Any]:
+    """Per registry `container_from_routes` entry: the anchor route relation's tags and count, and the container
+    derived from the listed member ways exactly as assemble.py derives it (areas.ca_route_container): its bbox,
+    or the reason it could not be derived. Reads the small `osmium getid -r` extract of the anchor relation."""
+    import osmium
+    rid, cfg = entry["relation_id"], entry["container_from_routes"]
+    nodes: dict[int, tuple[float, float]] = {}
+    ways: dict[int, dict[str, Any]] = {}
+    relations: dict[int, dict[str, Any]] = {}
+    seen = 0
+    class _Collector(osmium.SimpleHandler):  # works on pyosmium 3.7.x and 4.x
+        def node(self, n):
+            try:
+                nodes[n.id] = (n.location.lon, n.location.lat)
+            except Exception:  # missing location: skip the node
+                pass
+        def way(self, w):
+            ways[w.id] = {"tags": {t.k: t.v for t in w.tags}, "nodes": [n.ref for n in w.nodes]}
+        def relation(self, r):
+            nonlocal seen
+            if r.id == rid:
+                seen += 1
+            relations[r.id] = {"tags": {t.k: t.v for t in r.tags},
+                               "members": [(m.type, m.ref, m.role) for m in r.members]}
+    _Collector().apply_file(str(pbf))
+    anchor = relations.get(rid)
+    info: dict[str, Any] = {"bbox": None, "tags": anchor["tags"] if anchor else None, "count": seen,
+                            "container_failure": None}
+    if anchor is None:
+        return info
+    area, failure = _areas_module().ca_route_container(
+        relations, ways, nodes, rid, cfg["way_names"], entry["name"], cfg["max_span_deg"])
+    if area is None:
+        info["container_failure"] = failure
+    else:
+        info["bbox"] = [float(v) for v in area["geom"].bounds]
+        info["container_sha256"] = area["route_cluster"]["route_linework_sha256"]
+    return info
 def boundary_bboxes(pbf: Path, relation_ids: list[int]) -> dict[int, list[float] | None]:
     return {rel: info["bbox"] for rel, info in boundary_info(pbf, relation_ids).items()}
 
@@ -791,8 +864,29 @@ def _names(tags: dict[str, str]) -> set[str]:
     return {unicodedata.normalize("NFC", tags[k]) for k in REL_NAME_KEYS if tags.get(k)}
 
 
+def container_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
+    """Fail-closed identity/size check of a container_from_routes entry against its anchor route relation: it
+    must be present once, a hiking/foot route named as the entry says, and the container must derive."""
+    cfg = entry["container_from_routes"]
+    if not info or info.get("tags") is None:
+        return [f"anchor route relation {entry['relation_id']} is not in the PBF"]
+    problems: list[str] = []
+    if info.get("count") != 1:
+        problems.append(f"anchor route relation {entry['relation_id']} occurs {info.get('count')} times (not unique)")
+    tags = info["tags"]
+    if tags.get("type") != "route" or (tags.get("route") or "").strip().lower() not in ("hiking", "foot"):
+        problems.append(f"relation {entry['relation_id']} is type={tags.get('type')!r} route={tags.get('route')!r}, "
+                        "expected a hiking/foot route")
+    if unicodedata.normalize("NFC", tags.get("name") or "") != cfg["anchor_name"]:
+        problems.append(f"relation {entry['relation_id']} name {tags.get('name')!r} does not match anchor_name "
+                        f"{cfg['anchor_name']!r}")
+    if info.get("container_failure"):
+        problems.append(f"route container cannot be derived: {info['container_failure']}")
+    return problems + _size_problems(info.get("bbox"), cfg["max_span_deg"], REL_SPAN_MIN)
 def relation_problems(entry: dict[str, Any], info: dict[str, Any] | None) -> list[str]:
     """Fail-closed identity/size check of a registry entry against its own PBF relation."""
+    if "container_from_routes" in entry:
+        return container_problems(entry, info)
     if not info or info.get("tags") is None:
         return [f"registry relation {entry['relation_id']} is not in the PBF"]
     problems: list[str] = []
@@ -855,8 +949,11 @@ def check_area_geometry(entry: dict[str, Any], boundary: list[float] | None, mod
                            "boundary_bbox": boundary, "registry_bbox": entry.get("bbox"),
                            "registry_center": entry.get("center")}
     if boundary is None:
-        problems.append("boundary way not found in the PBF (no node geometry)" if way_backed
-                        else "boundary relation not found in the PBF (no member way geometry)")
+        if "container_from_routes" in entry:
+            problems += container_problems(entry, info) or ["route container has no geometry in the PBF"]
+        else:
+            problems.append("boundary way not found in the PBF (no node geometry)" if way_backed
+                            else "boundary relation not found in the PBF (no member way geometry)")
         rec.update(status="failed", problems=problems, bbox_source=None, effective_bbox=None, center=None)
         return rec
     reg = entry.get("bbox")
@@ -895,7 +992,11 @@ def prepare_areas(args: argparse.Namespace) -> int:
     entries = [registry["by_id"][i] for i in ids]
     rel_entries = [e for e in entries if "way_id" not in e]
     way_entries = [e for e in entries if "way_id" in e]
-    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries])
+    infos = boundary_info(args.bounds_pbf, [e["relation_id"] for e in rel_entries
+                                            if "container_from_routes" not in e])
+    for entry in rel_entries:
+        if "container_from_routes" in entry:
+            infos[entry["relation_id"]] = route_container_info(args.bounds_pbf, entry)
     way_infos = (way_boundary_info(args.bounds_pbf, [e["way_id"] for e in way_entries])
                  if way_entries else {})
     out: list[dict[str, Any]] = []
@@ -1083,6 +1184,15 @@ def check_boundary_unique_cmd(args: argparse.Namespace) -> int:
     registry = load_registry(args.registry)
     entry = registry["by_id"][args.area_id]
     kind, ident = (("way", entry["way_id"]) if "way_id" in entry else ("relation", entry["relation_id"]))
+    if "container_from_routes" in entry:
+        # A route container has no polygon of its own: ANY boundary carrying the area name would be a second
+        # candidate for the same area (assemble.py fails closed on it too), so none may exist.
+        hits = boundary_name_matches(args.pbf, entry["name"], contains=True)
+        if hits:
+            raise CaError(f"{args.area_id}: container_from_routes area {entry['name']!r} must have no boundary "
+                          f"of that name in the AOI, found {hits}")
+        print(f"{args.area_id}: route container {kind} {ident}: no same-name boundary")
+        return 0
     # Way-backed areas have no --require-exact-area pin, so no other boundary may even contain the name.
     hits = boundary_name_matches(args.pbf, entry["name"], contains="way_id" in entry)
     if entry.get("boundary_by_id") is True:

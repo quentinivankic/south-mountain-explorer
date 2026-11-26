@@ -75,6 +75,19 @@ if [ -n "$DEDUPE_RING_WAY" ]; then
   fi
   CA_RULE_FLAGS+=("--ca-dedupe-ring-way")
 fi
+# Optional container_from_routes (registry; relation-backed only; relation_id = the anchor route relation): the
+# area is a route, its exact area DERIVED from the listed member ways (assemble.py --ca-container-from-routes) and
+# published against that sealed container (publish_areas.py --ca-route-container, below). Absent = no flag.
+CONTAINER_NAMES="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("container_from_routes") then (.container_from_routes.way_names | length | tostring) else empty end' \
+  "$ROOT_REGISTRY")"
+if [ -n "$CONTAINER_NAMES" ]; then
+  if [ "$CONTAINER_NAMES" = "0" ] || [ -z "$RELATION_ID" ] || [ -n "$BOUNDARY_BY_ID" ]; then
+    echo "SAFETY BLOCK: container_from_routes must list way_names on a relation-backed area without boundary_by_id" >&2
+    exit 2
+  fi
+  jq -c --arg id "$AREA_ID" '.areas[] | select(.id == $id) | .container_from_routes' "$ROOT_REGISTRY" > "$A/ca-container_from_routes.json"
+  CA_RULE_FLAGS+=(--ca-container-from-routes "$A/ca-container_from_routes.json")
+fi
 if [ "${#CA_RULE_FLAGS[@]}" -gt 0 ] && [ -z "$BOUNDARY_BY_ID" ]; then
   BOUNDARY_ARGS+=(--region ca)
 fi
@@ -170,6 +183,9 @@ python3 ../scripts/ca_publish.py index-for-publish --index "$A/index.json" --are
 # (publish_areas.py --ca-remnant-drop; printed per-trail report, also written to $A/ca-remnant-drop-report.json).
 # Absent = no flag, so every other area publishes exactly as before.
 CA_PUBLISH_FLAGS=()
+if [ -n "$CONTAINER_NAMES" ]; then
+  CA_PUBLISH_FLAGS+=(--ca-route-container "data/aoi/$AREA_ID.exact-area.geojson")
+fi
 REMNANT_COUNT="$(jq -r --arg id "$AREA_ID" '.areas[] | select(.id == $id) | if has("remnant_drop") then (.remnant_drop | length | tostring) else empty end' \
   "$ROOT_REGISTRY")"
 if [ -n "$REMNANT_COUNT" ]; then

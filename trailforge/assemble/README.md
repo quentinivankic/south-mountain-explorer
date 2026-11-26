@@ -515,6 +515,32 @@ leaves and re-enters the polygon), and a relation whose member ways stop 5 to
   as always. The registry `name` is the explicit area name. `dk_publish` checks
   every include (present once, hiking/foot route, geometry) and the cluster size
   in prepare-areas. Off by default: every other area is untouched.
+- **Canada route container** (registry `container_from_routes: {anchor_name, way_names,
+  max_span_deg, source, reason}`, `--ca-container-from-routes`, `--region ca` with
+  exact-area assembly by relation id and the legacy rules only): the Canada port of
+  the route-cluster container, for an area that is a ROUTE and not a polygon (the East
+  Coast Trail's "... Path" day hikes). `relation_id` is the anchor route relation. The
+  container is derived by the same fixed steps as above (`areas._route_cluster_polygon`,
+  150 m buffer) but from the direct member WAYS of the anchor whose OSM name is in
+  `way_names`, never from the relation as a whole (`areas.ca_route_container`, version
+  `ca-route-container-v1`, sealed as `evidence_type: "route-cluster"`, `region: "ca"`).
+  The same list restricts what the area publishes: after the clip only trails with a
+  listed name and at least one member way of the anchor stay; every other trail the
+  container touches (including the anchor's own long-distance row) is removed as
+  `ca-container-not-listed`, and each listed name must be exactly one trail. Long-distance
+  rules stay in force: the anchor must not be on an iwn/nwn/rwn network, its own name can
+  never be listed, and registry validation refuses any anchor or listed name that the
+  Canada trail vocabulary classes as long-distance (Bruce Trail, Trans Canada Trail ...),
+  winter, motorised, bike or portage. The same-name merge is scoped to the container.
+  `publish_areas.py --ca-route-container <exact-area.geojson>` then uses the sealed container
+  as the area boundary (hash and identity checked; `--state Canada` only). Fail closed:
+  fewer than two names, a name no member way carries, incomplete geometry, a cluster over
+  the entry's `max_span_deg` (hard cap 1.0 degree) or outside Canada, an invalid polygon, a
+  real polygon that already carries the area name, or an anchor whose name differs from
+  `anchor_name`. Exclusive with every other per-area engine/boundary opt-in. Off by default:
+  every other area is untouched. A section of a long-distance route that has no name of its
+  own (Quarry Rock on the Baden Powell Trail) cannot be listed: its ways carry the main
+  line's name, which is refused.
 - **Curated inclusions** (registry `include_trails`, `--dk-curated-include`,
   dk-v3 only): `{"id": "r<relation>" | "n:<name>", "name", "reason"}`, same shape
   and validation as `exclude_trails`. A listed trail is published whole whatever

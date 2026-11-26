@@ -702,9 +702,18 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
                     help="JSON list of {name, source, reason[, max_mi]} (Canada registry remnant_drop): drop "
                          "the stray pieces (<= max_mi, default 0.1 mi, and more than 5 m from the main "
                          "piece) of each named trail. --state Canada only; every entry must match")
+    ap.add_argument("--ca-route-container", dest="ca_route_container",
+                    help="sealed one-feature exact-area GeoJSON written by assemble.py --ca-container-from-routes "
+                         "(Canada registry container_from_routes): the area's boundary is that derived route "
+                         "container, not a polygon found in the PBF. --state Canada only, one indexed area, "
+                         "--no-boundary-fetch, never with --exact-boundary or --only-area")
     ap.add_argument("--ca-remnant-drop-report", dest="ca_remnant_drop_report",
                     help="write the per-trail remnant-drop report here (needs --ca-remnant-drop)")
     args = ap.parse_args(argv)
+    if args.ca_route_container and (
+            args.state != _CA_STATE or args.exact_boundary or args.only_area or not args.no_boundary_fetch):
+        ap.error("--ca-route-container is for --state Canada only, with --no-boundary-fetch, never with "
+                 "--exact-boundary or --only-area")
     args.ca_remnant = []
     if args.ca_remnant_drop_report and not args.ca_remnant_drop:
         ap.error("--ca-remnant-drop-report needs --ca-remnant-drop")
@@ -865,6 +874,28 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         geoms[meta["name"]] = exact_geometry
         boundary_src[meta["name"]] = (
             expected_kind, exact_boundary_evidence["osm_id"])
+    elif args.ca_route_container:
+        # Canada route container: the one boundary is the sealed derived container (hash and identity checked
+        # exactly like an exact boundary); the PBF's own polygons are not read, so no other polygon can join it.
+        if len(az) != 1:
+            ap.error("--ca-route-container requires exactly one indexed area")
+        try:
+            _feature, container_geometry, container_evidence = \
+                _load_exact_boundary(args.ca_route_container)
+            container_props = _feature["properties"]
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            ap.error(f"invalid --ca-route-container: {error}")
+        slug, meta = next(iter(az.items()))
+        cluster = container_props.get("route_cluster")
+        if (container_props.get("evidence_type") != "route-cluster" or not isinstance(cluster, dict)
+                or cluster.get("region") != "ca" or cluster.get("version") != areamod.CA_ROUTE_CONTAINER_VERSION
+                or cluster.get("anchor_relation_id") != container_evidence["osm_id"]):
+            ap.error("--ca-route-container is not a sealed Canada route container")
+        if (container_evidence["name"] != meta["name"] or container_evidence["osm_type"] != "relation"
+                or container_evidence["osm_id"] != meta["osm_rel"]):
+            ap.error("--ca-route-container identity disagrees with the indexed area")
+        geoms[meta["name"]] = container_geometry
+        boundary_src[meta["name"]] = ("relation", container_evidence["osm_id"])
     else:
         for b in areamod.merge_areas(args.hiking):
             if b.get("name"):
@@ -1021,7 +1052,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         if primary is None:
             skipped.append((slug, "no boundary in PBF")); continue
         primary_name_for[slug] = primary
-        u = (geoms[primary] if args.exact_boundary
+        u = (geoms[primary] if (args.exact_boundary or args.ca_route_container)
              else unary_union([geoms[n] for n in siblings(primary)]))
         area_unions[slug] = (u, u.bounds)
 
@@ -1030,7 +1061,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     # (including a neighbour park it crosses into) is kept. Clamp is cached per
     # trail in clamp_cache. `all_parks` is None only when no area has a boundary.
     all_parks = (next(iter(area_unions.values()))[0]
-                 if args.exact_boundary and len(area_unions) == 1
+                 if (args.exact_boundary or args.ca_route_container) and len(area_unions) == 1
                  else (unary_union([u for u, _ in area_unions.values()])
                        if area_unions else None))
     clamp_cache = {}

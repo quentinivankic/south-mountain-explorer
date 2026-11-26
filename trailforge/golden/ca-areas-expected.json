@@ -4599,6 +4599,23 @@
         "Whirlpool Trail",
         "Woodland Path"
       ]
+    },
+    "east-coast-trail-ca-nl": {
+      "trail_count": 23,
+      "total_mi": 122.0,
+      "total_mi_tolerance": 0.05,
+      "required_names": [
+        "Cape Spear Path",
+        "Sugarloaf Path",
+        "Tinkers Point Path",
+        "Cape Broyle Head Path"
+      ],
+      "forbidden_names": [
+        "Bruce Trail",
+        "East Coast Trail",
+        "Biscane Cove Trail",
+        "Cobbler's Path"
+      ]
     }
   }
 }

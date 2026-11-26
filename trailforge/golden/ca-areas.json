@@ -2910,11 +2910,19 @@
       "state": "Canada",
       "relation_id": 2199386,
       "name": "East Coast Trail",
-      "bbox": null,
-      "center": null,
+      "bbox": [
+        -53.04,
+        46.81,
+        -52.57,
+        47.86
+      ],
+      "center": [
+        47.312,
+        -52.785
+      ],
       "tier": 2,
-      "hold": "needs-rescope",
-      "notes": "N8 route container (round 3, 2026-11). East Coast Trail Association relation r2199386 (route=hiking, network none, 553 ways, operator East Coast Trail Association). The area is the ROUTE: its container is derived from the member ways of the listed named paths (container_from_routes), never from the relation as a whole, so the 195.8 mi long-distance main line and the community walks (road names) stay out. Only the listed paths publish, one trail per path. Not listed on purpose: Biscan Cove Path (OSM names it 'Biscane Cove Trail', a misspelt id would be permanent), Cobbler's Path (Signal Hill NHS ground, live area), La Manche Village Path (live in La Manche as La Manche Village Trail, one trail one area), North Head / Ladies' Lookout / Burma Road (Signal Hill, Parks Canada), roads. Held until the ship step runs the Actions qualify on the full NL extract. The ECTA path list page (eastcoasttrail.com/choose-a-path/) returns 403 to automation, so path names were taken from the OSM relation member names and cross-read against ECTA listing URLs and a path list; the ship review re-reads each name.",
+      "hold": null,
+      "notes": "N8 route container (round 3, 2026-11). East Coast Trail Association relation r2199386 (route=hiking, network none, 553 ways, operator East Coast Trail Association). The area is the ROUTE: its container is derived from the member ways of the listed named paths (container_from_routes), never from the relation as a whole, so the 195.8 mi long-distance main line and the community walks (road names) stay out. Only the listed paths publish, one trail per path. Not listed on purpose: Biscan Cove Path (OSM names it 'Biscane Cove Trail', a misspelt id would be permanent), Cobbler's Path (Signal Hill NHS ground, live area), La Manche Village Path (live in La Manche as La Manche Village Trail, one trail one area), North Head / Ladies' Lookout / Burma Road (Signal Hill, Parks Canada), roads. N8 ship 2026-11-26 (chat/ship-n8): hold lifted after Actions qualify 45855381307 on the full NL extract (23 trails, 122.0 mi, no cross-area duplicates). bbox from the qualify proposal; pin moved from the computed 47.3,-52.8 to the kept-trail vertex (Spout Path) nearest the trail-extent midpoint (47.334,-52.804). Trail ids keep OSM's 'East Coast Trail - ' prefix on six paths (White Horse, Spurwink Island, Motion, Piccos Ridge, Mudder Wet, Mickeleens); display names are the ECTA path names. Quarry Rock via Baden Powell r936034 does not pass (all member ways named Baden Powell Trail). The ECTA path list page (eastcoasttrail.com/choose-a-path/) returns 403 to automation, so path names were taken from the OSM relation member names and cross-read against ECTA listing URLs and a path list; the ship review re-reads each name.",
       "container_from_routes": {
         "anchor_name": "East Coast Trail",
         "way_names": [

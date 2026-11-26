@@ -19,26 +19,26 @@ GOOD = {"relation": "r12787516", "max_restored_m": 300,
         "reason": "reviewed: signed walk"}
 # Reviewed opt-ins: area id -> relation ids (ENGINE-2, 2026-11-22).
 EXPECTED = {
-    "aarup-dk": ["r4031300"],
+    "aarup-dk": ["r4031300", "r4030888"],
     "almind-so-dk": ["r12563795"],
     "fejo-dk": ["r12946644"],
     "grastenskovene-dk": ["r1853406"],
     "grenen-dk": ["r12554769", "r12554700"],
     "gribskov-dk": ["r12559901"],
-    "hald-so-dk": ["r19703948", "r10868051"],
+    "hald-so-dk": ["r19703948", "r10868051", "r10876676"],
     "hammeren-dk": ["r14573576"],
-    "harte-skov-dk": ["r961913"],
+    "harte-skov-dk": ["r961913", "r12598019"],
     "horning-dk": ["r21040378"],
     "nysted-dk": ["r14775897"],
     "ornhoj-dk": ["r12884946"],
     "pamhule-skov-dk": ["r2069076"],
-    "samso-dk": ["r19937141"],
+    "samso-dk": ["r19937141", "r19937068", "r11375374"],
     "sindal-dk": ["r14371913"],
     "sonderskov-slaaenso-dk": ["r14910479"],
     "staurby-skov-dk": ["r13743192", "r13743990"],
     "store-hareskov-dk": ["r8428109"],
     "svinklov-klitplantage-dk": ["r19358585"],
-    "tonder-dk": ["r7802913"],
+    "tonder-dk": ["r7802913", "r8339523", "r6180589"],
     "tondermarsken-dk": ["r10015736"],
     "vester-vedsted-dk": ["r14654257"],
     # dk-ship (2026-11-23): whole routes unlocked by ENGINE-2
@@ -63,6 +63,18 @@ EXPECTED = {
     "monsted-kalkgruber-dk": ["r14122881", "r19229227"],
     "rorbaek-so-dk": ["r12164917", "r6393509"],
     "toftlundstier-dk": ["r10361706", "r8352118"],
+    # audit 16 reconcile batch A (2026-11-24): gate-dropped driveways and crossings
+    "lille-vildmose-dk": ["r9601474"],
+    "fovslet-skov-dk": ["r17635361"],
+    "hellevad-dk": ["r1877613", "r1877612"],
+    "skaelskor-dk": ["r16239311"],
+    "nybol-nor-dk": ["r3304092"],
+    "flade-so-dk": ["r14635362"],
+    "hanstholm-dk": ["r2526364", "r2528917"],
+    "ristinge-halvo-dk": ["r12671638"],
+    "molleaadalen-dk": ["r12772210"],
+    "maribosoerne-dk": ["r2115132"],
+    "jaegerspris-nordskov-dk": ["r12632387"],
 }
 # accept_gap entries the restore made unneeded (the gap was the dropped members;
 # an unneeded accept_gap fails the area closed), withdrawn in the same change.
@@ -119,7 +131,7 @@ def test_live_registry_carries_exactly_the_reviewed_opt_ins():
     found = {a["id"]: [e["relation"] for e in a["restore_member_ways"]]
              for a in doc["areas"] if "restore_member_ways" in a}
     assert found == EXPECTED
-    assert sum(len(v) for v in EXPECTED.values()) == 52
+    assert sum(len(v) for v in EXPECTED.values()) == 72
     for area in doc["areas"]:
         for entry in area.get("restore_member_ways", []):
             assert set(entry) == {"relation", "max_restored_m", "reason"}
@@ -152,6 +164,27 @@ def test_every_cap_is_a_reviewed_number_above_the_measured_need():
         # reconcile 14 round-2 batch e2: measured 91 / 323 / 1034 / 938 / 390 / 52 / 258 m
         "r12164917": 150, "r6393509": 450, "r9750241": 1300, "r14122881": 1200, "r19229227": 500,
         "r10361706": 100, "r8352118": 350,
+        # audit 16 reconcile batch A: measured restored length plus margin
+        "r19937068": 100,
+        "r11375374": 150,
+        "r9601474": 100,
+        "r17635361": 30,
+        "r12598019": 300,
+        "r10876676": 1500,
+        "r1877613": 200,
+        "r1877612": 50,
+        "r16239311": 100,
+        "r3304092": 30,
+        "r14635362": 50,
+        "r2526364": 250,
+        "r2528917": 100,
+        "r8339523": 50,
+        "r6180589": 90,
+        "r12671638": 60,
+        "r4030888": 150,
+        "r12772210": 100,
+        "r2115132": 200,
+        "r12632387": 100,
     }
 def test_the_opt_in_does_not_change_any_holds():
     # Every opted-in area is a live area (no hold); the opt-in changes how a
@@ -180,7 +213,9 @@ def test_no_relation_is_in_both_motor_and_restore_lists():
     for area in doc["areas"]:
         motor = {e["relation"] for e in area.get("keep_motor_tracks", [])}
         restore = {e["relation"] for e in area.get("restore_member_ways", [])}
-        assert not motor & restore, area["id"]
+        # flade-so-dk r14635362: Redningsvej motor tracks plus a 17 m service way (audit 16 replay, 2 -> 1 piece)
+        both = motor & restore
+        assert both == ({"r14635362"} if area["id"] == "flade-so-dk" else set()), area["id"]
 def _exclude_args(area_id, tmp_path, registry=REGISTRY):
     """Run the real dk-run-area.sh up to the assemble arguments and print them."""
     text = RUN_AREA.read_text(encoding="utf-8")

@@ -28,6 +28,7 @@ EXPECTED = {
     "varde-sondre-plantage-dk": ["r6153047", "r6153048", "r5989929"],   # + class-A Løberute
     "svinklov-klitplantage-dk": ["r10043412"],
     "bulbjerg-dk": ["r12612397", "r12671441"],   # dk-ship: new area
+    "flade-so-dk": ["r14635362"],   # audit 16 reconcile batch A: Redningsvej tracks of Sorte næse rute
 }
 
 

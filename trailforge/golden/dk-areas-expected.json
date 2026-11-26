@@ -158,7 +158,7 @@
     },
     "skelhoj-plantage-dk": {
       "trail_count": 3,
-      "total_mi": 8.6,
+      "total_mi": 9.1,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Blå Rute, Skelhøj Plantage",
@@ -265,7 +265,7 @@
     },
     "godding-skov-dk": {
       "trail_count": 3,
-      "total_mi": 5.4,
+      "total_mi": 5.5,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -301,7 +301,7 @@
     },
     "nordskoven-416103-dk": {
       "trail_count": 3,
-      "total_mi": 6.8,
+      "total_mi": 7.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Nordskov Gul"
@@ -772,11 +772,10 @@
       ]
     },
     "svanninge-bjerge-dk": {
-      "trail_count": 10,
-      "total_mi": 39.7,
+      "trail_count": 9,
+      "total_mi": 35.1,
       "total_mi_tolerance": 0.05,
       "required_names": [
-        "Svanninge Rød rute",
         "Svanninge Bakker - Gul rute",
         "Svanninge Bakker-ruten"
       ],
@@ -900,7 +899,7 @@
     },
     "harte-skov-dk": {
       "trail_count": 11,
-      "total_mi": 25.2,
+      "total_mi": 25.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Lilla rute i Harte Skov",
@@ -1198,7 +1197,7 @@
     },
     "samso-dk": {
       "trail_count": 4,
-      "total_mi": 13.4,
+      "total_mi": 13.5,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Samsø Grøn"
@@ -1272,7 +1271,7 @@
     },
     "hald-so-dk": {
       "trail_count": 6,
-      "total_mi": 22.7,
+      "total_mi": 23.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Hald Sø gul sti",
@@ -1443,7 +1442,7 @@
     },
     "hellevad-dk": {
       "trail_count": 4,
-      "total_mi": 13.5,
+      "total_mi": 13.6,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Rundt om Hellevad, grøn rute",
@@ -2021,7 +2020,7 @@
     },
     "flade-so-dk": {
       "trail_count": 2,
-      "total_mi": 10.1,
+      "total_mi": 10.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Flade Sø Rundtur",
@@ -2034,7 +2033,7 @@
     },
     "hanstholm-dk": {
       "trail_count": 3,
-      "total_mi": 14.2,
+      "total_mi": 14.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Hanstholm Gul rute",
@@ -2101,7 +2100,7 @@
     },
     "tonder-dk": {
       "trail_count": 9,
-      "total_mi": 51.1,
+      "total_mi": 51.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Rød stisløjfe, Tønder, Nørresø",
@@ -2257,7 +2256,7 @@
     },
     "lille-vildmose-dk": {
       "trail_count": 3,
-      "total_mi": 3.3,
+      "total_mi": 3.4,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Kællingbjerg Klint",
@@ -2618,7 +2617,7 @@
     },
     "molleaadalen-dk": {
       "trail_count": 3,
-      "total_mi": 12.3,
+      "total_mi": 12.4,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2632,7 +2631,7 @@
     },
     "maribosoerne-dk": {
       "trail_count": 2,
-      "total_mi": 15.0,
+      "total_mi": 15.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -2992,7 +2991,7 @@
     },
     "allerup-bakker-dk": {
       "trail_count": 3,
-      "total_mi": 9.7,
+      "total_mi": 9.9,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [

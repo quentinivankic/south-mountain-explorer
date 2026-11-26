@@ -7663,6 +7663,54 @@
       "container_from_routes": {
         "reason": "The Rise Skov forest (relation 5221599) is unnamed in OSM; container derived from the 3 included signed routes"
       }
+    },
+    {
+      "id": "riis-skov-dk",
+      "name": "Riis Skov",
+      "state": "Denmark",
+      "relation_id": 10287757,
+      "bbox": [10.17, 56.12, 10.28, 56.23],
+      "center": [56.176, 10.226],
+      "rules": "dk-v3",
+      "tier": 2,
+      "hold": null,
+      "est_trails": 3,
+      "est_mi": 7.4,
+      "notes": "Audit 16 batch B (wf_02f856edf281f176, 2026-11-26), final/reconcile-audit-16.md row SHIP-B. Riis Skov is Aarhus own forest (named forest relation r10287757, 0.77 km2). Three signed walks, each 100% inside it: Anemoneruten - Riis Skov r19136122 (lwn, 2.55 mi, 100% path/track), Gul løberute r8351442 (route=running, 2.81 mi, 100%), Pulsruten r8351471 (route=running, lwn, Aarhus Kommune, 2.08 mi, 89%). Class-A ruling Quentin 2026-11-24 (named forest, at least 70% path/track, no duplicates). 0 overlap with live areas (Lisbjerg Skov 2.3 km away). The generic OSM name Gul løberute is fixed by trail_name_fixes (osm_name keeps the id). Bless only from the Actions qualify run.",
+      "container_by_id": {
+        "reason": "Riis Skov forest relation r10287757 (named forest, Aarhus Kommune)"
+      },
+      "include_trails": [
+        {
+          "id": "r19136122",
+          "name": "Anemoneruten - Riis Skov",
+          "reason": "signed walk (lwn), 100% in Riis Skov, 100% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r8351442",
+          "name": "Gul løberute",
+          "reason": "signed løberute (route=running), 100% in Riis Skov, 100% path/track; class-A ruling 2026-11-24"
+        },
+        {
+          "id": "r8351471",
+          "name": "Pulsruten",
+          "reason": "signed løberute (route=running, lwn, Aarhus Kommune), 100% in Riis Skov, 89% path/track; class-A ruling 2026-11-24"
+        }
+      ],
+      "trail_name_fixes": [
+        {
+          "osm_name": "Gul løberute",
+          "name": "Riis Skov Gul løberute",
+          "source": "https://www.openstreetmap.org/relation/8351442",
+          "reason": "reviewed 2026-11-26 (audit 16 batch B): the OSM name is a bare colour plus route type; the walk is the gul løberute in Riis Skov. osm_name keeps the OSM name, so the trail id does not move"
+        }
+      ],
+      "allow_classA_name": [
+        {
+          "relation": "r8351442",
+          "reason": "Reviewed per-relation opt-in (allow_classA_name, class-A ruling Quentin 2026-11-24): signed løberute inside a named forest on at least 70% path/track; exempt from the dk-non-hiking NAME rule only"
+        }
+      ]
     }
   ]
 }

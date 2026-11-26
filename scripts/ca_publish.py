@@ -269,6 +269,36 @@ def apply_leg_merge_id_plan(aid: str, geom: dict[str, Any], merges: list[dict[st
             if not (before or after):
                 raise CaError(f"{aid}: leg_merges {merge['name']!r}: the live trail ids match neither the old ids "
                               f"{merge['old_ids']} nor the merged result {merge['new_id']!r} (the id plan is stale)")
+def _check_whole_route(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: publish listed trails with their complete geometry when this area holds at least 75% of the
+    route (trailforge/assemble/ca_rules.py whole_route_decisions); the rivals' consistency is checked after
+    the whole registry is read."""
+    if "whole_route" not in entry:
+        return
+    try:
+        _ca_rules().validate_whole_route(entry["whole_route"], f"{aid}: whole_route")
+    except ValueError as error:
+        raise CaError(str(error)) from None
+    built = {e.get("name") for key in ("adopt_ways", "hiking_tag_wins", "way_name_overrides", "leg_merges")
+             for e in entry.get(key, [])}
+    clash = {e["name"] for e in entry["whole_route"]} & built
+    if clash:
+        raise CaError(f"{aid}: whole_route lists trails that adopt_ways/hiking_tag_wins/way_name_overrides/"
+                      f"leg_merges build: {sorted(clash)[:4]}")
+def _check_whole_route_rivals(areas: list[dict[str, Any]]) -> None:
+    """Every whole_route rival must be another registry area with that exact boundary object ("r<id>" or
+    "w<id>") and name (a rival is a live area that also holds part of the route)."""
+    by_osm = {(f"r{a['relation_id']}" if "relation_id" in a else f"w{a['way_id']}"): a for a in areas}
+    for entry in areas:
+        own = f"r{entry['relation_id']}" if "relation_id" in entry else f"w{entry['way_id']}"
+        for item in entry.get("whole_route", []):
+            for rival in item.get("rivals", []):
+                other = by_osm.get(rival["osm"])
+                if other is None or other["name"] != rival["name"]:
+                    raise CaError(f"{entry['id']}: whole_route {item['name']!r} rival {rival['osm']} "
+                                  f"({rival['name']!r}) is not a registry area with that name")
+                if rival["osm"] == own:
+                    raise CaError(f"{entry['id']}: whole_route {item['name']!r} lists the area as its own rival")
 def _ca_rules():
     """trailforge/assemble/ca_rules.py (the one definition of a valid accept_gap / keep_superroute
     list), loaded by path so the assemble directory is not put on sys.path. Stdlib-only imports at the
@@ -446,6 +476,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_hiking_tag_wins(aid, entry)
         _check_way_name_overrides(aid, entry)
         _check_leg_merges(aid, entry)
+        _check_whole_route(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name
@@ -473,6 +504,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
             ways.add(way)
         else:
             rels.add(rel)
+    _check_whole_route_rivals(areas)
     doc["by_id"] = {a["id"]: a for a in areas}
     return doc
 
@@ -1251,6 +1283,9 @@ def report_area(args: argparse.Namespace) -> int:
         ident["relation_ids"] = _trail_relations(kept, t.get("name"))
         identities.append(ident)
     rec["trail_identities"] = identities
+    if assembly.get("ca_whole_route"):
+        # Whole-route publishes (registry whole_route) with their share and rival shares, for the reviewer.
+        rec["ca_whole_route"] = assembly["ca_whole_route"]
     if assembly.get("ca_rules"):
         # Engine opt-ins used by this area (registry accept_gap / keep_superroute), for the reviewer.
         rec["ca_rules"] = assembly["ca_rules"]

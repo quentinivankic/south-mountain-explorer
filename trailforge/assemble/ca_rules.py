@@ -529,3 +529,136 @@ def whole_route_decisions(features: list[dict[str, Any]], area_union: Any, entri
                             "outside_mi": round(outside_mi, 3), "share": round(share, 4),
                             "rivals": rival_rows, "source": entry["source"]}
     return decisions, failures
+# --- remnant_drop (registry `remnant_drop`, per trail name; Canada publish only) -------------------------------
+# A published trail can carry stray pieces: small separate line pieces that are not connected to the trail's main
+# piece (name-stitched leftovers of a clip). An entry drops them from ONE named trail, only when the piece is at
+# most `max_mi` long (0.1 mi unless the entry raises it, hard cap CA_REMNANT_CAP_MI) AND farther than
+# CA_REMNANT_MIN_DIST_M from the main piece. Nothing else changes: ids, names, and every other piece stay.
+CA_REMNANT_DEFAULT_MAX_MI = 0.1
+CA_REMNANT_CAP_MI = 0.5              # an entry cannot raise the threshold past this
+CA_REMNANT_MIN_DIST_M = 5.0          # fixed: a piece this close or closer to the main piece is a gap, kept
+CA_REMNANT_LINK_M = 1.0              # pieces within this distance of each other are ONE piece (shared ends)
+REMNANT_KEYS = frozenset({"name", "source", "reason"})
+REMNANT_OPTIONAL_KEYS = frozenset({"max_mi"})
+def validate_remnant_drop(entries: Any, label: str = "remnant_drop") -> list[dict[str, Any]]:
+    """Normalised list of {name, source, reason[, max_mi]}; any other shape raises ValueError."""
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"{label} must be a non-empty list")
+    seen: set[str] = set()
+    for entry in entries:
+        if (not isinstance(entry, dict) or not REMNANT_KEYS <= set(entry)
+                or set(entry) - REMNANT_KEYS - REMNANT_OPTIONAL_KEYS):
+            raise ValueError(f"{label} entry must be an object with {sorted(REMNANT_KEYS)} and optional "
+                             f"{sorted(REMNANT_OPTIONAL_KEYS)}: {entry!r}")
+        for key in REMNANT_KEYS:
+            text = entry[key]
+            if (not isinstance(text, str) or not text.strip() or text != unicodedata.normalize("NFC", text)
+                    or len(text) > 600):
+                raise ValueError(f"{label} {key} must be non-empty NFC text (at most 600 characters): {text!r}")
+        if not re.fullmatch(r"https://[A-Za-z0-9.-]+(/\S*)?", entry["source"]):
+            raise ValueError(f"{label} source must be an https URL: {entry['source']!r}")
+        if entry["name"] in seen:
+            raise ValueError(f"{label} repeats {entry['name']!r}")
+        seen.add(entry["name"])
+        if "max_mi" in entry:
+            value = entry["max_mi"]
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not CA_REMNANT_DEFAULT_MAX_MI < value <= CA_REMNANT_CAP_MI):
+                raise ValueError(f"{label} {entry['name']!r}: max_mi must be a number above "
+                                 f"{CA_REMNANT_DEFAULT_MAX_MI} and at most {CA_REMNANT_CAP_MI} "
+                                 f"(omit it for the {CA_REMNANT_DEFAULT_MAX_MI} mi default): {value!r}")
+    return entries
+def split_stray_pieces(lines: list[list[tuple[float, float]]], max_mi: float) -> dict[str, Any]:
+    """Pure decision on one trail's line pieces ((lon, lat) lists, in order).
+    Connected pieces (<= CA_REMNANT_LINK_M apart) form one component; the longest component is the main piece.
+    A component is stray when its length is <= max_mi and it lies more than CA_REMNANT_MIN_DIST_M from the main
+    piece. Returns {status, components, main_mi, stray: [{indices, mi, distance_m}]}; status "ok" or
+    "ambiguous-main" (the two longest components have the same length: nothing may be dropped)."""
+    import model
+    from shapely.geometry import LineString
+    from shapely.ops import unary_union
+    if len(lines) < 2:
+        return {"status": "ok", "components": len(lines), "main_mi": 0.0, "stray": []}
+    lat0 = sum(p[1] for line in lines for p in line) / max(1, sum(len(line) for line in lines))
+    kx, ky = 111320.0 * math.cos(math.radians(lat0)), 110540.0
+    flat = [LineString([(p[0] * kx, p[1] * ky) for p in line]) for line in lines]
+    parent = list(range(len(lines)))
+    def find(a: int) -> int:
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    for i in range(len(lines)):
+        for j in range(i + 1, len(lines)):
+            if flat[i].distance(flat[j]) <= CA_REMNANT_LINK_M:
+                parent[find(i)] = find(j)
+    groups: dict[int, list[int]] = {}
+    for i in range(len(lines)):
+        groups.setdefault(find(i), []).append(i)
+    comps = sorted(({"indices": sorted(g), "mi": sum(model.line_mi([(p[0], p[1]) for p in lines[i]]) for i in g)}
+                    for g in groups.values()), key=lambda c: (-c["mi"], c["indices"][0]))
+    if len(comps) < 2:
+        return {"status": "ok", "components": 1, "main_mi": comps[0]["mi"], "stray": []}
+    if abs(comps[0]["mi"] - comps[1]["mi"]) < 1e-9:
+        return {"status": "ambiguous-main", "components": len(comps), "main_mi": comps[0]["mi"], "stray": []}
+    main = unary_union([flat[i] for i in comps[0]["indices"]])
+    stray = []
+    for comp in comps[1:]:
+        distance = main.distance(unary_union([flat[i] for i in comp["indices"]]))
+        if comp["mi"] <= max_mi and distance > CA_REMNANT_MIN_DIST_M:
+            stray.append({"indices": comp["indices"], "mi": comp["mi"], "distance_m": distance})
+    return {"status": "ok", "components": len(comps), "main_mi": comps[0]["mi"], "stray": stray}
+def drop_stray_remnants(features: list[dict[str, Any]], entries: list[dict[str, Any]]
+                        ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """(features, report rows, failures). Only the trails named by `entries` can change, and only by losing their
+    stray pieces (length_mi becomes the kept length; id, name and every other property stay). A failure (no such
+    trail, several such trails, an ambiguous main piece, nothing to drop) leaves that trail unchanged and the
+    caller must then fail the area."""
+    import model
+    out = list(features)
+    report: list[dict[str, Any]] = []
+    failures: list[str] = []
+    for entry in entries:
+        name = entry["name"]
+        label = f"remnant_drop {name!r}"
+        hits = [i for i, f in enumerate(out)
+                if (f.get("properties") or {}).get("name") == name
+                and (f.get("properties") or {}).get("kind") != "poi"]
+        if len(hits) != 1:
+            failures.append(f"{label}: {len(hits)} published trails have this name "
+                            f"({'stale entry' if not hits else 'ambiguous'})")
+            continue
+        feature = out[hits[0]]
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") == "LineString":
+            lines = [[(c[0], c[1]) for c in geometry["coordinates"]]]
+        elif geometry.get("type") == "MultiLineString":
+            lines = [[(c[0], c[1]) for c in line] for line in geometry["coordinates"]]
+        else:
+            failures.append(f"{label}: geometry is not a line")
+            continue
+        max_mi = float(entry.get("max_mi", CA_REMNANT_DEFAULT_MAX_MI))
+        verdict = split_stray_pieces(lines, max_mi)
+        if verdict["status"] != "ok":
+            failures.append(f"{label}: the main piece is ambiguous (two pieces of equal length)")
+            continue
+        if not verdict["stray"]:
+            failures.append(f"{label}: no stray piece of at most {max_mi} mi lies more than "
+                            f"{CA_REMNANT_MIN_DIST_M:g} m from the main piece ({verdict['components']} piece(s)); "
+                            "remove the entry")
+            continue
+        gone = {i for item in verdict["stray"] for i in item["indices"]}
+        kept = [line for i, line in enumerate(lines) if i not in gone]
+        before = (feature.get("properties") or {}).get("length_mi")
+        after = round(sum(model.line_mi(line) for line in kept), 3)
+        props = dict(feature["properties"])
+        props["length_mi"] = after
+        out[hits[0]] = {**feature, "properties": props,
+                        "geometry": {"type": "MultiLineString",
+                                     "coordinates": [[list(p) for p in line] for line in kept]}}
+        report.append({"name": name, "source": entry["source"], "max_mi": max_mi,
+                       "length_mi_before": before, "length_mi_after": after,
+                       "main_mi": round(verdict["main_mi"], 3),
+                       "dropped": [{"mi": round(item["mi"], 3), "distance_m": round(item["distance_m"], 1)}
+                                   for item in verdict["stray"]]})
+    return out, report, failures

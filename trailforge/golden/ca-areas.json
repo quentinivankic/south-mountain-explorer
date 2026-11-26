@@ -1999,6 +1999,13 @@
     },
     {
       "id": "fundy-national-park-ca-nb",
+      "remnant_drop": [
+        {
+          "name": "Goose River Trail",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails/goose",
+          "reason": "Stray remnants (N1): three separate pieces of 0.002 to 0.007 mi lie 1.0 to 1.1 km from the 4.60 mi main piece. The 172 m link piece (1.15 mi) is above the 0.1 mi threshold and stays."
+        }
+      ],
       "whole_route": [
         {
           "name": "Upper Salmon River Trail",
@@ -3317,6 +3324,14 @@
     },
     {
       "id": "banff-national-park-ca-ab",
+      "remnant_drop": [
+        {
+          "name": "Larch Valley Trail",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Stray remnant (N1): a separate 0.27 mi piece lies about 1.9 km from the 2.75 mi main piece of the signed Moraine Lake to Larch Valley hike. Explicit threshold raise from the 0.1 mi default, this trail only.",
+          "max_mi": 0.3
+        }
+      ],
       "whole_route": [
         {
           "name": "Citadel Pass Tr",
@@ -10621,6 +10636,13 @@
     },
     {
       "id": "macgregor-point-provincial-park-ca-on",
+      "remnant_drop": [
+        {
+          "name": "Tower Trail",
+          "source": "https://www.ontarioparks.ca/park/macgregorpoint/activities",
+          "reason": "Stray remnant (N1): a separate 0.025 mi piece lies about 2.0 km from the 2.09 mi main piece."
+        }
+      ],
       "province": "on",
       "state": "Canada",
       "relation_id": 14194427,
@@ -10717,6 +10739,13 @@
     },
     {
       "id": "mono-cliffs-provincial-park-ca-on",
+      "remnant_drop": [
+        {
+          "name": "Walter Tovell Side Trail",
+          "source": "https://www.ontarioparks.ca/park/monocliffs/activities",
+          "reason": "Stray remnant (N1): a separate 0.057 mi piece lies about 0.96 km from the 2.26 mi main piece."
+        }
+      ],
       "province": "on",
       "state": "Canada",
       "way_id": 58242246,
@@ -14933,6 +14962,13 @@
     },
     {
       "id": "akamina-kishinena-provincial-park-ca-bc",
+      "remnant_drop": [
+        {
+          "name": "Akamina Ridge Trail",
+          "source": "https://bcparks.ca/akamina-kishinena-park/",
+          "reason": "Stray remnant (N1): a separate 0.05 mi piece lies about 1.6 km from the 2.70 mi main piece of the Akamina Ridge route."
+        }
+      ],
       "province": "bc",
       "state": "Canada",
       "relation_id": 2553677,
@@ -21878,6 +21914,13 @@
     },
     {
       "id": "job-cline-public-land-use-zone-ca-ab",
+      "remnant_drop": [
+        {
+          "name": "Mount Stelfox Trail",
+          "source": "https://www.alberta.ca/job-cline",
+          "reason": "Stray remnant (N1): a separate 0.009 mi piece lies about 1.5 km from the 1.02 mi main piece."
+        }
+      ],
       "province": "ab",
       "state": "Canada",
       "relation_id": 7210019,

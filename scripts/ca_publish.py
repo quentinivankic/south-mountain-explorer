@@ -285,6 +285,15 @@ def _check_whole_route(aid: str, entry: dict[str, Any]) -> None:
     if clash:
         raise CaError(f"{aid}: whole_route lists trails that adopt_ways/hiking_tag_wins/way_name_overrides/"
                       f"leg_merges build: {sorted(clash)[:4]}")
+def _check_remnant_drop(aid: str, entry: dict[str, Any]) -> None:
+    """Opt-in: drop the stray pieces of the named trails at publish (trailforge/assemble/ca_rules.py
+    drop_stray_remnants; at most 0.1 mi unless the entry raises it, and more than 5 m from the main piece)."""
+    if "remnant_drop" not in entry:
+        return
+    try:
+        _ca_rules().validate_remnant_drop(entry["remnant_drop"], f"{aid}: remnant_drop")
+    except ValueError as error:
+        raise CaError(str(error)) from None
 def _check_whole_route_rivals(areas: list[dict[str, Any]]) -> None:
     """Every whole_route rival must be another registry area with that exact boundary object ("r<id>" or
     "w<id>") and name (a rival is a live area that also holds part of the route)."""
@@ -477,6 +486,7 @@ def load_registry(path: Path = REGISTRY_PATH) -> dict[str, Any]:
         _check_way_name_overrides(aid, entry)
         _check_leg_merges(aid, entry)
         _check_whole_route(aid, entry)
+        _check_remnant_drop(aid, entry)
         _check_engine_rules(aid, entry)
         if "boundary_by_id" in entry:
             # Opt-in: pick the boundary by the registry relation id when OSM holds several same-name

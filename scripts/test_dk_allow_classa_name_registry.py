@@ -17,6 +17,7 @@ GOOD = {"relation": "r2174378", "reason": "reviewed: class-A signed løberute"}
 EXPECTED = {
     "vestskoven-dk": ["r2174378", "r2174418", "r2174419"],
     "varde-sondre-plantage-dk": ["r5989929"],
+    "riis-skov-dk": ["r8351442"],
 }
 def _registry_with(tmp_path, mutate, name="r.json"):
     doc = json.loads(REGISTRY.read_text(encoding="utf-8"))

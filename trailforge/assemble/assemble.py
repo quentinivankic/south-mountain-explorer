@@ -204,13 +204,37 @@ def _select_container_from_routes(args, relations, ways, nodes,
     return ([area] if area else []), failure
 
 
+def _select_ca_container_from_routes(args, relations, ways, nodes,
+                                     same_name: list[dict]) -> tuple[list[dict], str | None]:
+    """Canada opt-in (registry container_from_routes): the container of a route-defined area, derived from the
+    listed member ways of the anchor route relation (areas.ca_route_container). A real polygon that already
+    carries the registry name fails closed: that area belongs on the polygon path. The anchor relation's own
+    name must equal the entry's anchor_name (a renamed or replaced relation is a stale entry)."""
+    if same_name:
+        return [], (f"container_from_routes is not needed: {len(same_name)} "
+                    f"polygon(s) named {args.only_area!r} exist; use the polygon")
+    import areas as areamod
+    anchor = relations.get(args.expected_area_relation_id)
+    if anchor is None or anchor["tags"].get("name") != args.ca_container["anchor_name"]:
+        return [], (f"container_from_routes anchor relation {args.expected_area_relation_id} is "
+                    f"{(anchor or {'tags': {}})['tags'].get('name')!r}, not "
+                    f"{args.ca_container['anchor_name']!r}")
+    area, failure = areamod.ca_route_container(
+        relations, ways, nodes, args.expected_area_relation_id,
+        args.ca_container["way_names"], args.only_area, args.ca_container["max_span_deg"])
+    return ([area] if area else []), failure
 def _boundary_selection_fields(args, exact_area) -> dict:
     """Report key that exists only when a Denmark boundary-id opt-in was used."""
     if exact_area is None or not (args.dk_boundary_by_id
                                   or args.dk_container_by_id
-                                  or args.dk_container_from_routes):
+                                  or args.dk_container_from_routes
+                                  or args.ca_container):
         return {}
     kind, ident = _expected_boundary(args)
+    if args.ca_container:
+        return {"boundary_selection": {
+            "mode": "ca-container-from-routes", "osm_type": kind, "osm_id": ident,
+            **exact_area["route_cluster"]}}
     if args.dk_container_from_routes:
         return {"boundary_selection": {
             "mode": "container-from-routes", "osm_type": kind, "osm_id": ident,
@@ -1100,6 +1124,13 @@ def main(argv=None) -> int:
                          "lane without an exact area) and the legacy rules only; fail-closed "
                          "when an entry is stale, unclipped, under the floor or loses the "
                          "ownership test")
+    ap.add_argument("--ca-container-from-routes", dest="ca_container_from_routes",
+                    help="JSON object {anchor_name, way_names, max_span_deg, source, reason} (Canada "
+                         "registry container_from_routes): the exact area is DERIVED from the member ways "
+                         "of the --expected-area-relation-id route relation whose OSM names are listed "
+                         "(fixed buffer, sealed as route-cluster evidence) and only trails with a listed "
+                         "name are kept; --region ca with exact-area assembly by relation id and the "
+                         "legacy rules only; fail-closed when an entry is stale or a name is ambiguous")
     ap.add_argument("--ca-dedupe-ring-way", dest="ca_dedupe_ring_way", action="store_true",
                     help="Canada registry dedupe_ring_way: ignore a same-name boundary WAY that is an "
                          "outer ring member of the --expected-area-relation-id relation itself; "
@@ -1286,6 +1317,26 @@ def main(argv=None) -> int:
                 Path(args.ca_whole_route).read_text(encoding="utf-8")), "--ca-whole-route")
         except (OSError, ValueError) as error:
             ap.error(f"--ca-whole-route is invalid: {error}")
+    args.ca_container = None
+    if args.ca_container_from_routes:
+        # Canada route container: pinned by the anchor RELATION id, legacy rules, never combined with another
+        # boundary selection, Denmark flag or a way-backed lane.
+        if (model.member_safety.normalize(args.region) != "ca"
+                or args.dk_rules != "legacy" or not args.require_exact_area
+                or args.expected_area_relation_id is None
+                or args.expected_area_way_id is not None
+                or args.dk_boundary_by_id or args.dk_container_by_id
+                or args.dk_container_from_routes or args.ca_dedupe_ring_way
+                or args.dk_curated_include or args.dk_curated_exclude):
+            ap.error("--ca-container-from-routes requires --region ca, --require-exact-area by relation id "
+                     "and the legacy rules, and excludes --boundary-by-id, the Denmark container flags, "
+                     "--ca-dedupe-ring-way and --dk-curated-include/-exclude")
+        try:
+            import ca_rules as ca_rules_container_args
+            args.ca_container = ca_rules_container_args.validate_container_from_routes(json.loads(
+                Path(args.ca_container_from_routes).read_text(encoding="utf-8")), "--ca-container-from-routes")
+        except (OSError, ValueError) as error:
+            ap.error(f"--ca-container-from-routes is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
         if args.dk_rules not in ("dk-v2", "dk-v3", "legacy"):
@@ -1436,6 +1487,9 @@ def main(argv=None) -> int:
         elif args.dk_container_from_routes:
             exact_matches, failure = _select_container_from_routes(
                 args, relations, ways, nodes, exact_matches)
+        elif args.ca_container:
+            exact_matches, failure = _select_ca_container_from_routes(
+                args, relations, ways, nodes, exact_matches)
         if failure:
             pass    # the opt-in selection already failed closed (reported below)
         elif len(exact_matches) != 1:
@@ -1483,6 +1537,16 @@ def main(argv=None) -> int:
     if args.per_area_merge:
         import areas as areamod
         areas_arg = areamod.merge_areas(args.inp)
+        if args.ca_container and exact_area is not None:
+            # The derived container is the area the same-name merge scopes to (first, so it wins over any park
+            # polygon the paths also lie in); without it the paths are in no area and never merge.
+            container_geom = exact_area["geom"]
+            container_polys = (container_geom.geoms if container_geom.geom_type == "MultiPolygon"
+                               else [container_geom])
+            areas_arg.insert(0, {
+                "name": exact_area["name"], "bbox": container_geom.bounds,
+                "rings": [[(x, y) for x, y in poly.exterior.coords] for poly in container_polys],
+                "osm_id": exact_area["osm_id"], "osm_type": exact_area["osm_type"]})
         print(f"per-area merge: scoping same-name merge to {len(areas_arg):,} "
               f"park areas", file=sys.stderr)
 
@@ -1535,6 +1599,7 @@ def main(argv=None) -> int:
         if exact_denmark else {})
     clip_removed: list[dict] = []
     ca_whole_evidence = None
+    ca_container_evidence = None
     pre_clip_count = len(features)
     clip_applied = False
     quality_report = None
@@ -1594,6 +1659,19 @@ def main(argv=None) -> int:
                 collect_dropped=(clip_removed if qualitymod is not None else None),
                 keep_whole=keep_whole, whole_region=whole_region)
             clip_applied = True
+            if args.ca_container and exact_area is not None:
+                import ca_rules as ca_rules_container
+                features, container_removed, ca_container_failures = \
+                    ca_rules_container.restrict_to_container_names(
+                        features, args.ca_container["way_names"], selected_area_name,
+                        exact_area["route_cluster"]["route_way_ids"])
+                clip_removed.extend(container_removed)
+                ca_container_evidence = {
+                    "way_names": sorted(args.ca_container["way_names"]),
+                    "kept": sorted((f["properties"].get("name") for f in features),
+                                   key=lambda n: (n is None, n)),
+                    "removed_not_listed": len(container_removed),
+                    "failures": ca_container_failures}
             if qualitymod is not None:
                 features, trails, promotion_decisions = \
                     _promote_exact_denmark_postclip(
@@ -1666,6 +1744,14 @@ def main(argv=None) -> int:
         if ca_whole_evidence["failures"]:
             terminal_absorption_failure = (
                 "ca-whole-route failures: " + "; ".join(ca_whole_evidence["failures"]))
+            print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
+    if args.ca_container:
+        if ca_container_evidence is None:
+            ca_container_evidence = {"failures": [
+                "container_from_routes: no exact area polygon matched, so nothing could be decided"]}
+        if ca_container_evidence["failures"]:
+            terminal_absorption_failure = (
+                "ca-container-from-routes failures: " + "; ".join(ca_container_evidence["failures"]))
             print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if ca_rules_run is not None:
         # Canada opt-ins fail closed: a stale, unneeded, over-limit or out-of-area entry fails the
@@ -1918,6 +2004,8 @@ def main(argv=None) -> int:
            if name_prefix_report is not None else {}),
         **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
         **({"ca_whole_route": ca_whole_evidence} if ca_whole_evidence is not None else {}),
+        **({"ca_container_from_routes": ca_container_evidence}
+           if ca_container_evidence is not None else {}),
         **({"dk_keep_motor_tracks": dk_motor_evidence}
            if dk_motor_evidence is not None else {}),
         **({"dk_restore_member_ways": dk_restore_evidence}

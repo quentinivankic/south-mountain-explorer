@@ -1091,6 +1091,15 @@ def main(argv=None) -> int:
                          "exact-area assembly by relation id and the legacy rules only; "
                          "fail-closed when it leaves the area polygon, is a child of a "
                          "larger route or is a recognised long-distance network")
+    ap.add_argument("--ca-whole-route", dest="ca_whole_route",
+                    help="JSON list of {name, source, reason[, rivals]} (Canada registry "
+                         "whole_route): the listed assembled trail is published with its "
+                         "complete geometry when the exact area holds at least 75%% of the "
+                         "route and every listed rival area holds a strictly smaller share; "
+                         "--region ca with exact-area assembly by relation id (or the way-backed "
+                         "lane without an exact area) and the legacy rules only; fail-closed "
+                         "when an entry is stale, unclipped, under the floor or loses the "
+                         "ownership test")
     ap.add_argument("--ca-dedupe-ring-way", dest="ca_dedupe_ring_way", action="store_true",
                     help="Canada registry dedupe_ring_way: ignore a same-name boundary WAY that is an "
                          "outer ring member of the --expected-area-relation-id relation itself; "
@@ -1257,6 +1266,26 @@ def main(argv=None) -> int:
                     Path(args.ca_keep_superroute).read_text(encoding="utf-8")))
         except (OSError, ValueError) as error:
             ap.error(f"{flag} is invalid: {error}")
+    args.ca_whole = []
+    if args.ca_whole_route:
+        # Exact-area runs are pinned by RELATION id; the way-backed Canadian lane (no --require-exact-area,
+        # the area is its unique same-name polygon) is accepted too. Never Denmark or the dk rule sets.
+        if (model.member_safety.normalize(args.region) != "ca"
+                or args.dk_rules != "legacy"
+                or (args.require_exact_area
+                    and (args.expected_area_relation_id is None
+                         or args.expected_area_way_id is not None))
+                or (not args.require_exact_area
+                    and (args.expected_area_relation_id is not None
+                         or args.expected_area_way_id is not None))):
+            ap.error("--ca-whole-route requires --region ca, the legacy rules and either "
+                     "--require-exact-area by relation id or the way-backed lane (no exact area)")
+        try:
+            import ca_rules as ca_rules_whole_args
+            args.ca_whole = ca_rules_whole_args.validate_whole_route(json.loads(
+                Path(args.ca_whole_route).read_text(encoding="utf-8")), "--ca-whole-route")
+        except (OSError, ValueError) as error:
+            ap.error(f"--ca-whole-route is invalid: {error}")
     args.dk_exclude = []
     if args.dk_curated_exclude:
         if args.dk_rules not in ("dk-v2", "dk-v3", "legacy"):
@@ -1505,6 +1534,7 @@ def main(argv=None) -> int:
             curation_removed_trails=removed)
         if exact_denmark else {})
     clip_removed: list[dict] = []
+    ca_whole_evidence = None
     pre_clip_count = len(features)
     clip_applied = False
     quality_report = None
@@ -1544,11 +1574,25 @@ def main(argv=None) -> int:
                     include=args.dk_include)
                 if qualitymod is not None and args.dk_rules == "dk-v3"
                 else None)
+            whole_region = "dk"
+            if args.ca_whole:
+                # Canada registry whole_route only (never together with dk-v3, which is refused above):
+                # decided on the unclipped candidates; failures stop the area after the report.
+                import ca_rules as ca_rules_whole
+                keep_whole, ca_whole_failures = ca_rules_whole.whole_route_decisions(
+                    features, union, args.ca_whole, area_objs or [],
+                    (f"r{args.expected_area_relation_id}"
+                     if args.expected_area_relation_id is not None else None),
+                    min_inside_mi=args.min_inside_mi)
+                ca_whole_evidence = {
+                    "decisions": [keep_whole[i] for i in sorted(keep_whole)],
+                    "failures": ca_whole_failures}
+                whole_region = "ca"
             features = areamod.clip_features_to_area(
                 features, union, min_inside_mi=args.min_inside_mi,
                 area_name=selected_area_name,
                 collect_dropped=(clip_removed if qualitymod is not None else None),
-                keep_whole=keep_whole)
+                keep_whole=keep_whole, whole_region=whole_region)
             clip_applied = True
             if qualitymod is not None:
                 features, trails, promotion_decisions = \
@@ -1615,6 +1659,14 @@ def main(argv=None) -> int:
 
     terminal_absorption_failure = None
     ca_rule_evidence = None
+    if args.ca_whole:
+        if ca_whole_evidence is None:
+            ca_whole_evidence = {"decisions": [], "failures": [
+                "whole_route: no exact area polygon matched, so nothing could be decided"]}
+        if ca_whole_evidence["failures"]:
+            terminal_absorption_failure = (
+                "ca-whole-route failures: " + "; ".join(ca_whole_evidence["failures"]))
+            print(f"ERROR: {terminal_absorption_failure}", file=sys.stderr)
     if ca_rules_run is not None:
         # Canada opt-ins fail closed: a stale, unneeded, over-limit or out-of-area entry fails the
         # area (same exit path as the Denmark opt-ins); evidence goes into the assembly report.
@@ -1865,6 +1917,7 @@ def main(argv=None) -> int:
         **({"name_prefix": name_prefix_report}
            if name_prefix_report is not None else {}),
         **({"ca_rules": ca_rule_evidence} if ca_rule_evidence is not None else {}),
+        **({"ca_whole_route": ca_whole_evidence} if ca_whole_evidence is not None else {}),
         **({"dk_keep_motor_tracks": dk_motor_evidence}
            if dk_motor_evidence is not None else {}),
         **({"dk_restore_member_ways": dk_restore_evidence}

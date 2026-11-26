@@ -402,3 +402,130 @@ def dedupe_ring_way_areas(matches: list[dict], rings: set[int],
     kept = [a for a in matches
             if not (a.get("osm_type") == "way" and int(a.get("osm_id") or 0) in rings)]
     return kept, dropped, None
+# ------------------------------------------------------------------ whole-route publish --
+# Registry `whole_route` (Canada, relation-backed, per area, per trail). The exact-area clip cuts a trail at the
+# polygon, so a route that runs a little past the boundary is published short (West Coast Trail 45.28 of 47.95 mi).
+# An entry lists ONE assembled trail by its assembled (OSM) name. When the area holds at least
+# CA_WHOLE_ROUTE_MIN_SHARE of the route's own length, the trail is published whole: its coordinates are the
+# assembled source coordinates, untouched, flagged `ca_whole_route` (never `clipped`). Nothing is created or moved.
+# One trail belongs to one area: the entry lists every other live area that also holds part of the route
+# (`rivals`, boundary object "r<id>" or "w<id>" + name); each rival polygon must be found in the extract and hold a strictly smaller
+# share than this area (the larger share owns the trail). Fail closed: no match, several matches, a route that is
+# not clipped, a share under the floor, an unlocatable rival or a rival with an equal or larger share.
+CA_WHOLE_ROUTE_MIN_SHARE = 0.75      # fixed floor; an entry cannot lower it
+CA_WHOLE_ROUTE_MIN_OUTSIDE_MI = 0.01  # under this the route is not clipped: the entry is stale
+WHOLE_ROUTE_KEYS = frozenset({"name", "source", "reason"})
+WHOLE_ROUTE_OPTIONAL_KEYS = frozenset({"rivals"})
+RIVAL_KEYS = frozenset({"osm", "name"})
+RIVAL_OSM = re.compile(r"^[rw][1-9][0-9]*$")
+def validate_whole_route(entries: Any, label: str = "whole_route") -> list[dict[str, Any]]:
+    """Normalised list of {name, source, reason[, rivals]}; any other shape raises ValueError."""
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"{label} must be a non-empty list")
+    seen: set[str] = set()
+    for entry in entries:
+        if (not isinstance(entry, dict) or not WHOLE_ROUTE_KEYS <= set(entry)
+                or set(entry) - WHOLE_ROUTE_KEYS - WHOLE_ROUTE_OPTIONAL_KEYS):
+            raise ValueError(f"{label} entry must be an object with {sorted(WHOLE_ROUTE_KEYS)} and optional "
+                             f"{sorted(WHOLE_ROUTE_OPTIONAL_KEYS)}: {entry!r}")
+        for key in WHOLE_ROUTE_KEYS:
+            text = entry[key]
+            if (not isinstance(text, str) or not text.strip() or text != unicodedata.normalize("NFC", text)
+                    or len(text) > 600):
+                raise ValueError(f"{label} {key} must be non-empty NFC text (at most 600 characters): {text!r}")
+        if not re.fullmatch(r"https://[A-Za-z0-9.-]+(/\S*)?", entry["source"]):
+            raise ValueError(f"{label} source must be an https URL: {entry['source']!r}")
+        if entry["name"] in seen:
+            raise ValueError(f"{label} repeats {entry['name']!r}")
+        seen.add(entry["name"])
+        rivals = entry.get("rivals", [])
+        if not isinstance(rivals, list) or ("rivals" in entry and not rivals):
+            raise ValueError(f"{label} {entry['name']!r}: rivals must be a non-empty list when present")
+        rival_ids: set[str] = set()
+        for rival in rivals:
+            if (not isinstance(rival, dict) or set(rival) != RIVAL_KEYS
+                    or not isinstance(rival["osm"], str) or not RIVAL_OSM.fullmatch(rival["osm"])
+                    or not isinstance(rival["name"], str) or not rival["name"].strip()
+                    or rival["name"] != unicodedata.normalize("NFC", rival["name"])):
+                raise ValueError(f"{label} {entry['name']!r}: a rival needs exactly osm (\"r<id>\" or \"w<id>\") "
+                                 f"and name (NFC text): {rival!r}")
+            if rival["osm"] in rival_ids:
+                raise ValueError(f"{label} {entry['name']!r}: rivals repeat {rival['osm']}")
+            rival_ids.add(rival["osm"])
+    return entries
+def _line_miles(geometry: Any) -> float:
+    import model
+    from areas import _line_parts
+    return sum(model.line_mi([(c[0], c[1]) for c in line.coords]) for line in _line_parts(geometry))
+def whole_route_decisions(features: list[dict[str, Any]], area_union: Any, entries: list[dict[str, Any]],
+                          area_objs: list[dict[str, Any]], own_osm: str | None, *,
+                          min_inside_mi: float) -> tuple[dict[int, dict[str, Any]], list[str]]:
+    """({feature index: evidence}, failures) for the pre-clip assembled `features`.
+    Pure decision: nothing is changed. A feature is published whole only when its entry passes every gate."""
+    from shapely.geometry import shape
+    decisions: dict[int, dict[str, Any]] = {}
+    failures: list[str] = []
+    for entry in entries:
+        name = entry["name"]
+        label = f"whole_route {name!r}"
+        hits = [i for i, f in enumerate(features)
+                if (f.get("properties") or {}).get("name") == name
+                and (f.get("properties") or {}).get("kind") != "poi"]
+        if not hits:
+            failures.append(f"{label}: no assembled trail has this name (stale entry or the trail was filtered)")
+            continue
+        if len(hits) > 1:
+            failures.append(f"{label}: {len(hits)} assembled trails have this name (ambiguous)")
+            continue
+        index = hits[0]
+        try:
+            source = shape(features[index]["geometry"])
+            inside = source.intersection(area_union)
+        except Exception as error:  # noqa: BLE001 - invalid geometry fails closed
+            failures.append(f"{label}: geometry is not usable ({error})")
+            continue
+        full_mi = _line_miles(source)
+        inside_mi = _line_miles(inside)
+        if full_mi <= 0:
+            failures.append(f"{label}: the route has no length")
+            continue
+        share = inside_mi / full_mi
+        outside_mi = full_mi - inside_mi
+        if outside_mi < CA_WHOLE_ROUTE_MIN_OUTSIDE_MI:
+            failures.append(f"{label}: the route is not clipped by the polygon ({outside_mi:.3f} mi outside); "
+                            "remove the entry")
+            continue
+        if inside_mi < min_inside_mi or share + 1e-12 < CA_WHOLE_ROUTE_MIN_SHARE:
+            failures.append(f"{label}: the area holds {inside_mi:.2f} of {full_mi:.2f} mi ({share:.1%}), under "
+                            f"the {CA_WHOLE_ROUTE_MIN_SHARE:.0%} ownership floor")
+            continue
+        rival_rows: list[dict[str, Any]] = []
+        owned = True
+        for rival in entry.get("rivals", []):
+            if own_osm is not None and rival["osm"] == own_osm:
+                failures.append(f"{label}: a rival cannot be the area itself ({own_osm})")
+                owned = False
+                continue
+            kind = "relation" if rival["osm"][0] == "r" else "way"
+            match = [a for a in area_objs
+                     if a.get("osm_type") == kind and int(a.get("osm_id") or 0) == int(rival["osm"][1:])
+                     and a.get("geom") is not None]
+            if len(match) != 1:
+                failures.append(f"{label}: rival {rival['osm']} ({rival['name']!r}) is not exactly one polygon in "
+                                f"the extract (found {len(match)}); ownership cannot be proved")
+                owned = False
+                continue
+            rival_mi = _line_miles(source.intersection(match[0]["geom"]))
+            rival_share = rival_mi / full_mi
+            rival_rows.append({"osm": rival["osm"], "name": rival["name"],
+                               "inside_mi": round(rival_mi, 3), "share": round(rival_share, 4)})
+            if not share > rival_share:
+                failures.append(f"{label}: rival {rival['name']!r} holds {rival_share:.1%} of the route, not "
+                                f"less than this area's {share:.1%}: the larger share owns the trail")
+                owned = False
+        if not owned:
+            continue
+        decisions[index] = {"name": name, "full_mi": round(full_mi, 3), "inside_mi": round(inside_mi, 3),
+                            "outside_mi": round(outside_mi, 3), "share": round(share, 4),
+                            "rivals": rival_rows, "source": entry["source"]}
+    return decisions, failures

@@ -536,6 +536,14 @@ _MAJORITY = 0.5
 # if a boundary later catches the real trail, the area re-publishes with real
 # mileage.
 _MIN_AREA_MI = 0.1
+# Canada registry whole_route (assembly stamps `ca_whole_route`); honoured for this state only.
+_CA_STATE = "Canada"
+def _is_whole_route(props, state, exact_boundary):
+    """Assembly already decided this route belongs to the exact area and kept its complete geometry:
+    Denmark dk-v3 (--exact-boundary) or a Canada registry whole_route (state Canada). Any other run, and any
+    feature without those stamps, takes the unchanged clamp and majority paths."""
+    return bool((exact_boundary and props.get("dk_whole_route"))
+                or (state == _CA_STATE and props.get("ca_whole_route")))
 
 
 def _inside_mi(g, area_union):
@@ -1017,10 +1025,12 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
     # whole in both. No length threshold — containment is the whole signal.
     route_home = {}                         # id(f) -> set(slugs) kept in (empty = dropped)
     kept_routes, dropped_routes = [], []    # (name, miles, homes|reason, feature)
+    def _whole(props):
+        return _is_whole_route(props, args.state, args.exact_boundary)
     for bounds, g, f in all_shapes:
-        if args.exact_boundary and f["properties"].get("dk_whole_route"):
-            # Denmark dk-v3: assembly already decided this signed route belongs
-            # to the exact area and published its complete real geometry; the
+        if _whole(f["properties"]):
+            # Denmark dk-v3 / Canada registry whole_route: assembly already decided this route
+            # belongs to the exact area and published its complete real geometry; the
             # majority rule below and the all-parks clamp do not apply again.
             route_home[id(f)] = set(area_unions)
             continue
@@ -1062,7 +1072,7 @@ def _main(argv=None, *, _guarded: bool = False) -> int:
         # same-name objects reaching the same park don't both land.
         clipped, have = [], set()
         for (bx0, by0, bx1, by1), g, f in all_shapes:
-            whole_route = bool(args.exact_boundary and f["properties"].get("dk_whole_route"))
+            whole_route = _whole(f["properties"])
             # A dk-v3 whole route was assigned to this exact area in assembly (it may
             # be an include_trails route that lies beside the polygon), so the
             # bbox-overlap prefilter does not apply to it.

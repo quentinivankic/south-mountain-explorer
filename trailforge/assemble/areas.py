@@ -302,7 +302,8 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
                           min_inside_mi: float = 0.05,
                           area_name: str | None = None,
                           collect_dropped: list[dict[str, Any]] | None = None,
-                          keep_whole: dict[int, dict[str, Any]] | None = None
+                          keep_whole: dict[int, dict[str, Any]] | None = None,
+                          whole_region: str = "dk"
                           ) -> list[dict[str, Any]]:
     """Clip each trail to the area boundary, keeping only its in-park portion.
 
@@ -326,6 +327,9 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
     remnant. They are flagged ``dk_whole_route`` and never ``clipped``; their
     coordinates are the assembled source coordinates, untouched. Default None:
     every caller outside dk-v3 behaves exactly as before.
+    ``whole_region="ca"`` (Canada registry whole_route only) stamps the same
+    decision as ``ca_whole_route`` / ``ca_inside_mi`` / ``ca_route_share``
+    instead, so no Denmark property or publisher branch is ever reused.
     """
     import model
     from shapely.geometry import shape
@@ -356,9 +360,9 @@ def clip_features_to_area(features: list[dict[str, Any]], area_union,
             if area_name is not None:
                 whole_props["area"] = area_name
             whole_props.update({
-                "dk_whole_route": True,
-                "dk_inside_mi": keep_whole[index]["inside_mi"],
-                "dk_route_share": keep_whole[index]["share"],
+                f"{whole_region}_whole_route": True,
+                f"{whole_region}_inside_mi": keep_whole[index]["inside_mi"],
+                f"{whole_region}_route_share": keep_whole[index]["share"],
             })
             if keep_whole[index].get("curated_include"):
                 whole_props["dk_curated_include_id"] = \

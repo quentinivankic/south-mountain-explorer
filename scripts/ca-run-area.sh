@@ -46,15 +46,17 @@ fi
 [[ "$BBOX" =~ ^-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?,-?[0-9]+(\.[0-9]+)?$ ]]
 A="$W/$AREA_ID"
 test -f "$A/area.json" && test -f "$A/index.json"
-# Optional per-relation engine opt-ins (registry accept_gap / keep_superroute; relation-backed only). Absent
+# Optional per-relation engine opt-ins (registry accept_gap / keep_superroute; relation-backed only; whole_route also way-backed). Absent
 # = no flag, so every other area runs exactly as before. `--region ca` is added once, only when one is set.
 # Entries are validated by ca_publish.py (load_registry) and again by assemble.py; each fails closed there.
 CA_RULE_FLAGS=()
-for RULE_KEY in accept_gap keep_superroute; do
+for RULE_KEY in accept_gap keep_superroute whole_route; do
   RULE_COUNT="$(jq -r --arg id "$AREA_ID" --arg k "$RULE_KEY" '.areas[] | select(.id == $id) | if has($k) then (.[$k] | length | tostring) else empty end' \
     "$ROOT_REGISTRY")"
   if [ -n "$RULE_COUNT" ]; then
-    if [ "$RULE_COUNT" = "0" ] || [ -z "$RELATION_ID" ]; then
+    # whole_route is also valid on a way-backed area (the engine measures against the area's own unique
+    # same-name polygon, the one the clip already uses); the other two need the relation-pinned exact area.
+    if [ "$RULE_COUNT" = "0" ] || { [ -z "$RELATION_ID" ] && [ "$RULE_KEY" != "whole_route" ]; }; then
       echo "SAFETY BLOCK: $RULE_KEY must be a non-empty list on a relation-backed area" >&2
       exit 2
     fi

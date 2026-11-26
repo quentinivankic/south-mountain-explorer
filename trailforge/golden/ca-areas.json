@@ -1241,6 +1241,13 @@
     },
     {
       "id": "polletts-cove-aspy-fault-wilderness-area-ca-ns",
+      "whole_route": [
+        {
+          "name": "Jajiktek Seawall Trail",
+          "source": "https://buildns.ca/projects/seawall-trail/",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. Nova Scotia's 48 km Jajiktek Seawall Trail (under construction, Build Nova Scotia); the mapped 19.31 mi is one OSM route, 15.4 mi inside the polygon."
+        }
+      ],
       "province": "ns",
       "state": "Canada",
       "relation_id": 4855585,
@@ -1992,6 +1999,13 @@
     },
     {
       "id": "fundy-national-park-ca-nb",
+      "whole_route": [
+        {
+          "name": "Upper Salmon River Trail",
+          "source": "https://parks.canada.ca/pn-np/nb/fundy/visit/sentiers-trails",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. Parks Canada Fundy trail table lists Upper Salmon River, 8.2 km one way (5.1 mi); OSM relation r5425544 maps 5.31 mi, 4.0 mi inside the polygon."
+        }
+      ],
       "province": "nb",
       "state": "Canada",
       "relation_id": 6813178,
@@ -3303,6 +3317,19 @@
     },
     {
       "id": "banff-national-park-ca-ab",
+      "whole_route": [
+        {
+          "name": "Citadel Pass Tr",
+          "source": "https://parks.canada.ca/pn-np/ab/banff/activ/randonnee-hiking",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. Signature Sunshine to Citadel Pass hike (published as Citadel Pass Trail via trail_name_fixes); 4.3 of 5.6 mi inside Banff (77%), the rest in Mount Assiniboine PP, which keeps it excluded: one trail, one area (larger share owns it).",
+          "rivals": [
+            {
+              "osm": "w167123033",
+              "name": "Mount Assiniboine Provincial Park"
+            }
+          ]
+        }
+      ],
       "province": "ab",
       "state": "Canada",
       "relation_id": 6365995,
@@ -8616,6 +8643,13 @@
     },
     {
       "id": "pacific-rim-national-park-reserve-of-canada-ca-bc",
+      "whole_route": [
+        {
+          "name": "West Coast Trail",
+          "source": "https://parks.canada.ca/pn-np/bc/pacificrim/activ/randonnee-hiking",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. Parks Canada Pacific Rim hiking page lists the West Coast Trail; 45.3 of 48.0 mapped mi inside the polygon (94%); trailhead stretches lie outside."
+        }
+      ],
       "province": "bc",
       "state": "Canada",
       "relation_id": 2017391,
@@ -9492,6 +9526,13 @@
     },
     {
       "id": "juan-de-fuca-provincial-park-ca-bc",
+      "keep_trails": [
+        {
+          "name": "Juan de Fuca Marine Trail",
+          "source": "https://bcparks.ca/juan-de-fuca-park/",
+          "reason": "BC Parks lists the Juan de Fuca Marine Trail as the signature wilderness trail of the park (four trailheads, multi-day); a single-park named trail, not a long-distance leg of a national trail. Kept past the length stub rules; published whole via whole_route."
+        }
+      ],
       "province": "bc",
       "state": "Canada",
       "relation_id": 2227664,
@@ -12256,6 +12297,13 @@
     },
     {
       "id": "riding-mountain-national-park-ca-mb",
+      "whole_route": [
+        {
+          "name": "Tilson Lake Trail",
+          "source": "https://pcweb2.azureedge.net/-/media/pn-np/mb/riding/WET4/pdf/2026-trails/RMNP-Summer-Visitor-Guide-202608.pdf",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. Parks Canada RMNP summer visitor guide lists Tilson Lake; one 21.56 mi OSM way, 92% inside."
+        }
+      ],
       "province": "mb",
       "state": "Canada",
       "relation_id": 14488240,
@@ -15732,6 +15780,13 @@
     },
     {
       "id": "monkman-provincial-park-ca-bc",
+      "whole_route": [
+        {
+          "name": "Monkman Lake Trail",
+          "source": "https://nrs.objectstore.gov.bc.ca/kuwyyf/monkman_lake_joan_f85c6f2153.pdf",
+          "reason": "Whole route (N3): the area holds >=75% of the mapped route; the rest runs a few hundred metres past the polygon edge on public trail. BC Parks Monkman Lake trail sheet; one connected 14.55 mi route (relation r13422689), 11.8 mi inside the polygon."
+        }
+      ],
       "province": "bc",
       "state": "Canada",
       "relation_id": 7590848,

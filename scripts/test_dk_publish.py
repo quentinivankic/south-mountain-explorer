@@ -372,6 +372,8 @@ R14E2_CLUSTER = list(R14E2_NEW)   # container_from_routes
 # Class-A ruling batch A (2026-11-24): three new container_from_routes areas (signed heart walks in named forests)
 CLASSA_A_NEW = ["marielundskoven-dk", "jaegerspris-nordskov-dk", "rise-skov-dk"]
 CLASSA_A_SHIP = list(CLASSA_A_NEW)
+# audit 16 batch A: three dk-v2 forest areas move to dk-v3 so their whole signed routes publish (include_trails)
+AUDIT16_V3 = ("godding-skov-dk", "nordskoven-416103-dk", "skelhoj-plantage-dk")
 CLASSA_A_CLUSTER = list(CLASSA_A_NEW)   # container_from_routes
 # Class-A batch C (2026-11-24): Vestskoven unheld (way polygon, allow_classA_name)
 CLASSA_C_UNHELD = ["vestskoven-dk"]
@@ -405,8 +407,8 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     gaps = {i: {g["relation"]: g["max_gap_m"] for g in by_id[i]["accept_gap"]} for i in by_id if "accept_gap" in by_id[i]}
     # ENGINE-2 (restore_member_ways): the Cirkelstien (hammeren-dk), Gletsjerruten (hald-so-dk) and Samsø Grøn gaps were
     # dropped service driveways; with the opt-in they have no gap, so their accept_gap entries were withdrawn.
-    assert gaps == {"svanninge-bjerge-dk": {"r8845680": 400},
-                    "vestre-stigtehave-dk": {"r12667890": 300},
+    # audit 16 batch A: Svanninge Rød rute (a name-merge of two unrelated red relations) is dropped, its accept_gap withdrawn
+    assert gaps == {"vestre-stigtehave-dk": {"r12667890": 300},
                     "hald-so-dk": {"r10876676": 300},
                     # batch H: Orø Tur 4 (under the 1000 m cap; ENGINE-2 does not opt it in, see the registry test); Kegnæs
                     # Langs sydkysten was withdrawn in BATCH-1
@@ -640,10 +642,10 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
-        "skelhoj-plantage-dk": (3, 8.6), "hammer-bakker-dk": (4, 10.2),
+        "skelhoj-plantage-dk": (3, 9.1), "hammer-bakker-dk": (4, 10.2),
         "stensbaek-plantage-dk": (3, 8.4), "rye-norreskov-dk": (6, 12.1),
-        "pamhule-skov-dk": (8, 18.0), "godding-skov-dk": (3, 5.4),
-        "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 6.8),
+        "pamhule-skov-dk": (8, 18.0), "godding-skov-dk": (3, 5.5),
+        "skagen-klitplantage-dk": (4, 8.7), "nordskoven-416103-dk": (3, 7.4),
         "rold-skov-dk": (9, 38.9), "mons-klint-dk": (4, 14.9),
         "randbol-hede-frederikshab-dk": (8, 25.7), "nymindegab-blabjerg-dk": (7, 21.9),
         "stenderupskovene-dk": (5, 14.8), "grastenskovene-dk": (5, 16.0), "store-hareskov-dk": (2, 6.4),
@@ -651,33 +653,33 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "haunstrup-brunkulslejer-dk": (3, 5.9), "nekselo-dk": (2, 5.0), "fovslet-skov-dk": (6, 9.1),
         "staksrode-skov-dk": (4, 8.8), "helnaes-dk": (2, 3.2), "elmelund-skov-dk": (4, 5.5),
         "hov-vig-dk": (3, 6.1), "falster-dk": (12, 30.6), "aero-dk": (3, 12.5),
-        "svanninge-bjerge-dk": (10, 39.7), "staurby-skov-dk": (4, 8.8), "kongenshus-dk": (2, 4.7),
+        "svanninge-bjerge-dk": (9, 35.1), "staurby-skov-dk": (4, 8.8), "kongenshus-dk": (2, 4.7),
         "fejo-dk": (4, 9.6), "froslev-plantage-dk": (2, 4.9),
-        "ro-plantage-dk": (2, 9.9), "aro-dk": (3, 9.3), "harte-skov-dk": (11, 25.2),
+        "ro-plantage-dk": (2, 9.9), "aro-dk": (3, 9.3), "harte-skov-dk": (11, 25.4),
         "straaso-plantage-dk": (3, 11.4), "kelstrup-plantage-dk": (3, 10.1), "kiskelund-plantage-dk": (2, 3.6),
         "kollund-skov-dk": (4, 5.7), "sogard-skov-dk": (5, 9.6), "toftlund-skov-dk": (2, 2.8),
         "draved-skov-dk": (2, 3.9), "barsbol-skov-dk": (3, 5.9), "lindet-skov-dk": (2, 5.1),
         "osterskoven-dk": (4, 9.7), "kompedal-plantage-dk": (2, 6.6),
         "palsgard-skov-dk": (3, 7.5),
         "egholm-dk": (4, 15.2), "varde-sondre-plantage-dk": (4, 10.7), "vestre-stigtehave-dk": (3, 5.1),
-        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.4), "kegnaes-dk": (2, 8.6),
+        "hastrup-plantage-dk": (4, 7.1), "oro-dk": (4, 12.4), "samso-dk": (4, 13.5), "kegnaes-dk": (2, 8.6),
         "svinklov-klitplantage-dk": (6, 14.3),
-        "sonderskov-slaaenso-dk": (4, 8.0), "hald-so-dk": (6, 22.7),
+        "sonderskov-slaaenso-dk": (4, 8.0), "hald-so-dk": (6, 23.6),
         "farrestierne-dk": (3, 6.4), "soheden-plantage-dk": (2, 2.8),
         "osteradalen-dk": (3, 4.2), "vrogum-klitplantage-dk": (2, 9.0), "stoubaek-krat-dk": (3, 5.8),
         "langdal-plantage-dk": (2, 6.9), "hjelm-hede-dk": (2, 3.7), "vester-aslund-plantage-dk": (2, 6.2),
-        "slivso-dk": (2, 4.1), "bangsbo-skov-dk": (3, 5.6), "hellevad-dk": (4, 13.5), "grenen-dk": (4, 12.9),
+        "slivso-dk": (2, 4.1), "bangsbo-skov-dk": (3, 5.6), "hellevad-dk": (4, 13.6), "grenen-dk": (4, 12.9),
         "asted-adal-dk": (3, 6.7), "ammitsbol-baek-dk": (3, 4.0), "tinglev-dk": (6, 18.4),
         "skaelskor-dk": (5, 12.7), "hingelbjerge-dk": (2, 3.3), "nybol-nor-dk": (2, 11.4),
         "skamlingsbanken-dk": (3, 5.0), "kas-hoved-dk": (2, 6.7), "nysted-dk": (2, 7.5),
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "klim-bjerg-dk": (2, 2.2), "almind-so-dk": (2, 9.8), "farum-sondersoe-dk": (2, 9.7), "hortoft-dk": (6, 18.8), "kong-gummerup-dk": (5, 10.9), "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.9), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (7, 29.4), "tisvilde-hegn-dk": (3, 12.4), "frederiksvaerk-dk": (4, 10.2), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.1), "hanstholm-dk": (3, 14.2), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 26.0), "vester-vedsted-dk": (2, 14.2), "tonder-dk": (9, 51.1), "hammeren-dk": (6, 17.8), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (3, 3.3), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (7, 21.4), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (3, 13.5), "mosely-mariager-dk": (2, 4.5), "horning-dk": (7, 23.1), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (4, 7.2), "ornhoj-dk": (3, 30.5), "aarup-dk": (6, 20.1), "arrild-ferieby-dk": (7, 14.8), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (6, 22.4),
+        "gribskov-dk": (7, 29.4), "tisvilde-hegn-dk": (3, 12.4), "frederiksvaerk-dk": (4, 10.2), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.2), "hanstholm-dk": (3, 14.4), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 26.0), "vester-vedsted-dk": (2, 14.2), "tonder-dk": (9, 51.2), "hammeren-dk": (6, 17.8), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (3, 3.4), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (7, 21.4), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (3, 13.5), "mosely-mariager-dk": (2, 4.5), "horning-dk": (7, 23.1), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (4, 7.2), "ornhoj-dk": (3, 30.5), "aarup-dk": (6, 20.1), "arrild-ferieby-dk": (7, 14.8), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (6, 22.4),
         # island floor batch (local qualify; the Actions qualify run re-confirms)
         "lyo-dk": (1, 7.5), "drejo-dk": (1, 3.6), "barso-dk": (1, 4.1), "livo-dk": (1, 4.0),
         # reconcile 13 batch A (local qualify; the Actions qualify run re-confirms)
-        "odense-adal-dk": (2, 4.5), "molleaadalen-dk": (3, 12.3), "maribosoerne-dk": (2, 15.0), "stevns-klint-dk": (3, 29.7),
+        "odense-adal-dk": (2, 4.5), "molleaadalen-dk": (3, 12.4), "maribosoerne-dk": (2, 15.1), "stevns-klint-dk": (3, 29.7),
         "lonstrup-rubjerg-dk": (4, 15.9), "hindsholm-dk": (2, 15.8), "grejsdalen-dk": (3, 15.5),
         # reconcile 14 batch 1 (local qualify on denmark-261121; the Actions qualify run re-confirms)
         "klokkerholm-dk": (2, 2.9), "esbjerg-energistier-dk": (7, 13.8), "arreskov-so-dk": (2, 5.7), "rudolph-tegner-esrum-dk": (2, 5.5),
@@ -686,7 +688,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         # dk-ship (2026-11-23): three unheld + three new areas
         "endelave-dk": (1, 12.2), "laeso-klitplantage-dk": (2, 4.1), "fano-dk": (3, 5.8), "bulbjerg-dk": (2, 11.1), "moesgard-holme-bjerge-dk": (2, 10.5), "lisbjerg-skov-dk": (2, 8.7),
         # reconcile 14 round-2 batch e1 (local qualify on denmark-261121; the Actions qualify run re-confirms; Hørtoft is 6 / 18.8 with update mode)
-        "bylderup-dk": (3, 20.6), "niels-ebbesens-eg-dk": (2, 4.7), "ribe-energistier-dk": (2, 5.4), "gredstedbro-energistier-dk": (2, 3.5), "godstrup-dk": (3, 5.6), "bording-dk": (2, 9.4), "sandmosen-dk": (2, 4.7), "halsnaes-sundhedskorridor-dk": (2, 8.0), "ebeltoft-dk": (2, 3.4), "allerup-bakker-dk": (3, 9.7), "fiskerup-skov-dk": (2, 6.2), "thise-dk": (2, 14.2), "vellev-dk": (2, 9.4),
+        "bylderup-dk": (3, 20.6), "niels-ebbesens-eg-dk": (2, 4.7), "ribe-energistier-dk": (2, 5.4), "gredstedbro-energistier-dk": (2, 3.5), "godstrup-dk": (3, 5.6), "bording-dk": (2, 9.4), "sandmosen-dk": (2, 4.7), "halsnaes-sundhedskorridor-dk": (2, 8.0), "ebeltoft-dk": (2, 3.4), "allerup-bakker-dk": (3, 9.9), "fiskerup-skov-dk": (2, 6.2), "thise-dk": (2, 14.2), "vellev-dk": (2, 9.4),
         # reconcile 14 round-2 batch e2 (local qualify on denmark-261121; the Actions qualify run re-confirms)
         "rorbaek-so-dk": (2, 9.9), "lerkenfeld-adal-dk": (2, 7.5), "monsted-kalkgruber-dk": (2, 8.3), "toftlundstier-dk": (3, 12.0),
         # class-A ruling batch A (Actions qualify 45406534475)
@@ -701,7 +703,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert not any("Hjertestien" in n for v in table.values() for n in v["forbidden_names"])
     assert "velling-skov-dk" not in table and "urhoje-plantage-dk" not in table
     # batch F: the re-blessed updates and the new areas carry their required names
-    assert "Svanninge Rød rute" in table["svanninge-bjerge-dk"]["required_names"]
+    assert "Svanninge Rød rute" not in table["svanninge-bjerge-dk"]["required_names"]  # audit 16 batch A: two unrelated red relations, no longer merged
     # batch G: renamed and added routes are required names
     for aid, name in (("rold-skov-dk", "Rold Skov Gul"), ("almindingen-dk", "Almindingen Gul Tur 1"),
                       ("randbol-hede-frederikshab-dk", "Randbøl Blå Rute"), ("fovslet-skov-dk", "Gul rute i Svanemosen"),
@@ -864,7 +866,7 @@ def test_mols_control_is_legacy_and_every_other_entry_is_dk_v2_except_the_dk_v3_
             "rold-skov-dk", "mons-klint-dk", "randbol-hede-frederikshab-dk", "nymindegab-blabjerg-dk", "fano-dk",
             *DK_V3_BATCH_A, *DK_V3_UPDATE_1, *DK_V3_UPDATE_2, *DK_V3_UPDATE_3, *WAYBACK_ALL,
             *DK_V3_BATCH_B, *DK_V3_BATCH_C, *DK_V3_BATCH_E, *DK_V3_BATCH_H, *DK_V3_BATCH_I, *DK_V3_BATCH_K, *DK_V3_BATCH_L,
-            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER, *ISLAND_BATCH, *R13A_SHIP, *R14B1_SHIP, *DKSHIP_SHIP, *R14E1_SHIP, *R14E2_SHIP, *CLASSA_A_SHIP)}
+            *BATCH_3_SHIP, *SCALE1_ALL, *SCALE2_ALL, *SCALE3_CLUSTER, *ISLAND_BATCH, *R13A_SHIP, *R14B1_SHIP, *DKSHIP_SHIP, *R14E1_SHIP, *R14E2_SHIP, *CLASSA_A_SHIP, *AUDIT16_V3)}
 def test_registry_rejects_unknown_rule_set(tmp_path):
     with pytest.raises(dk.DkError):
         dk.load_registry(_write_registry(

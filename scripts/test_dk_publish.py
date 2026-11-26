@@ -379,6 +379,8 @@ CLASSA_A_CLUSTER = list(CLASSA_A_NEW)   # container_from_routes
 CLASSA_C_UNHELD = ["vestskoven-dk"]
 # audit 16 batch B (2026-11-26): Riis Skov, a new container_by_id area (named forest, signed walks and løberuter)
 AUDIT16_B_NEW = ["riis-skov-dk"]
+# audit 17 batch C (2026-11-26): two held areas unheld (Gyttegårds Plantage / Grene Sande, Fårup Sø; Hindsgavl stays held, Actions qualify 45867003563 failed closed); Mariager pair added to the live mosely-mariager-dk
+AUDIT17_C_UNHELD = ["grene-sande-dk", "faarup-so-dk"]
 
 
 def test_full_registry_counts_ids_and_relations_are_unique():
@@ -400,7 +402,7 @@ def test_full_registry_counts_ids_and_relations_are_unique():
                and a["id"] not in BATCH_B_BLESSED and a["id"] not in BATCH_C_SHIP
                and a["id"] not in BATCH_D_SHIP and a["id"] not in BATCH_E_SHIP
                and a["id"] not in BATCH_F_SHIP and a["id"] not in BATCH_H_SHIP and a["id"] not in BATCH_I_SHIP
-               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP and a["id"] not in R14E1_SHIP and a["id"] not in R14E2_SHIP and a["id"] not in CLASSA_A_SHIP and a["id"] not in CLASSA_C_UNHELD and a["id"] not in AUDIT16_B_NEW and a["id"] not in DKSHIP_SHIP)
+               and a["id"] not in BATCH_K_SHIP and a["id"] not in BATCH_L_SHIP and a["id"] not in BATCH_3_SHIP and a["id"] not in SCALE1_ALL and a["id"] not in SCALE2_ALL and a["id"] not in SCALE3_CLUSTER and a["id"] not in SCALE5_SHIP and a["id"] not in ISLAND_BATCH and a["id"] not in R13A_SHIP and a["id"] not in R14B1_SHIP and a["id"] not in R14E1_SHIP and a["id"] not in R14E2_SHIP and a["id"] not in CLASSA_A_SHIP and a["id"] not in CLASSA_C_UNHELD and a["id"] not in AUDIT16_B_NEW and a["id"] not in AUDIT17_C_UNHELD and a["id"] != "mosely-mariager-dk" and a["id"] not in DKSHIP_SHIP)
 
 
 def test_batch_f_opt_ins_and_the_urhoje_hold():
@@ -411,6 +413,8 @@ def test_batch_f_opt_ins_and_the_urhoje_hold():
     # dropped service driveways; with the opt-in they have no gap, so their accept_gap entries were withdrawn.
     # audit 16 batch A: Svanninge Rød rute (a name-merge of two unrelated red relations) is dropped, its accept_gap withdrawn
     assert gaps == {"vestre-stigtehave-dk": {"r12667890": 300},
+                    # audit 17 batch C: Fårupgår - Fårup Sø (one real 377 m OSM hole, 9% of the route)
+                    "faarup-so-dk": {"r3238860": 400},
                     "hald-so-dk": {"r10876676": 300},
                     # batch H: Orø Tur 4 (under the 1000 m cap; ENGINE-2 does not opt it in, see the registry test); Kegnæs
                     # Langs sydkysten was withdrawn in BATCH-1
@@ -520,12 +524,15 @@ def test_batch_k_ships_holds_and_opt_ins():
         if i in SCALE5_SHIP:       # Klim Bjerg unheld in scale batch 5, bbox/centre from Actions qualify 44939810404
             assert by_id[i]["hold"] is None and by_id[i]["bbox"] == [9.12, 57.05, 9.23, 57.17]
             continue
+        if i in AUDIT17_C_UNHELD:  # Gyttegårds Plantage / Grene Sande unheld in audit 17 batch C
+            assert by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] and "Audit 17 batch C" in by_id[i]["notes"]
+            continue
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None and "Batch K" in by_id[i]["notes"]
     # Klim Bjerg and Storring are under the 0.01 degree boundary floor, so they need container_by_id plus whole routes
     for i in ("klim-bjerg-dk", "storring-praestegards-skov-dk"):
         assert "container_by_id" in by_id[i] and by_id[i]["include_trails"]
     assert [t["id"] for t in by_id["klim-bjerg-dk"]["include_trails"]] == ["r13329885", "r13329886"]
-    assert by_id["alstrup-krat-dk"]["relation_id"] == 2415386 and by_id["grene-sande-dk"]["trail_name_prefix"] == "Grene Sande"
+    assert by_id["alstrup-krat-dk"]["relation_id"] == 2415386 and by_id["grene-sande-dk"]["trail_name_prefix"] == "Gyttegårds Plantage"
     # held after replay, rules restored: Allerup Bakker (one trail) and Fur (Blå and Hvid unmapped)
     # Allerup Bakker is unheld in reconcile 14 round-2 batch e1 (dk-v3, ENGINE-2 restore on the lwn loop)
     assert by_id["allerup-bakker-dk"]["hold"] is None and by_id["allerup-bakker-dk"]["rules"] == "dk-v3"
@@ -541,9 +548,12 @@ def test_batch_l_route_cluster_ships_and_holds():
         assert "container_by_id" not in a and "boundary_by_id" not in a and "exclude_trails" not in a
         assert a["relation_id"] == int(a["include_trails"][0]["id"][1:])
         assert len(a["include_trails"]) >= 2 and all(t["id"].startswith("r") and t["reason"] for t in a["include_trails"])
-        assert "Batch L" in a["notes"]
+        assert "Batch L" in a["notes"] or (i in AUDIT17_C_UNHELD and "Audit 17 batch C" in a["notes"])
     assert all(by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"] for i in BATCH_L_SHIP)
     for i in BATCH_L_HELD_NEW:
+        if i in AUDIT17_C_UNHELD:   # Fårup Sø unheld in audit 17 batch C
+            assert by_id[i]["hold"] is None and by_id[i]["bbox"] and by_id[i]["center"]
+            continue
         assert by_id[i]["hold"] == "curated-do-not-ship" and by_id[i]["bbox"] is None
     # the opt-in is used by exactly the batch L entries
     assert {i for i, a in by_id.items() if "container_from_routes" in a} == {
@@ -616,9 +626,9 @@ def test_hold_counts_match_the_discovery_candidates():
     for a in areas:
         holds.setdefault(a["hold"], []).append(a["id"])
     assert {k: len(v) for k, v in holds.items()} == {
-        None: 186, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
+        None: 188, "name-collision": 2, "np-nested": 9, "island": 4, "duplicate-of-live": 1,
         "needs-rescope": 3, "merge-pending": 5, "merge-into-klosterhede": 1, "mtb-centre": 1,
-        "curated-do-not-ship": 56, "superseded": 6}
+        "curated-do-not-ship": 54, "superseded": 6}
     # BATCH-3: the four park umbrellas and the two merged areas are superseded; Gribskov, Tisvilde, Rømø, Fur, Fosdalen,
     # Ulvshale, Rude Skov, Lille Vildmose and Pedersker ship; Store Dyrehave and Fanø are held with their evidence
     assert sorted(holds["superseded"]) == sorted(BATCH_3_REMOVED)
@@ -641,7 +651,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
     assert set(table) == ({MOLS, *PARKS, *BATCH2, *FLAGSHIPS, *BATCH_A_SHIP,
                            *WAYBACK_BLESSED, *BATCH_B_BLESSED, *BATCH_C_BLESSED, *BATCH_D_BLESSED, *BATCH_E_BLESSED,
                            *BATCH_F_BLESSED, *BATCH_H_BLESSED, *BATCH_I_BLESSED, *BATCH_K_BLESSED, *BATCH_L_SHIP}
-                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP) | set(ISLAND_SHIP) | set(R13A_SHIP) | set(R14B1_SHIP) | set(DKSHIP_SHIP) | set(R14E1_SHIP) | set(R14E2_SHIP) | set(CLASSA_A_SHIP) | set(CLASSA_C_UNHELD) | set(AUDIT16_B_NEW)
+                          - set(BATCH_3_REMOVED)) | set(BATCH_3_SHIP) | set(BATCH_S1_SHIP) | set(BATCH_S2_SHIP) | set(BATCH_S3_SHIP) | set(SCALE5_SHIP) | set(SCALE6_SHIP) | set(ISLAND_SHIP) | set(R13A_SHIP) | set(R14B1_SHIP) | set(DKSHIP_SHIP) | set(R14E1_SHIP) | set(R14E2_SHIP) | set(CLASSA_A_SHIP) | set(CLASSA_C_UNHELD) | set(AUDIT16_B_NEW) | set(AUDIT17_C_UNHELD)
     assert {k: (v["trail_count"], v["total_mi"]) for k, v in table.items()} == {
         MOLS: (12, 34.7),
         "klosterhede-plantage-dk": (10, 34.9), "almindingen-dk": (8, 21.5),
@@ -678,7 +688,7 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         "bovbjerg-fyr-dk": (2, 12.5), "orslevkloster-so-dk": (2, 6.3), "troldhede-brunkulsleje-dk": (2, 3.3),
         "klim-bjerg-dk": (2, 2.2), "almind-so-dk": (2, 9.8), "farum-sondersoe-dk": (2, 9.7), "hortoft-dk": (6, 18.8), "kong-gummerup-dk": (5, 10.9), "bogense-dk": (2, 8.8), "sindal-dk": (3, 11.9), "jensen-og-sorensens-plantage-dk": (2, 2.6),
         # BATCH-3 (replay of the registry on the Oct 30/31 extract; the Actions qualify run re-confirms)
-        "gribskov-dk": (7, 29.4), "tisvilde-hegn-dk": (3, 12.4), "frederiksvaerk-dk": (4, 10.2), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.2), "hanstholm-dk": (3, 14.4), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 26.0), "vester-vedsted-dk": (2, 14.2), "tonder-dk": (9, 51.2), "hammeren-dk": (6, 17.8), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (3, 3.4), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (7, 21.4), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (3, 13.5), "mosely-mariager-dk": (2, 4.5), "horning-dk": (7, 23.1), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (4, 7.2), "ornhoj-dk": (3, 30.5), "aarup-dk": (6, 20.1), "arrild-ferieby-dk": (7, 14.8), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (6, 22.4),
+        "gribskov-dk": (7, 29.4), "tisvilde-hegn-dk": (3, 12.4), "frederiksvaerk-dk": (4, 10.2), "gurre-dk": (2, 13.6), "boserup-skov-dk": (2, 7.7), "bidstrup-skovene-dk": (2, 12.4), "tvorup-klitplantage-dk": (3, 6.1), "nystrup-klitplantage-dk": (8, 22.9), "vandet-klitplantage-dk": (2, 6.3), "vilsbol-klitplantage-dk": (3, 7.2), "stenbjerg-klitplantage-dk": (3, 5.3), "flade-so-dk": (2, 10.2), "hanstholm-dk": (3, 14.4), "romo-dk": (4, 8.6), "tondermarsken-dk": (6, 26.0), "vester-vedsted-dk": (2, 14.2), "tonder-dk": (9, 51.2), "hammeren-dk": (6, 17.8), "engelsholm-skov-dk": (2, 3.8), "fosdal-plantage-dk": (2, 4.5), "ulvshale-nyord-dk": (2, 8.3), "fur-dk": (4, 9.4), "rude-skov-dk": (2, 12.3), "lille-vildmose-dk": (3, 3.4), "pedersker-plantage-dk": (2, 5.9), "ristinge-halvo-dk": (2, 6.6), "hovens-skov-dk": (2, 4.3), "skjern-birk-plantage-dk": (3, 4.0), "linnebjerg-plantage-dk": (2, 2.3), "bramslev-bakker-dk": (7, 21.4), "louns-halvo-dk": (4, 10.4), "sottrup-skov-dk": (3, 13.5), "mosely-mariager-dk": (4, 7.4), "horning-dk": (7, 23.1), "illerup-adal-dk": (4, 12.5), "kong-mose-dk": (3, 13.8), "varming-hede-dk": (4, 7.2), "ornhoj-dk": (3, 30.5), "aarup-dk": (6, 20.1), "arrild-ferieby-dk": (7, 14.8), "skovsgaard-tasinge-dk": (3, 3.7), "fyrkat-hobro-dk": (2, 2.8), "hals-mose-dk": (3, 15.3), "trelde-naes-dk": (2, 11.2), "nordborg-mjels-so-dk": (6, 22.4),
         # island floor batch (local qualify; the Actions qualify run re-confirms)
         "lyo-dk": (1, 7.5), "drejo-dk": (1, 3.6), "barso-dk": (1, 4.1), "livo-dk": (1, 4.0),
         # reconcile 13 batch A (local qualify; the Actions qualify run re-confirms)
@@ -699,7 +709,9 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         # class-A batch C (Actions qualify 45468442162)
         "vestskoven-dk": (4, 13.8),
         # audit 16 batch B (local replay on denmark-20261124; the Actions qualify run re-confirms)
-        "riis-skov-dk": (3, 7.4)}
+        "riis-skov-dk": (3, 7.4),
+        # audit 17 batch C (local replay on denmark-20261124; the Actions qualify run re-confirms)
+        "grene-sande-dk": (2, 8.1), "faarup-so-dk": (3, 7.8)}
     # Hjertesti rule: the four Hjertestier are required, never forbidden
     for aid, name in (("kelstrup-plantage-dk", "Hjertestien, Sønderhav/Østerskov"), ("kollund-skov-dk", "Hjertestien, Kollund Skov"),
                       ("sogard-skov-dk", "Hjertestien, Søgård Sø")):
@@ -745,14 +757,14 @@ def test_blessed_table_is_exactly_mols_plus_the_four_blessed_parks_plus_batch2()
         assert name in table[aid]["required_names"]
     # BATCH-1 (2026-11-01): the two Vester Aslund fragments are removed and forbidden
     assert {"Vester Aslund Blå rute", "Vester Aslund Rød rute"} <= set(table["vester-aslund-plantage-dk"]["forbidden_names"])
-    assert not set(table) & ({*BATCH_K_HELD_NEW, "naturreservatet-stoubaek-krat-dk"} - set(BATCH_3_SHIP) - set(SCALE5_SHIP))
+    assert not set(table) & ({*BATCH_K_HELD_NEW, "naturreservatet-stoubaek-krat-dk"} - set(BATCH_3_SHIP) - set(SCALE5_SHIP) - set(AUDIT17_C_UNHELD))
     # batch L (second-review-l, qualify on main 41274401263): every shipped trail is a required name, Skælskør is
     # blessed at the Actions 16.6, and the eight held entries are not blessed
     for aid, name in (("bangsbo-skov-dk", "Bangsbo Skov blå rute"), ("tinglev-dk", "Tinglev Mose"),
                       ("skaelskor-dk", "Kobæk Kvalitetssti"), ("slivso-dk", "Slivsø, nord"),
                       ("sindal-dk", "Ulstedbostien"), ("bogense-dk", "Engruten")):
         assert name in table[aid]["required_names"], (aid, name)
-    assert not set(table) & set(BATCH_L_HELD_NEW)
+    assert not set(table) & (set(BATCH_L_HELD_NEW) - set(AUDIT17_C_UNHELD))
     # Mols entry is byte-identical to its pre-bless form (as committed in the raw file)
     raw = json.loads(EXPECTED.read_text(encoding="utf-8"))["areas"][MOLS]
     assert json.dumps(raw, sort_keys=True) == json.dumps(table[MOLS], sort_keys=True)

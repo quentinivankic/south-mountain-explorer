@@ -3786,18 +3786,34 @@
     },
     {
       "id": "grene-sande-dk",
-      "name": "Grene Sande",
+      "name": "Gyttegårds Plantage",
+      "display_name": "Gyttegårds Plantage og Grene Sande",
       "state": "Denmark",
-      "relation_id": 7005962,
-      "bbox": null,
-      "center": null,
+      "relation_id": 7003066,
+      "bbox": [8.98, 55.676, 9.115, 55.77],
+      "center": [55.72, 9.04],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 2,
       "est_mi": 8.1,
-      "notes": "Batch K (D-US polygon tier, dk-v3 replay, 2026-10-31): HOLD. Grene Sande heath (relation 7005962, natural=heath): two old lwn relations with bare names Gul tur (9.38 km) and Rød tur (3.68 km) come out as Grene Sande Gul tur 5.83 mi and Rød tur 2.29, but only 51 and 36 percent of their length lies inside the polygon and nothing (operator, website, symbol text) shows who signs them. Two bare-named walks, mostly outside the area. Unlock: operator evidence or a polygon that holds the loops.",
-      "trail_name_prefix": "Grene Sande"
+      "notes": "Audit 17 batch C (2026-11-26), final/audit17-vet.md Q4 #1, reconcile-14 D058/D059 SHIP. Hold lifted: the 10/31 hold wanted operator evidence or a polygon that holds the loops. Both exist now. Gul tur r2329456 (lwn, route=foot, yellow:yellow:yellow, 5.8 mi, 100% path) carries a url tag to the Naturstyrelsen leaflet 64_Gyttegaard_Plantage.pdf, and Rød tur r2329471 (lwn, red:red:red, 2.3 mi, 91% path) is the same leaflet's second loop. The forest Gyttegårds Plantage (r7003066, landuse=forest, wikidata Q23747293) holds 59% and 53% of them (dk-v3 minimum 25%); with the adjoining heath Grene Sande (r7005962) 89% and 100%. Nearest live DK trail 6.7 km (Randbøl Hede). Bless only from the Actions qualify run.",
+      "trail_name_prefix": "Gyttegårds Plantage",
+      "include_trails": [
+        {
+          "id": "r2329456",
+          "name": "Gul tur",
+          "reason": "Naturstyrelsen lwn walk (url tag to the Gyttegård Plantage leaflet), whole route"
+        },
+        {
+          "id": "r2329471",
+          "name": "Rød tur",
+          "reason": "Naturstyrelsen lwn walk (second loop of the Gyttegård Plantage leaflet), whole route"
+        }
+      ],
+      "container_by_id": {
+        "reason": "Gyttegårds Plantage forest relation r7003066 (named forest, 59% and 53% of the two loops; with the Grene Sande heath 89% and 100%)"
+      }
     },
     {
       "id": "rodding-skov-dk",
@@ -4660,14 +4676,14 @@
       "name": "Fårup Sø",
       "state": "Denmark",
       "relation_id": 3238879,
-      "bbox": null,
-      "center": null,
+      "bbox": [9.32, 55.66, 9.48, 55.79],
+      "center": [55.727, 9.402],
       "rules": "dk-v3",
       "tier": 2,
-      "hold": "curated-do-not-ship",
+      "hold": null,
       "est_trails": 3,
-      "est_mi": 6.3,
-      "notes": "Batch L (route-cluster, container_from_routes from PR 677, 2026-10-31): Fårup Sø HOLD (batch L route-cluster): Rundt om Fårup Sø 3.35 mi, Rugballe Mose 1.86, Sti fra Jelling 1.09 (Vejle Kommune). The fourth Vejle route Fårupgår - Fårup Sø fails the relation-gap gate, so the set is incomplete, and Sti fra Jelling is a town link. Unlock: reviewed accept_gap for Fårupgår or an OSM fix.",
+      "est_mi": 7.8,
+      "notes": "Audit 17 batch C (2026-11-26), final/audit17-vet.md Q4 #2, reconcile-14 SHIP. Hold lifted by the reviewed accept_gap its note asked for. Three Vejle Kommune lwn walks at Fårup Sø, Jelling: Rundt om Fårup Sø 3.35 mi, Rugballe Mose 1.86, Fårupgår - Fårup Sø 2.63 (red:green:red_pointer, 71% path). Fårupgår has a 377 m hole inside its OSM relation (9% of its length); accept_gap r3238860 max_gap_m 400 ships the two parts as separate segments, no geometry is synthesized. Sti fra Jelling (1.09 mi) is a town link and stays out. Nearest live DK trail 1.3 km (Grejsdalen), 0% overlap. Bless only from the Actions qualify run.",
       "container_from_routes": {
         "reason": "No usable named OSM polygon for Fårup Sø; container derived from the 3 included signed routes"
       },
@@ -4683,9 +4699,16 @@
           "reason": "Vejle Kommune lwn walk, whole route"
         },
         {
-          "id": "r3238900",
-          "name": "Sti fra Jelling",
+          "id": "r3238860",
+          "name": "Fårupgår - Fårup Sø",
           "reason": "Vejle Kommune lwn walk, whole route"
+        }
+      ],
+      "accept_gap": [
+        {
+          "relation": "r3238860",
+          "max_gap_m": 400,
+          "reason": "Fårupgår - Fårup Sø (Vejle Kommune lwn walk): the OSM relation has a 377 m gap between 2 pieces (9% of its length); the two parts ship as separate segments, no geometry is synthesized"
         }
       ]
     },
@@ -5522,11 +5545,11 @@
       "rules": "dk-v3",
       "tier": 2,
       "hold": null,
-      "est_trails": 2,
-      "est_mi": 4.5,
-      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-039 near Mariager): container_from_routes. Bless only from the Actions qualify run.",
+      "est_trails": 4,
+      "est_mi": 7.4,
+      "notes": "Scale batch 2 (wf_554aec60e2e8401d, census cluster-039 near Mariager): container_from_routes. Bless only from the Actions qualify run. Audit 17 batch C (2026-11-26, final/audit17-vet.md Q4 #5, reconcile-14 D425): update mode adds Frydensbjergruten r21192792 (2.0 mi, 89% path) and Oldtidsruten r21202928 (1.3 mi, 92% path) only; the rest of the Mariager municipal series (Mariager Ruten, Hohøj Ruten, Katbjerg Odde) stays out for path share.",
       "container_from_routes": {
-        "reason": "No usable named OSM polygon for Mosely ved Mariager; container derived from the 2 included signed routes"
+        "reason": "No usable named OSM polygon for Mosely ved Mariager; container derived from the 4 included signed routes"
       },
       "include_trails": [
         {
@@ -5538,6 +5561,16 @@
           "id": "r12856186",
           "name": "Låenhusruten",
           "reason": "signed named walk, whole route"
+        },
+        {
+          "id": "r21192792",
+          "name": "Frydensbjergruten",
+          "reason": "Mariagerfjord Kommune hiking route (blue:green:blue_triangle, udinaturen.dk page), whole route, 1.2 km from Mosely"
+        },
+        {
+          "id": "r21202928",
+          "name": "Oldtidsruten",
+          "reason": "Mariagerfjord Kommune hiking route (blue:green:blue_triangle, udinaturen.dk page), whole route, same municipal series as Frydensbjergruten"
         }
       ]
     },

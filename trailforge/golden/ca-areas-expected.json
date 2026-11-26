@@ -175,7 +175,7 @@
     },
     "polletts-cove-aspy-fault-wilderness-area-ca-ns": {
       "trail_count": 2,
-      "total_mi": 16.5,
+      "total_mi": 20.3,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -340,7 +340,7 @@
     },
     "fundy-national-park-ca-nb": {
       "trail_count": 26,
-      "total_mi": 65.8,
+      "total_mi": 67.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -490,7 +490,7 @@
     },
     "banff-national-park-ca-ab": {
       "trail_count": 105,
-      "total_mi": 355.9,
+      "total_mi": 357.2,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "Glacier Lake Route",
@@ -1617,7 +1617,7 @@
     },
     "pacific-rim-national-park-reserve-of-canada-ca-bc": {
       "trail_count": 8,
-      "total_mi": 53.1,
+      "total_mi": 55.9,
       "total_mi_tolerance": 0.05,
       "required_names": [
         "West Coast Trail"
@@ -2283,7 +2283,7 @@
     },
     "riding-mountain-national-park-ca-mb": {
       "trail_count": 33,
-      "total_mi": 185.2,
+      "total_mi": 186.2,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
@@ -3452,7 +3452,7 @@
     },
     "monkman-provincial-park-ca-bc": {
       "trail_count": 4,
-      "total_mi": 15.3,
+      "total_mi": 18.1,
       "total_mi_tolerance": 0.05,
       "required_names": [],
       "forbidden_names": [
